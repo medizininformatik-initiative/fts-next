@@ -17,14 +17,14 @@ class EverythingDataSelectorFactoryTest {
 
   @Test
   void testConfigType() {
-    IRestfulClientFactory clientFactory = FhirContext.forR4().getRestfulClientFactory();
-    assertThat(new EverythingDataSelectorFactory(clientFactory).getConfigType()).isNotNull();
+    IRestfulClientFactory clientFactory = fhir.getRestfulClientFactory();
+    assertThat(new EverythingDataSelectorFactory(clientFactory, fhir).getConfigType()).isNotNull();
   }
 
   @Test
   void testCreateWithoutResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory())
+            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir)
                 .create(
                     null,
                     new EverythingDataSelectorConfig(
@@ -35,7 +35,7 @@ class EverythingDataSelectorFactoryTest {
   @Test
   void testCreateWithResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory())
+            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir)
                 .create(
                     null,
                     new EverythingDataSelectorConfig(

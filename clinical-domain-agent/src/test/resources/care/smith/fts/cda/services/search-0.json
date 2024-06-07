@@ -1,0 +1,18 @@
+{
+  "id": "DD7STWMCSAW55A4S",
+  "type": "searchset",
+  "entry": [
+  ],
+  "link": [
+    {
+      "relation": "self",
+      "url": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Patient?identifier=https%3A%2F%2Fsome.example.com%2Fpid%7Cpatient-141392&_count=50&__t=29035&__page-id=patient-141392"
+    },
+    {
+      "relation": "first",
+      "url": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Patient/__page?identifier=https%3A%2F%2Fsome.example.com%2Fpid%7Cpatient-141392&_count=50&__t=29035"
+    }
+  ],
+  "total": 0,
+  "resourceType": "Bundle"
+}

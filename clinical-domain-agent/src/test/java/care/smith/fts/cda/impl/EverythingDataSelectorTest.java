@@ -11,6 +11,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.DataSelector;
 import care.smith.fts.api.Period;
+import care.smith.fts.cda.test.MockServerUtil;
 import care.smith.fts.util.HTTPClientConfig;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
@@ -22,19 +23,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.Header;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
 @ExtendWith(MockServerExtension.class)
 class EverythingDataSelectorTest {
 
   private static final String PATIENT_ID = "patient-112348";
   private static final Header CONTENT_JSON = new Header("Content-Type", "application/json");
+  private static final FhirContext FHIR = FhirContext.forR4();
 
   private EverythingDataSelector dataSelector;
-
-  @Autowired FhirContext fhir;
 
   @BeforeEach
   void setUp(MockServerClient mockServer) throws Exception {
@@ -44,9 +41,9 @@ class EverythingDataSelectorTest {
     this.dataSelector =
         new EverythingDataSelector(
             common,
-            server.createClient(fhir.getRestfulClientFactory()),
+            server.createClient(FHIR.getRestfulClientFactory()),
             pid -> new IdType("Patient", pid));
-    try (var inStream = getClass().getResourceAsStream("metadata.json"); ) {
+    try (var inStream = MockServerUtil.class.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();
       mockServer
           .when(request().withMethod("GET").withPath("/metadata"))
@@ -55,13 +52,10 @@ class EverythingDataSelectorTest {
   }
 
   @Test
-  void noConsentThrows(MockServerClient mockServer) throws Exception {
+  void noConsentThrows() {
     ConsentedPolicies consentedPolicies = new ConsentedPolicies();
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(
-            () -> {
-              dataSelector.select(new ConsentedPatient(PATIENT_ID, consentedPolicies));
-            });
+        .isThrownBy(() -> dataSelector.select(new ConsentedPatient(PATIENT_ID, consentedPolicies)));
   }
 
   @Test

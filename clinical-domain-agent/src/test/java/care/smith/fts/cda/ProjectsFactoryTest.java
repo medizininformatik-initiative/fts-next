@@ -3,10 +3,10 @@ package care.smith.fts.cda;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import care.smith.fts.cda.impl.MockBundleSender;
-import care.smith.fts.cda.impl.MockCohortSelector;
-import care.smith.fts.cda.impl.MockDataSelector;
-import care.smith.fts.cda.impl.MockDeidentificationProvider;
+import care.smith.fts.cda.test.MockBundleSender;
+import care.smith.fts.cda.test.MockCohortSelector;
+import care.smith.fts.cda.test.MockDataSelector;
+import care.smith.fts.cda.test.MockDeidentificationProvider;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;

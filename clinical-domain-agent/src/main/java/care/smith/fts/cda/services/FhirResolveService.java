@@ -14,12 +14,14 @@ import org.hl7.fhir.r4.model.Patient;
 @Slf4j
 public class FhirResolveService implements PatientIdResolver {
 
+  private final FhirContext fhir;
   private final IGenericClient client;
   private final String identifierSystem;
 
-  public FhirResolveService(String identifierSystem, IGenericClient client) {
+  public FhirResolveService(String identifierSystem, IGenericClient client, FhirContext fhir) {
     this.identifierSystem = identifierSystem;
     this.client = client;
+    this.fhir = fhir;
   }
 
   /**
@@ -31,16 +33,11 @@ public class FhirResolveService implements PatientIdResolver {
    */
   @Override
   public IIdType resolve(String patientId) {
-    IIdType idElement = this.resolveFromPatient(patientId).getIdElement();
-    if (idElement.hasResourceType()) {
-      return idElement;
-    } else {
-      return idElement.withResourceType("Patient");
-    }
+    return this.resolveFromPatient(patientId).getIdElement();
   }
 
   private IBaseResource resolveFromPatient(String patientId) {
-    requireNonNull(emptyToNull(patientId), "patientId must not be empty");
+    requireNonNull(emptyToNull(patientId), "patientId must not be null or empty");
     Bundle patients = fetchPatientBundle(patientId);
     checkBundleNotEmpty(patients, patientId);
     checkSinglePatient(patients, patientId);
@@ -56,25 +53,19 @@ public class FhirResolveService implements PatientIdResolver {
         .execute();
   }
 
-  private static void checkSinglePatient(Bundle patients, String patientId) {
+  private void checkSinglePatient(Bundle patients, String patientId) {
     if (patients.getTotal() != 1 || patients.getEntry().size() != 1) {
       throw new IllegalStateException(
-          "Received more then one result while resolving patient ID %s :%s%s"
-              .formatted(
-                  patientId,
-                  System.lineSeparator(),
-                  FhirContext.forR4().newJsonParser().encodeResourceToString(patients)));
+          "Received more then one result while resolving patient ID %s: %s"
+              .formatted(patientId, fhir.newJsonParser().encodeResourceToString(patients)));
     }
   }
 
-  private static void checkBundleNotEmpty(Bundle patients, String patientId) {
+  private void checkBundleNotEmpty(Bundle patients, String patientId) {
     if (patients.getTotal() == 0 || patients.getEntry().isEmpty()) {
       throw new IllegalStateException(
-          "Unable to resolve patient ID %s :%s%s"
-              .formatted(
-                  patientId,
-                  System.lineSeparator(),
-                  FhirContext.forR4().newJsonParser().encodeResourceToString(patients)));
+          "Unable to resolve patient ID %s: %s"
+              .formatted(patientId, fhir.newJsonParser().encodeResourceToString(patients)));
     }
   }
 }

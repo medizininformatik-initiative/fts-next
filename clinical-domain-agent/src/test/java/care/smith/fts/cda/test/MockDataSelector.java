@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.cda.test;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DataSelector;

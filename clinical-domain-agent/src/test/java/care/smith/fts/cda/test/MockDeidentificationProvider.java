@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.cda.test;
 
 import care.smith.fts.api.DeidentificationProvider;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
