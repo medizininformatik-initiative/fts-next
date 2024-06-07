@@ -10,7 +10,7 @@ public class R4TransferProcessRunner {
 
   private final ForkJoinPool pool;
 
-    public R4TransferProcessRunner(@Qualifier("transfer-process") ForkJoinPool pool) {
+    public R4TransferProcessRunner(@Qualifier("transferProcessPool") ForkJoinPool pool) {
         this.pool = pool;
     }
 

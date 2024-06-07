@@ -27,11 +27,12 @@ class R4TransferProcessRunnerTest {
 
   @Test
   void runMockTestSuccessfully() {
-    TransferProcessConfig processDefinition = new TransferProcessConfig();
-    processDefinition.setCohortSelector(Map.of("mock", Map.of("pids", List.of(PATIENT_ID))));
-    processDefinition.setDataSelector(Map.of("mock", Map.of()));
-    processDefinition.setDeidentificationProvider(Map.of("mock", Map.of("deidentify", false)));
-    processDefinition.setBundleSender(Map.of("mock", Map.of("expect", List.of(PATIENT_ID))));
+    TransferProcessConfig processDefinition =
+        new TransferProcessConfig(
+            Map.of("mock", Map.of("pids", List.of(PATIENT_ID))),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of("deidentify", false)),
+            Map.of("mock", Map.of("expect", List.of(PATIENT_ID))));
 
     assertThat(runner.run(factory.create(processDefinition))).allMatch(TRUE::equals);
   }

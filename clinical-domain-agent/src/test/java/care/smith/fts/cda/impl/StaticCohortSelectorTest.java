@@ -30,7 +30,7 @@ class StaticCohortSelectorTest {
   @Test
   void containsExactlyPatientsConfigured() {
     assertThat(selector.selectCohort())
-        .map(ConsentedPatient::pid)
+        .map(ConsentedPatient::id)
         .containsExactlyInAnyOrder(TEST_PID);
   }
 }

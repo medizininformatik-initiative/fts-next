@@ -8,6 +8,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 
@@ -15,7 +16,10 @@ import org.springframework.context.ApplicationContext;
 class TransferProcessFactoryTest {
 
   @Autowired private ApplicationContext context;
-  @Autowired private ObjectMapper objectMapper;
+
+  @Autowired
+  @Qualifier("transferProcessObjectMapper")
+  private ObjectMapper objectMapper;
 
   TransferProcessFactory factory;
 
@@ -38,18 +42,18 @@ class TransferProcessFactoryTest {
     assertThatExceptionOfType(NullPointerException.class)
         .isThrownBy(
             () -> {
-              factory.create(new TransferProcessConfig());
+              factory.create(new TransferProcessConfig(null, null, null, null));
             });
   }
 
   @Test
   void ignoreCommonConfigEntries() {
-    TransferProcessConfig processDefinition = new TransferProcessConfig();
-    processDefinition.setCohortSelector(Map.of("mock", Map.of()));
-    processDefinition.setDataSelector(
-        Map.of("mock", Map.of(), "resolvePatient", Map.of(), "additionalFilter", Map.of()));
-    processDefinition.setDeidentificationProvider(Map.of("mock", Map.of()));
-    processDefinition.setBundleSender(Map.of("mock", Map.of()));
+    TransferProcessConfig processDefinition =
+        new TransferProcessConfig(
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of(), "additionalFilter", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()));
 
     assertThatNoException()
         .isThrownBy(
@@ -60,11 +64,12 @@ class TransferProcessFactoryTest {
 
   @Test
   void unknownConfigEntriesThrow() {
-    TransferProcessConfig processDefinition = new TransferProcessConfig();
-    processDefinition.setCohortSelector(Map.of("mock", Map.of(), "unknown", Map.of()));
-    processDefinition.setDataSelector(Map.of("mock", Map.of()));
-    processDefinition.setDeidentificationProvider(Map.of("mock", Map.of()));
-    processDefinition.setBundleSender(Map.of("mock", Map.of()));
+    TransferProcessConfig processDefinition =
+        new TransferProcessConfig(
+            Map.of("mock", Map.of(), "unknown", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(
@@ -75,11 +80,12 @@ class TransferProcessFactoryTest {
 
   @Test
   void noImplementationThrows() {
-    TransferProcessConfig processDefinition = new TransferProcessConfig();
-    processDefinition.setCohortSelector(Map.of("mock", Map.of()));
-    processDefinition.setDataSelector(Map.of("resolvePatient", Map.of()));
-    processDefinition.setDeidentificationProvider(Map.of("mock", Map.of()));
-    processDefinition.setBundleSender(Map.of("mock", Map.of()));
+    TransferProcessConfig processDefinition =
+        new TransferProcessConfig(
+            Map.of("mock", Map.of()),
+            Map.of("ignoreConsent", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(
@@ -90,11 +96,28 @@ class TransferProcessFactoryTest {
 
   @Test
   void unknownImplementationThrows() {
-    TransferProcessConfig processDefinition = new TransferProcessConfig();
-    processDefinition.setCohortSelector(Map.of("unknown", Map.of()));
-    processDefinition.setDataSelector(Map.of("mock", Map.of()));
-    processDefinition.setDeidentificationProvider(Map.of("mock", Map.of()));
-    processDefinition.setBundleSender(Map.of("mock", Map.of()));
+    TransferProcessConfig processDefinition =
+        new TransferProcessConfig(
+            Map.of("unknown", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()));
+
+    assertThatExceptionOfType(IllegalArgumentException.class)
+        .isThrownBy(
+            () -> {
+              factory.create(processDefinition);
+            });
+  }
+
+  @Test
+  void invalidConfigEntryThrows() {
+    TransferProcessConfig processDefinition =
+        new TransferProcessConfig(
+            Map.of("mock", Map.of("pids", "dude")),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(
@@ -105,11 +128,12 @@ class TransferProcessFactoryTest {
 
   @Test
   void validConfig() {
-    TransferProcessConfig processDefinition = new TransferProcessConfig();
-    processDefinition.setCohortSelector(Map.of("mock", Map.of()));
-    processDefinition.setDataSelector(Map.of("mock", Map.of()));
-    processDefinition.setDeidentificationProvider(Map.of("mock", Map.of()));
-    processDefinition.setBundleSender(Map.of("mock", Map.of()));
+    TransferProcessConfig processDefinition =
+        new TransferProcessConfig(
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()),
+            Map.of("mock", Map.of()));
 
     assertThatNoException()
         .isThrownBy(

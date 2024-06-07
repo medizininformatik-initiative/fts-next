@@ -1,0 +1,6 @@
+projects:
+  directory: "src/test/resources/projects"
+
+logging.level:
+  org.mockserver.log: WARN
+  care.smith.fts.cda: DEBUG

@@ -14,13 +14,24 @@ public class MockCohortSelector implements CohortSelector.Factory<MockCohortSele
   }
 
   @Override
-  public CohortSelector create(
-      CohortSelector.Config commonConfig, Config implConfig) {
-    return () ->
-        implConfig.pids().stream()
-            .map(pid -> new ConsentedPatient(pid, new ConsentedPolicies()))
-            .toList();
+  public CohortSelector create(CohortSelector.Config commonConfig, Config implConfig) {
+    return new Impl(implConfig);
   }
 
   public record Config(List<String> pids) {}
+
+  public static class Impl implements CohortSelector {
+    private final MockCohortSelector.Config implConfig;
+
+    public Impl(MockCohortSelector.Config implConfig) {
+      this.implConfig = implConfig;
+    }
+
+    @Override
+    public List<ConsentedPatient> selectCohort() {
+      return implConfig.pids().stream()
+          .map(pid -> new ConsentedPatient(pid, new ConsentedPolicies()))
+          .toList();
+    }
+  }
 }

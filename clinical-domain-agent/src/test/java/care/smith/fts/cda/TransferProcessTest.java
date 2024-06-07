@@ -24,7 +24,7 @@ class TransferProcessTest {
             new MockCohortSelector()
                 .create(new CohortSelector.Config(), new MockCohortSelector.Config(List.of())),
             new MockDataSelector()
-                .create(new DataSelector.Config(null, null), new MockDataSelector.Config()),
+                .create(new DataSelector.Config(false, null), new MockDataSelector.Config()),
             new MockDeidentificationProvider()
                 .create(
                     new DeidentificationProvider.Config(),

@@ -1,11 +1,18 @@
 package care.smith.fts.cda;
 
 import static ca.uhn.fhir.rest.client.api.IRestfulClientFactory.*;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.hc.core5.util.Timeout.ofMilliseconds;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.IRestfulClientFactory;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ForkJoinPool;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -17,6 +24,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 @Slf4j
 @SpringBootApplication
@@ -63,9 +71,30 @@ public class ClinicalDomainAgent {
     return fhir.newRestfulGenericClient("http://localhost");
   }
 
-  @Bean("transfer-process")
+  @Bean
   public ForkJoinPool transferProcessPool(
-      @Value("${transferProcess.parallelism}") int parallelism) {
+      @Value("${transferProcess.parallelism:4}") int parallelism) {
     return new ForkJoinPool(parallelism);
+  }
+
+  @Bean
+  @Primary
+  public ObjectMapper defaultObjectMapper() {
+    return new ObjectMapper().registerModule(new JavaTimeModule());
+  }
+
+  @Bean
+  public ObjectMapper transferProcessObjectMapper() {
+    return new ObjectMapper(new YAMLFactory())
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  }
+
+  @Bean
+  public Path projectsDirectory(@Value("${projects.directory:}")String directoryName) {
+    if (isNullOrEmpty(directoryName)) {
+      return Paths.get("projects");
+    } else {
+      return Paths.get(directoryName);
+    }
   }
 }

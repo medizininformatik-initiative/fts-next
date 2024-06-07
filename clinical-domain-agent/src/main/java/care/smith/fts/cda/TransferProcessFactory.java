@@ -3,92 +3,111 @@ package care.smith.fts.cda;
 import static java.util.Arrays.stream;
 
 import care.smith.fts.api.*;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
 import java.lang.reflect.Field;
 import java.lang.reflect.RecordComponent;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class TransferProcessFactory {
 
-  private final ApplicationContext applicationContext;
+  private final ApplicationContext context;
   private final ObjectMapper objectMapper;
 
-  public TransferProcessFactory(ApplicationContext applicationContext, ObjectMapper objectMapper) {
-    this.applicationContext = applicationContext;
+  public TransferProcessFactory(
+      ApplicationContext context,
+      @Qualifier("transferProcessObjectMapper") ObjectMapper objectMapper) {
+    this.context = context;
     this.objectMapper = objectMapper;
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   }
 
   @SuppressWarnings("unchecked")
   public TransferProcess create(TransferProcessConfig processDefinition) {
+    log.debug("Create TransferProcess from definition: {}", processDefinition);
     CohortSelector cohortSelector =
-        findImpl(
+        instantiateImpl(
             CohortSelector.class,
             CohortSelector.Factory.class,
             CohortSelector.Config.class,
-            processDefinition.getCohortSelector());
+            processDefinition.cohortSelector());
     DataSelector dataSelector =
-        findImpl(
+        instantiateImpl(
             DataSelector.class,
             DataSelector.Factory.class,
             DataSelector.Config.class,
-            processDefinition.getDataSelector());
+            processDefinition.dataSelector());
     DeidentificationProvider deidentificationProvider =
-        findImpl(
+        instantiateImpl(
             DeidentificationProvider.class,
             DeidentificationProvider.Factory.class,
             DeidentificationProvider.Config.class,
-            processDefinition.getDeidentificationProvider());
+            processDefinition.deidentificationProvider());
     BundleSender bundleSender =
-        findImpl(
+        instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
-            processDefinition.getBundleSender());
+            processDefinition.bundleSender());
     return new TransferProcess(
         cohortSelector, dataSelector, deidentificationProvider, bundleSender);
   }
 
-  private <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> TYPE findImpl(
+  private <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> TYPE instantiateImpl(
       Class<TYPE> stepClass,
       Class<FACTORY> factoryClass,
       Class<CC> commonConfigClass,
-      Map<String, Object> config) {
+      @NotNull Map<String, ?> config) {
 
+    var impl = findImpl(stepClass, factoryClass, commonConfigClass, config);
+    return instantiate(stepClass, factoryClass, commonConfigClass, impl);
+  }
+
+  private <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> Entry<String, ?> findImpl(
+      Class<TYPE> stepClass,
+      Class<FACTORY> factoryClass,
+      Class<CC> commonConfigClass,
+      Map<String, ?> config) {
     var commonConfigEntries = commonConfigEntries(commonConfigClass);
     var configEntries = config.entrySet();
     var implementations =
-        configEntries.stream().filter(e -> !commonConfigEntries.contains(e.getKey())).toList();
+            configEntries.stream().filter(e -> !commonConfigEntries.contains(e.getKey())).toList();
 
-    if (implementations.isEmpty()) {
-      throw noImplInConfig(factoryClass);
-    } else if (implementations.size() > 1) {
-      throw multipleImplsInConfig(
-          stepClass, implementations.stream().map(Map.Entry::getKey).toList());
-    } else {
-      return instantiate(stepClass, factoryClass, commonConfigClass, implementations.get(0));
+    checkImplementationFound(factoryClass, implementations);
+    checkOnlyOneImplementation(stepClass, implementations);
+    return implementations.get(0);
+  }
+
+  private static <TYPE> void checkOnlyOneImplementation(
+      Class<TYPE> stepClass, List<? extends Entry<String, ?>> implementations) {
+    if (implementations.size() > 1) {
+      throw new IllegalArgumentException(
+          "Multiple config entries look like an implementation for %s: %s"
+              .formatted(
+                  stepClass.getSimpleName(), implementations.stream().map(Entry::getKey).toList()));
     }
   }
 
-  private static IllegalArgumentException multipleImplsInConfig(
-      Class<?> stepClass, List<String> implementations) {
-    return new IllegalArgumentException(
-        "Multiple config entries look like an implementation for %s: %s"
-            .formatted(stepClass.getSimpleName(), implementations));
-  }
-
-  private static IllegalArgumentException noImplInConfig(Class<?> stepClass) {
-    return new IllegalArgumentException(
-        "No config entry looks like an implementation for %s".formatted(stepClass.getSimpleName()));
+  private static <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>>
+      void checkImplementationFound(
+          Class<FACTORY> factoryClass, List<? extends Entry<String, ?>> implementations) {
+    if (implementations.isEmpty()) {
+      throw new IllegalArgumentException(
+          "No config entry looks like an implementation for %s"
+              .formatted(factoryClass.getSimpleName()));
+    }
   }
 
   private static <CC> Set<String> commonConfigEntries(Class<CC> commonConfigClass) {
@@ -101,22 +120,26 @@ public class TransferProcessFactory {
       Class<STEPTYPE> stepClass,
       Class<FACTORY> factoryClass,
       Class<CC> commonConfigClass,
-      Map.Entry<String, Object> config) {
+      Entry<String, ?> config) {
     String implName = config.getKey();
     try {
-      FACTORY factoryImpl =
-          applicationContext.getBean(implName + stepClass.getSimpleName(), factoryClass);
-      IC implConfig = objectMapper.convertValue(config.getValue(), factoryImpl.getConfigType());
-      CC commonConfig = objectMapper.convertValue(config.getValue(), commonConfigClass);
+      FACTORY factoryImpl = context.getBean(implName + stepClass.getSimpleName(), factoryClass);
+      CC commonConfig = createConfig(commonConfigClass, config);
+      IC implConfig = createConfig(factoryImpl.getConfigType(), config);
       return stepClass.cast(factoryImpl.create(commonConfig, implConfig));
     } catch (NoSuchBeanDefinitionException e) {
-      throw noImplFound(stepClass, implName);
+      throw new IllegalArgumentException(
+          "Implementation %s could not be found for %s"
+              .formatted(implName, stepClass.getSimpleName()));
     }
   }
 
-  private static IllegalArgumentException noImplFound(Class<?> stepClass, String implName) {
-    return new IllegalArgumentException(
-        "Implementation %s could not be found for %s"
-            .formatted(implName, stepClass.getSimpleName()));
+  private <C> C createConfig(Class<C> configClass, Entry<String, ?> config) {
+    try {
+      return objectMapper.convertValue(config.getValue(), configClass);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Invalid config entry '%s', \n%s".formatted(config.getKey(), config.getValue()), e);
+    }
   }
 }

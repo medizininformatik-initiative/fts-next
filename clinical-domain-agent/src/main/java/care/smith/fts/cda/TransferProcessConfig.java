@@ -1,12 +1,11 @@
 package care.smith.fts.cda;
 
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import lombok.*;
 
-@Data
-public class TransferProcessConfig {
-  private Map<String, Object> cohortSelector;
-  private Map<String, Object> dataSelector;
-  private Map<String, Object> deidentificationProvider;
-  private Map<String, Object> bundleSender;
-}
+public record TransferProcessConfig(
+    @NotNull Map<String, ?> cohortSelector,
+    @NotNull Map<String, ?> dataSelector,
+    @NotNull Map<String, ?> deidentificationProvider,
+    @NotNull Map<String, ?> bundleSender) {}

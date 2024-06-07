@@ -15,21 +15,29 @@ public class MockDeidentificationProvider
   @Override
   public DeidentificationProvider create(
       DeidentificationProvider.Config commonConfig, Config implConfig) {
-    return new DeidentificationProvider() {
-        @Override
-        public IBaseBundle deidentify(IBaseBundle b) {
-            if (implConfig.deidentify()) {
-                return scramble(b);
-            } else {
-                return b;
-            }
-        }
-
-      private IBaseBundle scramble(IBaseBundle b) {
-        return null;
-      }
-    };
+    return new Impl(implConfig);
   }
 
   public record Config(boolean deidentify) {}
+
+  public static class Impl implements DeidentificationProvider {
+    private final MockDeidentificationProvider.Config implConfig;
+
+    public Impl(MockDeidentificationProvider.Config implConfig) {
+      this.implConfig = implConfig;
+    }
+
+    @Override
+    public IBaseBundle deidentify(IBaseBundle b) {
+      if (implConfig.deidentify()) {
+        return scramble(b);
+      } else {
+        return b;
+      }
+    }
+
+    private IBaseBundle scramble(IBaseBundle b) {
+      return null;
+    }
+  }
 }

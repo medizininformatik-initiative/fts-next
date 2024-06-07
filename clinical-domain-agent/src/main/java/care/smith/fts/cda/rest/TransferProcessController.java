@@ -2,30 +2,29 @@ package care.smith.fts.cda.rest;
 
 import care.smith.fts.cda.R4TransferProcessRunner;
 import care.smith.fts.cda.TransferProcess;
-import care.smith.fts.cda.TransferProcessConfig;
-import care.smith.fts.cda.TransferProcessFactory;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
+@RequestMapping("/api/v1/process")
 public class TransferProcessController {
 
-  private final TransferProcessFactory processFactory;
   private final R4TransferProcessRunner processRunner;
+  private final ApplicationContext context;
 
-  public TransferProcessController(TransferProcessFactory processFactory, R4TransferProcessRunner processRunner) {
-    this.processFactory = processFactory;
-    this.processRunner = processRunner;
+  public TransferProcessController(R4TransferProcessRunner runner, ApplicationContext context) {
+    this.processRunner = runner;
+    this.context = context;
   }
 
-  @PostMapping(value = "/process/start", consumes = "application/json")
-  Object start(@RequestBody TransferProcessConfig processDefinition) {
-    log.info("Running process: {}", processDefinition);
-    TransferProcess transferProcess = processFactory.create(processDefinition);
-    log.debug("Assembled process: {}", transferProcess);
-    List<Boolean> result = processRunner.run(transferProcess);
+  @PostMapping(value = "/{project}/start")
+  List<Boolean> start(@PathVariable String project) {
+    var process = context.getBean(project, TransferProcess.class);
+    log.debug("Running process: {}", process);
+    var result = processRunner.run(process);
     log.debug("Process run finished: {}", result);
     return result;
   }

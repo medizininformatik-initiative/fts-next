@@ -1,33 +1,64 @@
 package care.smith.fts.cda.impl;
 
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+
+import ca.uhn.fhir.rest.client.api.IGenericClient;
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DataSelector;
-import care.smith.fts.util.HTTPClientConfig;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.springframework.stereotype.Component;
+import care.smith.fts.api.Period;
+import care.smith.fts.cda.services.FhirResolveConfig;
+import care.smith.fts.cda.services.FhirResolveService;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.function.Function;
 
-@Component("everythingDataSelector")
-public class EverythingDataSelector implements DataSelector.Factory<EverythingDataSelector.Config> {
+import care.smith.fts.cda.services.PatientIdResolver;
+import org.hl7.fhir.instance.model.api.IBaseBundle;
+import org.hl7.fhir.instance.model.api.IIdType;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.IdType;
+import org.hl7.fhir.r4.model.Parameters;
 
-  public record Config(
-      HTTPClientConfig fhirServer,
-      boolean dataFilter) {}
+public class EverythingDataSelector implements DataSelector {
+  private final Config common;
+  private final IGenericClient client;
+  private final PatientIdResolver pidResolver;
 
-  private final HttpClientBuilder clientBuilder;
-
-  public EverythingDataSelector(HttpClientBuilder clientBuilder) {
-    this.clientBuilder = clientBuilder;
+  public EverythingDataSelector(
+          Config common, IGenericClient client, PatientIdResolver patientIdResolver) {
+    this.common = common;
+    this.client = client;
+    this.pidResolver = patientIdResolver;
   }
 
   @Override
-  public Class<Config> getConfigType() {
-    return Config.class;
+  public IBaseBundle select(ConsentedPatient patient) {
+    var params = new Parameters();
+    if (!common.ignoreConsent()) {
+      if (patient.maxConsentedPeriod().isPresent()) {
+        addConsentParams(params, patient.maxConsentedPeriod().get());
+      } else {
+        throw new IllegalArgumentException(
+            "Patient has no consent configured, and ignoreConsent is false.");
+      }
+    }
+
+    return client
+        .operation()
+        .onInstance(pidResolver.resolve(patient.id()))
+        .named("everything")
+        .withParameters(params)
+        .returnResourceType(Bundle.class)
+        .useHttpGet()
+        .execute();
   }
 
-  @Override
-  public DataSelector create(DataSelector.Config ignored, Config config) {
-    CloseableHttpClient client = config.fhirServer().createClient(clientBuilder);
-    // TODO Implement
-    throw new UnsupportedOperationException();
+  private void addConsentParams(Parameters params, Period period) {
+    params.addParameter("start", formatWithSystemTZ(period.start()));
+    params.addParameter("end", formatWithSystemTZ(period.end()));
+  }
+
+  private static String formatWithSystemTZ(ZonedDateTime t) {
+    return t.format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
   }
 }

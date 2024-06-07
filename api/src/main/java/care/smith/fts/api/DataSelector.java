@@ -9,11 +9,7 @@ public interface DataSelector {
 
   interface Factory<C> extends StepFactory<DataSelector, Config, C> {}
 
-  record Config(
-      @NotNull ResolvePatientConfig resolvePatient,
-      @NotNull AdditionalFilterConfig additionalFilter) {}
-
-  record ResolvePatientConfig(boolean replaceId, String patientIdentifierSystem) {}
+  record Config(boolean ignoreConsent, @NotNull AdditionalFilterConfig additionalFilter) {}
 
   record AdditionalFilterConfig(Object none, Object clinicalDate, Object encounter) {}
 }

@@ -18,6 +18,8 @@ public class DeidentifhirDeidentificationProvider
   public DeidentificationProvider create(
       DeidentificationProvider.Config commonConfig, Config implConfig) {
     // TODO Implement
-    throw new UnsupportedOperationException();
+    return b -> {
+      throw new UnsupportedOperationException();
+    };
   }
 }
