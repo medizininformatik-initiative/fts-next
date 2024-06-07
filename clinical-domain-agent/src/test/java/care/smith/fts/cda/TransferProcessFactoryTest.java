@@ -32,9 +32,7 @@ class TransferProcessFactoryTest {
   void nullConfigThrows() {
     assertThatExceptionOfType(NullPointerException.class)
         .isThrownBy(
-            () -> {
-              factory.create(null);
-            });
+            () -> factory.create(null));
   }
 
   @Test
@@ -57,9 +55,7 @@ class TransferProcessFactoryTest {
 
     assertThatNoException()
         .isThrownBy(
-            () -> {
-              factory.create(processDefinition);
-            });
+            () -> factory.create(processDefinition));
   }
 
   @Test
@@ -73,9 +69,7 @@ class TransferProcessFactoryTest {
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(
-            () -> {
-              factory.create(processDefinition);
-            });
+            () -> factory.create(processDefinition));
   }
 
   @Test
@@ -89,9 +83,7 @@ class TransferProcessFactoryTest {
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(
-            () -> {
-              factory.create(processDefinition);
-            });
+            () -> factory.create(processDefinition));
   }
 
   @Test
@@ -105,9 +97,7 @@ class TransferProcessFactoryTest {
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(
-            () -> {
-              factory.create(processDefinition);
-            });
+            () -> factory.create(processDefinition));
   }
 
   @Test
@@ -121,9 +111,7 @@ class TransferProcessFactoryTest {
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(
-            () -> {
-              factory.create(processDefinition);
-            });
+            () -> factory.create(processDefinition));
   }
 
   @Test
@@ -137,8 +125,6 @@ class TransferProcessFactoryTest {
 
     assertThatNoException()
         .isThrownBy(
-            () -> {
-              factory.create(processDefinition);
-            });
+            () -> factory.create(processDefinition));
   }
 }

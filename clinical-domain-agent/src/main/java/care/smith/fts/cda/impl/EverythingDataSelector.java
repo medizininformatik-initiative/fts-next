@@ -6,17 +6,12 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DataSelector;
 import care.smith.fts.api.Period;
-import care.smith.fts.cda.services.FhirResolveConfig;
-import care.smith.fts.cda.services.FhirResolveService;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.function.Function;
 
 import care.smith.fts.cda.services.PatientIdResolver;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
-import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Parameters;
 
 public class EverythingDataSelector implements DataSelector {

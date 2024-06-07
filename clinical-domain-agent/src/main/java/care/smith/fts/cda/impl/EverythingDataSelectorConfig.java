@@ -11,12 +11,6 @@ public record EverythingDataSelectorConfig(
     /* */
     FhirResolveConfig resolve) {
 
-  public EverythingDataSelectorConfig(
-      @NotNull HTTPClientConfig fhirServer, FhirResolveConfig resolve) {
-    this.fhirServer = fhirServer;
-    this.resolve = resolve;
-  }
-
   public EverythingDataSelectorConfig(HTTPClientConfig fhirServer) {
     this(fhirServer, null);
   }

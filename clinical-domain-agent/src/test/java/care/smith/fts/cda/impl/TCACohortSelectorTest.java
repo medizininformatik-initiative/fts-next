@@ -1,6 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
+import static java.lang.String.join;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
@@ -65,7 +66,7 @@ class TCACohortSelectorTest {
                         """
                         {"policies": ["%s"], "domain": "MII"}
                         """
-                            .formatted(POLICIES.stream().collect(Collectors.joining("\", \""))),
+                            .formatted(join("\", \"", POLICIES)),
                         ONLY_MATCHING_FIELDS)))
         .respond(response().withBody(SAMPLE_RESPONSE, APPLICATION_JSON));
 

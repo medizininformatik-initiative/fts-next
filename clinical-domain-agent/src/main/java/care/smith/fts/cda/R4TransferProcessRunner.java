@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class R4TransferProcessRunner {
 
+  // TODO use pool
   private final ForkJoinPool pool;
 
     public R4TransferProcessRunner(@Qualifier("transferProcessPool") ForkJoinPool pool) {

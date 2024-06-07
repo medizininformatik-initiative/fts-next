@@ -36,7 +36,6 @@ import redis.clients.jedis.params.SetParams;
 @ExtendWith(MockitoExtension.class)
 class FhirPseudonymProviderTest {
   @Mock CloseableHttpClient httpClient;
-  @Mock JedisPool jedisPool;
   @Mock Jedis jedis;
   @Autowired ObjectMapper objectMapper;
   @Autowired PseudonymizationConfiguration pseudonymizationConfiguration;

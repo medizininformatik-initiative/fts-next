@@ -1,10 +1,8 @@
 package care.smith.fts.util.tca;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
 import java.util.Set;
+import lombok.Data;
 
 @Data
 public class DateShiftingRequest {
