@@ -63,6 +63,8 @@ class FhirPseudonymProviderTest {
         .willReturn(fhirGenerator.generateInputStream());
 
     given(jedis.set(anyString(), anyString(), any(SetParams.class))).willReturn("OK");
+    // In retrieveTransportIds(), the first jedis.get() checks whether the ID exists
+    // already. By returning null every other call, we simulate that it is a unique ID.
     given(jedis.get(anyString())).willReturn(null, "469680023");
 
     PseudonymRequest pseudonymRequest = new PseudonymRequest();
