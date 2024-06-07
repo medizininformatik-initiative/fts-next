@@ -1,19 +1,24 @@
 consent:
   policySystem: https://ths-greifswald.de/fhir/CodeSystem/gics/Policy
-  defaultPolicies: [ ]
+  defaultPolicies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
   patientIdentifierSystem: https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym
 
   gics:
     fhir:
       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
+      pageSize: 200
       auth:
         none: { }
-    soap:
-      mainWsdlUrl: http://gics:8080/gics/gicsService?wsdl
-      additionalWsdlUrl: http://gics:8080/gics/DomainService?wsdl
 
-deidentification:
+deIdentification:
+  keystoreUrl: http://valkey:6379
   gpas:
-    soap:
-      mainWsdlUrl: http://gpas:8080/gpas/gpasService?wsdl
-      additionalWsdlUrl: http://gpas:8080/gpas/DomainService?wsdl
+    fhir:
+      baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas
+      auth:
+        none: { }
+  pseudonymization:
+    domain: domain
+    transportIdTTLinSeconds: 1000
+  dateShifting:
+    shiftByDays: 14

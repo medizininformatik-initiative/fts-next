@@ -1,4 +1,4 @@
-package care.smith.fts.tca.consent;
+package care.smith.fts.tca.consent.configuration;
 
 import java.util.HashSet;
 import lombok.Data;
@@ -16,6 +16,16 @@ public class ConsentProviderConfiguration {
   String policySystem;
   String patientIdentifierSystem;
   HashSet<String> defaultPolicies;
+
+  @Bean
+  String policySystem() {
+    return policySystem;
+  }
+
+  @Bean
+  String patientIdentifierSystem() {
+    return patientIdentifierSystem;
+  }
 
   @Bean
   HashSet<String> defaultPolicies() {

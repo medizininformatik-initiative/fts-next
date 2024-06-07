@@ -1,4 +1,4 @@
-package care.smith.fts.tca.consent;
+package care.smith.fts.tca.consent.configuration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,5 +24,10 @@ class ConsentProviderConfigurationTest {
   @Test
   void getPatientIdentifierSystem() {
     assertNotNull(consentProviderConfiguration.getPatientIdentifierSystem());
+  }
+
+  @Test
+  void getDefaultPolicies() {
+    assertNotNull(consentProviderConfiguration.getDefaultPolicies());
   }
 }

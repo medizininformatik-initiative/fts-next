@@ -1,4 +1,4 @@
-package care.smith.fts.api;
+package care.smith.fts.util.tca;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

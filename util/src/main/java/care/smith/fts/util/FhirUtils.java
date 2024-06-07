@@ -3,6 +3,7 @@ package care.smith.fts.util;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 
@@ -34,7 +35,17 @@ public class FhirUtils {
      * @return the FHIR bundle
      */
     public static Bundle inputStreamToFhirBundle(InputStream inputStream) {
-        return fctx.newJsonParser().parseResource(Bundle.class, inputStream);
+    return inputStreamToFhirResource(Bundle.class, inputStream);
+  }
+
+  /**
+   * @param clazz the class of the resource type
+   * @param inputStream the FHIR bundle as a InputStream
+   * @return the FHIR bundle
+   */
+  public static <T extends IBaseResource> T inputStreamToFhirResource(
+      Class<T> clazz, InputStream inputStream) {
+    return fctx.newJsonParser().parseResource(clazz, inputStream);
     }
 
     /**

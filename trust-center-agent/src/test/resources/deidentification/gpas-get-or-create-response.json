@@ -1,0 +1,31 @@
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {
+      "name": "pseudonym",
+      "part": [
+        {
+          "name": "original",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "$ORIGINAL"
+          }
+        },
+        {
+          "name": "target",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "$TARGET"
+          }
+        },
+        {
+          "name": "pseudonym",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "$PSEUDONYM"
+          }
+        }
+      ]
+    }
+  ]
+}

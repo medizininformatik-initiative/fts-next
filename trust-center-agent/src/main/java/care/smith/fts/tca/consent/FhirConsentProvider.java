@@ -21,21 +21,22 @@ import org.hl7.fhir.r4.model.*;
 public class FhirConsentProvider implements ConsentProvider {
   private final String patientIdentifierSystem;
   private final String policySystem;
-
-  private static final int PAGE_SIZE = 100;
+  private final int pageSize;
 
   private final CloseableHttpClient httpClient;
   private final PolicyHandler policyHandler;
 
-  FhirConsentProvider(
+  public FhirConsentProvider(
       CloseableHttpClient httpClient,
       PolicyHandler policyHandler,
       String patientIdentifierSystem,
-      String policySystem) {
+      String policySystem,
+      int pageSize) {
     this.policyHandler = policyHandler;
     this.httpClient = httpClient;
     this.patientIdentifierSystem = patientIdentifierSystem;
     this.policySystem = policySystem;
+    this.pageSize = pageSize;
   }
 
   public List<ConsentedPatient> allConsentedPatients(String domain, HashSet<String> policies)
@@ -54,13 +55,11 @@ public class FhirConsentProvider implements ConsentProvider {
 
   private Bundle fetchConsentBundleFromGics() throws IOException {
     int from = 0;
-    var bundle = fetchConsentPageFromGics(from, PAGE_SIZE);
+    var bundle = fetchConsentPageFromGics(from, pageSize);
 
-    log.info("total consents: {}", bundle.getTotal());
-
-    while (from + PAGE_SIZE < bundle.getTotal()) {
-      from += PAGE_SIZE;
-      var nextBundle = fetchConsentPageFromGics(from, from + PAGE_SIZE);
+    while (from + pageSize < bundle.getTotal()) {
+      from += pageSize;
+      var nextBundle = fetchConsentPageFromGics(from, from + pageSize);
       nextBundle.getEntry().forEach(bundle::addEntry);
     }
     return bundle;
@@ -80,18 +79,18 @@ public class FhirConsentProvider implements ConsentProvider {
     return post;
   }
 
+  private List<ConsentedPatient> fetchConsentedPatients(
+      Bundle outerBundle, Set<String> policiesToCheck) {
+    Stream<Bundle> resources = getResources(outerBundle, Bundle.class);
+    Stream<ConsentedPatient> consentedPatients = getConsentedPatients(resources, policiesToCheck);
+    return consentedPatients.collect(Collectors.toList());
+  }
+
   private static <T> Stream<T> getResources(Bundle bundle, Class<T> type) {
     return bundle.getEntry().stream()
         .map(Bundle.BundleEntryComponent::getResource)
         .filter(type::isInstance)
         .map(type::cast);
-  }
-
-  private List<ConsentedPatient> fetchConsentedPatients(
-      Bundle outerBundle, Set<String> policiesToCheck) {
-    Stream<ConsentedPatient> consentedPatients =
-        getConsentedPatients(getResources(outerBundle, Bundle.class), policiesToCheck);
-    return consentedPatients.collect(Collectors.toList());
   }
 
   private Stream<ConsentedPatient> getConsentedPatients(

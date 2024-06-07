@@ -17,7 +17,7 @@ import java.time.ZonedDateTime;
 import java.time.chrono.ChronoZonedDateTime;
 import java.util.*;
 
-public record ConsentedPatient(String pid, ConsentedPolicies consentedPolicies) {
+public record ConsentedPatient(String id, ConsentedPolicies consentedPolicies) {
 
   public Optional<Period> maxConsentedPeriod() {
     return consentedPolicies.maxConsentedPeriod();
