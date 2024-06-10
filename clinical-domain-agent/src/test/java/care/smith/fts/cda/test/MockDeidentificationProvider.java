@@ -2,25 +2,26 @@ package care.smith.fts.cda.test;
 
 import care.smith.fts.api.DeidentificationProvider;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
+import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
 
 @Component("mockDeidentificationProvider")
 public class MockDeidentificationProvider
-    implements DeidentificationProvider.Factory<MockDeidentificationProvider.Config> {
+    implements DeidentificationProvider.Factory<Bundle, MockDeidentificationProvider.Config> {
   @Override
   public Class<Config> getConfigType() {
     return Config.class;
   }
 
   @Override
-  public DeidentificationProvider create(
+  public DeidentificationProvider<Bundle> create(
       DeidentificationProvider.Config commonConfig, Config implConfig) {
     return new Impl(implConfig);
   }
 
   public record Config(boolean deidentify) {}
 
-  public static class Impl implements DeidentificationProvider {
+  public static class Impl implements DeidentificationProvider<Bundle> {
     private final MockDeidentificationProvider.Config implConfig;
 
     public Impl(MockDeidentificationProvider.Config implConfig) {
@@ -28,7 +29,7 @@ public class MockDeidentificationProvider
     }
 
     @Override
-    public IBaseBundle deidentify(IBaseBundle b) {
+    public Bundle deidentify(Bundle b) {
       if (implConfig.deidentify()) {
         return scramble(b);
       } else {
@@ -36,7 +37,7 @@ public class MockDeidentificationProvider
       }
     }
 
-    private IBaseBundle scramble(IBaseBundle b) {
+    private Bundle scramble(Bundle b) {
       return null;
     }
   }

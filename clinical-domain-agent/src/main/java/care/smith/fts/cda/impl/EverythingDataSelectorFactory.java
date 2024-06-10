@@ -6,12 +6,13 @@ import ca.uhn.fhir.rest.client.api.IRestfulClientFactory;
 import care.smith.fts.api.DataSelector;
 
 import care.smith.fts.cda.services.PatientIdResolver;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.IdType;
 import org.springframework.stereotype.Component;
 
 @Component("everythingDataSelector")
 public class EverythingDataSelectorFactory
-    implements DataSelector.Factory<EverythingDataSelectorConfig> {
+    implements DataSelector.Factory<Bundle, EverythingDataSelectorConfig> {
 
   private final IRestfulClientFactory clientFactory;
   private final FhirContext fhir;
@@ -27,7 +28,7 @@ public class EverythingDataSelectorFactory
   }
 
   @Override
-  public DataSelector create(DataSelector.Config common, EverythingDataSelectorConfig config) {
+  public DataSelector<Bundle> create(DataSelector.Config common, EverythingDataSelectorConfig config) {
     IGenericClient client = config.fhirServer().createClient(clientFactory);
     PatientIdResolver resolver = createResolver(config, client);
     return new EverythingDataSelector(common, client, resolver);

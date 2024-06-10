@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class TransferProcessFactory {
+public class TransferProcessFactory<B extends IBaseBundle> {
 
   private final ApplicationContext context;
   private final ObjectMapper objectMapper;
@@ -35,7 +36,7 @@ public class TransferProcessFactory {
   }
 
   @SuppressWarnings("unchecked")
-  public TransferProcess create(TransferProcessConfig processDefinition) {
+  public TransferProcess<B> create(TransferProcessConfig processDefinition) {
     log.debug("Create TransferProcess from definition: {}", processDefinition);
     CohortSelector cohortSelector =
         instantiateImpl(
@@ -43,25 +44,25 @@ public class TransferProcessFactory {
             CohortSelector.Factory.class,
             CohortSelector.Config.class,
             processDefinition.cohortSelector());
-    DataSelector dataSelector =
+    DataSelector<B> dataSelector =
         instantiateImpl(
             DataSelector.class,
             DataSelector.Factory.class,
             DataSelector.Config.class,
             processDefinition.dataSelector());
-    DeidentificationProvider deidentificationProvider =
+    DeidentificationProvider<B> deidentificationProvider =
         instantiateImpl(
             DeidentificationProvider.class,
             DeidentificationProvider.Factory.class,
             DeidentificationProvider.Config.class,
             processDefinition.deidentificationProvider());
-    BundleSender bundleSender =
+    BundleSender<B> bundleSender =
         instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
             processDefinition.bundleSender());
-    return new TransferProcess(
+    return new TransferProcess<>(
         cohortSelector, dataSelector, deidentificationProvider, bundleSender);
   }
 

@@ -2,11 +2,12 @@ package care.smith.fts.api;
 
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 
-public interface DeidentificationProvider {
+public interface DeidentificationProvider<B extends IBaseBundle> {
 
-  IBaseBundle deidentify(IBaseBundle b);
+  B deidentify(B b);
 
-  interface Factory<C> extends StepFactory<DeidentificationProvider, Config, C> {}
+  interface Factory<B extends IBaseBundle, C>
+      extends StepFactory<DeidentificationProvider<B>, Config, C> {}
 
   record Config() {}
 }

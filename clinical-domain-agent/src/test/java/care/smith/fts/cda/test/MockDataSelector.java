@@ -12,22 +12,22 @@ import org.hl7.fhir.r4.model.Resource;
 import org.springframework.stereotype.Component;
 
 @Component("mockDataSelector")
-public class MockDataSelector implements DataSelector.Factory<MockDataSelector.Config> {
+public class MockDataSelector implements DataSelector.Factory<Bundle, MockDataSelector.Config> {
   @Override
   public Class<Config> getConfigType() {
     return Config.class;
   }
 
   @Override
-  public DataSelector create(DataSelector.Config commonConfig, Config implConfig) {
+  public DataSelector<Bundle> create(DataSelector.Config commonConfig, Config implConfig) {
     return new Impl();
   }
 
   public record Config() {}
 
-  public static class Impl implements DataSelector {
+  public static class Impl implements DataSelector<Bundle> {
     @Override
-    public IBaseBundle select(ConsentedPatient consentedPatient) {
+    public Bundle select(ConsentedPatient consentedPatient) {
         Resource patient = new Patient().setId(consentedPatient.id());
         List<BundleEntryComponent> entries = List.of(new BundleEntryComponent().setResource(patient));
         return new Bundle().setEntry(entries);

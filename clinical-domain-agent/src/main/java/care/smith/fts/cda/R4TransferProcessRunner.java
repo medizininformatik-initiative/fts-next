@@ -2,6 +2,8 @@ package care.smith.fts.cda;
 
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+
+import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +17,7 @@ public class R4TransferProcessRunner {
         this.pool = pool;
     }
 
-    public List<Boolean> run(TransferProcess process) {
+    public List<Boolean> run(TransferProcess<Bundle> process) {
     return process.getCohortSelector().selectCohort().parallelStream()
         .map(process.getDataSelector()::select)
         .map(process.getDeidentificationProvider()::deidentify)

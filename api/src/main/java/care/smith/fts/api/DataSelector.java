@@ -3,11 +3,11 @@ package care.smith.fts.api;
 import jakarta.validation.constraints.NotNull;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 
-public interface DataSelector {
+public interface DataSelector<B extends IBaseBundle> {
 
-  IBaseBundle select(ConsentedPatient consentedPatient);
+  B select(ConsentedPatient consentedPatient);
 
-  interface Factory<C> extends StepFactory<DataSelector, Config, C> {}
+  interface Factory<B extends IBaseBundle, C> extends StepFactory<DataSelector<B>, Config, C> {}
 
   record Config(boolean ignoreConsent, @NotNull AdditionalFilterConfig additionalFilter) {}
 

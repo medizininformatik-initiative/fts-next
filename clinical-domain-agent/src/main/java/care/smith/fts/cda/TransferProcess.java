@@ -6,23 +6,24 @@ import care.smith.fts.api.DataSelector;
 import care.smith.fts.api.DeidentificationProvider;
 import lombok.Getter;
 import lombok.ToString;
+import org.hl7.fhir.instance.model.api.IBaseBundle;
 
 @Getter
 @ToString
-public class TransferProcess {
+public class TransferProcess<B extends IBaseBundle> {
   private CohortSelector cohortSelector;
 
-  private DataSelector dataSelector;
+  private DataSelector<B> dataSelector;
 
-  private DeidentificationProvider deidentificationProvider;
+  private DeidentificationProvider<B> deidentificationProvider;
 
-  private BundleSender bundleSender;
+  private BundleSender<B> bundleSender;
 
   public TransferProcess(
       CohortSelector cohortSelector,
-      DataSelector dataSelector,
-      DeidentificationProvider deidentificationProvider,
-      BundleSender bundleSender) {
+      DataSelector<B> dataSelector,
+      DeidentificationProvider<B> deidentificationProvider,
+      BundleSender<B> bundleSender) {
     this.cohortSelector = cohortSelector;
     this.dataSelector = dataSelector;
     this.deidentificationProvider = deidentificationProvider;

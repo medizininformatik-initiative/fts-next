@@ -10,11 +10,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import care.smith.fts.cda.services.PatientIdResolver;
-import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
 
-public class EverythingDataSelector implements DataSelector {
+public class EverythingDataSelector implements DataSelector<Bundle> {
   private final Config common;
   private final IGenericClient client;
   private final PatientIdResolver pidResolver;
@@ -27,7 +26,7 @@ public class EverythingDataSelector implements DataSelector {
   }
 
   @Override
-  public IBaseBundle select(ConsentedPatient patient) {
+  public Bundle select(ConsentedPatient patient) {
     var params = new Parameters();
     if (!common.ignoreConsent()) {
       if (patient.maxConsentedPeriod().isPresent()) {
