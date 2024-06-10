@@ -1,7 +1,7 @@
 package care.smith.fts.cda.test;
 
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DeidentificationProvider;
-import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +29,7 @@ public class MockDeidentificationProvider
     }
 
     @Override
-    public Bundle deidentify(Bundle b) {
+    public Bundle deidentify(Bundle b, ConsentedPatient ignored) {
       if (implConfig.deidentify()) {
         return scramble(b);
       } else {
@@ -37,7 +37,7 @@ public class MockDeidentificationProvider
       }
     }
 
-    private Bundle scramble(Bundle b) {
+    private Bundle scramble(Bundle ignored) {
       return null;
     }
   }

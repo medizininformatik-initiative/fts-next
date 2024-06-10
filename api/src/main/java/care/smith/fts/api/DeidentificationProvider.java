@@ -4,7 +4,7 @@ import org.hl7.fhir.instance.model.api.IBaseBundle;
 
 public interface DeidentificationProvider<B extends IBaseBundle> {
 
-  B deidentify(B b);
+  B deidentify(B b, ConsentedPatient patient);
 
   interface Factory<B extends IBaseBundle, C>
       extends StepFactory<DeidentificationProvider<B>, Config, C> {}

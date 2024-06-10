@@ -19,7 +19,7 @@ public class DeidentifhirDeidentificationProvider
   public DeidentificationProvider<Bundle> create(
       DeidentificationProvider.Config commonConfig, Config implConfig) {
     // TODO Implement
-    return b -> {
+    return (b, p) -> {
       throw new UnsupportedOperationException();
     };
   }
