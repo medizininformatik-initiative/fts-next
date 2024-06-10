@@ -46,7 +46,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   @Override
   public TransportIDs retrieveTransportIds(PseudonymRequest pseudonymRequest) throws IOException {
     Set<String> ids = pseudonymRequest.getIds();
-    var idPseudonyms = fetchOrCreatePseudonyms(configuration.getDomain(), ids);
+    var idPseudonyms = fetchOrCreatePseudonyms(pseudonymRequest.getDomain(), ids);
     TransportIDs transportIds = new TransportIDs();
     ids.forEach(id -> transportIds.put(id, getUniqueTransportId()));
 

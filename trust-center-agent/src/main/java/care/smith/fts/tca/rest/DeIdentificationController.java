@@ -8,6 +8,7 @@ import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +30,10 @@ public class DeIdentificationController {
     this.shiftedDatesProvider = shiftedDatesProvider;
   }
 
-  @PostMapping(value = "/cd/transport-ids")
+  @PostMapping(
+      value = "/cd/transport-ids",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<TransportIDs> getTransportId(
       @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData)
       throws IOException {
@@ -37,14 +41,20 @@ public class DeIdentificationController {
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
-  @PostMapping(value = "/cd/shifted-dates")
+  @PostMapping(
+      value = "/cd/shifted-dates",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<ShiftedDates> getShiftedDates(
       @Valid @RequestBody DateShiftingRequest requestData) {
     ShiftedDates response = shiftedDatesProvider.generateShiftedDates(requestData);
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
-  @PostMapping(value = "/rd/resolve-pseudonyms")
+  @PostMapping(
+      value = "/rd/resolve-pseudonyms",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<PseudonymizedIDs> fetchPseudonymizedIds(
       @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData)
       throws IOException {
@@ -52,7 +62,10 @@ public class DeIdentificationController {
     return new ResponseEntity<>(pseudonymizedIDs, HttpStatus.OK);
   }
 
-  @PostMapping(value = "/rd/resolve-project-pseudonyms")
+  @PostMapping(
+      value = "/rd/resolve-project-pseudonyms",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<PseudonymizedIDs> fetchProjectPseudonymizedIds(
       @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData)
       throws IOException {
@@ -62,7 +75,10 @@ public class DeIdentificationController {
     return ResponseEntity.internalServerError().build();
   }
 
-  @PostMapping(value = "/rd/delete-transport-ids")
+  @PostMapping(
+      value = "/rd/delete-transport-ids",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.TEXT_PLAIN_VALUE)
   public ResponseEntity<String> deleteId(
       @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData) {
     pseudonymProvider.deleteTransportId(requestData);

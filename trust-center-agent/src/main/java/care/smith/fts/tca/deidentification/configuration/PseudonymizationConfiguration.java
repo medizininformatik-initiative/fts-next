@@ -10,6 +10,5 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties("de-identification.pseudonymization")
 @Data
 public class PseudonymizationConfiguration {
-  @NotEmpty String domain;
   @NotNull Long transportIdTTLinSeconds;
 }

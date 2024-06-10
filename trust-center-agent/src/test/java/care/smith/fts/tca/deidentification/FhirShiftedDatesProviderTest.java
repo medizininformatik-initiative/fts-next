@@ -5,8 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
-import care.smith.fts.tca.deidentification.configuration.DateShiftingConfiguration;
 import care.smith.fts.util.tca.DateShiftingRequest;
+import java.time.Duration;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -26,13 +25,12 @@ import redis.clients.jedis.params.SetParams;
 class FhirShiftedDatesProviderTest {
   @Mock JedisPool jedisPool;
   @Mock Jedis jedis;
-  @Autowired DateShiftingConfiguration configuration;
 
   FhirShiftedDatesProvider provider;
 
   @BeforeEach
   void setUp() {
-    provider = new FhirShiftedDatesProvider(configuration, jedisPool);
+    provider = new FhirShiftedDatesProvider(jedisPool);
   }
 
   @Test
@@ -44,6 +42,7 @@ class FhirShiftedDatesProviderTest {
     given(jedis.get("shiftedDate:3")).willReturn("6");
     var request = new DateShiftingRequest();
     request.setIds(Set.of("1", "2", "3"));
+    request.setDateShift(Duration.ofDays(14));
     var shiftedDates = provider.generateShiftedDates(request);
     assertThat(shiftedDates.get("1")).isEqualTo(2);
     assertThat(shiftedDates.get("2")).isEqualTo(4);

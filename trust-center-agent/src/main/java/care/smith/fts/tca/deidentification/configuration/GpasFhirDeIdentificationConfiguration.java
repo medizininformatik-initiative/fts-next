@@ -45,9 +45,8 @@ public class GpasFhirDeIdentificationConfiguration {
   }
 
   @Bean
-  public FhirShiftedDatesProvider fhirShiftedDateProvider(
-      DateShiftingConfiguration dateShiftingConfiguration, JedisPool jedisPool) {
-    return new FhirShiftedDatesProvider(dateShiftingConfiguration, jedisPool);
+  public FhirShiftedDatesProvider fhirShiftedDateProvider(JedisPool jedisPool) {
+    return new FhirShiftedDatesProvider(jedisPool);
   }
 
 }

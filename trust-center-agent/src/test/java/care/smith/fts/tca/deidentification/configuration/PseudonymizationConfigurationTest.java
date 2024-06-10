@@ -12,7 +12,6 @@ class PseudonymizationConfigurationTest {
 
   @Test
   void configEntriesExist() {
-    assertThat(configuration.getDomain()).isNotEmpty();
     assertThat(configuration.getTransportIdTTLinSeconds()).isEqualTo(1000);
   }
 }
