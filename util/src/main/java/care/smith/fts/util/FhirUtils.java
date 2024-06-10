@@ -14,12 +14,12 @@ import java.util.Base64;
 public class FhirUtils {
     public static final FhirContext fctx = FhirContext.forR4();
 
-    /**
-     * @param bundle the FHIR bundle
-     * @return bundle as JSON string - not pretty printed
-     */
-    public static String fhirBundleToString(Bundle bundle) {
-        return fctx.newJsonParser().encodeResourceToString(bundle);
+  /**
+   * @param resource the FHIR resource
+   * @return bundle as JSON string - not pretty printed
+   */
+  public static String fhirResourceToString(Resource resource) {
+    return fctx.newJsonParser().encodeResourceToString(resource);
     }
 
     /**

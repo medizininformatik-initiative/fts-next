@@ -1,26 +1,29 @@
 package care.smith.fts.tca.deidentification;
 
-import care.smith.fts.util.tca.PseudonymRequest;
+import care.smith.fts.util.tca.TransportIdsRequest;
 import care.smith.fts.util.tca.PseudonymizedIDs;
 import care.smith.fts.util.tca.TransportIDs;
 
 import java.io.IOException;
+import java.util.Set;
 
 public interface PseudonymProvider {
 
   /**
-   * @param pseudonymRequest to transport ids
+   * @param ids to transport ids
+   * @param domain the domain
    * @return the <code>PseudonymResponse</code>
    */
-  TransportIDs retrieveTransportIds(PseudonymRequest pseudonymRequest) throws IOException;
+  TransportIDs retrieveTransportIds(Set<String> ids, String domain) throws IOException;
 
   /**
    * Retrieves the <code>PseudonymRequest</code>
    *
-   * @param pseudonymRequest to transport ids
+   * @param transportIdsRequest to transport ids
    * @return the <code>PseudonymResponse</code>
    */
-  PseudonymizedIDs fetchPseudonymizedIds(PseudonymRequest pseudonymRequest) throws IOException;
+  PseudonymizedIDs fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest)
+      throws IOException;
 
   //  /**
   //   * Retrieves the <code>PseudonymRequest</code> Returns PSICs for SICs.
@@ -33,11 +36,11 @@ public interface PseudonymProvider {
   /**
    * Removes the <code>transportId</code> to <code>secureId</code> matching from the matching table.
    *
-   * @param pseudonymRequest to transport ids
+   * @param transportIdsRequest to transport ids
    * @return <code>PseudonymResponse</code> if an existing matching was removed, <code>false</code>
    *     if no matching existed.
    */
-  void deleteTransportId(PseudonymRequest pseudonymRequest);
+  void deleteTransportId(TransportIdsRequest transportIdsRequest);
 
   //  /**
   //   * Returns PSN for original values, that may be compound values.

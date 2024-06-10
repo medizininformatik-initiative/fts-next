@@ -34,7 +34,7 @@ class FhirShiftedDatesProviderTest {
   }
 
   @Test
-  void generateShiftedDates() {
+  void generateDateShift() {
     given(jedisPool.getResource()).willReturn(jedis);
     given(jedis.set(anyString(), anyString(), any(SetParams.class))).willReturn("OK");
     given(jedis.get("shiftedDate:1")).willReturn("2");
@@ -43,7 +43,7 @@ class FhirShiftedDatesProviderTest {
     var request = new DateShiftingRequest();
     request.setIds(Set.of("1", "2", "3"));
     request.setDateShift(Duration.ofDays(14));
-    var shiftedDates = provider.generateShiftedDates(request);
+    var shiftedDates = provider.generateDateShift(request.getIds(), request.getDateShift());
     assertThat(shiftedDates.get("1")).isEqualTo(2);
     assertThat(shiftedDates.get("2")).isEqualTo(4);
     assertThat(shiftedDates.get("3")).isEqualTo(6);

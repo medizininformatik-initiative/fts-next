@@ -14,14 +14,13 @@ class GpasFhirDeIdentificationConfigurationTest {
 
   @Autowired private CloseableHttpClient httpClient;
   @Autowired private ObjectMapper objectMapper;
-  @Autowired private DateShiftingConfiguration config;
   @Autowired private GpasFhirDeIdentificationConfiguration gpasFhirDeIdentificationConfiguration;
   @Autowired private JedisPool jedisPool;
   @Autowired private PseudonymizationConfiguration pseudonymizationConfiguration;
 
   @Test
   void fhirShiftedDateProvider() {
-    assertThat(gpasFhirDeIdentificationConfiguration.fhirShiftedDateProvider(config, jedisPool))
+    assertThat(gpasFhirDeIdentificationConfiguration.fhirShiftedDateProvider(jedisPool))
         .isNotNull();
   }
 

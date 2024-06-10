@@ -1,5 +1,7 @@
 package care.smith.fts.cda;
 
+import care.smith.fts.api.ConsentedPatient;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import org.hl7.fhir.r4.model.Bundle;
@@ -20,10 +22,19 @@ public class R4TransferProcessRunner {
     return process.cohortSelector().selectCohort().parallelStream()
         .map(
             p -> {
-              Bundle data = process.dataSelector().select(p);
-              Bundle deidentified = process.deidentificationProvider().deidentify(data, p);
-              return process.bundleSender().send(deidentified, process.project());
+              try {
+                return run(process, p);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
             })
         .toList();
+  }
+
+  private static boolean run(TransferProcess<Bundle> process, ConsentedPatient p)
+      throws IOException {
+    Bundle data = process.dataSelector().select(p);
+    Bundle deidentified = process.deidentificationProvider().deidentify(data, p);
+    return process.bundleSender().send(deidentified, process.project());
   }
 }

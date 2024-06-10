@@ -1,7 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
-import care.smith.fts.util.tca.PseudonymRequest;
+import care.smith.fts.util.tca.TransportIdsRequest;
 import care.smith.fts.util.tca.PseudonymizedIDs;
 import care.smith.fts.util.tca.TransportIDs;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,13 +40,13 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    * For all provided IDs fetch the id:pid pairs from gPAS. Then create TransportIDs (id:tid pairs).
    * Store tid:pid in the key-value-store.
    *
-   * @param pseudonymRequest the PseudonymRequest containing the IDs to pseudonymize
+   * @param ids the IDs to pseudonymize
+   * @param domain the domain used in gPAS
    * @return the TransportIDs
    */
   @Override
-  public TransportIDs retrieveTransportIds(PseudonymRequest pseudonymRequest) throws IOException {
-    Set<String> ids = pseudonymRequest.getIds();
-    var idPseudonyms = fetchOrCreatePseudonyms(pseudonymRequest.getDomain(), ids);
+  public TransportIDs retrieveTransportIds(Set<String> ids, String domain) throws IOException {
+    var idPseudonyms = fetchOrCreatePseudonyms(domain, ids);
     TransportIDs transportIds = new TransportIDs();
     ids.forEach(id -> transportIds.put(id, getUniqueTransportId()));
 
@@ -107,13 +107,13 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public PseudonymizedIDs fetchPseudonymizedIds(PseudonymRequest pseudonymRequest) {
+  public PseudonymizedIDs fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) {
     PseudonymizedIDs pseudonyms = new PseudonymizedIDs();
     try (Jedis jedis = jedisPool.getResource()) {
-      Set<String> ids = pseudonymRequest.getIds();
+      Set<String> ids = transportIdsRequest.getIds();
       ids.forEach(
           id -> {
-            var pseudonymId = jedis.getDel(id);
+            var pseudonymId = jedis.get(id);
             pseudonyms.put(id, pseudonymId);
           });
     }
@@ -121,9 +121,9 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public void deleteTransportId(PseudonymRequest pseudonymRequest) {
+  public void deleteTransportId(TransportIdsRequest transportIdsRequest) {
     try (Jedis jedis = jedisPool.getResource()) {
-      Set<String> ids = pseudonymRequest.getIds();
+      Set<String> ids = transportIdsRequest.getIds();
       jedis.del(ids.toArray(new String[0]));
     }
   }

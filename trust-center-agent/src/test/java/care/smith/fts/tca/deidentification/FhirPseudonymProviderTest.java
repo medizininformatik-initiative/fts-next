@@ -7,7 +7,7 @@ import static org.mockito.BDDMockito.given;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.util.tca.PseudonymRequest;
+import care.smith.fts.util.tca.TransportIdsRequest;
 import care.smith.fts.util.tca.PseudonymizedIDs;
 import care.smith.fts.util.tca.TransportIDs;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,9 +66,11 @@ class FhirPseudonymProviderTest {
     // already. By returning null every other call, we simulate that it is a unique ID.
     given(jedis.get(anyString())).willReturn(null, "469680023");
 
-    PseudonymRequest pseudonymRequest = new PseudonymRequest();
-    pseudonymRequest.setIds(Set.of("id1"));
-    TransportIDs pseudonyms = pseudonymProvider.retrieveTransportIds(pseudonymRequest);
+    TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
+    transportIdsRequest.setIds(Set.of("id1"));
+    TransportIDs pseudonyms =
+        pseudonymProvider.retrieveTransportIds(
+            transportIdsRequest.getIds(), transportIdsRequest.getDomain());
 
     String id1 = pseudonyms.get("id1");
     log.info(Arrays.toString(id1.getBytes(StandardCharsets.UTF_8)));
@@ -78,9 +80,10 @@ class FhirPseudonymProviderTest {
   @Test
   void retrievePseudonymIDs() {
     given(jedis.getDel(anyString())).willReturn("123456789", "987654321");
-    PseudonymRequest pseudonymRequest = new PseudonymRequest();
-    pseudonymRequest.setIds(Set.of("id1", "id2"));
-    PseudonymizedIDs pseudonymizedIDs = pseudonymProvider.fetchPseudonymizedIds(pseudonymRequest);
+    TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
+    transportIdsRequest.setIds(Set.of("id1", "id2"));
+    PseudonymizedIDs pseudonymizedIDs =
+        pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest);
     assertThat(pseudonymizedIDs.keySet()).containsExactlyInAnyOrder("id1", "id2");
     assertThat(pseudonymizedIDs.values()).containsExactlyInAnyOrder("123456789", "987654321");
   }

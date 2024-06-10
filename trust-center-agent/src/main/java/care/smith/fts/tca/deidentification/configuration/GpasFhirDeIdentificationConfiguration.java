@@ -22,7 +22,6 @@ public class GpasFhirDeIdentificationConfiguration {
   @NotBlank String baseUrl;
   @NotNull HTTPClientAuthMethod.AuthMethod auth;
 
-
   @Bean
   public ObjectMapper objectMapper() {
     return new ObjectMapper();
@@ -48,5 +47,4 @@ public class GpasFhirDeIdentificationConfiguration {
   public FhirShiftedDatesProvider fhirShiftedDateProvider(JedisPool jedisPool) {
     return new FhirShiftedDatesProvider(jedisPool);
   }
-
 }

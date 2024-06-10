@@ -5,6 +5,8 @@ import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.*;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import java.util.Set;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,13 +33,31 @@ public class DeIdentificationController {
   }
 
   @PostMapping(
+      value = "/cd/transport-ids-and-date-shifting-values",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<PseudonymizeResponse> getTransportIdsAndDateShiftingValues(
+      @Validated(PseudonymizeRequest.class) @RequestBody PseudonymizeRequest requestData)
+      throws IOException {
+    TransportIDs transportIds =
+        pseudonymProvider.retrieveTransportIds(requestData.getIds(), requestData.getDomain());
+    ShiftedDates shiftedDates =
+        shiftedDatesProvider.generateDateShift(
+            Set.of(requestData.getPatientId()), requestData.getDateShift());
+    PseudonymizeResponse pseudonymizeResponse =
+        new PseudonymizeResponse(transportIds, shiftedDates.get(requestData.getPatientId()));
+    return new ResponseEntity<>(pseudonymizeResponse, HttpStatus.OK);
+  }
+
+  @PostMapping(
       value = "/cd/transport-ids",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<TransportIDs> getTransportId(
-      @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData)
+      @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData)
       throws IOException {
-    TransportIDs response = pseudonymProvider.retrieveTransportIds(requestData);
+    TransportIDs response =
+        pseudonymProvider.retrieveTransportIds(requestData.getIds(), requestData.getDomain());
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
@@ -47,7 +67,8 @@ public class DeIdentificationController {
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<ShiftedDates> getShiftedDates(
       @Valid @RequestBody DateShiftingRequest requestData) {
-    ShiftedDates response = shiftedDatesProvider.generateShiftedDates(requestData);
+    ShiftedDates response =
+        shiftedDatesProvider.generateDateShift(requestData.getIds(), requestData.getDateShift());
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
@@ -56,7 +77,7 @@ public class DeIdentificationController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<PseudonymizedIDs> fetchPseudonymizedIds(
-      @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData)
+      @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData)
       throws IOException {
     PseudonymizedIDs pseudonymizedIDs = pseudonymProvider.fetchPseudonymizedIds(requestData);
     return new ResponseEntity<>(pseudonymizedIDs, HttpStatus.OK);
@@ -67,7 +88,7 @@ public class DeIdentificationController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<PseudonymizedIDs> fetchProjectPseudonymizedIds(
-      @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData)
+      @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData)
       throws IOException {
     // TODO Implement
     // PseudonymizedIDs pseudonymizedIDs =
@@ -80,7 +101,7 @@ public class DeIdentificationController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.TEXT_PLAIN_VALUE)
   public ResponseEntity<String> deleteId(
-      @Validated(PseudonymRequest.class) @RequestBody PseudonymRequest requestData) {
+      @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData) {
     pseudonymProvider.deleteTransportId(requestData);
     return ResponseEntity.ok().build();
   }

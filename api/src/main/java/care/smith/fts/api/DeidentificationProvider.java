@@ -1,12 +1,14 @@
 package care.smith.fts.api;
 
-import org.hl7.fhir.instance.model.api.IBaseBundle;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 
-public interface DeidentificationProvider<B extends IBaseBundle> {
+import java.io.IOException;
 
-  B deidentify(B b, ConsentedPatient patient);
+public interface DeidentificationProvider<B extends IBaseResource> {
 
-  interface Factory<B extends IBaseBundle, C>
+  B deidentify(B b, ConsentedPatient patient) throws IOException;
+
+  interface Factory<B extends IBaseResource, C>
       extends StepFactory<DeidentificationProvider<B>, Config, C> {}
 
   record Config() {}
