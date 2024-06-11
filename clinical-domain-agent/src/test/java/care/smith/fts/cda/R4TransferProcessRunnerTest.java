@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ class R4TransferProcessRunnerTest {
 
   private static final String PATIENT_ID = "patient-150622";
 
-  @Autowired TransferProcessFactory factory;
+  @Autowired TransferProcessFactory<Bundle> factory;
 
   private R4TransferProcessRunner runner;
 

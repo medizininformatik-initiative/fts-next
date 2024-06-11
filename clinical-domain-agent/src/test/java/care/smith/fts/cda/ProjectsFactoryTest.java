@@ -1,6 +1,5 @@
 package care.smith.fts.cda;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import care.smith.fts.cda.test.MockBundleSender;
@@ -14,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -24,7 +24,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 @ExtendWith(MockitoExtension.class)
 class ProjectsFactoryTest {
 
-  @Mock TransferProcessFactory processFactory;
+  @Mock TransferProcessFactory<Bundle> processFactory;
   @Mock ConfigurableListableBeanFactory beanFactory;
 
   private final ObjectMapper objectMapper;
@@ -49,8 +49,8 @@ class ProjectsFactoryTest {
 
   @Test
   void testDirYieldsBeans() throws Exception {
-    TransferProcess process =
-        new TransferProcess(
+    TransferProcess<Bundle> process =
+        new TransferProcess<>(
             new MockCohortSelector.Impl(new MockCohortSelector.Config(List.of())),
             new MockDataSelector.Impl(),
             new MockDeidentificationProvider.Impl(new MockDeidentificationProvider.Config(false)),

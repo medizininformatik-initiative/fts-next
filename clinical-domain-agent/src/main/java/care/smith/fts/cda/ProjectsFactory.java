@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.stereotype.Component;
@@ -18,13 +19,13 @@ public class ProjectsFactory {
 
   private static final Pattern FILE_NAME_PATTERN = Pattern.compile(".*[.](ya?ml|json)$");
 
-  private final TransferProcessFactory processFactory;
+  private final TransferProcessFactory<Bundle> processFactory;
   private final ConfigurableListableBeanFactory beanFactory;
   private final ObjectMapper objectMapper;
   private final Path projectsDir;
 
   public ProjectsFactory(
-      TransferProcessFactory processFactory,
+      TransferProcessFactory<Bundle> processFactory,
       ConfigurableListableBeanFactory beanFactory,
       @Qualifier("transferProcessObjectMapper") ObjectMapper objectMapper,
       Path projectsDir) {

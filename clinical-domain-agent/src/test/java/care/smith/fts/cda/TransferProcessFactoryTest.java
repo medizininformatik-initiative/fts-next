@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
+import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,27 +22,22 @@ class TransferProcessFactoryTest {
   @Qualifier("transferProcessObjectMapper")
   private ObjectMapper objectMapper;
 
-  TransferProcessFactory factory;
+  TransferProcessFactory<Bundle> factory;
 
   @BeforeEach
   void setUp() {
-    factory = new TransferProcessFactory(context, objectMapper);
+    factory = new TransferProcessFactory<>(context, objectMapper);
   }
 
   @Test
   void nullConfigThrows() {
-    assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(
-            () -> factory.create(null));
+    assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> factory.create(null));
   }
 
   @Test
   void emptyConfigThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(
-            () -> {
-              factory.create(new TransferProcessConfig(null, null, null, null));
-            });
+        .isThrownBy(() -> factory.create(new TransferProcessConfig(null, null, null, null)));
   }
 
   @Test
@@ -53,9 +49,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()),
             Map.of("mock", Map.of()));
 
-    assertThatNoException()
-        .isThrownBy(
-            () -> factory.create(processDefinition));
+    assertThatNoException().isThrownBy(() -> factory.create(processDefinition));
   }
 
   @Test
@@ -68,8 +62,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(
-            () -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition));
   }
 
   @Test
@@ -82,8 +75,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(
-            () -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition));
   }
 
   @Test
@@ -96,8 +88,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(
-            () -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition));
   }
 
   @Test
@@ -110,8 +101,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(
-            () -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition));
   }
 
   @Test
@@ -123,8 +113,6 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()),
             Map.of("mock", Map.of()));
 
-    assertThatNoException()
-        .isThrownBy(
-            () -> factory.create(processDefinition));
+    assertThatNoException().isThrownBy(() -> factory.create(processDefinition));
   }
 }

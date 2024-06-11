@@ -12,6 +12,7 @@ import care.smith.fts.cda.test.MockDataSelector;
 import care.smith.fts.cda.test.MockDeidentificationProvider;
 import java.util.List;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -19,8 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 class TransferProcessTest {
   @Test
   void toStringContainsImplementationNames() {
-    TransferProcess process =
-        new TransferProcess(
+    TransferProcess<Bundle> process =
+        new TransferProcess<>(
             new MockCohortSelector()
                 .create(new CohortSelector.Config(), new MockCohortSelector.Config(List.of())),
             new MockDataSelector()
