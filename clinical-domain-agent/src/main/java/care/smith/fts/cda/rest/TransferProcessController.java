@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/process")
+@RequestMapping("/api/v2/process")
 public class TransferProcessController {
 
   private final R4TransferProcessRunner processRunner;
