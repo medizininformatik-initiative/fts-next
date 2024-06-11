@@ -22,7 +22,7 @@ public class R4TransferProcessRunner {
             p -> {
               Bundle data = process.dataSelector().select(p);
               Bundle deidentified = process.deidentificationProvider().deidentify(data, p);
-              return process.bundleSender().send(deidentified);
+              return process.bundleSender().send(deidentified, process.project());
             })
         .toList();
   }

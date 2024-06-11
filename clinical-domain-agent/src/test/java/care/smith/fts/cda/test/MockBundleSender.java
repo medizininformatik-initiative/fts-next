@@ -2,7 +2,6 @@ package care.smith.fts.cda.test;
 
 import care.smith.fts.api.BundleSender;
 import java.util.Set;
-import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +27,7 @@ public class MockBundleSender implements BundleSender.Factory<Bundle, MockBundle
     }
 
     @Override
-    public boolean send(Bundle bundle) {
+    public boolean send(Bundle bundle, String ignored) {
       return bundle
           .getEntry().stream()
               .allMatch(entry -> implConfig.expect().contains(entry.getResource().getId()));

@@ -36,7 +36,7 @@ public class TransferProcessFactory<B extends IBaseBundle> {
   }
 
   @SuppressWarnings("unchecked")
-  public TransferProcess<B> create(TransferProcessConfig processDefinition) {
+  public TransferProcess<B> create(TransferProcessConfig processDefinition, String project) {
     log.debug("Create TransferProcess from definition: {}", processDefinition);
     CohortSelector cohortSelector =
         instantiateImpl(
@@ -63,7 +63,7 @@ public class TransferProcessFactory<B extends IBaseBundle> {
             BundleSender.Config.class,
             processDefinition.bundleSender());
     return new TransferProcess<>(
-        cohortSelector, dataSelector, deidentificationProvider, bundleSender);
+        project, cohortSelector, dataSelector, deidentificationProvider, bundleSender);
   }
 
   private <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> TYPE instantiateImpl(
@@ -84,7 +84,7 @@ public class TransferProcessFactory<B extends IBaseBundle> {
     var commonConfigEntries = commonConfigEntries(commonConfigClass);
     var configEntries = config.entrySet();
     var implementations =
-            configEntries.stream().filter(e -> !commonConfigEntries.contains(e.getKey())).toList();
+        configEntries.stream().filter(e -> !commonConfigEntries.contains(e.getKey())).toList();
 
     checkImplementationFound(factoryClass, implementations);
     checkOnlyOneImplementation(stepClass, implementations);

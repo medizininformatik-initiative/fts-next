@@ -1,5 +1,6 @@
 package care.smith.fts.cda;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import care.smith.fts.cda.test.MockBundleSender;
@@ -51,11 +52,12 @@ class ProjectsFactoryTest {
   void testDirYieldsBeans() throws Exception {
     TransferProcess<Bundle> process =
         new TransferProcess<>(
+            "test",
             new MockCohortSelector.Impl(new MockCohortSelector.Config(List.of())),
             new MockDataSelector.Impl(),
             new MockDeidentificationProvider.Impl(new MockDeidentificationProvider.Config(false)),
             new MockBundleSender.Impl(new MockBundleSender.Config(Set.of())));
-    when(processFactory.create(any())).thenReturn(process);
+    when(processFactory.create(any(), anyString())).thenReturn(process);
 
     var factory = new ProjectsFactory(processFactory, beanFactory, objectMapper, testDirectory);
     factory.registerProcesses();

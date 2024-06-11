@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,6 @@ class R4TransferProcessRunnerTest {
             Map.of("mock", Map.of("deidentify", false)),
             Map.of("mock", Map.of("expect", List.of(PATIENT_ID))));
 
-    assertThat(runner.run(factory.create(processDefinition))).allMatch(TRUE::equals);
+    assertThat(runner.run(factory.create(processDefinition, "test"))).allMatch(TRUE::equals);
   }
 }

@@ -58,7 +58,7 @@ public class ProjectsFactory {
     var name = projectFile.getFileName().toString().replaceFirst(".ya?ml$", "");
     try (var inStream = newInputStream(projectFile)) {
       var config = objectMapper.readValue(inStream, TransferProcessConfig.class);
-      beanFactory.registerSingleton(name, processFactory.create(config));
+      beanFactory.registerSingleton(name, processFactory.create(config, name));
     }
   }
 }

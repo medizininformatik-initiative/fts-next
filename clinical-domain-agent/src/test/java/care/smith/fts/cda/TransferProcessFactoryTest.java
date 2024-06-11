@@ -31,13 +31,15 @@ class TransferProcessFactoryTest {
 
   @Test
   void nullConfigThrows() {
-    assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> factory.create(null));
+    assertThatExceptionOfType(NullPointerException.class)
+        .isThrownBy(() -> factory.create(null, "example"));
   }
 
   @Test
   void emptyConfigThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(() -> factory.create(new TransferProcessConfig(null, null, null, null)));
+        .isThrownBy(
+            () -> factory.create(new TransferProcessConfig(null, null, null, null), "example"));
   }
 
   @Test
@@ -49,7 +51,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()),
             Map.of("mock", Map.of()));
 
-    assertThatNoException().isThrownBy(() -> factory.create(processDefinition));
+    assertThatNoException().isThrownBy(() -> factory.create(processDefinition, "example"));
   }
 
   @Test
@@ -62,7 +64,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition, "example"));
   }
 
   @Test
@@ -75,7 +77,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition, "example"));
   }
 
   @Test
@@ -88,7 +90,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition, "example"));
   }
 
   @Test
@@ -101,7 +103,7 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> factory.create(processDefinition));
+        .isThrownBy(() -> factory.create(processDefinition, "example"));
   }
 
   @Test
@@ -113,6 +115,6 @@ class TransferProcessFactoryTest {
             Map.of("mock", Map.of()),
             Map.of("mock", Map.of()));
 
-    assertThatNoException().isThrownBy(() -> factory.create(processDefinition));
+    assertThatNoException().isThrownBy(() -> factory.create(processDefinition, "example"));
   }
 }

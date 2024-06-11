@@ -17,7 +17,7 @@ public class RDABundleSender implements BundleSender.Factory<Bundle, RDABundleSe
   @Override
   public BundleSender<Bundle> create(BundleSender.Config commonConfig, Config implConfig) {
     // TODO Implement
-    return b -> {
+    return (b, p) -> {
       throw new UnsupportedOperationException();
     };
   }

@@ -22,6 +22,7 @@ class TransferProcessTest {
   void toStringContainsImplementationNames() {
     TransferProcess<Bundle> process =
         new TransferProcess<>(
+            "test",
             new MockCohortSelector()
                 .create(new CohortSelector.Config(), new MockCohortSelector.Config(List.of())),
             new MockDataSelector()
