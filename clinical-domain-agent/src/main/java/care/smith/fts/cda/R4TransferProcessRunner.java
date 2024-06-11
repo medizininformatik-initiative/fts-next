@@ -17,12 +17,12 @@ public class R4TransferProcessRunner {
   }
 
   public List<Boolean> run(TransferProcess<Bundle> process) {
-    return process.getCohortSelector().selectCohort().parallelStream()
+    return process.cohortSelector().selectCohort().parallelStream()
         .map(
             p -> {
-              Bundle data = process.getDataSelector().select(p);
-              Bundle deidentified = process.getDeidentificationProvider().deidentify(data, p);
-              return process.getBundleSender().send(deidentified);
+              Bundle data = process.dataSelector().select(p);
+              Bundle deidentified = process.deidentificationProvider().deidentify(data, p);
+              return process.bundleSender().send(deidentified);
             })
         .toList();
   }
