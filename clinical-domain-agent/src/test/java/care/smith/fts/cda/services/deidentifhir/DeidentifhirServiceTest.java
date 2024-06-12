@@ -1,10 +1,12 @@
 package care.smith.fts.cda.services.deidentifhir;
 
+import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.test.FhirGenerator;
+import care.smith.fts.test.TestPatientGenerator;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.tca.TransportIDs;
 import com.typesafe.config.ConfigFactory;
@@ -19,19 +21,12 @@ import org.junit.jupiter.api.Test;
 
 class DeidentifhirServiceTest {
 
-  private Bundle bundle;
   private DeidentifhirService deidentifhirService;
 
   @BeforeEach
-  void setUp() throws IOException {
+  void setUp() {
     ConsentedPatient patient =
         new ConsentedPatient("id1", new ConsentedPatient.ConsentedPolicies());
-    FhirGenerator fhirGenerator = new FhirGenerator("PatientTemplate.json");
-    fhirGenerator.replaceTemplateFieldWith("$YEAR", new FhirGenerator.Fixed("2023"));
-    fhirGenerator.replaceTemplateFieldWith("$PATIENT_ID", new FhirGenerator.Fixed("id1"));
-    fhirGenerator.replaceTemplateFieldWith(
-        "$IDENTIFIER_SYSTEM", new FhirGenerator.Fixed("identifierSystem1"));
-    bundle = fhirGenerator.generateBundle(1, 100);
 
     var config =
         ConfigFactory.parseFile(
@@ -48,7 +43,8 @@ class DeidentifhirServiceTest {
   }
 
   @Test
-  void deidentify() {
+  void deidentify() throws IOException {
+    var bundle = generateOnePatient("id1", "2023", "identifierSystem1");
     Bundle deidentifiedBundle = (Bundle) deidentifhirService.deidentify(bundle);
     Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
     Patient p = (Patient) b.getEntryFirstRep().getResource();

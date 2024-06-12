@@ -7,7 +7,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.CharBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 
@@ -87,6 +91,45 @@ public class FhirGenerator {
 
     public String apply() {
       return value;
+    }
+  }
+
+  public static class OneOfList implements Replacement {
+    private final List<String> values;
+    private final Random random = new Random();
+
+    public OneOfList(List<String> values) {
+      this.values = values;
+    }
+
+    public OneOfList(List<String> values, long seed) {
+      this.values = values;
+      random.setSeed(seed);
+    }
+
+    public String apply() {
+      int nextInt = random.nextInt(values.size());
+      return values.get(nextInt);
+    }
+  }
+
+  public static class Increasing implements Replacement {
+    private final String prefix;
+    private long index;
+
+    public Increasing(String prefix, long index) {
+      this.prefix = prefix;
+      this.index = index;
+    }
+
+    public Increasing(String prefix) {
+      this(prefix, 0);
+    }
+
+    public String apply() {
+      String s = prefix + index;
+      index += 1;
+      return s;
     }
   }
 }
