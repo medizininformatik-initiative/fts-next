@@ -17,12 +17,18 @@ import org.junit.jupiter.api.Test;
 
 class IDATScraperTest {
   IDATScraper scraper;
+  private Bundle bundle;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws IOException {
     ConsentedPatient patient =
         new ConsentedPatient("id1", new ConsentedPatient.ConsentedPolicies());
-
+    FhirGenerator fhirGenerator = new FhirGenerator("PatientTemplate.json");
+    fhirGenerator.replaceTemplateFieldWith("$YEAR", new Fixed("2023"));
+    fhirGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Fixed("id1"));
+    fhirGenerator.replaceTemplateFieldWith(
+        "$IDENTIFIER_SYSTEM", new FhirGenerator.Fixed("urn:oid:1.2.36.146.595.217.0.1"));
+    bundle = fhirGenerator.generateBundle(1, 100);
     var config =
         ConfigFactory.parseFile(
             new File(
@@ -31,13 +37,7 @@ class IDATScraperTest {
   }
 
   @Test
-  void gatherIDs() throws IOException {
-    FhirGenerator fhirGenerator = new FhirGenerator("PatientTemplate.json");
-    fhirGenerator.replaceTemplateFieldWith("$YEAR", new Fixed("2023"));
-    fhirGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Fixed("id1"));
-
-    Bundle bundle = fhirGenerator.generateBundle(1, 100);
-
+  void gatherIDs() {
     assertThat(scraper.gatherIDs(bundle))
         .containsExactlyInAnyOrder("id1.identifier.$IDENTIFIER_SYSTEM:id1", "id1.id.Patient:id1");
   }
