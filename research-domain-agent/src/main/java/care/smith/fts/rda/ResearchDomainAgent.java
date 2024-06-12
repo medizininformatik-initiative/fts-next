@@ -1,10 +1,11 @@
-package care.smith.fts.cda;
+package care.smith.fts.rda;
 
 import static ca.uhn.fhir.rest.client.api.IRestfulClientFactory.*;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.hc.core5.util.Timeout.ofMilliseconds;
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.IRestfulClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,10 +29,10 @@ import org.springframework.context.annotation.Primary;
 @Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
-public class ClinicalDomainAgent {
+public class ResearchDomainAgent {
 
   public static void main(String... args) {
-    SpringApplication.run(ClinicalDomainAgent.class, args);
+    SpringApplication.run(ResearchDomainAgent.class, args);
   }
 
   @Bean
@@ -66,6 +67,11 @@ public class ClinicalDomainAgent {
   }
 
   @Bean
+  IGenericClient client(FhirContext fhir) {
+    return fhir.newRestfulGenericClient("http://localhost");
+  }
+
+  @Bean
   public ForkJoinPool transferProcessPool(
       @Value("${transferProcess.parallelism:4}") int parallelism) {
     return new ForkJoinPool(parallelism);
@@ -84,7 +90,7 @@ public class ClinicalDomainAgent {
   }
 
   @Bean
-  public Path projectsDirectory(@Value("${projects.directory:}") String directoryName) {
+  public Path projectsDirectory(@Value("${projects.directory:}")String directoryName) {
     if (isNullOrEmpty(directoryName)) {
       return Paths.get("projects");
     } else {
