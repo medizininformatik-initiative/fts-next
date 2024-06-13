@@ -11,10 +11,10 @@ import care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.springframework.web.reactive.function.client.WebClient;
 
 public record HTTPClientConfig(@NotBlank String baseUrl, @NotNull AuthMethod auth) {
 
@@ -52,7 +52,13 @@ public record HTTPClientConfig(@NotBlank String baseUrl, @NotNull AuthMethod aut
     return client;
   }
 
-    public IGenericClient createClient(org.springframework.web.reactive.function.client.WebClient.Builder builder) {
-      return null;
-    }
+  private static WebClient.Builder configureAuth(
+      WebClient.Builder builder, Stream<HTTPClientAuthMethod> authMethods) {
+    authMethods.findFirst().ifPresent(a -> a.configure(builder));
+    return builder;
+  }
+
+  public WebClient createClient(WebClient.Builder builder) {
+    return configureAuth(builder, authMethods(auth())).build();
+  }
 }

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.HashMap;
 
@@ -20,4 +21,7 @@ public class HTTPClientNoneAuth extends HashMap<Object, Object> implements HTTPC
 
   @Override
   public void configure(HttpClientBuilder client) {}
+
+  @Override
+  public void configure(WebClient.Builder builder) {}
 }

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Getter
 @Setter
@@ -27,4 +28,7 @@ public class HTTPClientCookieTokenAuth implements HTTPClientAuthMethod {
           request.addHeader(Constants.HEADER_COOKIE, token);
         });
   }
+
+  @Override
+  public void configure(WebClient.Builder builder) {}
 }
