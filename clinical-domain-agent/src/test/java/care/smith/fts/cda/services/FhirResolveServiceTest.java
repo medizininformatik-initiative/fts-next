@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.Header;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @ExtendWith(MockServerExtension.class)
 class FhirResolveServiceTest {
@@ -31,7 +32,7 @@ class FhirResolveServiceTest {
   @BeforeEach
   void setUp(MockServerClient mockServer) throws Exception {
     var address = "http://localhost:%d".formatted(mockServer.getPort());
-    IGenericClient client = FHIR.newRestfulGenericClient(address);
+    WebClient client = WebClient.create(address);
     this.service = new FhirResolveService(KDS_PATIENT, client, FHIR);
     try (var inStream = MockServerUtil.class.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();

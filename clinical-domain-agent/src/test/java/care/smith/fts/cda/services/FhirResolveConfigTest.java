@@ -3,14 +3,15 @@ package care.smith.fts.cda.services;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.assertj.core.api.Assertions.*;
 
 class FhirResolveConfigTest {
 
   private static final FhirContext FHIR = FhirContext.forR4();
-  private static final IGenericClient CLIENT =
-      FHIR.newRestfulGenericClient("https://some.example.com");
+  private static final WebClient CLIENT =
+      WebClient.builder().baseUrl("https://some.example.com").build();
 
   @Test
   void nullSystemThrows() {
