@@ -51,4 +51,8 @@ public record HTTPClientConfig(@NotBlank String baseUrl, @NotNull AuthMethod aut
     authMethods.findFirst().ifPresent(a -> a.configure(client));
     return client;
   }
+
+    public IGenericClient createClient(org.springframework.web.reactive.function.client.WebClient.Builder builder) {
+      return null;
+    }
 }

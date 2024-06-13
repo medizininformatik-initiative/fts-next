@@ -14,23 +14,10 @@ public class MockBundleSender implements BundleSender.Factory<Bundle, MockBundle
 
   @Override
   public BundleSender<Bundle> create(BundleSender.Config commonConfig, Config implConfig) {
-    return new Impl(implConfig);
+    return (b, p) -> {
+      throw new UnsupportedOperationException();
+    };
   }
 
   public record Config(Set<String> expect) {}
-
-  public static class Impl implements BundleSender<Bundle> {
-    private final MockBundleSender.Config implConfig;
-
-    public Impl(MockBundleSender.Config implConfig) {
-      this.implConfig = implConfig;
-    }
-
-    @Override
-    public boolean send(Bundle bundle, String ignored) {
-      return bundle
-          .getEntry().stream()
-              .allMatch(entry -> implConfig.expect().contains(entry.getResource().getId()));
-    }
-  }
 }

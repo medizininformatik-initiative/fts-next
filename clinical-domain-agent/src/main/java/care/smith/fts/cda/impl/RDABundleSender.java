@@ -6,10 +6,14 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import care.smith.fts.api.BundleSender;
 import java.io.*;
+
+import care.smith.fts.api.ConsentedPatient;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.hl7.fhir.r4.model.Bundle;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 final class RDABundleSender implements BundleSender<Bundle> {
   private final RDABundleSenderConfig config;
@@ -24,7 +28,7 @@ final class RDABundleSender implements BundleSender<Bundle> {
   }
 
   @Override
-  public boolean send(Bundle bundle, String project) {
+  public Mono<Result> send(Flux<Bundle> bundle, ConsentedPatient patient) {
     IParser parser = fhir.newJsonParser();
     var request = new HttpPost(config.server().baseUrl() + "/api/v2/process/" + project);
 

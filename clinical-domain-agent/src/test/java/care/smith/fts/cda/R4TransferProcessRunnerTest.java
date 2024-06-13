@@ -1,41 +1,41 @@
 package care.smith.fts.cda;
 
-import static java.lang.Boolean.TRUE;
-import static java.util.concurrent.ForkJoinPool.commonPool;
-import static org.assertj.core.api.Assertions.assertThat;
+import static reactor.core.publisher.Flux.fromIterable;
+import static reactor.core.publisher.Mono.just;
+import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.api.BundleSender;
+import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.cda.R4TransferProcessRunner.Result;
 import java.util.List;
-import java.util.Map;
-
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
 class R4TransferProcessRunnerTest {
 
   private static final String PATIENT_ID = "patient-150622";
-
-  @Autowired TransferProcessFactory<Bundle> factory;
+  private static final ConsentedPatient PATIENT =
+      new ConsentedPatient(PATIENT_ID, new ConsentedPatient.ConsentedPolicies());
 
   private R4TransferProcessRunner runner;
 
   @BeforeEach
   void setUp() {
-    runner = new R4TransferProcessRunner(commonPool());
+    runner = new R4TransferProcessRunner();
   }
 
   @Test
   void runMockTestSuccessfully() {
-    TransferProcessConfig processDefinition =
-        new TransferProcessConfig(
-            Map.of("mock", Map.of("pids", List.of(PATIENT_ID))),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of("deidentify", false)),
-            Map.of("mock", Map.of("expect", List.of(PATIENT_ID))));
+    BundleSender.Result result = new BundleSender.Result();
+    TransferProcess<Bundle> process =
+        new TransferProcess<>(
+            "test",
+            () -> fromIterable(List.of(PATIENT)),
+            p -> fromIterable(List.of(new Bundle())),
+            (b, p) -> fromIterable(List.of(new Bundle())),
+            (b, p) -> just(result));
 
-    assertThat(runner.run(factory.create(processDefinition, "test"))).allMatch(TRUE::equals);
+    create(runner.run(process)).expectNext(new Result(PATIENT)).verifyComplete();
   }
 }

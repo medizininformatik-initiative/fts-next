@@ -66,12 +66,6 @@ public class ClinicalDomainAgent {
   }
 
   @Bean
-  public ForkJoinPool transferProcessPool(
-      @Value("${transferProcess.parallelism:4}") int parallelism) {
-    return new ForkJoinPool(parallelism);
-  }
-
-  @Bean
   @Primary
   public ObjectMapper defaultObjectMapper() {
     return new ObjectMapper().registerModule(new JavaTimeModule());

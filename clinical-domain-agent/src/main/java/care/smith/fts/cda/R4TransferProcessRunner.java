@@ -1,40 +1,34 @@
 package care.smith.fts.cda;
 
-import care.smith.fts.api.ConsentedPatient;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.ForkJoinPool;
+import care.smith.fts.api.*;
 import org.hl7.fhir.r4.model.Bundle;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 @Component
 public class R4TransferProcessRunner {
 
-  // TODO use pool
-  private final ForkJoinPool pool;
-
-  public R4TransferProcessRunner(@Qualifier("transferProcessPool") ForkJoinPool pool) {
-    this.pool = pool;
+  public Flux<Result> run(TransferProcess<Bundle> process) {
+    return runProcess(
+        process.cohortSelector(),
+        process.dataSelector(),
+        process.deidentificationProvider(),
+        process.bundleSender());
   }
 
-  public List<Boolean> run(TransferProcess<Bundle> process) {
-    return process.cohortSelector().selectCohort().parallelStream()
-        .map(
-            p -> {
-              try {
-                return run(process, p);
-              } catch (IOException e) {
-                throw new RuntimeException(e);
-              }
-            })
-        .toList();
+  private static Flux<Result> runProcess(
+      CohortSelector cohortSelector,
+      DataSelector<Bundle> bundleDataSelector,
+      DeidentificationProvider<Bundle> bundleDeidentificationProvider,
+      BundleSender<Bundle> bundleBundleSender) {
+    Flux<ConsentedPatient> patientFlux = cohortSelector.selectCohort();
+    return patientFlux.flatMap(
+        patient -> {
+          Flux<Bundle> data = bundleDataSelector.select(patient);
+          Flux<Bundle> deidentified = bundleDeidentificationProvider.deidentify(data, patient);
+          return bundleBundleSender.send(deidentified, patient).map(i -> new Result(patient));
+        });
   }
 
-  private static boolean run(TransferProcess<Bundle> process, ConsentedPatient p)
-      throws IOException {
-    Bundle data = process.dataSelector().select(p);
-    Bundle deidentified = process.deidentificationProvider().deidentify(data, p);
-    return process.bundleSender().send(deidentified, process.project());
-  }
+  public record Result(ConsentedPatient patient) {}
 }

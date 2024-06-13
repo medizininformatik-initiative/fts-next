@@ -1,14 +1,8 @@
 package care.smith.fts.cda.test;
 
-import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DataSelector;
-import java.util.List;
 
-import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
-import org.hl7.fhir.r4.model.Patient;
-import org.hl7.fhir.r4.model.Resource;
 import org.springframework.stereotype.Component;
 
 @Component("mockDataSelector")
@@ -20,17 +14,10 @@ public class MockDataSelector implements DataSelector.Factory<Bundle, MockDataSe
 
   @Override
   public DataSelector<Bundle> create(DataSelector.Config commonConfig, Config implConfig) {
-    return new Impl();
+    return a -> {
+      throw new UnsupportedOperationException();
+    };
   }
 
   public record Config() {}
-
-  public static class Impl implements DataSelector<Bundle> {
-    @Override
-    public Bundle select(ConsentedPatient consentedPatient) {
-        Resource patient = new Patient().setId(consentedPatient.id());
-        List<BundleEntryComponent> entries = List.of(new BundleEntryComponent().setResource(patient));
-        return new Bundle().setEntry(entries);
-    }
-  }
 }

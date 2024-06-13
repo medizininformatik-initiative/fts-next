@@ -2,10 +2,11 @@ package care.smith.fts.api;
 
 import jakarta.validation.constraints.NotNull;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
+import reactor.core.publisher.Flux;
 
 public interface DataSelector<B extends IBaseBundle> {
 
-  B select(ConsentedPatient consentedPatient);
+  Flux<B> select(ConsentedPatient consentedPatient);
 
   interface Factory<B extends IBaseBundle, C> extends StepFactory<DataSelector<B>, Config, C> {}
 

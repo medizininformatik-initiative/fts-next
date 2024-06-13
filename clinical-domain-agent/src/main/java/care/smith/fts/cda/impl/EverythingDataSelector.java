@@ -2,31 +2,31 @@ package care.smith.fts.cda.impl;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DataSelector;
 import care.smith.fts.api.Period;
+import care.smith.fts.cda.services.PatientIdResolver;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-
-import care.smith.fts.cda.services.PatientIdResolver;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 public class EverythingDataSelector implements DataSelector<Bundle> {
   private final Config common;
-  private final IGenericClient client;
+  private final WebClient client;
   private final PatientIdResolver pidResolver;
 
   public EverythingDataSelector(
-          Config common, IGenericClient client, PatientIdResolver patientIdResolver) {
+      Config common, WebClient client, PatientIdResolver patientIdResolver) {
     this.common = common;
     this.client = client;
     this.pidResolver = patientIdResolver;
   }
 
   @Override
-  public Bundle select(ConsentedPatient patient) {
+  public Flux<Bundle> select(ConsentedPatient patient) {
     var params = new Parameters();
     if (!common.ignoreConsent()) {
       if (patient.maxConsentedPeriod().isPresent()) {
@@ -36,6 +36,8 @@ public class EverythingDataSelector implements DataSelector<Bundle> {
             "Patient has no consent configured, and ignoreConsent is false.");
       }
     }
+
+    client.
 
     return client
         .operation()

@@ -40,7 +40,7 @@ class DeidentifhirDeidentificationProvider implements DeidentificationProvider<R
   }
 
   @Override
-  public Resource deidentify(Resource resource, ConsentedPatient patient) throws IOException {
+  public Resource deidentify(Resource resource, ConsentedPatient patient) {
 
     IDATScraper idatScraper = new IDATScraper(scraperConfig, patient);
     var ids = idatScraper.gatherIDs(resource);

@@ -1,10 +1,10 @@
 package care.smith.fts.api;
 
-import java.util.List;
+import reactor.core.publisher.Flux;
 
 public interface CohortSelector {
 
-  List<ConsentedPatient> selectCohort();
+  Flux<ConsentedPatient> selectCohort();
 
   interface Factory<C> extends StepFactory<CohortSelector, Config, C> {}
 
