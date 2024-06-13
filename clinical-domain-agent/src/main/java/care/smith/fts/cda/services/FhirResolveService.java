@@ -4,21 +4,21 @@ import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
 import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
 public class FhirResolveService implements PatientIdResolver {
 
   private final FhirContext fhir;
-  private final IGenericClient client;
+  private final WebClient client;
   private final String identifierSystem;
 
-  public FhirResolveService(String identifierSystem, IGenericClient client, FhirContext fhir) {
+  public FhirResolveService(String identifierSystem, WebClient client, FhirContext fhir) {
     this.identifierSystem = identifierSystem;
     this.client = client;
     this.fhir = fhir;

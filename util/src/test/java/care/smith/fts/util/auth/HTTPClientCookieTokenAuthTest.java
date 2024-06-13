@@ -3,13 +3,11 @@ package care.smith.fts.util.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
-import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClient;
 
 public class HTTPClientCookieTokenAuthTest {
 
@@ -27,21 +25,9 @@ public class HTTPClientCookieTokenAuthTest {
   }
 
   @Test
-  public void hapiClientCreated() {
-    HTTPClientCookieTokenAuth config = new HTTPClientCookieTokenAuth();
-    config.setToken("token-090112");
+  public void clientCreated() {
+    HTTPClientCookieTokenAuth config = new HTTPClientCookieTokenAuth("token-090112");
 
-    IGenericClient client =
-            FhirContext.forR4().getRestfulClientFactory().newGenericClient("http://localhost");
-
-    assertThatNoException().isThrownBy(() -> config.configure(client));
-  }
-
-  @Test
-  public void apacheClientCreated() {
-    HTTPClientCookieTokenAuth config = new HTTPClientCookieTokenAuth();
-    config.setToken("token-090112");
-
-    assertThatNoException().isThrownBy(() -> config.configure(HttpClientBuilder.create()));
+    assertThatNoException().isThrownBy(() -> config.configure(WebClient.builder()));
   }
 }

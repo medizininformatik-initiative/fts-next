@@ -10,7 +10,7 @@ public interface BundleSender<B extends IBaseBundle> {
 
   interface Factory<B extends IBaseBundle, C> extends StepFactory<BundleSender<B>, Config, C> {}
 
-  record Config(String project) {}
+  record Config() {}
 
   record Result() {}
 }

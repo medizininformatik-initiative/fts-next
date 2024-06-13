@@ -4,8 +4,8 @@ import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
 import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.reactive.function.client.WebClient;
 
 public record FhirResolveConfig(
     /* The system of the patient's identifier that is used to resolve a PID */
@@ -18,7 +18,7 @@ public record FhirResolveConfig(
             "Patient identifier system must not be null or empty");
   }
 
-  public FhirResolveService createService(IGenericClient client, FhirContext fhir) {
+  public FhirResolveService createService(WebClient client, FhirContext fhir) {
     return new FhirResolveService(patientIdentifierSystem(), requireNonNull(client), fhir);
   }
 }

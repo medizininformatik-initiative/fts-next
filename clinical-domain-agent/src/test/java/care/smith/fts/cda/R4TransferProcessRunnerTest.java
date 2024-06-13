@@ -4,8 +4,7 @@ import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.BundleSender;
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.*;
 import care.smith.fts.cda.R4TransferProcessRunner.Result;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;

@@ -9,6 +9,7 @@ import care.smith.fts.util.HTTPClientConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootTest
 class EverythingDataSelectorFactoryTest {
@@ -18,13 +19,13 @@ class EverythingDataSelectorFactoryTest {
   @Test
   void testConfigType() {
     IRestfulClientFactory clientFactory = fhir.getRestfulClientFactory();
-    assertThat(new EverythingDataSelectorFactory(clientFactory, fhir).getConfigType()).isNotNull();
+    assertThat(new EverythingDataSelectorFactory(clientFactory, fhir, WebClient.builder()).getConfigType()).isNotNull();
   }
 
   @Test
   void testCreateWithoutResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir)
+            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir, WebClient.builder())
                 .create(
                     null,
                     new EverythingDataSelectorConfig(
@@ -35,7 +36,7 @@ class EverythingDataSelectorFactoryTest {
   @Test
   void testCreateWithResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir)
+            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir, WebClient.builder())
                 .create(
                     null,
                     new EverythingDataSelectorConfig(

@@ -5,16 +5,15 @@ import care.smith.fts.api.BundleSender;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Component("researchDomainAgentBundleSender")
 public class RDABundleSenderFactory implements BundleSender.Factory<Bundle, RDABundleSenderConfig> {
 
-  private final HttpClientBuilder builder;
-  private final FhirContext fhir;
+  private final WebClient.Builder builder;
 
-  public RDABundleSenderFactory(HttpClientBuilder builder, FhirContext fhir) {
+  public RDABundleSenderFactory(WebClient.Builder builder) {
     this.builder = builder;
-    this.fhir = fhir;
   }
 
   @Override
@@ -25,6 +24,6 @@ public class RDABundleSenderFactory implements BundleSender.Factory<Bundle, RDAB
   @Override
   public BundleSender<Bundle> create(
       BundleSender.Config commonConfig, RDABundleSenderConfig implConfig) {
-    return new RDABundleSender(implConfig, implConfig.server().createClient(builder), fhir);
+    return new RDABundleSender(implConfig, implConfig.server().createClient(builder));
   }
 }

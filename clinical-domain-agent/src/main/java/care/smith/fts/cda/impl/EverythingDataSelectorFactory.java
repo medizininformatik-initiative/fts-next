@@ -1,8 +1,6 @@
 package care.smith.fts.cda.impl;
 
 import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
-import ca.uhn.fhir.rest.client.api.IRestfulClientFactory;
 import care.smith.fts.api.DataSelector;
 
 import care.smith.fts.cda.services.PatientIdResolver;
@@ -11,16 +9,16 @@ import org.hl7.fhir.r4.model.IdType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import static org.springframework.web.reactive.function.client.WebClient.builder;
-
 @Component("everythingDataSelector")
 public class EverythingDataSelectorFactory
     implements DataSelector.Factory<Bundle, EverythingDataSelectorConfig> {
 
   private final FhirContext fhir;
+  private final WebClient.Builder clientBuilder;
 
-  public EverythingDataSelectorFactory(FhirContext fhir) {
+  public EverythingDataSelectorFactory(FhirContext fhir, WebClient.Builder clientBuilder) {
     this.fhir = fhir;
+    this.clientBuilder = clientBuilder;
   }
 
   @Override
@@ -29,14 +27,14 @@ public class EverythingDataSelectorFactory
   }
 
   @Override
-  public DataSelector<Bundle> create(DataSelector.Config common, EverythingDataSelectorConfig config) {
-    IGenericClient client = config.fhirServer().createClient(WebClient.builder());
+  public DataSelector<Bundle> create(
+      DataSelector.Config common, EverythingDataSelectorConfig config) {
+    var client = config.fhirServer().createClient(clientBuilder);
     PatientIdResolver resolver = createResolver(config, client);
-    return new EverythingDataSelector(common, builder().build(), resolver);
+    return new EverythingDataSelector(common, client, resolver);
   }
 
-  private PatientIdResolver createResolver(
-      EverythingDataSelectorConfig config, IGenericClient client) {
+  private PatientIdResolver createResolver(EverythingDataSelectorConfig config, WebClient client) {
     if (config.resolve() != null) {
       return config.resolve().createService(client, fhir);
     } else {

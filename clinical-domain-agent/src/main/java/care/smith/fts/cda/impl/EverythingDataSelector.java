@@ -37,7 +37,10 @@ public class EverythingDataSelector implements DataSelector<Bundle> {
       }
     }
 
-    client.
+    client.get().uri(b -> b.path("Patient/{id}/$everything")
+            .queryParam()
+            .build(patient.id()))
+            .
 
     return client
         .operation()

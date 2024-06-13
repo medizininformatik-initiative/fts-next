@@ -5,4 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record RDABundleSenderConfig(
     /* */
-    @NotNull HTTPClientConfig server) {}
+    @NotNull HTTPClientConfig server,
+
+    /* */
+    String project) {}

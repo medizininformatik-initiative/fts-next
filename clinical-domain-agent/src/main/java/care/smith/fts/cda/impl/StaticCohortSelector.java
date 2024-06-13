@@ -1,5 +1,7 @@
 package care.smith.fts.cda.impl;
 
+import static reactor.core.publisher.Flux.fromStream;
+
 import care.smith.fts.api.CohortSelector;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
@@ -22,9 +24,10 @@ public class StaticCohortSelector implements CohortSelector.Factory<StaticCohort
 
   @Override
   public CohortSelector create(CohortSelector.Config ignored, Config config) {
-    return () ->
-        config.pids().stream()
-            .map(id -> new ConsentedPatient(id, new ConsentedPolicies()))
-            .toList();
+    return () -> fromStream(config.pids().stream().map(StaticCohortSelector::staticPatient));
+  }
+
+  private static ConsentedPatient staticPatient(String id) {
+    return new ConsentedPatient(id, new ConsentedPolicies());
   }
 }

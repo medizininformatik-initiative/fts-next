@@ -1,19 +1,20 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
+import static reactor.core.publisher.Flux.fromIterable;
+import static reactor.test.StepVerifier.create;
 
 import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.api.BundleSender;
+import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.util.HTTPClientConfig;
 import java.util.List;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.AfterEach;
@@ -24,13 +25,17 @@ import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
 class RDABundleSenderTest {
 
+  private static final String PATIENT_ID = "patient-102931";
+  private static final ConsentedPatient PATIENT =
+      new ConsentedPatient(PATIENT_ID, new ConsentedPolicies());
   @Autowired FhirContext fhir;
-  @Autowired HttpClientBuilder httpClient;
+  @Autowired WebClient.Builder builder;
 
   private BundleSender<Bundle> bundleSender;
 
@@ -38,8 +43,8 @@ class RDABundleSenderTest {
   void setUp(MockServerClient mockServer) {
     var address = "http://localhost:%d".formatted(mockServer.getPort());
     var server = new HTTPClientConfig(address, NONE);
-    var config = new RDABundleSenderConfig(server);
-    this.bundleSender = new RDABundleSender(config, httpClient.build(), fhir);
+    var config = new RDABundleSenderConfig(server, "example");
+    this.bundleSender = new RDABundleSender(config, builder.build());
   }
 
   @Test
@@ -52,16 +57,15 @@ class RDABundleSenderTest {
                 .withBody(
                     json(
                         """
-                        {"entry": [{"resource": {"resourceType": "Patient", "id": "patient-125419"}}]}
+                        {"entry": [{"resource": {"resourceType": "Patient", "id": "patient-102931"}}]}
                         """,
                         ONLY_MATCHING_FIELDS)))
         .respond(response().withStatusCode(201));
 
     Bundle b = new Bundle();
     b.setEntry(
-        List.of(
-            new Bundle.BundleEntryComponent().setResource(new Patient().setId("patient-125419"))));
-    assertThat(bundleSender.send(b, "example")).isTrue();
+        List.of(new Bundle.BundleEntryComponent().setResource(new Patient().setId(PATIENT_ID))));
+    create(bundleSender.send(fromIterable(List.of(b)), PATIENT)).expectNext().verifyComplete();
   }
 
   @Test
@@ -70,9 +74,7 @@ class RDABundleSenderTest {
         .when(request().withMethod("POST").withPath("/api/v2/process/example"))
         .respond(response().withBody("{}", APPLICATION_JSON));
 
-    assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(() -> bundleSender.send(null, "example"))
-        .withMessageContaining("null");
+    create(bundleSender.send(null, PATIENT)).expectError(NullPointerException.class).verify();
   }
 
   @Test
@@ -81,7 +83,7 @@ class RDABundleSenderTest {
         .when(request().withMethod("POST").withPath("/api/v2/process/example"))
         .respond(response().withStatusCode(400));
 
-    assertThat(bundleSender.send(new Bundle(), "example")).isFalse();
+    create(bundleSender.send(fromIterable(List.of(new Bundle())), PATIENT)).expectError().verify();
   }
 
   @AfterEach
