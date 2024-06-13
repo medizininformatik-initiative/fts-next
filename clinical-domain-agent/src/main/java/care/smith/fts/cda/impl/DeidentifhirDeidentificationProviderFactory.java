@@ -9,6 +9,7 @@ import java.time.Duration;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.hl7.fhir.r4.model.Resource;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Component("deidentifhirDeidentificationProvider")
 public class DeidentifhirDeidentificationProviderFactory
@@ -34,13 +35,12 @@ public class DeidentifhirDeidentificationProviderFactory
 
     HTTPClientConfig httpClientConfig =
         new HTTPClientConfig(implConfig.tcaBaseUrl, implConfig.auth);
-    var httpClient = httpClientConfig.createClient(HttpClientBuilder.create());
+    var httpClient = httpClientConfig.createClient(WebClient.builder());
 
     return new DeidentifhirDeidentificationProvider(
         implConfig.deidentifhirConfigFile,
         implConfig.scraperConfigFile,
         httpClient,
-        new ObjectMapper(),
         implConfig.domain,
         implConfig.dateShift);
   }

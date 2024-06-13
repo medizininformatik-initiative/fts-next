@@ -5,20 +5,18 @@ import care.smith.fts.api.DeidentificationProvider;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirService;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.tca.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.ConfigFactory;
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Set;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.hl7.fhir.r4.model.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 class DeidentifhirDeidentificationProvider implements DeidentificationProvider<Resource> {
-  private final CloseableHttpClient httpClient;
-  private final ObjectMapper objectMapper;
+  private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift;
   private final com.typesafe.config.Config deidentifhirConfig;
@@ -27,12 +25,10 @@ class DeidentifhirDeidentificationProvider implements DeidentificationProvider<R
   public DeidentifhirDeidentificationProvider(
       File deidentifhirConfigFile,
       File scraperConfigFile,
-      CloseableHttpClient httpClient,
-      ObjectMapper objectMapper,
+      WebClient httpClient,
       String domain,
       Duration dateShift) {
     this.httpClient = httpClient;
-    this.objectMapper = objectMapper;
     this.domain = domain;
     this.dateShift = dateShift;
     this.deidentifhirConfig = ConfigFactory.parseFile(deidentifhirConfigFile);
@@ -40,33 +36,42 @@ class DeidentifhirDeidentificationProvider implements DeidentificationProvider<R
   }
 
   @Override
-  public Resource deidentify(Resource resource, ConsentedPatient patient) {
+  public Flux<Resource> deidentify(Flux<Resource> resourceFlux, ConsentedPatient patient) {
+    record Tuple(Resource resource, PseudonymizeResponse response) {}
+    return resourceFlux
+        .flatMap(
+            resource -> {
+              IDATScraper idatScraper = new IDATScraper(scraperConfig, patient);
+              var ids = idatScraper.gatherIDs(resource);
+              return fetchTransportIdsAndDateShiftingValues(ids)
+                  .map(response -> new Tuple(resource, response));
+            })
+        .map(
+            t -> {
+              TransportIDs transportIDs = t.response.getTransportIDs();
+              Duration dateShiftValue = t.response.getDateShiftValue();
 
-    IDATScraper idatScraper = new IDATScraper(scraperConfig, patient);
-    var ids = idatScraper.gatherIDs(resource);
+              DeidentifhirService deidentifhir =
+                  new DeidentifhirService(
+                      deidentifhirConfig, patient, transportIDs, dateShiftValue);
 
-    PseudonymizeResponse pseudonymizeResponse = fetchTransportIdsAndDateShiftingValues(ids);
-    TransportIDs transportIDs = pseudonymizeResponse.getTransportIDs();
-    Duration dateShiftValue = pseudonymizeResponse.getDateShiftValue();
-
-    DeidentifhirService deidentifhir =
-        new DeidentifhirService(deidentifhirConfig, patient, transportIDs, dateShiftValue);
-
-    return deidentifhir.deidentify(resource);
+              return deidentifhir.deidentify(t.resource);
+            });
   }
 
-  private PseudonymizeResponse fetchTransportIdsAndDateShiftingValues(Set<String> ids)
-      throws IOException {
-    var post = new HttpPost("/cd/transport-ids-and-date-shifting-values");
-    post.setHeader("Content-Type", "application/json");
+  private Mono<PseudonymizeResponse> fetchTransportIdsAndDateShiftingValues(Set<String> ids) {
 
     PseudonymizeRequest request = new PseudonymizeRequest();
     request.setIds(ids);
     request.setDomain(domain);
     request.setDateShift(dateShift);
-    post.setEntity(new StringEntity(objectMapper.writeValueAsString(request)));
 
-    var response = httpClient.execute(post, r -> r.getEntity().getContent());
-    return objectMapper.readValue(response, PseudonymizeResponse.class);
+    return httpClient
+        .post()
+        .uri("/cd/transport-ids-and-date-shifting-values")
+        .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
+        .bodyValue(request)
+        .retrieve()
+        .bodyToMono(PseudonymizeResponse.class);
   }
 }
