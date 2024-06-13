@@ -1,8 +1,6 @@
 package care.smith.fts.cda.impl;
 
-import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.api.DataSelector;
-
 import care.smith.fts.cda.services.PatientIdResolver;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.IdType;
@@ -13,11 +11,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class EverythingDataSelectorFactory
     implements DataSelector.Factory<Bundle, EverythingDataSelectorConfig> {
 
-  private final FhirContext fhir;
   private final WebClient.Builder clientBuilder;
 
-  public EverythingDataSelectorFactory(FhirContext fhir, WebClient.Builder clientBuilder) {
-    this.fhir = fhir;
+  public EverythingDataSelectorFactory(WebClient.Builder clientBuilder) {
     this.clientBuilder = clientBuilder;
   }
 
@@ -36,7 +32,7 @@ public class EverythingDataSelectorFactory
 
   private PatientIdResolver createResolver(EverythingDataSelectorConfig config, WebClient client) {
     if (config.resolve() != null) {
-      return config.resolve().createService(client, fhir);
+      return config.resolve().createService(client);
     } else {
       return pid -> new IdType("Patient", pid);
     }

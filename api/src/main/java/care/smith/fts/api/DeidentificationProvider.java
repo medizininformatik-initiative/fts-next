@@ -1,17 +1,17 @@
 package care.smith.fts.api;
 
+import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import reactor.core.publisher.Flux;
 
 /**
  * @param <B> FHIR Type of the PatientBundle type
  */
-public interface DeidentificationProvider<B extends IBaseResource> {
+public interface DeidentificationProvider<In, Out> {
 
-  Flux<B> deidentify(Flux<B> patientBundle, ConsentedPatient patient);
+  Flux<Out> deidentify(Flux<In> inFlux);
 
-  interface Factory<B extends IBaseResource, C>
-      extends StepFactory<DeidentificationProvider<B>, Config, C> {}
+  interface Factory<In, Out, C> extends StepFactory<DeidentificationProvider<In, Out>, Config, C> {}
 
   record Config() {}
 }

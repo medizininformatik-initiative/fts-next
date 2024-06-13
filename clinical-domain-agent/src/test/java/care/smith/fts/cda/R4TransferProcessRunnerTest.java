@@ -14,8 +14,7 @@ import org.junit.jupiter.api.Test;
 class R4TransferProcessRunnerTest {
 
   private static final String PATIENT_ID = "patient-150622";
-  private static final ConsentedPatient PATIENT =
-      new ConsentedPatient(PATIENT_ID, new ConsentedPatient.ConsentedPolicies());
+  private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);
 
   private R4TransferProcessRunner runner;
 
@@ -26,7 +25,7 @@ class R4TransferProcessRunnerTest {
 
   @Test
   void runMockTestSuccessfully() {
-    BundleSender.Result result = new BundleSender.Result();
+    BundleSender.Result result = new BundleSender.Result(0);
     TransferProcess<Bundle> process =
         new TransferProcess<>(
             "test",

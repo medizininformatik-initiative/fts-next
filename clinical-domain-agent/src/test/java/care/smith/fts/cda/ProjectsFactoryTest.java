@@ -53,10 +53,10 @@ class ProjectsFactoryTest {
     TransferProcess<Bundle> process =
         new TransferProcess<>(
             "test",
-            new MockCohortSelector.Impl(new MockCohortSelector.Config(List.of())),
-            new MockDataSelector.Impl(),
-            new MockDeidentificationProvider.Impl(new MockDeidentificationProvider.Config(false)),
-            new MockBundleSender.Impl(new MockBundleSender.Config(Set.of())));
+            () -> null,
+            consentedPatient -> null,
+            (patientBundle,patient) -> null,
+            (bundle,patient) -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
     var factory = new ProjectsFactory(processFactory, beanFactory, objectMapper, testDirectory);

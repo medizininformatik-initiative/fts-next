@@ -1,11 +1,10 @@
 package care.smith.fts.cda.services.deidentifhir;
 
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.ConsentedPatient;
-import com.typesafe.config.ConfigFactory;
-import java.io.File;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,12 +14,8 @@ class IDATScraperTest {
 
   @BeforeEach
   void setUp() {
-    ConsentedPatient patient =
-        new ConsentedPatient("id1", new ConsentedPatient.ConsentedPolicies());
-    var config =
-        ConfigFactory.parseFile(
-            new File(
-                "src/test/resources/care/smith/fts/cda/services/deidentifhir/IDScraper.profile"));
+    ConsentedPatient patient = new ConsentedPatient("id1");
+    var config = parseResources(IDATScraperTest.class, "IDScraper.profile");
     scraper = new IDATScraper(config, patient);
   }
 

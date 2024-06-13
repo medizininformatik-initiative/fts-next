@@ -7,7 +7,6 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import care.smith.fts.cda.test.MockServerUtil;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.junit.jupiter.api.AfterEach;
@@ -17,8 +16,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.Header;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
 
+@SpringBootTest
 @ExtendWith(MockServerExtension.class)
 class FhirResolveServiceTest {
 
@@ -27,13 +29,15 @@ class FhirResolveServiceTest {
   private static final FhirContext FHIR = FhirContext.forR4();
   private static final String KDS_PATIENT = "https://some.example.com/pid";
 
+  @Autowired WebClient.Builder builder;
+
   private FhirResolveService service;
 
   @BeforeEach
   void setUp(MockServerClient mockServer) throws Exception {
     var address = "http://localhost:%d".formatted(mockServer.getPort());
-    WebClient client = WebClient.create(address);
-    this.service = new FhirResolveService(KDS_PATIENT, client, FHIR);
+    WebClient client = builder.baseUrl(address).build();
+    this.service = new FhirResolveService(KDS_PATIENT, client);
     try (var inStream = MockServerUtil.class.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();
       mockServer

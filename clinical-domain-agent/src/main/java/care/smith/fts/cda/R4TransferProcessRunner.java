@@ -6,8 +6,9 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 @Component
-public class R4TransferProcessRunner {
+public class R4TransferProcessRunner implements TransferProcessRunner {
 
+  @Override
   public Flux<Result> run(TransferProcess<Bundle> process) {
     return runProcess(
         process.cohortSelector(),

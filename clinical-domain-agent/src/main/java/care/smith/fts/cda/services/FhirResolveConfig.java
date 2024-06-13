@@ -18,7 +18,7 @@ public record FhirResolveConfig(
             "Patient identifier system must not be null or empty");
   }
 
-  public FhirResolveService createService(WebClient client, FhirContext fhir) {
-    return new FhirResolveService(patientIdentifierSystem(), requireNonNull(client), fhir);
+  public FhirResolveService createService(WebClient client) {
+    return new FhirResolveService(patientIdentifierSystem(), requireNonNull(client));
   }
 }

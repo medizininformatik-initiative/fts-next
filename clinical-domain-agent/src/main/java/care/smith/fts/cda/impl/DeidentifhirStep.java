@@ -5,8 +5,6 @@ import care.smith.fts.api.DeidentificationProvider;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirService;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.tca.*;
-import com.typesafe.config.ConfigFactory;
-import java.io.File;
 import java.time.Duration;
 import java.util.Set;
 import org.hl7.fhir.r4.model.Resource;
@@ -15,24 +13,25 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class DeidentifhirDeidentificationProvider implements DeidentificationProvider<Resource> {
+class DeidentifhirStep implements DeidentificationProvider<Resource> {
   private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
+  private DeidentifhirService deidentifhir;
 
-  public DeidentifhirDeidentificationProvider(
-      File deidentifhirConfigFile,
-      File scraperConfigFile,
+  public DeidentifhirStep(
       WebClient httpClient,
       String domain,
-      Duration dateShift) {
+      Duration dateShift,
+      com.typesafe.config.Config deidentifhirConfig,
+      com.typesafe.config.Config scraperConfig) {
     this.httpClient = httpClient;
     this.domain = domain;
     this.dateShift = dateShift;
-    this.deidentifhirConfig = ConfigFactory.parseFile(deidentifhirConfigFile);
-    this.scraperConfig = ConfigFactory.parseFile(scraperConfigFile);
+    this.deidentifhirConfig = deidentifhirConfig;
+    this.scraperConfig = scraperConfig;
   }
 
   @Override

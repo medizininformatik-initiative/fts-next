@@ -3,25 +3,23 @@ package care.smith.fts.cda.services;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
-import ca.uhn.fhir.context.FhirContext;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class FhirResolveService implements PatientIdResolver {
 
-  private final FhirContext fhir;
   private final WebClient client;
   private final String identifierSystem;
 
-  public FhirResolveService(String identifierSystem, WebClient client, FhirContext fhir) {
+  public FhirResolveService(String identifierSystem, WebClient client) {
     this.identifierSystem = identifierSystem;
     this.client = client;
-    this.fhir = fhir;
   }
 
   /**
@@ -38,34 +36,35 @@ public class FhirResolveService implements PatientIdResolver {
 
   private IBaseResource resolveFromPatient(String patientId) {
     requireNonNull(emptyToNull(patientId), "patientId must not be null or empty");
-    Bundle patients = fetchPatientBundle(patientId);
+    Bundle patients = fetchPatientBundle(patientId).block();
+    requireNonNull(patients, "Patient bundle must not be null");
     checkBundleNotEmpty(patients, patientId);
     checkSinglePatient(patients, patientId);
     return patients.getEntryFirstRep().getResource();
   }
 
-  private Bundle fetchPatientBundle(String patientId) {
+  private Mono<Bundle> fetchPatientBundle(String patientId) {
     return client
-        .search()
-        .forResource(Patient.class)
-        .where(Patient.IDENTIFIER.exactly().systemAndValues(identifierSystem, patientId))
-        .returnBundle(Bundle.class)
-        .execute();
+        .get()
+        .uri(
+            uri ->
+                uri.pathSegment("Patient")
+                    .queryParam("identifier", identifierSystem + "/" + patientId)
+                    .build())
+        .retrieve()
+        .bodyToMono(Bundle.class);
   }
 
   private void checkSinglePatient(Bundle patients, String patientId) {
     if (patients.getTotal() != 1 || patients.getEntry().size() != 1) {
       throw new IllegalStateException(
-          "Received more then one result while resolving patient ID %s: %s"
-              .formatted(patientId, fhir.newJsonParser().encodeResourceToString(patients)));
+          "Received more then one result while resolving patient ID %s".formatted(patientId));
     }
   }
 
   private void checkBundleNotEmpty(Bundle patients, String patientId) {
     if (patients.getTotal() == 0 || patients.getEntry().isEmpty()) {
-      throw new IllegalStateException(
-          "Unable to resolve patient ID %s: %s"
-              .formatted(patientId, fhir.newJsonParser().encodeResourceToString(patients)));
+      throw new IllegalStateException("Unable to resolve patient ID %s".formatted(patientId));
     }
   }
 }

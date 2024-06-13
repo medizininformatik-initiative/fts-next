@@ -1,6 +1,7 @@
 package care.smith.fts.test;
 
 import static care.smith.fts.util.FhirUtils.stringToFhirBundle;
+import static care.smith.fts.util.FhirUtils.toBundle;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -10,8 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Stream;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import care.smith.fts.util.FhirUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 
@@ -41,18 +43,11 @@ public class FhirGenerator {
    * @return
    */
   public Bundle generateBundle(int totalEntries, int pageSize) {
-    Bundle bundle = new Bundle();
-    bundle.setTotal(totalEntries);
-    bundle.setType(Bundle.BundleType.COLLECTION);
-
-    for (int i = 0; i < pageSize; i++) {
-      bundle.addEntry(generateEntryComponent());
-    }
-    return bundle;
-  }
-
-  private Bundle.BundleEntryComponent generateEntryComponent() {
-    return new Bundle.BundleEntryComponent().setResource(stringToFhirBundle(generateString()));
+    return Stream.generate(this::generateString)
+        .limit(pageSize)
+        .map(FhirUtils::stringToFhirBundle)
+        .collect(toBundle())
+        .setTotal(totalEntries);
   }
 
   /**

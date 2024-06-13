@@ -14,29 +14,27 @@ import org.springframework.web.reactive.function.client.WebClient;
 @SpringBootTest
 class EverythingDataSelectorFactoryTest {
 
-  @Autowired FhirContext fhir;
+  @Autowired WebClient.Builder client;
 
   @Test
   void testConfigType() {
-    IRestfulClientFactory clientFactory = fhir.getRestfulClientFactory();
-    assertThat(new EverythingDataSelectorFactory(clientFactory, fhir, WebClient.builder()).getConfigType()).isNotNull();
+    assertThat(new EverythingDataSelectorFactory(client).getConfigType()).isNotNull();
   }
 
   @Test
   void testCreateWithoutResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir, WebClient.builder())
+            new EverythingDataSelectorFactory(client)
                 .create(
                     null,
-                    new EverythingDataSelectorConfig(
-                        new HTTPClientConfig("http://localhost"))))
+                    new EverythingDataSelectorConfig(new HTTPClientConfig("http://localhost"))))
         .isNotNull();
   }
 
   @Test
   void testCreateWithResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(fhir.getRestfulClientFactory(), fhir, WebClient.builder())
+            new EverythingDataSelectorFactory(client)
                 .create(
                     null,
                     new EverythingDataSelectorConfig(

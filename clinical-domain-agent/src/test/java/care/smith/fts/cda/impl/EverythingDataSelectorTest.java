@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
-import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.DataSelector;
@@ -23,13 +22,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.Header;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @ExtendWith(MockServerExtension.class)
 class EverythingDataSelectorTest {
 
   private static final String PATIENT_ID = "patient-112348";
   private static final Header CONTENT_JSON = new Header("Content-Type", "application/json");
-  private static final FhirContext FHIR = FhirContext.forR4();
 
   private EverythingDataSelector dataSelector;
 
@@ -40,9 +39,7 @@ class EverythingDataSelectorTest {
     var common = new DataSelector.Config(false, null);
     this.dataSelector =
         new EverythingDataSelector(
-            common,
-            server.createClient(FHIR.getRestfulClientFactory()),
-            pid -> new IdType("Patient", pid));
+            common, server.createClient(WebClient.builder()), pid -> new IdType("Patient", pid));
     try (var inStream = MockServerUtil.class.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();
       mockServer
@@ -53,9 +50,8 @@ class EverythingDataSelectorTest {
 
   @Test
   void noConsentThrows() {
-    ConsentedPolicies consentedPolicies = new ConsentedPolicies();
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> dataSelector.select(new ConsentedPatient(PATIENT_ID, consentedPolicies)));
+        .isThrownBy(() -> dataSelector.select(new ConsentedPatient(PATIENT_ID)));
   }
 
   @Test

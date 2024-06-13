@@ -18,6 +18,7 @@
       <artifactId>api</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
       <groupId>care.smith.fts</groupId>
       <artifactId>util</artifactId>

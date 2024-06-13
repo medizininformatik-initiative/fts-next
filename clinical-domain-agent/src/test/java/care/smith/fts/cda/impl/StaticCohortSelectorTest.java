@@ -1,6 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.CohortSelector;
 import care.smith.fts.api.ConsentedPatient;
@@ -29,8 +30,8 @@ class StaticCohortSelectorTest {
 
   @Test
   void containsExactlyPatientsConfigured() {
-    assertThat(selector.selectCohort())
-        .map(ConsentedPatient::id)
-        .containsExactlyInAnyOrder(TEST_PID);
+    create(selector.selectCohort().map(ConsentedPatient::id))
+        .expectNext(TEST_PID)
+        .verifyComplete();
   }
 }

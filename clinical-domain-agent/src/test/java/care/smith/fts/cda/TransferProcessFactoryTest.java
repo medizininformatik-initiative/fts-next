@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.List;
 import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,7 +99,7 @@ class TransferProcessFactoryTest {
   void invalidConfigEntryThrows() {
     TransferProcessConfig processDefinition =
         new TransferProcessConfig(
-            Map.of("mock", Map.of("pids", "dude")),
+            Map.of("mock", Map.of("known", List.of("invalid"))),
             Map.of("mock", Map.of()),
             Map.of("mock", Map.of()),
             Map.of("mock", Map.of()));

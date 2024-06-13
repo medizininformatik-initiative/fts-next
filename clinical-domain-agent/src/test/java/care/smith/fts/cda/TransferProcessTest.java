@@ -10,7 +10,6 @@ import care.smith.fts.cda.test.MockBundleSender;
 import care.smith.fts.cda.test.MockCohortSelector;
 import care.smith.fts.cda.test.MockDataSelector;
 import care.smith.fts.cda.test.MockDeidentificationProvider;
-import java.util.List;
 import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,7 @@ class TransferProcessTest {
         new TransferProcess<>(
             "test",
             new MockCohortSelector()
-                .create(new CohortSelector.Config(), new MockCohortSelector.Config(List.of())),
+                .create(new CohortSelector.Config(), new MockCohortSelector.Config("some")),
             new MockDataSelector()
                 .create(new DataSelector.Config(false, null), new MockDataSelector.Config()),
             new MockDeidentificationProvider()

@@ -4,7 +4,6 @@ import static reactor.core.publisher.Flux.fromStream;
 
 import care.smith.fts.api.CohortSelector;
 import care.smith.fts.api.ConsentedPatient;
-import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,6 +27,6 @@ public class StaticCohortSelector implements CohortSelector.Factory<StaticCohort
   }
 
   private static ConsentedPatient staticPatient(String id) {
-    return new ConsentedPatient(id, new ConsentedPolicies());
+    return new ConsentedPatient(id);
   }
 }

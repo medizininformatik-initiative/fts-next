@@ -4,13 +4,12 @@ import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DataSelector;
-import care.smith.fts.api.Period;
 import care.smith.fts.cda.services.PatientIdResolver;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Parameters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 
 public class EverythingDataSelector implements DataSelector<Bundle> {
@@ -27,34 +26,30 @@ public class EverythingDataSelector implements DataSelector<Bundle> {
 
   @Override
   public Flux<Bundle> select(ConsentedPatient patient) {
-    var params = new Parameters();
-    if (!common.ignoreConsent()) {
-      if (patient.maxConsentedPeriod().isPresent()) {
-        addConsentParams(params, patient.maxConsentedPeriod().get());
-      } else {
-        throw new IllegalArgumentException(
-            "Patient has no consent configured, and ignoreConsent is false.");
-      }
-    }
-
-    client.get().uri(b -> b.path("Patient/{id}/$everything")
-            .queryParam()
-            .build(patient.id()))
-            .
-
     return client
-        .operation()
-        .onInstance(pidResolver.resolve(patient.id()))
-        .named("everything")
-        .withParameters(params)
-        .returnResourceType(Bundle.class)
-        .useHttpGet()
-        .execute();
+        .get()
+        .uri(
+            builder -> {
+              builder = builder.pathSegment("Patient", "{id}", "$everything");
+              if (!common.ignoreConsent()) {
+                builder = addConsentParams(builder, patient);
+              }
+              return builder.build(pidResolver.resolve(patient.id()));
+            })
+        .retrieve()
+        .bodyToFlux(Bundle.class);
   }
 
-  private void addConsentParams(Parameters params, Period period) {
-    params.addParameter("start", formatWithSystemTZ(period.start()));
-    params.addParameter("end", formatWithSystemTZ(period.end()));
+  private UriBuilder addConsentParams(UriBuilder params, ConsentedPatient patient) {
+    var period = patient.maxConsentedPeriod();
+    if (period.isPresent()) {
+      return params
+          .queryParam("start", formatWithSystemTZ(period.get().start()))
+          .queryParam("end", formatWithSystemTZ(period.get().end()));
+    } else {
+      throw new IllegalArgumentException(
+          "Patient has no consent configured, and ignoreConsent is false.");
+    }
   }
 
   private static String formatWithSystemTZ(ZonedDateTime t) {

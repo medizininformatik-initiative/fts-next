@@ -1,5 +1,7 @@
 package care.smith.fts.api;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,6 +20,15 @@ import java.time.chrono.ChronoZonedDateTime;
 import java.util.*;
 
 public record ConsentedPatient(String id, ConsentedPolicies consentedPolicies) {
+
+  public ConsentedPatient {
+    requireNonNull(id, "Patient's id cannot be null");
+    requireNonNull(consentedPolicies, "Consented policies cannot be null");
+  }
+
+  public ConsentedPatient(String id) {
+    this(id, new ConsentedPolicies());
+  }
 
   public Optional<Period> maxConsentedPeriod() {
     return consentedPolicies.maxConsentedPeriod();

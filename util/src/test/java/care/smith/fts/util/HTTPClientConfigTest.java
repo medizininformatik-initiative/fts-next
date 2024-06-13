@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClient;
 
 public class HTTPClientConfigTest {
 
@@ -39,5 +40,13 @@ public class HTTPClientConfigTest {
         """;
 
     assertThat(om.readValue(config, HTTPClientConfig.class)).isNotNull();
+  }
+
+  @Test
+  public void clientCreated() {
+    HTTPClientConfig config = new HTTPClientConfig("http://localhost");
+    WebClient client = config.createClient(WebClient.builder());
+
+    assertThat(client).isNotNull();
   }
 }

@@ -1,11 +1,10 @@
 package care.smith.fts.cda.services;
 
+import static org.assertj.core.api.Assertions.*;
+
 import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import static org.assertj.core.api.Assertions.*;
 
 class FhirResolveConfigTest {
 
@@ -16,7 +15,7 @@ class FhirResolveConfigTest {
   @Test
   void nullSystemThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(() -> new FhirResolveConfig(null).createService(CLIENT, FHIR));
+        .isThrownBy(() -> new FhirResolveConfig(null).createService(CLIENT));
   }
 
   @Test
@@ -29,12 +28,12 @@ class FhirResolveConfigTest {
   void createThrowsOnEmptyClient() {
     assertThatExceptionOfType(NullPointerException.class)
         .isThrownBy(
-            () -> new FhirResolveConfig("https://some.exampl.com").createService(null, null));
+            () -> new FhirResolveConfig("https://some.exampl.com").createService(null));
   }
 
   @Test
   void createSucceeds() {
-    assertThat(new FhirResolveConfig("https://some.example.com").createService(CLIENT, FHIR))
+    assertThat(new FhirResolveConfig("https://some.example.com").createService(CLIENT))
         .isNotNull();
   }
 }
