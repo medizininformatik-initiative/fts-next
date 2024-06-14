@@ -1,6 +1,6 @@
 package care.smith.fts.cda.test;
 
-import care.smith.fts.api.CohortSelector;
+import care.smith.fts.api.cda.CohortSelector;
 import org.springframework.stereotype.Component;
 
 @Component("mockCohortSelector")

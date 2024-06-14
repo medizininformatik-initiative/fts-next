@@ -1,4 +1,4 @@
-package care.smith.fts.cda.config;
+package care.smith.fts.util;
 
 import ca.uhn.fhir.context.FhirContext;
 import java.io.IOException;

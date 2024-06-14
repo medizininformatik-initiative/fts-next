@@ -1,20 +1,18 @@
 package care.smith.fts.rda.impl;
 
-import care.smith.fts.api.DeidentificationProvider;
-import care.smith.fts.api.TransportBundle;
+import care.smith.fts.api.rda.DeidentificationProvider;
 import care.smith.fts.util.HTTPClientConfig;
 import care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod;
 import com.typesafe.config.ConfigFactory;
 import java.io.File;
 import java.time.Duration;
-import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Component("deidentifhirDeidentificationProvider")
 public class DeidentifhirDeidentificationProviderFactory
     implements DeidentificationProvider.Factory<
-        TransportBundle<Bundle>, Bundle, DeidentifhirDeidentificationProviderFactory.Config> {
+        DeidentifhirDeidentificationProviderFactory.Config> {
 
   public record Config(
       String tcaBaseUrl,
@@ -30,7 +28,7 @@ public class DeidentifhirDeidentificationProviderFactory
   }
 
   @Override
-  public DeidentificationProvider<TransportBundle<Bundle>, Bundle> create(
+  public DeidentificationProvider create(
       DeidentificationProvider.Config commonConfig, Config implConfig) {
 
     HTTPClientConfig httpClientConfig =

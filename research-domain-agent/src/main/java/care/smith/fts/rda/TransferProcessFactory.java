@@ -3,6 +3,8 @@ package care.smith.fts.rda;
 import static java.util.Arrays.stream;
 
 import care.smith.fts.api.*;
+import care.smith.fts.api.rda.BundleSender;
+import care.smith.fts.api.rda.DeidentificationProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +16,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class TransferProcessFactory<B extends IBaseBundle> {
+public class TransferProcessFactory {
 
   private final ApplicationContext context;
   private final ObjectMapper objectMapper;
@@ -35,21 +36,21 @@ public class TransferProcessFactory<B extends IBaseBundle> {
   }
 
   @SuppressWarnings("unchecked")
-  public TransferProcess<B> create(TransferProcessConfig processDefinition, String project) {
+  public TransferProcess create(TransferProcessConfig processDefinition, String project) {
     log.debug("Create TransferProcess from definition: {}", processDefinition);
-    DeidentificationProvider<B> deidentificationProvider =
+    DeidentificationProvider deidentificationProvider =
         instantiateImpl(
             DeidentificationProvider.class,
             DeidentificationProvider.Factory.class,
             DeidentificationProvider.Config.class,
             processDefinition.deidentificationProvider());
-    BundleSender<B> bundleSender =
+    BundleSender bundleSender =
         instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
             processDefinition.bundleSender());
-    return new TransferProcess<>(project, deidentificationProvider, bundleSender);
+    return new TransferProcess(project, deidentificationProvider, bundleSender);
   }
 
   private <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> TYPE instantiateImpl(

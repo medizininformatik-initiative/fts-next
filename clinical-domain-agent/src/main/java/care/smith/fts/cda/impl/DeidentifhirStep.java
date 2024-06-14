@@ -1,8 +1,8 @@
 package care.smith.fts.cda.impl;
 
-import care.smith.fts.api.DeidentificationProvider;
+import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
-import care.smith.fts.cda.services.deidentifhir.ConsentedPatientBundle;
+import care.smith.fts.api.cda.DeidentificationProvider;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirService;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.tca.*;
@@ -10,14 +10,12 @@ import care.smith.fts.util.tca.IDMap;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class DeidentifhirStep
-    implements DeidentificationProvider<ConsentedPatientBundle<Bundle>, TransportBundle<Bundle>> {
+class DeidentifhirStep implements DeidentificationProvider {
   private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift;
@@ -38,8 +36,7 @@ class DeidentifhirStep
   }
 
   @Override
-  public Flux<TransportBundle<Bundle>> deidentify(
-      Flux<ConsentedPatientBundle<Bundle>> resourceFlux) {
+  public Flux<TransportBundle> deidentify(Flux<ConsentedPatientBundle> resourceFlux) {
     return resourceFlux.flatMap(
         bundle -> {
           IDATScraper idatScraper = new IDATScraper(scraperConfig, bundle.consentedPatient());
@@ -56,7 +53,7 @@ class DeidentifhirStep
                             bundle.consentedPatient(),
                             transportIDs,
                             dateShiftValue);
-                    return new TransportBundle<>(
+                    return new TransportBundle(
                         deidentifhir.deidentify(bundle.bundle()),
                         new HashSet<>(transportIDs.values()));
                   });

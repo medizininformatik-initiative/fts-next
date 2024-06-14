@@ -8,8 +8,8 @@ import static org.mockserver.model.HttpResponse.response;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
-import care.smith.fts.api.DataSelector;
 import care.smith.fts.api.Period;
+import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.test.MockServerUtil;
 import care.smith.fts.util.HTTPClientConfig;
 import java.io.InputStream;

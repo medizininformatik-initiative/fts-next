@@ -2,17 +2,13 @@ package care.smith.fts.cda.impl;
 
 import static com.typesafe.config.ConfigFactory.parseFile;
 
-import care.smith.fts.api.DeidentificationProvider;
-import care.smith.fts.api.TransportBundle;
-import care.smith.fts.cda.services.deidentifhir.ConsentedPatientBundle;
-import org.hl7.fhir.r4.model.Bundle;
+import care.smith.fts.api.cda.DeidentificationProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Component("deidentifhirDeidentificationProvider")
 public class DeidentifhirStepFactory
-    implements DeidentificationProvider.Factory<
-        ConsentedPatientBundle<Bundle>, TransportBundle<Bundle>, DeidentifhirStepConfig> {
+    implements DeidentificationProvider.Factory<DeidentifhirStepConfig> {
 
   private final WebClient.Builder builder;
 
@@ -26,7 +22,7 @@ public class DeidentifhirStepFactory
   }
 
   @Override
-  public DeidentificationProvider<ConsentedPatientBundle<Bundle>, TransportBundle<Bundle>> create(
+  public DeidentificationProvider create(
       DeidentificationProvider.Config commonConfig, DeidentifhirStepConfig implConfig) {
     var httpClient = implConfig.tca().server().createClient(builder);
 

@@ -5,9 +5,8 @@ import static reactor.core.publisher.Flux.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
-import care.smith.fts.cda.R4TransferProcessRunner.Result;
+import care.smith.fts.cda.DefaultTransferProcessRunner.Result;
 import care.smith.fts.cda.TransferProcess;
-import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,8 +31,8 @@ class TransferProcessControllerTest {
     create(api.start("non-existent")).expectError(IllegalStateException.class).verify();
   }
 
-  private static TransferProcess<Bundle> mockTransferProcess() {
-    return new TransferProcess<>(
+  private static TransferProcess mockTransferProcess() {
+    return new TransferProcess(
         "example",
         () -> null,
         consentedPatient -> null,

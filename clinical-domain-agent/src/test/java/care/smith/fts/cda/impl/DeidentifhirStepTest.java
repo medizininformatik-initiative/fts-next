@@ -11,15 +11,14 @@ import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
-import care.smith.fts.cda.services.deidentifhir.ConsentedPatientBundle;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtil;
 import care.smith.fts.test.TestPatientGenerator;
 import care.smith.fts.util.HTTPClientConfig;
 import com.typesafe.config.Config;
 import java.io.IOException;
 import java.util.List;
-import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,9 +65,9 @@ class DeidentifhirStepTest {
 
     ConsentedPatient consentedPatient = new ConsentedPatient("id1");
     var bundle = TestPatientGenerator.generateOnePatient("id1", "2024", "identifierSystem");
-    Flux<ConsentedPatientBundle<Bundle>> bundleFlux =
-        fromIterable(List.of(new ConsentedPatientBundle<>(bundle, consentedPatient)));
-    Flux<TransportBundle<Bundle>> deidentifiedFlux = step.deidentify(bundleFlux);
+    Flux<ConsentedPatientBundle> bundleFlux =
+        fromIterable(List.of(new ConsentedPatientBundle(bundle, consentedPatient)));
+    Flux<TransportBundle> deidentifiedFlux = step.deidentify(bundleFlux);
     create(deidentifiedFlux).verifyComplete();
   }
 }

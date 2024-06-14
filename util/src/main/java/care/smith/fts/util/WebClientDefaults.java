@@ -1,4 +1,4 @@
-package care.smith.fts.cda.config;
+package care.smith.fts.util;
 
 import static java.time.Duration.ofSeconds;
 

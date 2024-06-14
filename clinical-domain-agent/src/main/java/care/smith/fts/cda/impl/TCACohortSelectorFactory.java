@@ -2,7 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static java.util.Objects.requireNonNull;
 
-import care.smith.fts.api.CohortSelector;
+import care.smith.fts.api.cda.CohortSelector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 

@@ -9,7 +9,7 @@ import static org.mockserver.model.JsonBody.json;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.CohortSelector;
+import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.HTTPClientConfig;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;

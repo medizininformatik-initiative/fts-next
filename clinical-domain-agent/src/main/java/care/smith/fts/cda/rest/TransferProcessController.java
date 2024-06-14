@@ -2,13 +2,12 @@ package care.smith.fts.cda.rest;
 
 import static reactor.core.publisher.Flux.error;
 
-import care.smith.fts.cda.R4TransferProcessRunner.Result;
+import care.smith.fts.cda.DefaultTransferProcessRunner.Result;
 import care.smith.fts.cda.TransferProcess;
 import care.smith.fts.cda.TransferProcessRunner;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -18,10 +17,9 @@ import reactor.core.publisher.Flux;
 public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
-  private final List<TransferProcess<Bundle>> processes;
+  private final List<TransferProcess> processes;
 
-  public TransferProcessController(
-          TransferProcessRunner runner, List<TransferProcess<Bundle>> processes) {
+  public TransferProcessController(TransferProcessRunner runner, List<TransferProcess> processes) {
     this.processRunner = runner;
     this.processes = processes;
   }
@@ -39,7 +37,7 @@ public class TransferProcessController {
     }
   }
 
-  private Optional<TransferProcess<Bundle>> findProcess(String project) {
+  private Optional<TransferProcess> findProcess(String project) {
     return processes.stream().filter(p -> p.project().equalsIgnoreCase(project)).findFirst();
   }
 }

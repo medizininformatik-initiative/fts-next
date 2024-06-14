@@ -44,8 +44,8 @@ class ProjectsFactoryTest {
 
   @Test
   void testDirYieldsBeans() throws Exception {
-    TransferProcess<Bundle> process =
-        new TransferProcess<>(
+    TransferProcess process =
+        new TransferProcess(
             "test",
             () -> null,
             consentedPatient -> null,

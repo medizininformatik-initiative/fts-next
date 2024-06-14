@@ -3,17 +3,17 @@ package care.smith.fts.cda;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
-import care.smith.fts.api.*;
-import care.smith.fts.cda.services.deidentifhir.ConsentedPatientBundle;
-import org.hl7.fhir.instance.model.api.IBaseBundle;
+import care.smith.fts.api.cda.BundleSender;
+import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.api.cda.DataSelector;
+import care.smith.fts.api.cda.DeidentificationProvider;
 
-public record TransferProcess<B extends IBaseBundle>(
+public record TransferProcess(
     String project,
     CohortSelector cohortSelector,
-    DataSelector<B> dataSelector,
-    DeidentificationProvider<ConsentedPatientBundle<B>, TransportBundle<B>>
-        deidentificationProvider,
-    BundleSender<B> bundleSender) {
+    DataSelector dataSelector,
+    DeidentificationProvider deidentificationProvider,
+    BundleSender bundleSender) {
 
   public TransferProcess {
     requireNonNull(emptyToNull(project));

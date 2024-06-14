@@ -1,11 +1,11 @@
-package care.smith.fts.api;
+package care.smith.fts.api.rda;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 
-class CohortSelectorTest {
+class BundleSenderTest {
 
   @Test
   void deserialization() throws JsonProcessingException {
@@ -15,6 +15,6 @@ class CohortSelectorTest {
         """
       ---
       """,
-        CohortSelector.Config.class);
+        BundleSender.Config.class);
   }
 }

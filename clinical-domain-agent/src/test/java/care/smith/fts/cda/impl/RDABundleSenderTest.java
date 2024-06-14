@@ -12,9 +12,9 @@ import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Flux.fromStream;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.BundleSender;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.api.cda.BundleSender;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -39,7 +39,7 @@ class RDABundleSenderTest {
 
   @Autowired WebClient.Builder builder;
 
-  private BundleSender<Bundle> bundleSender;
+  private BundleSender bundleSender;
 
   @BeforeEach
   void setUp(MockServerClient mockServer) {
@@ -64,7 +64,7 @@ class RDABundleSenderTest {
         .respond(response().withStatusCode(201));
 
     Bundle bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle<>(bundle, Set.of())))))
+    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, Set.of())))))
         .expectNext(new BundleSender.Result(1))
         .verifyComplete();
   }
@@ -86,7 +86,7 @@ class RDABundleSenderTest {
         .when(request().withMethod("POST").withPath("/api/v2/process/example"))
         .respond(response().withStatusCode(400));
 
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle<>(new Bundle(), Set.of())))))
+    create(bundleSender.send(fromIterable(List.of(new TransportBundle(new Bundle(), Set.of())))))
         .expectError()
         .verify();
   }

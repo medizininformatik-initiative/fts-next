@@ -3,7 +3,10 @@ package care.smith.fts.cda;
 import static java.util.Arrays.stream;
 
 import care.smith.fts.api.*;
-import care.smith.fts.cda.services.deidentifhir.ConsentedPatientBundle;
+import care.smith.fts.api.cda.BundleSender;
+import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.api.cda.DataSelector;
+import care.smith.fts.api.cda.DeidentificationProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +39,7 @@ public class TransferProcessFactory<B extends IBaseBundle> {
   }
 
   @SuppressWarnings("unchecked")
-  public TransferProcess<B> create(TransferProcessConfig processDefinition, String project) {
+  public TransferProcess create(TransferProcessConfig processDefinition, String project) {
     log.debug("Create TransferProcess from definition: {}", processDefinition);
     CohortSelector cohortSelector =
         instantiateImpl(
@@ -44,26 +47,25 @@ public class TransferProcessFactory<B extends IBaseBundle> {
             CohortSelector.Factory.class,
             CohortSelector.Config.class,
             processDefinition.cohortSelector());
-    DataSelector<B> dataSelector =
+    DataSelector dataSelector =
         instantiateImpl(
             DataSelector.class,
             DataSelector.Factory.class,
             DataSelector.Config.class,
             processDefinition.dataSelector());
-    DeidentificationProvider<ConsentedPatientBundle<B>, TransportBundle<B>>
-        deidentificationProvider =
-            instantiateImpl(
-                DeidentificationProvider.class,
-                DeidentificationProvider.Factory.class,
-                DeidentificationProvider.Config.class,
-                processDefinition.deidentificationProvider());
-    BundleSender<B> bundleSender =
+    DeidentificationProvider deidentificationProvider =
+        instantiateImpl(
+            DeidentificationProvider.class,
+            DeidentificationProvider.Factory.class,
+            DeidentificationProvider.Config.class,
+            processDefinition.deidentificationProvider());
+    BundleSender bundleSender =
         instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
             processDefinition.bundleSender());
-    return new TransferProcess<B>(
+    return new TransferProcess(
         project, cohortSelector, dataSelector, deidentificationProvider, bundleSender);
   }
 

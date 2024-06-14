@@ -1,11 +1,11 @@
-package care.smith.fts.api;
+package care.smith.fts.api.cda;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 
-class DataSelectorTest {
+class DeidentificationProviderTest {
 
   @Test
   void deserialization() throws JsonProcessingException {
@@ -13,8 +13,8 @@ class DataSelectorTest {
 
     om.readValue(
         """
-        ---
-        """,
-        DataSelector.Config.class);
+      ---
+      """,
+        DeidentificationProvider.Config.class);
   }
 }

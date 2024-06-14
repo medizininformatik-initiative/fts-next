@@ -2,13 +2,11 @@ package care.smith.fts.cda.services;
 
 import static org.assertj.core.api.Assertions.*;
 
-import ca.uhn.fhir.context.FhirContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
 class FhirResolveConfigTest {
 
-  private static final FhirContext FHIR = FhirContext.forR4();
   private static final WebClient CLIENT =
       WebClient.builder().baseUrl("https://some.example.com").build();
 

@@ -3,7 +3,7 @@ package care.smith.fts.cda.impl;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 
 import care.smith.fts.api.ConsentedPatient;
-import care.smith.fts.api.DataSelector;
+import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 
-public class EverythingDataSelector implements DataSelector<Bundle> {
+public class EverythingDataSelector implements DataSelector {
   private final Config common;
   private final WebClient client;
   private final PatientIdResolver pidResolver;

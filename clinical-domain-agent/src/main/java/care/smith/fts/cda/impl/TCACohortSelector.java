@@ -2,8 +2,8 @@ package care.smith.fts.cda.impl;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.api.CohortSelector;
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.cda.CohortSelector;
 import java.util.Map;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClient;

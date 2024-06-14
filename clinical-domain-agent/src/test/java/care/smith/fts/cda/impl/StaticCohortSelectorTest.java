@@ -3,8 +3,8 @@ package care.smith.fts.cda.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.CohortSelector;
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.cda.CohortSelector;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -1,7 +1,7 @@
 package care.smith.fts.rda.impl;
 
-import care.smith.fts.api.DeidentificationProvider;
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.api.rda.DeidentificationProvider;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirService;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
@@ -12,8 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class DeidentifhirDeidentificationProvider
-    implements DeidentificationProvider<TransportBundle<Bundle>, Bundle> {
+class DeidentifhirDeidentificationProvider implements DeidentificationProvider {
   private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift;
@@ -28,7 +27,7 @@ class DeidentifhirDeidentificationProvider
   }
 
   @Override
-  public Flux<Bundle> deidentify(Flux<TransportBundle<Bundle>> bundleFlux) {
+  public Flux<Bundle> deidentify(Flux<TransportBundle> bundleFlux) {
     return bundleFlux.flatMap(
         bundle ->
             fetchPseudonymsForTransportIds(bundle.transportIds())

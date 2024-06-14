@@ -3,7 +3,7 @@ package care.smith.fts.cda.impl;
 import static java.time.Duration.ofDays;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.api.DeidentificationProvider;
+import care.smith.fts.api.cda.DeidentificationProvider;
 import care.smith.fts.cda.impl.DeidentifhirStepConfig.TCAConfig;
 import care.smith.fts.util.HTTPClientConfig;
 import java.io.File;

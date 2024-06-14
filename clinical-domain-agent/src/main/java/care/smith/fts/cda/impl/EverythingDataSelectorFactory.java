@@ -1,15 +1,14 @@
 package care.smith.fts.cda.impl;
 
-import care.smith.fts.api.DataSelector;
+import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
-import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.IdType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Component("everythingDataSelector")
 public class EverythingDataSelectorFactory
-    implements DataSelector.Factory<Bundle, EverythingDataSelectorConfig> {
+    implements DataSelector.Factory<EverythingDataSelectorConfig> {
 
   private final WebClient.Builder clientBuilder;
 
@@ -23,8 +22,7 @@ public class EverythingDataSelectorFactory
   }
 
   @Override
-  public DataSelector<Bundle> create(
-      DataSelector.Config common, EverythingDataSelectorConfig config) {
+  public DataSelector create(DataSelector.Config common, EverythingDataSelectorConfig config) {
     var client = config.fhirServer().createClient(clientBuilder);
     PatientIdResolver resolver = createResolver(config, client);
     return new EverythingDataSelector(common, client, resolver);

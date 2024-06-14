@@ -2,8 +2,8 @@ package care.smith.fts.cda.impl;
 
 import static reactor.core.publisher.Flux.fromStream;
 
-import care.smith.fts.api.CohortSelector;
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.cda.CohortSelector;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
