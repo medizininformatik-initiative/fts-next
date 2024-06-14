@@ -3,8 +3,10 @@ package care.smith.fts.cda;
 import static java.util.Arrays.stream;
 
 import care.smith.fts.api.*;
+import care.smith.fts.cda.services.deidentifhir.ConsentedPatientBundle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
+import jakarta.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 import java.lang.reflect.RecordComponent;
 import java.util.List;
@@ -12,8 +14,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -50,19 +50,20 @@ public class TransferProcessFactory<B extends IBaseBundle> {
             DataSelector.Factory.class,
             DataSelector.Config.class,
             processDefinition.dataSelector());
-    DeidentificationProvider<B> deidentificationProvider =
-        instantiateImpl(
-            DeidentificationProvider.class,
-            DeidentificationProvider.Factory.class,
-            DeidentificationProvider.Config.class,
-            processDefinition.deidentificationProvider());
+    DeidentificationProvider<ConsentedPatientBundle<B>, TransportBundle<B>>
+        deidentificationProvider =
+            instantiateImpl(
+                DeidentificationProvider.class,
+                DeidentificationProvider.Factory.class,
+                DeidentificationProvider.Config.class,
+                processDefinition.deidentificationProvider());
     BundleSender<B> bundleSender =
         instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
             processDefinition.bundleSender());
-    return new TransferProcess<>(
+    return new TransferProcess<B>(
         project, cohortSelector, dataSelector, deidentificationProvider, bundleSender);
   }
 

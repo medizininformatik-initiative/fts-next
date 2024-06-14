@@ -1,11 +1,12 @@
 package care.smith.fts.rda.rest;
 
-import care.smith.fts.rda.R4TransferProcessRunner;
+import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.TransferProcess;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @RestController
@@ -21,7 +22,8 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project}/start", consumes = "application/json")
-  Boolean start(@PathVariable String project, @RequestBody Bundle data) {
+  Flux<R4TransferProcessRunner.Result> start(
+      @PathVariable String project, @RequestBody Flux<TransportBundle<Bundle>> data) {
     TransferProcess<Bundle> process = context.getBean(project, TransferProcess.class);
     log.debug("Running process: {}", process);
     var result = processRunner.run(process, data);

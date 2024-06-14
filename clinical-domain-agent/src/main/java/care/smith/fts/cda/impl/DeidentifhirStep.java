@@ -1,25 +1,28 @@
 package care.smith.fts.cda.impl;
 
-import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.DeidentificationProvider;
+import care.smith.fts.api.TransportBundle;
+import care.smith.fts.cda.services.deidentifhir.ConsentedPatientBundle;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirService;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.tca.*;
+import care.smith.fts.util.tca.IDMap;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Set;
-import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class DeidentifhirStep implements DeidentificationProvider<Resource> {
+class DeidentifhirStep
+    implements DeidentificationProvider<ConsentedPatientBundle<Bundle>, TransportBundle<Bundle>> {
   private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
-  private DeidentifhirService deidentifhir;
 
   public DeidentifhirStep(
       WebClient httpClient,
@@ -35,27 +38,29 @@ class DeidentifhirStep implements DeidentificationProvider<Resource> {
   }
 
   @Override
-  public Flux<Resource> deidentify(Flux<Resource> resourceFlux, ConsentedPatient patient) {
-    record Tuple(Resource resource, PseudonymizeResponse response) {}
-    return resourceFlux
-        .flatMap(
-            resource -> {
-              IDATScraper idatScraper = new IDATScraper(scraperConfig, patient);
-              var ids = idatScraper.gatherIDs(resource);
-              return fetchTransportIdsAndDateShiftingValues(ids)
-                  .map(response -> new Tuple(resource, response));
-            })
-        .map(
-            t -> {
-              TransportIDs transportIDs = t.response.getTransportIDs();
-              Duration dateShiftValue = t.response.getDateShiftValue();
+  public Flux<TransportBundle<Bundle>> deidentify(
+      Flux<ConsentedPatientBundle<Bundle>> resourceFlux) {
+    return resourceFlux.flatMap(
+        bundle -> {
+          IDATScraper idatScraper = new IDATScraper(scraperConfig, bundle.consentedPatient());
+          var ids = idatScraper.gatherIDs(bundle.bundle());
+          return fetchTransportIdsAndDateShiftingValues(ids)
+              .map(
+                  response -> {
+                    IDMap transportIDs = response.getIdMap();
+                    Duration dateShiftValue = response.getDateShiftValue();
 
-              DeidentifhirService deidentifhir =
-                  new DeidentifhirService(
-                      deidentifhirConfig, patient, transportIDs, dateShiftValue);
-
-              return deidentifhir.deidentify(t.resource);
-            });
+                    DeidentifhirService deidentifhir =
+                        new DeidentifhirService(
+                            deidentifhirConfig,
+                            bundle.consentedPatient(),
+                            transportIDs,
+                            dateShiftValue);
+                    return new TransportBundle<>(
+                        deidentifhir.deidentify(bundle.bundle()),
+                        new HashSet<>(transportIDs.values()));
+                  });
+        });
   }
 
   private Mono<PseudonymizeResponse> fetchTransportIdsAndDateShiftingValues(Set<String> ids) {

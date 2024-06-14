@@ -1,8 +1,8 @@
 package care.smith.fts.test;
 
-import static care.smith.fts.util.FhirUtils.stringToFhirBundle;
 import static care.smith.fts.util.FhirUtils.toBundle;
 
+import care.smith.fts.util.FhirUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
-
-import care.smith.fts.util.FhirUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 

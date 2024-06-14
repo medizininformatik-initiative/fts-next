@@ -2,7 +2,6 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.test.MockServerUtil.clientConfig;
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static java.util.List.of;
 import static java.util.stream.Stream.generate;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
@@ -15,6 +14,9 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.BundleSender;
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.TransportBundle;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
@@ -62,7 +64,7 @@ class RDABundleSenderTest {
         .respond(response().withStatusCode(201));
 
     Bundle bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(of(bundle)), PATIENT))
+    create(bundleSender.send(fromIterable(List.of(new TransportBundle<>(bundle, Set.of())))))
         .expectNext(new BundleSender.Result(1))
         .verifyComplete();
   }
@@ -73,7 +75,7 @@ class RDABundleSenderTest {
         .when(request().withMethod("POST").withPath("/api/v2/process/example"))
         .respond(response().withBody("{}", APPLICATION_JSON));
 
-    create(bundleSender.send(fromStream(generate(() -> null)), PATIENT))
+    create(bundleSender.send(fromStream(generate(() -> null))))
         .expectError(NullPointerException.class)
         .verify();
   }
@@ -84,7 +86,9 @@ class RDABundleSenderTest {
         .when(request().withMethod("POST").withPath("/api/v2/process/example"))
         .respond(response().withStatusCode(400));
 
-    create(bundleSender.send(fromIterable(of(new Bundle())), PATIENT)).expectError().verify();
+    create(bundleSender.send(fromIterable(List.of(new TransportBundle<>(new Bundle(), Set.of())))))
+        .expectError()
+        .verify();
   }
 
   @AfterEach

@@ -1,6 +1,7 @@
 package care.smith.fts.cda.services.deidentifhir;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.util.deidentifhir.NamespacingService;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
@@ -14,7 +15,7 @@ public class IDATScraper {
   private final ScrapingStorage scrapingStorage;
 
   public IDATScraper(Config config, ConsentedPatient patient) {
-    NamespacingService namespacingService = new NamespacingService(patient.id());
+    NamespacingService namespacingService = NamespacingService.withNamespacing(patient.id());
     scrapingStorage = new ScrapingStorage(namespacingService);
 
     Registry registry = new Registry();

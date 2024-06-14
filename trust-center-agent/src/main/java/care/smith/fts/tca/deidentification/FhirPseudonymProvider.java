@@ -1,14 +1,13 @@
 package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
-import care.smith.fts.util.tca.TransportIdsRequest;
+import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.PseudonymizedIDs;
-import care.smith.fts.util.tca.TransportIDs;
+import care.smith.fts.util.tca.TransportIdsRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.*;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -45,9 +44,9 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    * @return the TransportIDs
    */
   @Override
-  public TransportIDs retrieveTransportIds(Set<String> ids, String domain) throws IOException {
+  public IDMap retrieveTransportIds(Set<String> ids, String domain) throws IOException {
     var idPseudonyms = fetchOrCreatePseudonyms(domain, ids);
-    TransportIDs transportIds = new TransportIDs();
+    IDMap transportIds = new IDMap();
     ids.forEach(id -> transportIds.put(id, getUniqueTransportId()));
 
     try (Jedis jedis = jedisPool.getResource()) {

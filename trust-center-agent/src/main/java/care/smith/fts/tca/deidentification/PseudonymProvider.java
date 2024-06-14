@@ -1,9 +1,8 @@
 package care.smith.fts.tca.deidentification;
 
-import care.smith.fts.util.tca.TransportIdsRequest;
+import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.PseudonymizedIDs;
-import care.smith.fts.util.tca.TransportIDs;
-
+import care.smith.fts.util.tca.TransportIdsRequest;
 import java.io.IOException;
 import java.util.Set;
 
@@ -14,7 +13,7 @@ public interface PseudonymProvider {
    * @param domain the domain
    * @return the <code>PseudonymResponse</code>
    */
-  TransportIDs retrieveTransportIds(Set<String> ids, String domain) throws IOException;
+  IDMap retrieveTransportIds(Set<String> ids, String domain) throws IOException;
 
   /**
    * Retrieves the <code>PseudonymRequest</code>

@@ -113,8 +113,7 @@ class ConsentedPatientTest {
 
     Period period = Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00");
     consentedPolicies.put("a", period);
-    ConsentedPatient consentedPatient =
-        new ConsentedPatient("patient", consentedPolicies);
+    ConsentedPatient consentedPatient = new ConsentedPatient("patient", consentedPolicies);
 
     String des = om.writeValueAsString(consentedPatient);
     log.info(des);

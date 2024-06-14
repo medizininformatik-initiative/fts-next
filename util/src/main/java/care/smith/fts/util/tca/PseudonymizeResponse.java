@@ -1,16 +1,15 @@
 package care.smith.fts.util.tca;
 
-import lombok.Data;
-
 import java.time.Duration;
+import lombok.Data;
 
 @Data
 public class PseudonymizeResponse {
-  TransportIDs transportIDs;
+  IDMap idMap;
   Duration dateShiftValue;
 
-  public PseudonymizeResponse(TransportIDs transportIDs, Duration dateShiftValue) {
-    this.transportIDs = transportIDs;
+  public PseudonymizeResponse(IDMap idMap, Duration dateShiftValue) {
+    this.idMap = idMap;
     this.dateShiftValue = dateShiftValue;
   }
 }

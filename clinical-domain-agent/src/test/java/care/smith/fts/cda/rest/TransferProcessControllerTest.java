@@ -37,7 +37,7 @@ class TransferProcessControllerTest {
         "example",
         () -> null,
         consentedPatient -> null,
-        (patientBundle, patient1) -> null,
-        (bundle, patient1) -> null);
+        (patientBundle) -> null,
+        (transportBundle) -> null);
   }
 }

@@ -27,13 +27,11 @@ class FhirResolveConfigTest {
   @Test
   void createThrowsOnEmptyClient() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(
-            () -> new FhirResolveConfig("https://some.exampl.com").createService(null));
+        .isThrownBy(() -> new FhirResolveConfig("https://some.exampl.com").createService(null));
   }
 
   @Test
   void createSucceeds() {
-    assertThat(new FhirResolveConfig("https://some.example.com").createService(CLIENT))
-        .isNotNull();
+    assertThat(new FhirResolveConfig("https://some.example.com").createService(CLIENT)).isNotNull();
   }
 }

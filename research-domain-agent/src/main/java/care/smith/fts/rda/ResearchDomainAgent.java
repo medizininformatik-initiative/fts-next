@@ -90,7 +90,7 @@ public class ResearchDomainAgent {
   }
 
   @Bean
-  public Path projectsDirectory(@Value("${projects.directory:}")String directoryName) {
+  public Path projectsDirectory(@Value("${projects.directory:}") String directoryName) {
     if (isNullOrEmpty(directoryName)) {
       return Paths.get("projects");
     } else {

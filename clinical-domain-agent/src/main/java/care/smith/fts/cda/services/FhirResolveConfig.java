@@ -3,7 +3,6 @@ package care.smith.fts.cda.services;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
-import ca.uhn.fhir.context.FhirContext;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.reactive.function.client.WebClient;
 

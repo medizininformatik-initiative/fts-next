@@ -1,8 +1,8 @@
 package care.smith.fts.tca.rest;
 
-import care.smith.fts.util.tca.ConsentRequest;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.tca.consent.ConsentProvider;
+import care.smith.fts.util.tca.ConsentRequest;
 import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;

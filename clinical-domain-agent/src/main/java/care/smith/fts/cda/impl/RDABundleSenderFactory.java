@@ -1,8 +1,6 @@
 package care.smith.fts.cda.impl;
 
-import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.api.BundleSender;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;

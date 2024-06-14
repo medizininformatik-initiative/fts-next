@@ -3,17 +3,11 @@ package care.smith.fts.cda;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import care.smith.fts.cda.test.MockBundleSender;
-import care.smith.fts.cda.test.MockCohortSelector;
-import care.smith.fts.cda.test.MockDataSelector;
-import care.smith.fts.cda.test.MockDeidentificationProvider;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,8 +49,8 @@ class ProjectsFactoryTest {
             "test",
             () -> null,
             consentedPatient -> null,
-            (patientBundle,patient) -> null,
-            (bundle,patient) -> null);
+            (patientBundle) -> null,
+            (transportBundle) -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
     var factory = new ProjectsFactory(processFactory, beanFactory, objectMapper, testDirectory);

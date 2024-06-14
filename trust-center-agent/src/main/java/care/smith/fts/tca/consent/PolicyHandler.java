@@ -1,10 +1,9 @@
 package care.smith.fts.tca.consent;
 
 import jakarta.validation.constraints.NotNull;
+import java.util.HashSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.HashSet;
 
 @Component
 public class PolicyHandler {

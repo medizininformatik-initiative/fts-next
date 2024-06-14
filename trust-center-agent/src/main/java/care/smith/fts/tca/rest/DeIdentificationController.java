@@ -3,10 +3,10 @@ package care.smith.fts.tca.rest;
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.*;
+import care.smith.fts.util.tca.IDMap;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.Set;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,24 +39,24 @@ public class DeIdentificationController {
   public ResponseEntity<PseudonymizeResponse> getTransportIdsAndDateShiftingValues(
       @Validated(PseudonymizeRequest.class) @RequestBody PseudonymizeRequest requestData)
       throws IOException {
-    TransportIDs transportIds =
+    IDMap transportIds =
         pseudonymProvider.retrieveTransportIds(requestData.getIds(), requestData.getDomain());
     ShiftedDates shiftedDates =
         shiftedDatesProvider.generateDateShift(
             Set.of(requestData.getPatientId()), requestData.getDateShift());
-    PseudonymizeResponse pseudonymizeResponse =
+    PseudonymizeResponse PseudonymizeResponse =
         new PseudonymizeResponse(transportIds, shiftedDates.get(requestData.getPatientId()));
-    return new ResponseEntity<>(pseudonymizeResponse, HttpStatus.OK);
+    return new ResponseEntity<>(PseudonymizeResponse, HttpStatus.OK);
   }
 
   @PostMapping(
       value = "/cd/transport-ids",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<TransportIDs> getTransportId(
+  public ResponseEntity<IDMap> getTransportId(
       @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData)
       throws IOException {
-    TransportIDs response =
+    IDMap response =
         pseudonymProvider.retrieveTransportIds(requestData.getIds(), requestData.getDomain());
     return new ResponseEntity<>(response, HttpStatus.OK);
   }

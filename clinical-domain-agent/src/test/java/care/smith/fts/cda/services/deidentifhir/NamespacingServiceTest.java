@@ -1,24 +1,31 @@
 package care.smith.fts.cda.services.deidentifhir;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.util.deidentifhir.NamespacingService;
+import care.smith.fts.util.tca.IDMap;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class NamespacingServiceTest {
 
-  @Test
-  void getKeyForResourceTypeAndID() {
-    NamespacingService namespacingService = new NamespacingService("test");
-    assertEquals(
-        "test.id.Patient:patientID",
-        namespacingService.getKeyForResourceTypeAndID("Patient", "patientID"));
+  NamespacingService namespacingService;
+
+  @BeforeEach
+  void setUp() {
+    IDMap transportIDs = new IDMap();
+    transportIDs.put("test.id.Patient:id1", "tid1");
+    transportIDs.put("test.identifier.Patient:id1", "tid1");
+    namespacingService = NamespacingService.withNamespacing("test", transportIDs);
   }
 
   @Test
-  void getKeyForSystemAndValue() {
-    NamespacingService namespacingService = new NamespacingService("test");
-    assertEquals(
-        "test.identifier.Patient:patientID",
-        namespacingService.getKeyForSystemAndValue("Patient", "patientID"));
+  void getIDReplacement() {
+    assertThat(namespacingService.getIDReplacement("Patient", "id1")).isEqualTo("tid1");
+  }
+
+  @Test
+  void getValueReplacement() {
+    assertThat(namespacingService.getValueReplacement("Patient", "id1")).isEqualTo("tid1");
   }
 }

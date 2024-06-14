@@ -1,8 +1,8 @@
 package care.smith.fts.util.auth;
 
-import org.springframework.web.reactive.function.client.WebClient;
-
 import static org.springframework.http.HttpHeaders.COOKIE;
+
+import org.springframework.web.reactive.function.client.WebClient;
 
 public record HTTPClientCookieTokenAuth(
     /* */

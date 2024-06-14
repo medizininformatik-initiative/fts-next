@@ -1,9 +1,7 @@
 package care.smith.fts.cda.test;
 
 import care.smith.fts.api.CohortSelector;
-import care.smith.fts.api.ConsentedPatient;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 
 @Component("mockCohortSelector")
 public class MockCohortSelector implements CohortSelector.Factory<MockCohortSelector.Config> {

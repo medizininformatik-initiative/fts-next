@@ -1,9 +1,9 @@
 cohortSelector:
   mock:
-    pids: ["patient-102931"]
+    pids: [ "patient-102931" ]
 
 dataSelector:
-  mock: {}
+  mock: { }
 
 deidentificationProvider:
   mock:
@@ -11,4 +11,4 @@ deidentificationProvider:
 
 bundleSender:
   mock:
-    expect: ["patient-102931"]
+    expect: [ "patient-102931" ]

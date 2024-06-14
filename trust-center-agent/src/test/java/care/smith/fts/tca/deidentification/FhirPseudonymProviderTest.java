@@ -7,9 +7,9 @@ import static org.mockito.BDDMockito.given;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.util.tca.TransportIdsRequest;
+import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.PseudonymizedIDs;
-import care.smith.fts.util.tca.TransportIDs;
+import care.smith.fts.util.tca.TransportIdsRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -68,7 +68,7 @@ class FhirPseudonymProviderTest {
 
     TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
     transportIdsRequest.setIds(Set.of("id1"));
-    TransportIDs pseudonyms =
+    IDMap pseudonyms =
         pseudonymProvider.retrieveTransportIds(
             transportIdsRequest.getIds(), transportIdsRequest.getDomain());
 

@@ -62,11 +62,12 @@ public class TransferProcessFactory<B extends IBaseBundle> {
     return instantiate(stepClass, factoryClass, commonConfigClass, impl);
   }
 
-  private static <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> Entry<String, ?> findImpl(
-      Class<TYPE> stepClass,
-      Class<FACTORY> factoryClass,
-      Class<CC> commonConfigClass,
-      Map<String, ?> config) {
+  private static <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>>
+      Entry<String, ?> findImpl(
+          Class<TYPE> stepClass,
+          Class<FACTORY> factoryClass,
+          Class<CC> commonConfigClass,
+          Map<String, ?> config) {
     var commonConfigEntries = commonConfigEntries(commonConfigClass);
     var configEntries = config.entrySet();
     var implementations =

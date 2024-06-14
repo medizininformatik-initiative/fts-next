@@ -1,5 +1,6 @@
 package care.smith.fts.cda.services.deidentifhir;
 
+import care.smith.fts.util.deidentifhir.NamespacingService;
 import de.ume.deidentifhir.util.IDReplacementProvider;
 import de.ume.deidentifhir.util.IdentifierValueReplacementProvider;
 import java.util.HashSet;

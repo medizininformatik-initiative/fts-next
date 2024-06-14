@@ -1,7 +1,6 @@
 package care.smith.fts.util.tca;
 
 import jakarta.validation.constraints.NotNull;
-
 import java.time.Duration;
 import java.util.Set;
 import lombok.Data;

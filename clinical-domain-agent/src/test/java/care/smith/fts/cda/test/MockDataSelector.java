@@ -1,7 +1,6 @@
 package care.smith.fts.cda.test;
 
 import care.smith.fts.api.DataSelector;
-
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
 

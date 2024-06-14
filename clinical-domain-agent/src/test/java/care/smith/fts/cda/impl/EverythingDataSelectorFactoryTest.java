@@ -2,8 +2,6 @@ package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IRestfulClientFactory;
 import care.smith.fts.cda.services.FhirResolveConfig;
 import care.smith.fts.util.HTTPClientConfig;
 import org.junit.jupiter.api.Test;

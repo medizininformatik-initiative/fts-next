@@ -4,5 +4,4 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
 public record TransferProcessConfig(
-    @NotNull Map<String, ?> deidentificationProvider,
-    @NotNull Map<String, ?> bundleSender) {}
+    @NotNull Map<String, ?> deidentificationProvider, @NotNull Map<String, ?> bundleSender) {}
