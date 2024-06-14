@@ -11,4 +11,10 @@ public class ConsentRequest {
 
   @NotNull(groups = ConsentRequest.class)
   HashSet<String> policies;
+
+  @NotNull(groups = ConsentRequest.class)
+  int from;
+
+  @NotNull(groups = ConsentRequest.class)
+  int to;
 }

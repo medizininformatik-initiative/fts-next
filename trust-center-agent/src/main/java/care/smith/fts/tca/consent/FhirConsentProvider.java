@@ -3,8 +3,6 @@ package care.smith.fts.tca.consent;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.Period;
-import care.smith.fts.util.FhirUtils;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -12,10 +10,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.hl7.fhir.r4.model.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class FhirConsentProvider implements ConsentProvider {
@@ -23,11 +21,11 @@ public class FhirConsentProvider implements ConsentProvider {
   private final String policySystem;
   private final int pageSize;
 
-  private final CloseableHttpClient httpClient;
+  private final WebClient httpClient;
   private final PolicyHandler policyHandler;
 
   public FhirConsentProvider(
-      CloseableHttpClient httpClient,
+      WebClient httpClient,
       PolicyHandler policyHandler,
       String patientIdentifierSystem,
       String policySystem,
@@ -39,47 +37,32 @@ public class FhirConsentProvider implements ConsentProvider {
     this.pageSize = pageSize;
   }
 
-  public List<ConsentedPatient> allConsentedPatients(String domain, HashSet<String> policies)
-      throws IOException {
-    log.debug("Retrieving all patient ids with consent status for Domain '{}'", domain);
+  @Override
+  public Mono<List<ConsentedPatient>> consentedPatientsPage(
+      String domain, HashSet<String> policies, int from, int to) {
     HashSet<String> policiesToCheck = policyHandler.getPoliciesToCheck(policies);
     if (policiesToCheck.isEmpty()) {
-      return List.of();
+      return Mono.just(List.of());
     }
-
-    var bundle = fetchConsentBundleFromGics();
-    List<ConsentedPatient> consentedPatients = fetchConsentedPatients(bundle, policiesToCheck);
-    log.info("Fetched {} patients", consentedPatients.size());
-    return consentedPatients;
+    return fetchConsentedPatientsFromGics(policiesToCheck, from, to);
   }
 
-  private Bundle fetchConsentBundleFromGics() throws IOException {
-    int from = 0;
-    var bundle = fetchConsentPageFromGics(from, pageSize);
-
-    while (from + pageSize < bundle.getTotal()) {
-      from += pageSize;
-      var nextBundle = fetchConsentPageFromGics(from, from + pageSize);
-      nextBundle.getEntry().forEach(bundle::addEntry);
-    }
-    return bundle;
+  private Mono<List<ConsentedPatient>> fetchConsentedPatientsFromGics(
+      HashSet<String> policiesToCheck, int from, int to) {
+    return fetchConsentPageFromGics(from, to)
+        .map(b -> extractConsentedPatients(b, policiesToCheck));
   }
 
-  private Bundle fetchConsentPageFromGics(int from, int to) throws IOException {
-    return httpClient.execute(
-        httpPost(from, to), r -> FhirUtils.inputStreamToFhirBundle(r.getEntity().getContent()));
+  private Mono<Bundle> fetchConsentPageFromGics(int from, int to) {
+    return httpClient
+        .post()
+        .uri("/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, from))
+        .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
+        .retrieve()
+        .bodyToMono(Bundle.class);
   }
 
-  private HttpPost httpPost(int from, int to) {
-    HttpPost post = new HttpPost("/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, from));
-    post.setEntity(
-        new StringEntity(
-            "{\"resourceType\": \"Parameters\", \"parameter\": [{\"name\": \"domain\", \"valueString\": \"MII\"}]}"));
-    post.setHeader("Content-Type", "application/json");
-    return post;
-  }
-
-  private List<ConsentedPatient> fetchConsentedPatients(
+  private List<ConsentedPatient> extractConsentedPatients(
       Bundle outerBundle, Set<String> policiesToCheck) {
     Stream<Bundle> resources = getResources(outerBundle, Bundle.class);
     Stream<ConsentedPatient> consentedPatients = getConsentedPatients(resources, policiesToCheck);

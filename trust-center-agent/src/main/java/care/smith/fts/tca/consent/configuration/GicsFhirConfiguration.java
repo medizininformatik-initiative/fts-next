@@ -7,10 +7,10 @@ import care.smith.fts.util.auth.HTTPClientAuthMethod;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 @ConfigurationProperties(prefix = "consent.gics.fhir")
@@ -29,7 +29,7 @@ public class GicsFhirConfiguration {
   FhirConsentProvider fhirConsentProvider(
       PolicyHandler policyHandler, ConsentProviderConfiguration consentProviderConfiguration) {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
-    var client = httpClientConfig.createClient(HttpClientBuilder.create());
+    var client = httpClientConfig.createClient(WebClient.builder());
     return new FhirConsentProvider(
         client,
         policyHandler,
