@@ -2,7 +2,6 @@ package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.tca.IDMap;
-import care.smith.fts.util.tca.PseudonymizedIDs;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -78,8 +77,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
     return Arrays.toString(bytes);
   }
 
-  private PseudonymizedIDs fetchOrCreatePseudonyms(String domain, Set<String> ids)
-      throws IOException {
+  private IDMap fetchOrCreatePseudonyms(String domain, Set<String> ids) throws IOException {
     var response = httpClient.execute(httpPost(domain, ids), r -> r.getEntity().getContent());
     return objectMapper.readValue(response, GpasParameterResponse.class).getMappedID();
   }
@@ -106,8 +104,8 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public PseudonymizedIDs fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) {
-    PseudonymizedIDs pseudonyms = new PseudonymizedIDs();
+  public IDMap fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) {
+    IDMap pseudonyms = new IDMap();
     try (Jedis jedis = jedisPool.getResource()) {
       Set<String> ids = transportIdsRequest.getIds();
       ids.forEach(

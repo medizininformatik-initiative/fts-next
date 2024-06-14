@@ -1,7 +1,6 @@
 package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.util.tca.IDMap;
-import care.smith.fts.util.tca.PseudonymizedIDs;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import java.io.IOException;
 import java.util.Set;
@@ -21,8 +20,7 @@ public interface PseudonymProvider {
    * @param transportIdsRequest to transport ids
    * @return the <code>PseudonymResponse</code>
    */
-  PseudonymizedIDs fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest)
-      throws IOException;
+  IDMap fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) throws IOException;
 
   //  /**
   //   * Retrieves the <code>PseudonymRequest</code> Returns PSICs for SICs.
@@ -30,7 +28,7 @@ public interface PseudonymProvider {
   //   * @param pseudonymRequest the SICs from the process which initiated the request
   //   * @return the <code>PseudonymResponse</code>
   //   */
-  //  PseudonymizedIDs fetchProjectPseudonymizedIds(PseudonymRequest pseudonymRequest);
+  //  IDMap fetchProjectPseudonymizedIds(PseudonymRequest pseudonymRequest);
 
   /**
    * Removes the <code>transportId</code> to <code>secureId</code> matching from the matching table.

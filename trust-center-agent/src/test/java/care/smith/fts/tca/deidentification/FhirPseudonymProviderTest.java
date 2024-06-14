@@ -8,7 +8,6 @@ import static org.mockito.BDDMockito.given;
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.util.tca.IDMap;
-import care.smith.fts.util.tca.PseudonymizedIDs;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -82,8 +81,7 @@ class FhirPseudonymProviderTest {
     given(jedis.getDel(anyString())).willReturn("123456789", "987654321");
     TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
     transportIdsRequest.setIds(Set.of("id1", "id2"));
-    PseudonymizedIDs pseudonymizedIDs =
-        pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest);
+    IDMap pseudonymizedIDs = pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest);
     assertThat(pseudonymizedIDs.keySet()).containsExactlyInAnyOrder("id1", "id2");
     assertThat(pseudonymizedIDs.values()).containsExactlyInAnyOrder("123456789", "987654321");
   }

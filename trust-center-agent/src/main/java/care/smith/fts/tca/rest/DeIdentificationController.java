@@ -76,10 +76,10 @@ public class DeIdentificationController {
       value = "/rd/resolve-pseudonyms",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<PseudonymizedIDs> fetchPseudonymizedIds(
+  public ResponseEntity<IDMap> fetchPseudonymizedIds(
       @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData)
       throws IOException {
-    PseudonymizedIDs pseudonymizedIDs = pseudonymProvider.fetchPseudonymizedIds(requestData);
+    IDMap pseudonymizedIDs = pseudonymProvider.fetchPseudonymizedIds(requestData);
     return new ResponseEntity<>(pseudonymizedIDs, HttpStatus.OK);
   }
 
@@ -87,11 +87,11 @@ public class DeIdentificationController {
       value = "/rd/resolve-project-pseudonyms",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<PseudonymizedIDs> fetchProjectPseudonymizedIds(
+  public ResponseEntity<IDMap> fetchProjectPseudonymizedIds(
       @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData)
       throws IOException {
     // TODO Implement
-    // PseudonymizedIDs pseudonymizedIDs =
+    // IDMap pseudonymizedIDs =
     // pseudonymProvider.fetchProjectPseudonymizedIds(requestData);
     return ResponseEntity.internalServerError().build();
   }

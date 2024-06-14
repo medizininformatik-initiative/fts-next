@@ -1,6 +1,6 @@
 package care.smith.fts.tca.deidentification;
 
-import care.smith.fts.util.tca.PseudonymizedIDs;
+import care.smith.fts.util.tca.IDMap;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 import java.util.Optional;
@@ -9,8 +9,8 @@ import java.util.Optional;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record GpasParameterResponse(String resourceType, List<Parameter> parameter) {
 
-  public PseudonymizedIDs getMappedID() {
-    PseudonymizedIDs pseudonyms = new PseudonymizedIDs();
+  public IDMap getMappedID() {
+    IDMap pseudonyms = new IDMap();
     parameter.forEach(
         p -> {
           Parameter.OriginalAndPseudonym originalAndPseudonym = p.getOriginalAndPseudonym().get();
