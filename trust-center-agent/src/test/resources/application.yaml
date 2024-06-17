@@ -6,7 +6,7 @@ consent:
   gics:
     fhir:
       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
-      pageSize: 200
+      defaultPageSize: 200
       auth:
         none: { }
 

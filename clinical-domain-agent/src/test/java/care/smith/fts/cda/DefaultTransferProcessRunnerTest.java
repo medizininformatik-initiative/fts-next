@@ -5,6 +5,7 @@ import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.*;
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.cda.DefaultTransferProcessRunner.Result;
 import java.util.List;

@@ -1,11 +1,12 @@
 package care.smith.fts.tca.consent;
 
-import care.smith.fts.api.ConsentedPatient;
 import java.util.HashSet;
-import java.util.List;
+import org.hl7.fhir.r4.model.Bundle;
 import reactor.core.publisher.Mono;
 
 public interface ConsentProvider {
-  Mono<List<ConsentedPatient>> consentedPatientsPage(
-      String domain, HashSet<String> policies, int from, int to);
+  Mono<Bundle> consentedPatientsPage(String domain, String policySystem, HashSet<String> policies);
+
+  Mono<Bundle> consentedPatientsPage(
+      String domain, String policySystem, HashSet<String> policies, int from, int count);
 }

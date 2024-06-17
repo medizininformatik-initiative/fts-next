@@ -2,8 +2,8 @@ package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.TransportIdsRequest;
-import java.io.IOException;
 import java.util.Set;
+import reactor.core.publisher.Mono;
 
 public interface PseudonymProvider {
 
@@ -12,7 +12,7 @@ public interface PseudonymProvider {
    * @param domain the domain
    * @return the <code>PseudonymResponse</code>
    */
-  IDMap retrieveTransportIds(Set<String> ids, String domain) throws IOException;
+  Mono<IDMap> retrieveTransportIds(Set<String> ids, String domain);
 
   /**
    * Retrieves the <code>PseudonymRequest</code>
@@ -20,7 +20,7 @@ public interface PseudonymProvider {
    * @param transportIdsRequest to transport ids
    * @return the <code>PseudonymResponse</code>
    */
-  IDMap fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) throws IOException;
+  Mono<IDMap> fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest);
 
   //  /**
   //   * Retrieves the <code>PseudonymRequest</code> Returns PSICs for SICs.
@@ -37,7 +37,7 @@ public interface PseudonymProvider {
    * @return <code>PseudonymResponse</code> if an existing matching was removed, <code>false</code>
    *     if no matching existed.
    */
-  void deleteTransportId(TransportIdsRequest transportIdsRequest);
+  Mono<Void> deleteTransportId(TransportIdsRequest transportIdsRequest);
 
   //  /**
   //   * Returns PSN for original values, that may be compound values.

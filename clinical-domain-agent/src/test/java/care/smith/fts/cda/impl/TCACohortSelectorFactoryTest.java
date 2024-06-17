@@ -25,7 +25,12 @@ class TCACohortSelectorFactoryTest {
                 .create(
                     null,
                     new TCACohortSelectorConfig(
-                        new HTTPClientConfig("http://dummy.example.com"), null, null)))
+                        new HTTPClientConfig("http://dummy.example.com"),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)))
         .isNotNull();
   }
 }

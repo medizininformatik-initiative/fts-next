@@ -1,7 +1,5 @@
 package care.smith.fts.tca.consent;
 
-import static org.assertj.core.api.Assertions.*;
-
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerator.UUID;
 import java.io.IOException;
@@ -27,28 +25,18 @@ class FhirConsentProviderTest {
 
   private FhirConsentProvider fhirConsentProvider;
 
-  @Qualifier("policySystem")
+  @Qualifier("defaultPageSize")
   @Autowired
-  private String policySystem;
-
-  @Qualifier("patientIdentifierSystem")
-  @Autowired
-  private String patientIdentifierSystem;
-
-  @Qualifier("pageSize")
-  @Autowired
-  private int pageSize;
+  private int defaultPageSize;
 
   @BeforeEach
   void setUp() {
-    fhirConsentProvider =
-        new FhirConsentProvider(
-            httpClient, policyHandler, patientIdentifierSystem, policySystem, pageSize);
+    fhirConsentProvider = new FhirConsentProvider(httpClient, policyHandler, defaultPageSize);
   }
 
   @Test
   void paging() throws IOException {
-    int totalEntries = 2 * pageSize;
+    int totalEntries = 2 * defaultPageSize;
 
     FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
     gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());

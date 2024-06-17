@@ -8,11 +8,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
 import redis.clients.jedis.JedisPool;
 
 @Configuration
@@ -28,19 +27,17 @@ public class GpasFhirDeIdentificationConfiguration {
   }
 
   @Bean("gpasFhirHttpClient")
-  public CloseableHttpClient httpClient() {
+  public WebClient httpClient() {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
-    return httpClientConfig.createClient(HttpClientBuilder.create());
+    return httpClientConfig.createClient(WebClient.builder());
   }
 
   @Bean
   public FhirPseudonymProvider fhirPseudonymProvider(
-      CloseableHttpClient httpClient,
-      ObjectMapper objectMapper,
+      WebClient httpClient,
       JedisPool jedisPool,
       PseudonymizationConfiguration pseudonymizationConfiguration) {
-    return new FhirPseudonymProvider(
-        httpClient, objectMapper, jedisPool, pseudonymizationConfiguration);
+    return new FhirPseudonymProvider(httpClient, jedisPool, pseudonymizationConfiguration);
   }
 
   @Bean

@@ -23,7 +23,7 @@ class GicsFhirConfigurationTest {
    * */
   @Test
   void getPageSize() {
-    assertThat(gicsFhirConfiguration.getPageSize()).isEqualTo(200);
+    assertThat(gicsFhirConfiguration.getDefaultPageSize()).isEqualTo(200);
   }
 
   @Test

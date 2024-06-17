@@ -11,7 +11,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.HTTPClientConfig;
-import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,8 +23,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 @ExtendWith(MockServerExtension.class)
 class TCACohortSelectorTest {
 
-  private static final List<String> POLICIES =
-      List.of(
+  private static final Set<String> POLICIES =
+      Set.of(
+          "IDAT_erheben",
+          "IDAT_speichern_verarbeiten",
+          "MDAT_erheben",
+          "MDAT_speichern_verarbeiten");
+  private static final Set<String> DEFAULT_POLICIES =
+      Set.of(
           "IDAT_erheben",
           "IDAT_speichern_verarbeiten",
           "MDAT_erheben",
@@ -43,7 +49,14 @@ class TCACohortSelectorTest {
   void setUp(MockServerClient mockServer) {
     var address = "http://localhost:%d".formatted(mockServer.getPort());
     var server = new HTTPClientConfig(address, NONE);
-    var config = new TCACohortSelectorConfig(server, POLICIES, "MII");
+    var config =
+        new TCACohortSelectorConfig(
+            server,
+            "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym",
+            "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+            DEFAULT_POLICIES,
+            POLICIES,
+            "MII");
     this.cohortSelector = new TCACohortSelector(config, client.baseUrl(address).build());
   }
 

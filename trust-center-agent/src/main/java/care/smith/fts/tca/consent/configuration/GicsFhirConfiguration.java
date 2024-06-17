@@ -17,24 +17,18 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Data
 public class GicsFhirConfiguration {
   @NotBlank String baseUrl;
-  int pageSize = 100;
+  int defaultPageSize = 100;
   @NotNull HTTPClientAuthMethod.AuthMethod auth;
 
   @Bean
-  int pageSize() {
-    return pageSize;
+  int defaultPageSize() {
+    return defaultPageSize;
   }
 
   @Bean
-  FhirConsentProvider fhirConsentProvider(
-      PolicyHandler policyHandler, ConsentProviderConfiguration consentProviderConfiguration) {
+  FhirConsentProvider fhirConsentProvider(PolicyHandler policyHandler) {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
     var client = httpClientConfig.createClient(WebClient.builder());
-    return new FhirConsentProvider(
-        client,
-        policyHandler,
-        consentProviderConfiguration.policySystem,
-        consentProviderConfiguration.patientIdentifierSystem,
-        pageSize);
+    return new FhirConsentProvider(client, policyHandler, defaultPageSize);
   }
 }

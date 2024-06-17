@@ -1,11 +1,13 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.ConsentedPatientExtractor.extractConsentedPatients;
+import static care.smith.fts.util.FhirUtils.typedResourceStream;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
 import java.util.Map;
-import org.springframework.core.ParameterizedTypeReference;
+import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
@@ -22,10 +24,28 @@ class TCACohortSelector implements CohortSelector {
   public Flux<ConsentedPatient> selectCohort() {
     return client
         .post()
-        .uri("/api/v1/cd/consent-request")
-        .bodyValue(Map.of("policies", config.policies(), "domain", config.domain()))
+        .uri("/api/v1/cd/consented-patients")
+        .bodyValue(
+            Map.of(
+                "policies",
+                config.policies(),
+                "policySystem",
+                config.policySystem(),
+                "domain",
+                config.domain()))
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .retrieve()
-        .bodyToFlux(new ParameterizedTypeReference<>() {});
+        .bodyToFlux(Bundle.class)
+        .flatMap(
+            outerBundle ->
+                Flux.fromStream(
+                    typedResourceStream(outerBundle, Bundle.class)
+                        .flatMap(
+                            b ->
+                                extractConsentedPatients(
+                                    config.patientIdentifierSystem(),
+                                    config.policySystem(),
+                                    b,
+                                    config.policies()))));
   }
 }

@@ -1,7 +1,7 @@
 package care.smith.fts.cda;
 
 import care.smith.fts.api.*;
-import care.smith.fts.api.ConsentedPatientBundle;
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
@@ -26,8 +26,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       DataSelector bundleDataSelector,
       DeidentificationProvider bundleDeidentificationProvider,
       BundleSender bundleBundleSender) {
-    Flux<ConsentedPatient> patientFlux = cohortSelector.selectCohort();
-    return patientFlux.flatMap(
+    Flux<ConsentedPatient> patientBundleFlux = cohortSelector.selectCohort();
+    return patientBundleFlux.flatMap(
         patient -> {
           Flux<ConsentedPatientBundle> data =
               bundleDataSelector.select(patient).map(b -> new ConsentedPatientBundle(b, patient));

@@ -95,6 +95,10 @@ public class FhirUtils {
     return entryStream(bundle).map(Bundle.BundleEntryComponent::getResource);
   }
 
+  public static <T> Stream<T> typedResourceStream(Bundle bundle, Class<T> type) {
+    return resourceStream(bundle).filter(type::isInstance).map(type::cast);
+  }
+
   public static Collector<? super Resource, List<Resource>, Bundle> toBundle() {
     return Collector.of(
         ArrayList::new,

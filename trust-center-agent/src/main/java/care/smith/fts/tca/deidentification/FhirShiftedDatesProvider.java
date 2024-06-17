@@ -4,6 +4,7 @@ import care.smith.fts.util.tca.ShiftedDates;
 import java.time.Duration;
 import java.util.Set;
 import org.apache.commons.math3.random.RandomDataGenerator;
+import reactor.core.publisher.Mono;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
@@ -16,7 +17,7 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
   }
 
   @Override
-  public synchronized ShiftedDates generateDateShift(Set<String> ids, Duration dateShiftBy) {
+  public Mono<ShiftedDates> generateDateShift(Set<String> ids, Duration dateShiftBy) {
 
     var shiftByMillis = dateShiftBy.toMillis();
     ShiftedDates shiftedDates = new ShiftedDates();
@@ -32,7 +33,7 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
             shiftedDates.put(id, Duration.ofMillis(s));
           });
     }
-    return shiftedDates;
+    return Mono.just(shiftedDates);
   }
 
   public long getRandomLong(long lower, long upper) {
