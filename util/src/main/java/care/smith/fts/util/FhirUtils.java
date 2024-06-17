@@ -1,6 +1,6 @@
 package care.smith.fts.util;
 
-import static com.google.common.collect.Streams.concat;
+import static java.util.stream.Stream.concat;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
