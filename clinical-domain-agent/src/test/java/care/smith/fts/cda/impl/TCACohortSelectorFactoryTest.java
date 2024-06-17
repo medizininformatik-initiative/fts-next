@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootTest
-class TCAConfigCohortSelectorFactoryTest {
+class TCACohortSelectorFactoryTest {
 
   @Autowired WebClient.Builder client;
 

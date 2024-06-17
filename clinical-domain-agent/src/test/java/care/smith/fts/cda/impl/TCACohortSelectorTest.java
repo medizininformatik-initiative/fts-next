@@ -21,7 +21,7 @@ import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @ExtendWith(MockServerExtension.class)
-class TCAConfigCohortSelectorTest {
+class TCACohortSelectorTest {
 
   private static final List<String> POLICIES =
       List.of(
