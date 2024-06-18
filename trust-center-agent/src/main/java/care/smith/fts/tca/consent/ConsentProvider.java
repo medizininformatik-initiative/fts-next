@@ -5,8 +5,14 @@ import org.hl7.fhir.r4.model.Bundle;
 import reactor.core.publisher.Mono;
 
 public interface ConsentProvider {
-  Mono<Bundle> consentedPatientsPage(String domain, String policySystem, HashSet<String> policies);
+  Mono<Bundle> consentedPatientsPage(
+      String domain, String policySystem, HashSet<String> policies, String requestUrl);
 
   Mono<Bundle> consentedPatientsPage(
-      String domain, String policySystem, HashSet<String> policies, int from, int count);
+      String domain,
+      String policySystem,
+      HashSet<String> policies,
+      String requestUrl,
+      int from,
+      int count);
 }

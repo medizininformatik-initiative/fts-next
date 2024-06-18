@@ -1,6 +1,7 @@
 package care.smith.fts.tca.rest;
 
 import care.smith.fts.tca.consent.ConsentProvider;
+import care.smith.fts.util.RequestUrl;
 import care.smith.fts.util.tca.ConsentRequest;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class ConsentController {
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Mono<Bundle>> consentedPatients(
       @Validated(ConsentRequest.class) @RequestBody ConsentRequest request,
+      @RequestUrl String requestUrl,
       @RequestParam Optional<Integer> from,
       @RequestParam Optional<Integer> count) {
     log.info("consentedPatients: {}", request);
@@ -42,6 +44,7 @@ public class ConsentController {
             request.getDomain(),
             request.getPolicySystem(),
             request.getPolicies(),
+            requestUrl,
             from.orElse(0),
             count.orElse(defaultPageSize));
     return new ResponseEntity<>(consentedPatients, HttpStatus.OK);

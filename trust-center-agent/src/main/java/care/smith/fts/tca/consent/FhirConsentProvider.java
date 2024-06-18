@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class FhirConsentProvider implements ConsentProvider {
   private final int defaultPageSize;
-
   private final WebClient httpClient;
   private final PolicyHandler policyHandler;
 
@@ -43,8 +42,8 @@ public class FhirConsentProvider implements ConsentProvider {
    */
   @Override
   public Mono<Bundle> consentedPatientsPage(
-      String domain, String policySystem, HashSet<String> policies) {
-    return consentedPatientsPage(domain, policySystem, policies, 0, defaultPageSize);
+      String domain, String policySystem, HashSet<String> policies, String requestUrl) {
+    return consentedPatientsPage(domain, policySystem, policies, requestUrl, 0, defaultPageSize);
   }
 
   /**
@@ -58,12 +57,34 @@ public class FhirConsentProvider implements ConsentProvider {
    */
   @Override
   public Mono<Bundle> consentedPatientsPage(
-      String domain, String policySystem, HashSet<String> policies, int from, int count) {
+      String domain,
+      String policySystem,
+      HashSet<String> policies,
+      String requestUrl,
+      int from,
+      int count) {
     HashSet<String> policiesToCheck = policyHandler.getPoliciesToCheck(policies);
     if (policiesToCheck.isEmpty()) {
       return Mono.just(new Bundle());
     }
-    return fetchConsentedPatientsFromGics(policySystem, policiesToCheck, from, count);
+    var bundleMono = fetchConsentedPatientsFromGics(policySystem, policiesToCheck, from, count);
+    return addNextLink(bundleMono, requestUrl, from, count);
+  }
+
+  private Mono<Bundle> addNextLink(
+      Mono<Bundle> bundleMono, String requestUrl, int from, int count) {
+    return bundleMono.map(
+        b -> {
+          if (b.getTotal() >= from + count) {
+            b.addLink(
+                new Bundle.BundleLinkComponent(
+                    new StringType("next"),
+                    new UriType(
+                        "%s/cd/consented-patients?from=%s&count=%s"
+                            .formatted(requestUrl, from + count, count))));
+          }
+          return b;
+        });
   }
 
   /**
