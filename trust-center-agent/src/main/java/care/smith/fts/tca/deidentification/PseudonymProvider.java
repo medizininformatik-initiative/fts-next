@@ -34,10 +34,9 @@ public interface PseudonymProvider {
    * Removes the <code>transportId</code> to <code>secureId</code> matching from the matching table.
    *
    * @param transportIdsRequest to transport ids
-   * @return <code>PseudonymResponse</code> if an existing matching was removed, <code>false</code>
-   *     if no matching existed.
+   * @return The number of deleted transport ids
    */
-  Mono<Void> deleteTransportId(TransportIdsRequest transportIdsRequest);
+  Mono<Long> deleteTransportId(TransportIdsRequest transportIdsRequest);
 
   //  /**
   //   * Returns PSN for original values, that may be compound values.

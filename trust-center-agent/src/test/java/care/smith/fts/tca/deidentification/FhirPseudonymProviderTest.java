@@ -118,4 +118,15 @@ class FhirPseudonymProviderTest {
                     && m.containsValue("987654321"))
         .verifyComplete();
   }
+
+  @Test
+  void deleteTransportId() {
+    given(jedis.del(new String[] {"tid:id1"})).willReturn(1L);
+    TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
+    transportIdsRequest.setIds(Set.of("id1"));
+
+    create(pseudonymProvider.deleteTransportId(transportIdsRequest))
+        .expectNext(1L)
+        .verifyComplete();
+  }
 }

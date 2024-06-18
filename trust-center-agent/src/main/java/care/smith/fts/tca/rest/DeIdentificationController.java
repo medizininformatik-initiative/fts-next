@@ -101,7 +101,7 @@ public class DeIdentificationController {
       value = "/rd/delete-transport-ids",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.TEXT_PLAIN_VALUE)
-  public Mono<ResponseEntity<Void>> deleteId(
+  public Mono<ResponseEntity<Long>> deleteId(
       @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
     var response = requestData.flatMap(pseudonymProvider::deleteTransportId);
     return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));

@@ -112,7 +112,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
       Set<String> ids = transportIdsRequest.getIds();
       ids.forEach(
           id -> {
-            var pseudonymId = jedis.get(id);
+            var pseudonymId = jedis.get("tid:" + id);
             pseudonyms.put(id, pseudonymId);
           });
     }
@@ -120,11 +120,10 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public Mono<Void> deleteTransportId(TransportIdsRequest transportIdsRequest) {
+  public Mono<Long> deleteTransportId(TransportIdsRequest transportIdsRequest) {
+    var ids = transportIdsRequest.getIds().stream().map(id -> "tid:" + id);
     try (Jedis jedis = jedisPool.getResource()) {
-      Set<String> ids = transportIdsRequest.getIds();
-      jedis.del(ids.toArray(new String[0]));
+      return Mono.just(jedis.del(ids.toArray(String[]::new)));
     }
-    return Mono.empty();
   }
 }
