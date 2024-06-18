@@ -15,6 +15,7 @@ import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import java.io.IOException;
+import java.util.Random;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,8 @@ import redis.clients.jedis.params.SetParams;
 @ExtendWith(MockServerExtension.class)
 @ExtendWith(MockitoExtension.class)
 class FhirPseudonymProviderTest {
+  private static final Long SEED = 101620L;
+
   @Autowired WebClient.Builder httpClient;
   @Mock Jedis jedis;
   @Autowired PseudonymizationConfiguration pseudonymizationConfiguration;
@@ -51,7 +54,10 @@ class FhirPseudonymProviderTest {
     given(jedisPool.getResource()).willReturn(jedis);
     pseudonymProvider =
         new FhirPseudonymProvider(
-            httpClient.baseUrl(address).build(), jedisPool, pseudonymizationConfiguration);
+            httpClient.baseUrl(address).build(),
+            jedisPool,
+            pseudonymizationConfiguration,
+            new Random(SEED));
   }
 
   @Test
@@ -69,9 +75,9 @@ class FhirPseudonymProviderTest {
                 .withBody(
                     json(
                         """
-                        { "resourceType": "Parameters", "parameter": [
-                          {"name": "target", "valueString": "domain"}, {"name": "original", "valueString": "id1"}]}
-                        """,
+                                { "resourceType": "Parameters", "parameter": [
+                                  {"name": "target", "valueString": "domain"}, {"name": "original", "valueString": "id1"}]}
+                                """,
                         ONLY_MATCHING_FIELDS)))
         .respond(
             response()
@@ -89,7 +95,7 @@ class FhirPseudonymProviderTest {
     transportIdsRequest.setIds(Set.of("id1"));
 
     IDMap idMap = new IDMap();
-    idMap.put("id1", "123456789");
+    idMap.put("id1", "Bo1z3Z87i");
     create(
             pseudonymProvider.retrieveTransportIds(
                 transportIdsRequest.getIds(), transportIdsRequest.getDomain()))
@@ -99,11 +105,17 @@ class FhirPseudonymProviderTest {
 
   @Test
   void retrievePseudonymIDs() {
-    given(jedis.getDel(anyString())).willReturn("123456789", "987654321");
+    given(jedis.get(anyString())).willReturn("123456789", "987654321");
     TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
     transportIdsRequest.setIds(Set.of("id1", "id2"));
-    var pseudonymizedIDs = pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest);
-    //    assertThat(pseudonymizedIDs.keySet()).containsExactlyInAnyOrder("id1", "id2");
-    //    assertThat(pseudonymizedIDs.values()).containsExactlyInAnyOrder("123456789", "987654321");
+
+    create(pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest))
+        .expectNextMatches(
+            m ->
+                m.containsKey("id1")
+                    && m.containsKey("id2")
+                    && m.containsValue("123456789")
+                    && m.containsValue("987654321"))
+        .verifyComplete();
   }
 }

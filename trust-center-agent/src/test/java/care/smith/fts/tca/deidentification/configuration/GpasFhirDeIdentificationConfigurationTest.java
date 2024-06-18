@@ -23,14 +23,6 @@ class GpasFhirDeIdentificationConfigurationTest {
   }
 
   @Test
-  void fhirPseudonymProvider() {
-    assertThat(
-            gpasFhirDeIdentificationConfiguration.fhirPseudonymProvider(
-                httpClient, jedisPool, pseudonymizationConfiguration))
-        .isNotNull();
-  }
-
-  @Test
   void configEntriesExist() {
     assertThat(gpasFhirDeIdentificationConfiguration.getBaseUrl()).isNotEmpty();
     assertThat(gpasFhirDeIdentificationConfiguration.getAuth()).isNotNull();

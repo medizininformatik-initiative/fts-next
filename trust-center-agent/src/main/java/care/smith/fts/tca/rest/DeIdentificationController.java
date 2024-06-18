@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,16 +24,12 @@ import reactor.core.publisher.Mono;
 public class DeIdentificationController {
   private final PseudonymProvider pseudonymProvider;
   private final ShiftedDatesProvider shiftedDatesProvider;
-  private final ServerOAuth2AuthorizedClientRepository authorizedClientRepository;
 
   @Autowired
   public DeIdentificationController(
-      PseudonymProvider pseudonymProvider,
-      ShiftedDatesProvider shiftedDatesProvider,
-      ServerOAuth2AuthorizedClientRepository authorizedClientRepository) {
+      PseudonymProvider pseudonymProvider, ShiftedDatesProvider shiftedDatesProvider) {
     this.pseudonymProvider = pseudonymProvider;
     this.shiftedDatesProvider = shiftedDatesProvider;
-    this.authorizedClientRepository = authorizedClientRepository;
   }
 
   @PostMapping(

@@ -3,11 +3,12 @@ package care.smith.fts.tca.deidentification;
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.TransportIdsRequest;
-import java.security.SecureRandom;
 import java.util.*;
+import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import redis.clients.jedis.Jedis;
@@ -15,17 +16,25 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
 
 @Slf4j
+@Component
 public class FhirPseudonymProvider implements PseudonymProvider {
+  private static final String ALLOWED_PSEUDONYM_CHARS =
+      "0123456789abcdefghijklmnopqrstuvwxyz-_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
   private final WebClient httpClient;
   private final PseudonymizationConfiguration configuration;
   private final JedisPool jedisPool;
-  private final SecureRandom secureRandom = new SecureRandom();
+  private final RandomGenerator randomGenerator;
 
   public FhirPseudonymProvider(
-      WebClient httpClient, JedisPool jedisPool, PseudonymizationConfiguration configuration) {
+      WebClient httpClient,
+      JedisPool jedisPool,
+      PseudonymizationConfiguration configuration,
+      RandomGenerator randomGenerator) {
     this.httpClient = httpClient;
     this.configuration = configuration;
     this.jedisPool = jedisPool;
+    this.randomGenerator = randomGenerator;
   }
 
   /**
@@ -39,7 +48,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   @Override
   public Mono<IDMap> retrieveTransportIds(Set<String> ids, String domain) {
     IDMap transportIds = new IDMap();
-    ids.forEach(id -> transportIds.put(id, "123456789")); // getUniqueTransportId()));
+    ids.forEach(id -> transportIds.put(id, getUniqueTransportId()));
 
     return fetchOrCreatePseudonyms(domain, ids)
         .map(
@@ -65,14 +74,18 @@ public class FhirPseudonymProvider implements PseudonymProvider {
 
   /** Generate a random transport ID and make sure it does not yet exist in the key-value-store. */
   private String getUniqueTransportId() {
-    byte[] bytes = new byte[9];
-    secureRandom.nextBytes(bytes);
+    var tid =
+        randomGenerator
+            .ints(9, 0, ALLOWED_PSEUDONYM_CHARS.length())
+            .mapToObj(ALLOWED_PSEUDONYM_CHARS::charAt)
+            .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+            .toString();
     try (Jedis jedis = jedisPool.getResource()) {
-      if (jedis.get("tid:" + Arrays.toString(bytes)) != null) {
+      if (jedis.get("tid:" + tid) != null) {
         return getUniqueTransportId();
       }
     }
-    return Arrays.toString(bytes);
+    return tid;
   }
 
   private Mono<IDMap> fetchOrCreatePseudonyms(String domain, Set<String> ids) {

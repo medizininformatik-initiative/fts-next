@@ -1,12 +1,13 @@
 package care.smith.fts.tca.deidentification.configuration;
 
-import care.smith.fts.tca.deidentification.FhirPseudonymProvider;
 import care.smith.fts.tca.deidentification.FhirShiftedDatesProvider;
 import care.smith.fts.util.HTTPClientConfig;
 import care.smith.fts.util.auth.HTTPClientAuthMethod;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.security.SecureRandom;
+import java.util.random.RandomGenerator;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -33,11 +34,8 @@ public class GpasFhirDeIdentificationConfiguration {
   }
 
   @Bean
-  public FhirPseudonymProvider fhirPseudonymProvider(
-      WebClient httpClient,
-      JedisPool jedisPool,
-      PseudonymizationConfiguration pseudonymizationConfiguration) {
-    return new FhirPseudonymProvider(httpClient, jedisPool, pseudonymizationConfiguration);
+  public RandomGenerator secureRandom() {
+    return new SecureRandom();
   }
 
   @Bean
