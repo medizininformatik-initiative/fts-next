@@ -1,5 +1,7 @@
 package care.smith.fts.util;
 
+import static org.springframework.core.io.buffer.DataBufferUtils.join;
+
 import ca.uhn.fhir.context.FhirContext;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -48,7 +50,8 @@ public class WebClientFhirCodec implements WebClientCustomizer {
         ResolvableType type,
         MimeType mimeType,
         Map<String, Object> hints) {
-      return Mono.from(in).mapNotNull(b -> decode(b, type, mimeType, hints));
+      log.trace("Decode to Mono");
+      return join(in).mapNotNull(b -> decode(b, type, mimeType, hints));
     }
 
     @Override
@@ -57,6 +60,7 @@ public class WebClientFhirCodec implements WebClientCustomizer {
         ResolvableType type,
         MimeType mimeType,
         Map<String, Object> hints) {
+      log.info("Decode to Flux");
       return Flux.from(in).mapNotNull(b -> decode(b, type, mimeType, hints));
     }
 
