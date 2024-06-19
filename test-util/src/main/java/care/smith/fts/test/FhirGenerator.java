@@ -1,6 +1,7 @@
 package care.smith.fts.test;
 
 import static care.smith.fts.util.FhirUtils.toBundle;
+import static java.lang.Math.min;
 
 import care.smith.fts.util.FhirUtils;
 import java.io.ByteArrayInputStream;
@@ -41,8 +42,9 @@ public class FhirGenerator {
    * @return
    */
   public Bundle generateBundle(int totalEntries, int pageSize) {
+
     return Stream.generate(this::generateString)
-        .limit(pageSize)
+        .limit(min(pageSize, totalEntries))
         .map(FhirUtils::stringToFhirBundle)
         .collect(toBundle())
         .setTotal(totalEntries);

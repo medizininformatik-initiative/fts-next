@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,7 +28,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   private final RandomGenerator randomGenerator;
 
   public FhirPseudonymProvider(
-      WebClient httpClient,
+      @Qualifier("gpasFhirHttpClient") WebClient httpClient,
       JedisPool jedisPool,
       PseudonymizationConfiguration configuration,
       RandomGenerator randomGenerator) {

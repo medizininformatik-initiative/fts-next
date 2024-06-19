@@ -40,7 +40,7 @@ import redis.clients.jedis.params.SetParams;
 class FhirPseudonymProviderTest {
   private static final Long SEED = 101620L;
 
-  @Autowired WebClient.Builder httpClient;
+  @Autowired WebClient.Builder httpClientBuilder;
   @Mock Jedis jedis;
   @Autowired PseudonymizationConfiguration pseudonymizationConfiguration;
 
@@ -54,7 +54,7 @@ class FhirPseudonymProviderTest {
     given(jedisPool.getResource()).willReturn(jedis);
     pseudonymProvider =
         new FhirPseudonymProvider(
-            httpClient.baseUrl(address).build(),
+            httpClientBuilder.baseUrl(address).build(),
             jedisPool,
             pseudonymizationConfiguration,
             new Random(SEED));

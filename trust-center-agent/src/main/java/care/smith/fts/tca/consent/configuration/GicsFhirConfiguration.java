@@ -25,6 +25,12 @@ public class GicsFhirConfiguration {
     return defaultPageSize;
   }
 
+  @Bean("gicsFhirHttpClient")
+  public WebClient httpClient() {
+    HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
+    return httpClientConfig.createClient(WebClient.builder());
+  }
+
   @Bean
   FhirConsentProvider fhirConsentProvider(PolicyHandler policyHandler) {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);

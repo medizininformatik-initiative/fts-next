@@ -33,20 +33,24 @@ public class ConsentController {
       value = "/cd/consented-patients",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<Mono<Bundle>> consentedPatients(
-      @Validated(ConsentRequest.class) @RequestBody ConsentRequest request,
+  public Mono<ResponseEntity<Bundle>> consentedPatients(
+      @Validated(ConsentRequest.class) @RequestBody Mono<ConsentRequest> request,
       @RequestUrl String requestUrl,
       @RequestParam Optional<Integer> from,
       @RequestParam Optional<Integer> count) {
     log.info("consentedPatients: {}", request);
-    var consentedPatients =
-        consentProvider.consentedPatientsPage(
-            request.getDomain(),
-            request.getPolicySystem(),
-            request.getPolicies(),
-            requestUrl,
-            from.orElse(0),
-            count.orElse(defaultPageSize));
-    return new ResponseEntity<>(consentedPatients, HttpStatus.OK);
+
+    var response =
+        request.flatMap(
+            r ->
+                consentProvider.consentedPatientsPage(
+                    r.getDomain(),
+                    r.getPolicySystem(),
+                    r.getPolicies(),
+                    requestUrl,
+                    from.orElse(0),
+                    count.orElse(defaultPageSize)));
+    return response.map(
+        consentedPatients -> new ResponseEntity<>(consentedPatients, HttpStatus.OK));
   }
 }

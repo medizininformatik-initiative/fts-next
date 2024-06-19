@@ -5,7 +5,6 @@ import static care.smith.fts.util.FhirUtils.typedResourceStream;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.Period;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -61,7 +60,7 @@ public class ConsentedPatientExtractor {
   }
 
   public static boolean hasAllPolicies(
-      String policySystem, Bundle bundle, HashSet<String> policiesToCheck) {
+      String policySystem, Bundle bundle, Set<String> policiesToCheck) {
     var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
     return consentedPolicies.hasAllPolicies(policiesToCheck);
   }

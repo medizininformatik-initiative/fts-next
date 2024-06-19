@@ -4,15 +4,20 @@ import static care.smith.fts.util.ConsentedPatientExtractor.hasAllPolicies;
 import static care.smith.fts.util.FhirUtils.*;
 
 import com.google.common.base.Predicates;
-import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 /** This class provides functionalities for handling FHIR consents using an HTTP client. */
 @Slf4j
+@Component
 public class FhirConsentProvider implements ConsentProvider {
   private final int defaultPageSize;
   private final WebClient httpClient;
@@ -26,7 +31,9 @@ public class FhirConsentProvider implements ConsentProvider {
    * @param defaultPageSize the default page size for paginated results
    */
   public FhirConsentProvider(
-      WebClient httpClient, PolicyHandler policyHandler, int defaultPageSize) {
+      @Qualifier("gicsFhirHttpClient") WebClient httpClient,
+      PolicyHandler policyHandler,
+      int defaultPageSize) {
     this.policyHandler = policyHandler;
     this.httpClient = httpClient;
     this.defaultPageSize = defaultPageSize;
@@ -42,7 +49,7 @@ public class FhirConsentProvider implements ConsentProvider {
    */
   @Override
   public Mono<Bundle> consentedPatientsPage(
-      String domain, String policySystem, HashSet<String> policies, String requestUrl) {
+      String domain, String policySystem, Set<String> policies, String requestUrl) {
     return consentedPatientsPage(domain, policySystem, policies, requestUrl, 0, defaultPageSize);
   }
 
@@ -59,15 +66,16 @@ public class FhirConsentProvider implements ConsentProvider {
   public Mono<Bundle> consentedPatientsPage(
       String domain,
       String policySystem,
-      HashSet<String> policies,
+      Set<String> policies,
       String requestUrl,
       int from,
       int count) {
-    HashSet<String> policiesToCheck = policyHandler.getPoliciesToCheck(policies);
+    Set<String> policiesToCheck = policyHandler.getPoliciesToCheck(policies);
     if (policiesToCheck.isEmpty()) {
       return Mono.just(new Bundle());
     }
-    var bundleMono = fetchConsentedPatientsFromGics(policySystem, policiesToCheck, from, count);
+    var bundleMono =
+        fetchConsentedPatientsFromGics(policySystem, policiesToCheck, domain, from, count);
     return addNextLink(bundleMono, requestUrl, from, count);
   }
 
@@ -96,8 +104,8 @@ public class FhirConsentProvider implements ConsentProvider {
    * @return a Mono emitting a filtered Bundle of consented patients
    */
   private Mono<Bundle> fetchConsentedPatientsFromGics(
-      String policySystem, HashSet<String> policiesToCheck, int from, int count) {
-    return fetchConsentPageFromGics(from, count)
+      String policySystem, Set<String> policiesToCheck, String domain, int from, int count) {
+    return fetchConsentPageFromGics(domain, from, count)
         .map(outerBundle -> filterOuterBundle(policySystem, policiesToCheck, outerBundle));
   }
 
@@ -111,7 +119,7 @@ public class FhirConsentProvider implements ConsentProvider {
    * @return a filtered Bundle
    */
   private Bundle filterOuterBundle(
-      String policySystem, HashSet<String> policiesToCheck, Bundle outerBundle) {
+      String policySystem, Set<String> policiesToCheck, Bundle outerBundle) {
     return typedResourceStream(outerBundle, Bundle.class)
         .filter(b -> hasAllPolicies(policySystem, b, policiesToCheck))
         .map(FhirConsentProvider::filterInnerBundle)
@@ -137,11 +145,18 @@ public class FhirConsentProvider implements ConsentProvider {
    * @param count the number of consents to retrieve
    * @return a Mono emitting a Bundle of consents
    */
-  private Mono<Bundle> fetchConsentPageFromGics(int from, int count) {
+  private Mono<Bundle> fetchConsentPageFromGics(String domain, int from, int count) {
     int to = from + count;
+    var body =
+        Map.of(
+            "resourceType",
+            "Parameters",
+            "parameter",
+            List.of(Map.of("name", "domain", "valueString", domain)));
     return httpClient
         .post()
         .uri("/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, from))
+        .bodyValue(body)
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .retrieve()
         .bodyToMono(Bundle.class);

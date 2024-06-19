@@ -1,16 +1,16 @@
 package care.smith.fts.tca.consent;
 
 import jakarta.validation.constraints.NotNull;
-import java.util.HashSet;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PolicyHandler {
-  final HashSet<String> defaultPolicies;
+  final Set<String> defaultPolicies;
 
   @Autowired
-  public PolicyHandler(HashSet<String> defaultPolicies) {
+  public PolicyHandler(Set<String> defaultPolicies) {
     this.defaultPolicies = defaultPolicies;
   }
 
@@ -19,7 +19,7 @@ public class PolicyHandler {
    * @param policies The Policies to check
    * @return set of policies which should be checked in gICS
    */
-  HashSet<String> getPoliciesToCheck(@NotNull HashSet<String> policies) {
+  Set<String> getPoliciesToCheck(@NotNull Set<String> policies) {
     if (policies.isEmpty()) {
       return defaultPolicies;
     }

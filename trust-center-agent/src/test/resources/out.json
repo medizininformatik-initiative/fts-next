@@ -1,0 +1,623 @@
+{
+  "resourceType": "Bundle",
+  "total": 1,
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "total": 5,
+        "entry": [
+          {
+            "fullUrl": "fe3c8541-595f-4745-ac61-5bad5cd7bc0c",
+            "resource": {
+              "resourceType": "QuestionnaireResponse",
+              "id": "fe3c8541-595f-4745-ac61-5bad5cd7bc0c",
+              "meta": {
+                "lastUpdated": "2024-05-23T09:19:22.229+02:00",
+                "profile": [
+                  "http://fhir.de/ConsentManagement/StructureDefinition/QuestionnaireResponse"
+                ]
+              },
+              "language": "DE",
+              "questionnaire": "https://ths-greifswald.de/fhir/gics/QuestionnaireComposed/MII/Patienteneinwilligung+MII|1.6.d",
+              "status": "completed",
+              "subject": {
+                "reference": "Patient/0b7d4f7c-f7bd-4764-99bd-73cf710d488d",
+                "display": "Pseudonym GicsFhirConsentHandlerIT0"
+              },
+              "authored": "2023-06-29T10:03:56+02:00",
+              "author": {
+                "reference": "Patient/0b7d4f7c-f7bd-4764-99bd-73cf710d488d",
+                "display": "Pseudonym GicsFhirConsentHandlerIT0"
+              },
+              "source": {
+                "reference": "Patient/0b7d4f7c-f7bd-4764-99bd-73cf710d488d",
+                "display": "Pseudonym GicsFhirConsentHandlerIT0"
+              },
+              "item": [
+                {
+                  "linkId": "Rekontaktierung_Ergaenzungen|1.7",
+                  "answer": [
+                    {
+                      "valueCoding": {
+                        "system": "urn:oid:2.16.840.1.113883.3.1937.777.24.5.2",
+                        "code": "2.16.840.1.113883.3.1937.777.24.5.2.1",
+                        "display": "gültig"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "linkId": "PATDAT_erheben_speichern_nutzen|1.8",
+                  "answer": [
+                    {
+                      "valueCoding": {
+                        "system": "urn:oid:2.16.840.1.113883.3.1937.777.24.5.2",
+                        "code": "2.16.840.1.113883.3.1937.777.24.5.2.1",
+                        "display": "gültig"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "linkId": "KKDAT_retrospektiv_uebertragen_speichern_nutzen|1.8",
+                  "answer": [
+                    {
+                      "valueCoding": {
+                        "system": "urn:oid:2.16.840.1.113883.3.1937.777.24.5.2",
+                        "code": "2.16.840.1.113883.3.1937.777.24.5.2.1",
+                        "display": "gültig"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "linkId": "Rekontaktierung_Zusatzbefund|1.8",
+                  "answer": [
+                    {
+                      "valueCoding": {
+                        "system": "urn:oid:2.16.840.1.113883.3.1937.777.24.5.2",
+                        "code": "2.16.840.1.113883.3.1937.777.24.5.2.1",
+                        "display": "gültig"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "linkId": "KKDAT_prospektiv_uebertragen_speichern_nutzen|1.8",
+                  "answer": [
+                    {
+                      "valueCoding": {
+                        "system": "urn:oid:2.16.840.1.113883.3.1937.777.24.5.2",
+                        "code": "2.16.840.1.113883.3.1937.777.24.5.2.1",
+                        "display": "gültig"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "fullUrl": "c0-fe3c8541-595f-4745-ac61-5bad5cd7bc0c",
+            "resource": {
+              "resourceType": "Consent",
+              "id": "c0-fe3c8541-595f-4745-ac61-5bad5cd7bc0c",
+              "meta": {
+                "extension": [
+                  {
+                    "url": "http://ths-greifswald.de/fhir/StructureDefinition/gics/Created",
+                    "valueInstant": "2024-05-23T09:19:22.229+02:00"
+                  }
+                ],
+                "lastUpdated": "2024-05-23T09:19:22.229+02:00",
+                "profile": [
+                  "https://ths-greifswald.de/fhir/StructureDefinition/gics/Consent"
+                ]
+              },
+              "extension": [
+                {
+                  "url": "http://fhir.de/ConsentManagement/StructureDefinition/DomainReference",
+                  "extension": [
+                    {
+                      "url": "domain",
+                      "valueReference": {
+                        "reference": "ResearchStudy/8ceeb823-cbb8-4113-97df-f73c3d8a37f4"
+                      }
+                    },
+                    {
+                      "url": "status",
+                      "valueCoding": {
+                        "system": "http://hl7.org/fhir/publication-status",
+                        "code": "active"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "status": "active",
+              "scope": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+                    "code": "research"
+                  }
+                ]
+              },
+              "category": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://loinc.org",
+                      "code": "59284-0"
+                    }
+                  ]
+                },
+                {
+                  "coding": [
+                    {
+                      "system": "http://loinc.org",
+                      "code": "59284-0"
+                    }
+                  ]
+                }
+              ],
+              "patient": {
+                "reference": "Patient/0b7d4f7c-f7bd-4764-99bd-73cf710d488d",
+                "display": "Pseudonym GicsFhirConsentHandlerIT0"
+              },
+              "dateTime": "2023-07-29T10:03:56+02:00",
+              "organization": [
+                {
+                  "display": "MII"
+                }
+              ],
+              "sourceReference": {
+                "reference": "QuestionnaireResponse/fe3c8541-595f-4745-ac61-5bad5cd7bc0c"
+              },
+              "policyRule": {
+                "text": "Patienteneinwilligung MII|1.6.d"
+              },
+              "provision": {
+                "type": "deny",
+                "period": {
+                  "start": "2023-07-29T10:03:56+02:00",
+                  "end": "2053-07-29T10:03:56+02:00"
+                },
+                "provision": [
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_5J_pro_speichern_verarbeiten",
+                            "display": "Krankenkassendaten (KKDAT) für 5 Jahre prospektiv speichern und verarbeiten in der verantwortlichen Stelle"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2028-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_5J_pro_uebertragen",
+                            "display": "Krankenkassendaten (KKDAT) für 5 Jahre prospektiv übertragen"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_5J_pro_wissenschaftlich_nutzen",
+                            "display": "Krankenkassendaten (KKDAT) für 5 Jahre prospektiv wissenschaftlich nutzen "
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2028-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_KVNR_5J_pro_uebertragen",
+                            "display": "Erlaubnis zur prospektiven Übermittlung der KVNr. an zuständige Stelle\n"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "IDAT_bereitstellen_EU_DSGVO_konform",
+                            "display": "Herausgabe identifizierender Daten (IDAT) an verantwortliche Stelle zur weiteren Verarbeitung"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "IDAT_erheben",
+                            "display": "Erfassung neuer identifizierender Daten (IDAT)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "IDAT_speichern_verarbeiten",
+                            "display": "Speicherung und Verarbeitung identifizierender Daten (IDAT)  in der verantwortlichen Stelle"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "IDAT_zusammenfuehren_Dritte",
+                            "display": "Zusammenführung identifizierender Daten (IDAT) mit Dritten Forschungspartnern"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2028-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "MDAT_erheben",
+                            "display": "Erfassung medizinischer Daten (MDAT)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "MDAT_speichern_verarbeiten",
+                            "display": "Speicherung und Verarbeitung von medizinischen Daten innerhalb der verantwortlichen Stelle (MDAT)"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "MDAT_wissenschaftlich_nutzen_EU_DSGVO_konform",
+                            "display": "Bereitstellung medizinischer Daten (MDAT) für wissenschaftliche Nutzung"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "MDAT_zusammenfuehren_Dritte",
+                            "display": "Zusammenführung medizinischer Daten (MDAT) mit Dritten Forschungspartnern"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "Rekontaktierung_Ergebnisse_erheblicher_Bedeutung",
+                            "display": "Rekontaktierung des Betroffenen bei Ergebnissen von erheblicher Bedeutung"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "Rekontaktierung_Verknuepfung_Datenbanken",
+                            "display": "Rekontaktierung zur Verknüpfung von PatDat mit Info anderer Dbs"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "Rekontaktierung_weitere_Erhebung",
+                            "display": "Rekontaktierung bezüglich Erhebung zusätzlicher Daten"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
+                            "code": "Rekontaktierung_weitere_Studien",
+                            "display": "Rekontaktierung bezüglich Information zu neuen Forschungsvorhaben oder Studien"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_5J_retro_speichern_verarbeiten",
+                            "display": "Krankenkassendaten (KKDAT) für 5 Jahre retrospektiv speichern und verarbeiten in der verantwortlichen Stelle"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_5J_retro_uebertragen",
+                            "display": "Krankenkassendaten (KKDAT) für 5 Jahre retrospektiv übertragen"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_5J_retro_wissenschaftlich_nutzen",
+                            "display": "Krankenkassendaten (KKDAT) für 5 Jahre retrospektiv wissenschaftlich nutzen "
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "KKDAT_KVNR_5J_retro_uebertragen",
+                            "display": "Erlaubnis zur retrospektiven Übermittlung der KVNr. an zuständige Stelle\n"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "permit",
+                    "period": {
+                      "start": "2023-07-29T10:03:56+02:00",
+                      "end": "2053-07-29T10:03:56+02:00"
+                    },
+                    "code": [
+                      {
+                        "coding": [
+                          {
+                            "system": "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy/MII",
+                            "code": "Rekontaktierung_Zusatzbefund",
+                            "display": "Rekontaktierung bezüglich Zusatzbefund"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "fullUrl": "fe3c8541-595f-4745-ac61-5bad5cd7bc0c",
+            "resource": {
+              "resourceType": "Provenance",
+              "id": "fe3c8541-595f-4745-ac61-5bad5cd7bc0c",
+              "meta": {
+                "lastUpdated": "2023-06-29T10:03:56.000+02:00",
+                "profile": [
+                  "http://fhir.de/ConsentManagement/StructureDefinition/Provenance"
+                ]
+              },
+              "target": [
+                {
+                  "reference": "QuestionnaireResponse/fe3c8541-595f-4745-ac61-5bad5cd7bc0c"
+                }
+              ],
+              "recorded": "2024-05-23T09:19:22.229+02:00",
+              "agent": [
+                {
+                  "who": {
+                    "display": "https://ths-greifswald.de/gics"
+                  }
+                }
+              ],
+              "signature": [
+                {
+                  "type": [
+                    {
+                      "system": "urn:iso-astm:E1762-95:2013",
+                      "code": "1.2.840.10065.1.12.1.7",
+                      "display": "Consent Signature"
+                    }
+                  ],
+                  "when": "2023-07-29T10:03:56.985+02:00",
+                  "who": {
+                    "reference": "Patient/0b7d4f7c-f7bd-4764-99bd-73cf710d488d",
+                    "display": "Pseudonym GicsFhirConsentHandlerIT0"
+                  },
+                  "data": "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"
+                },
+                {
+                  "type": [
+                    {
+                      "system": "urn:iso-astm:E1762-95:2013",
+                      "code": "1.2.840.10065.1.12.1.5",
+                      "display": "Verification Signature"
+                    }
+                  ],
+                  "when": "2023-07-29T10:03:56.985+02:00",
+                  "who": {
+                    "display": "1234"
+                  },
+                  "data": "iVBORw0KGgoAAAANSUhEUgAAAfQAAACWCAYAAAAonXpvAAAMUklEQVR4Xu3dadCVZRkH8AtQiCRQ3DJIAZVFUIJMcBm3tBqXzNwoywXX1LFwbBocsUamGrP0Q2qjTjhpm+OCTTmmqLmgoqiJIoSSSCLiiim4oELnPI5+KCdh3vd53vNc5/d8Yzjvfd/X77pm/nOW55xuaxpXuAgQIECAAIFaC3QT6LXun8MTIECAAIFCQKAbBAIECBAgkEBAoCdoohIIECBAgIBANwMECBAgQCCBgEBP0EQlECBAgAABgW4GCBAgQIBAAgGBnqCJSiBAgAABAgLdDBAgQIAAgQQCAj1BE5VAgAABAgQEuhkgQIAAAQIJBAR6giYqgQABAgQICHQzQIAAAQIEEggI9ARNVAIBAgQIEBDoZoAAAQIECCQQEOgJmqgEAgQIECAg0M0AAQIECBBIICDQEzRRCQQIECBAQKCbAQIECBAgkEBAoCdoohIIECBAgIBANwMECBAgQCCBgEBP0EQlECBAgAABgW4GCBAgQIBAAgGBnqCJSiBAgAABAgLdDBAgQIAAgQQCAj1BE5VAgAABAgQEuhkgQIAAAQIJBAR6giYqgQABAgQICHQzQIAAAQIEEggI9ARNVAIBAgQIEBDoZoAAAQIECCQQEOgJmqgEAgQIECAg0M0AAQIECBBIICDQEzRRCQQIECBAQKCbAQIECBAgkEBAoCdoohIIECBAgIBANwMECBAgQCCBgEBP0EQlECBAgAABgW4GCBAgQIBAAgGBnqCJSiBAgAABAgLdDBAgQIAAgQQCAj1BE5VAgAABAgQEuhkgQIAAAQIJBAR6giYqgQABAgQICHQzQIAAAQIEEggI9ARNVAIBAgQIEBDoZoAAAQIECCQQEOgJmqgEAgQIECAg0M0AAQIECBBIICDQEzRRCQQIECBAQKCbAQIECBAgkEBAoCdoohIIECBAgIBANwMECBAgQCCBgEBP0E,
