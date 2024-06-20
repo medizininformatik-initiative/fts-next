@@ -1,7 +1,6 @@
 package care.smith.fts.util.tca;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,8 +16,7 @@ class PseudonymizeResponseTest {
 
   @Test
   void serialize() throws JsonProcessingException {
-    IDMap idMap = new IDMap();
-    idMap.put("original", "pseudonym");
+    Map<String, String> idMap = Map.of("original", "pseudonym");
     var response = new PseudonymizeResponse(idMap, Duration.ofDays(14));
 
     assertThat(objectMapper.writeValueAsString(response))

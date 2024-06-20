@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.tca.deidentification.GpasParameterResponse.Parameter;
 import care.smith.fts.tca.deidentification.GpasParameterResponse.Parameter.Part.ValueIdentifier;
-import care.smith.fts.util.tca.IDMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,10 +29,9 @@ class GpasParameterResponseTest {
 
   @Test
   void getMappedID() {
-    IDMap expectedMap = new IDMap();
-    expectedMap.put("123", "456");
+    Map<String, String> expectedMap = Map.of("123", "456");
 
-    IDMap mappedID = gpasParameterResponse.getMappedID();
+    Map<String, String> mappedID = gpasParameterResponse.getMappedID();
     assertThat(expectedMap).isEqualTo(mappedID);
   }
 }

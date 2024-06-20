@@ -1,7 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
-import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.TransportIdsRequest;
+import java.util.Map;
 import java.util.Set;
 import reactor.core.publisher.Mono;
 
@@ -12,7 +12,7 @@ public interface PseudonymProvider {
    * @param domain the domain
    * @return the <code>PseudonymResponse</code>
    */
-  Mono<IDMap> retrieveTransportIds(Set<String> ids, String domain);
+  Mono<Map<String, String>> retrieveTransportIds(Set<String> ids, String domain);
 
   /**
    * Retrieves the <code>PseudonymRequest</code>
@@ -20,7 +20,7 @@ public interface PseudonymProvider {
    * @param transportIdsRequest to transport ids
    * @return the <code>PseudonymResponse</code>
    */
-  Mono<IDMap> fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest);
+  Mono<Map<String, String>> fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest);
 
   //  /**
   //   * Retrieves the <code>PseudonymRequest</code> Returns PSICs for SICs.

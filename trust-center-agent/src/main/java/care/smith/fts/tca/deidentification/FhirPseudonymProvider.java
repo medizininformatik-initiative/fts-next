@@ -1,7 +1,6 @@
 package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
-import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import java.util.*;
 import java.util.random.RandomGenerator;
@@ -47,8 +46,8 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    * @return the TransportIDs
    */
   @Override
-  public Mono<IDMap> retrieveTransportIds(Set<String> ids, String domain) {
-    IDMap transportIds = new IDMap();
+  public Mono<Map<String, String>> retrieveTransportIds(Set<String> ids, String domain) {
+    Map<String, String> transportIds = new HashMap<String, String>();
     ids.forEach(id -> transportIds.put(id, getUniqueTransportId()));
 
     return fetchOrCreatePseudonyms(domain, ids)
@@ -89,7 +88,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
     return tid;
   }
 
-  private Mono<IDMap> fetchOrCreatePseudonyms(String domain, Set<String> ids) {
+  private Mono<Map<String, String>> fetchOrCreatePseudonyms(String domain, Set<String> ids) {
     var idParams =
         Stream.concat(
             Stream.of(Map.of("name", "target", "valueString", domain)),
@@ -107,8 +106,8 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public Mono<IDMap> fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) {
-    IDMap pseudonyms = new IDMap();
+  public Mono<Map<String, String>> fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) {
+    Map<String, String> pseudonyms = new HashMap<String, String>();
     try (Jedis jedis = jedisPool.getResource()) {
       Set<String> ids = transportIdsRequest.ids();
       ids.forEach(

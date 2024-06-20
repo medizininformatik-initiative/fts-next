@@ -3,8 +3,9 @@ package care.smith.fts.tca.rest;
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.*;
-import care.smith.fts.util.tca.IDMap;
 import jakarta.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +42,7 @@ public class DeIdentificationController {
     var response =
         requestData.flatMap(
             r -> {
-              Mono<IDMap> transportIds =
+              Mono<Map<String, String>> transportIds =
                   pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
               Mono<ShiftedDates> shiftedDates =
                   shiftedDatesProvider.generateDateShift(Set.of(r.patientId()), r.dateShift());
@@ -55,7 +56,7 @@ public class DeIdentificationController {
       value = "/cd/transport-ids",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<IDMap>> getTransportId(
+  public Mono<ResponseEntity<Map<String, String>>> getTransportId(
       @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
     var response =
         requestData.flatMap(r -> pseudonymProvider.retrieveTransportIds(r.ids(), r.domain()));
@@ -77,7 +78,7 @@ public class DeIdentificationController {
       value = "/rd/resolve-pseudonyms",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<IDMap>> fetchPseudonymizedIds(
+  public Mono<ResponseEntity<Map<String, String>>> fetchPseudonymizedIds(
       @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
     var pseudonymizedIDs = requestData.flatMap(pseudonymProvider::fetchPseudonymizedIds);
     return pseudonymizedIDs.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
@@ -87,7 +88,7 @@ public class DeIdentificationController {
       value = "/rd/resolve-project-pseudonyms",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<IDMap> fetchProjectPseudonymizedIds(
+  public ResponseEntity<HashMap<String, String>> fetchProjectPseudonymizedIds(
       @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData) {
     // TODO Implement
     // IDMap pseudonymizedIDs =

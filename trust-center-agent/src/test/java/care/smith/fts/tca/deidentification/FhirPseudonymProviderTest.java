@@ -12,9 +12,9 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.util.tca.IDMap;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -93,8 +93,7 @@ class FhirPseudonymProviderTest {
 
     TransportIdsRequest transportIdsRequest = new TransportIdsRequest("domain", Set.of("id1"));
 
-    IDMap idMap = new IDMap();
-    idMap.put("id1", "Bo1z3Z87i");
+    Map<String, String> idMap = Map.of("id1", "Bo1z3Z87i");
     create(
             pseudonymProvider.retrieveTransportIds(
                 transportIdsRequest.ids(), transportIdsRequest.domain()))

@@ -1,19 +1,19 @@
 package care.smith.fts.rda.services.deidentifhir;
 
 import care.smith.fts.util.deidentifhir.NamespacingService;
-import care.smith.fts.util.tca.IDMap;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
 import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
+import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 
 /** TransportID to Pseudonym */
 public class DeidentifhirService {
   private final Deidentifhir deidentifhir;
 
-  public DeidentifhirService(Config config, IDMap transportIdToPseudonym) {
+  public DeidentifhirService(Config config, Map<String, String> transportIdToPseudonym) {
     NamespacingService namespacingService =
         NamespacingService.withoutNamespacing(transportIdToPseudonym);
     Registry registry = new Registry();

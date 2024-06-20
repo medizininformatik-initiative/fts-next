@@ -10,8 +10,8 @@ import care.smith.fts.api.cda.DeidentificationProvider;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.tca.*;
-import care.smith.fts.util.tca.IDMap;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -52,7 +52,7 @@ class DeidentifhirStep implements DeidentificationProvider {
     return fetchTransportIdsAndDateShiftingValues(patient.id(), ids)
         .map(
             response -> {
-              IDMap transportIDs = response.idMap();
+              Map<String, String> transportIDs = response.idMap();
               Duration dateShiftValue = response.dateShiftValue();
 
               log.info(patient.id());

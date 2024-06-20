@@ -1,6 +1,5 @@
 package care.smith.fts.util.deidentifhir;
 
-import care.smith.fts.util.tca.IDMap;
 import de.ume.deidentifhir.util.IDReplacementProvider;
 import de.ume.deidentifhir.util.IdentifierValueReplacementProvider;
 import jakarta.validation.constraints.NotBlank;
@@ -15,7 +14,7 @@ public class NamespacingService
   private final Map<String, String> ids;
   private final KeyCreator keyCreator;
 
-  public static NamespacingService withNamespacing(String prefix, IDMap ids) {
+  public static NamespacingService withNamespacing(String prefix, Map<String, String> ids) {
     return new NamespacingService(new NamespacingEnabled(prefix), ids);
   }
 
@@ -28,7 +27,7 @@ public class NamespacingService
     return new NamespacingService(new NamespacingDisabled(), toMap(ids));
   }
 
-  public static NamespacingService withoutNamespacing(IDMap idMap) {
+  public static NamespacingService withoutNamespacing(Map<String, String> idMap) {
 
     return new NamespacingService(new NamespacingDisabled(), idMap);
   }

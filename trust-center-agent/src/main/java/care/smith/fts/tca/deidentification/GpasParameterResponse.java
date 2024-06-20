@@ -1,22 +1,22 @@
 package care.smith.fts.tca.deidentification;
 
-import care.smith.fts.util.tca.IDMap;
+import static java.util.stream.Collectors.toMap;
+
+import care.smith.fts.tca.deidentification.GpasParameterResponse.Parameter.OriginalAndPseudonym;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** Record to deserialize gPAS response from $pseudonymizeAllowCreate operation. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record GpasParameterResponse(String resourceType, List<Parameter> parameter) {
 
-  public IDMap getMappedID() {
-    IDMap pseudonyms = new IDMap();
-    parameter.forEach(
-        p -> {
-          Parameter.OriginalAndPseudonym originalAndPseudonym = p.getOriginalAndPseudonym().get();
-          pseudonyms.put(originalAndPseudonym.original, originalAndPseudonym.pseudonym);
-        });
-    return pseudonyms;
+  public Map<String, String> getMappedID() {
+    return parameter.stream()
+        .map(Parameter::getOriginalAndPseudonym)
+        .map(Optional::orElseThrow)
+        .collect(toMap(OriginalAndPseudonym::original, OriginalAndPseudonym::pseudonym));
   }
 
   record Parameter(String name, List<Part> part) {
