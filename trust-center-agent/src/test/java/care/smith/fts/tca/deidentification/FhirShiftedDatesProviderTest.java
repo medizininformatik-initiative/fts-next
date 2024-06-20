@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.util.tca.DateShiftingRequest;
+import care.smith.fts.util.tca.ShiftedDates;
 import java.time.Duration;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +36,7 @@ class FhirShiftedDatesProviderTest {
   }
 
   @Test
-  void generateDateShift() {
+  void generateDateShiftT() {
     given(jedisPool.getResource()).willReturn(jedis);
     given(jedis.set(anyString(), anyString(), any(SetParams.class))).willReturn("OK");
     given(jedis.get("shiftedDate:1")).willReturn("2");
@@ -43,10 +45,15 @@ class FhirShiftedDatesProviderTest {
     var request = new DateShiftingRequest();
     request.setIds(Set.of("1", "2", "3"));
     request.setDateShift(Duration.ofDays(14));
-    var shiftedDates = provider.generateDateShift(request.getIds(), request.getDateShift());
-    //    assertThat(shiftedDates.get("1")).isEqualTo(2);
-    //    assertThat(shiftedDates.get("2")).isEqualTo(4);
-    //    assertThat(shiftedDates.get("3")).isEqualTo(6);
+
+    var expectedShiftedDates = new ShiftedDates();
+    expectedShiftedDates.put("1", Duration.ofMillis(2));
+    expectedShiftedDates.put("2", Duration.ofMillis(4));
+    expectedShiftedDates.put("3", Duration.ofMillis(6));
+
+    create(provider.generateDateShift(request.getIds(), request.getDateShift()))
+        .expectNext(expectedShiftedDates)
+        .verifyComplete();
   }
 
   @Test
