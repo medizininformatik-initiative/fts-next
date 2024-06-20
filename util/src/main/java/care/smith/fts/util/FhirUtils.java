@@ -111,6 +111,6 @@ public class FhirUtils {
   private static Bundle toBundle(List<Resource> l) {
     List<Bundle.BundleEntryComponent> list =
         l.stream().map(r -> new Bundle.BundleEntryComponent().setResource(r)).toList();
-    return new Bundle().setEntry(list);
+    return new Bundle().setTotal(l.size()).setEntry(list);
   }
 }
