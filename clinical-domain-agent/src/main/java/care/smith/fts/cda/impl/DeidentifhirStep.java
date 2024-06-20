@@ -13,11 +13,13 @@ import care.smith.fts.util.tca.*;
 import care.smith.fts.util.tca.IDMap;
 import java.time.Duration;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 class DeidentifhirStep implements DeidentificationProvider {
   private final WebClient httpClient;
   private final String domain;
@@ -52,6 +54,9 @@ class DeidentifhirStep implements DeidentificationProvider {
             response -> {
               IDMap transportIDs = response.idMap();
               Duration dateShiftValue = response.dateShiftValue();
+
+              log.info(patient.id());
+              log.info(transportIDs.get(patient.id()));
 
               var registry = generateRegistry(patient.id(), transportIDs, dateShiftValue);
               var deidentified =
