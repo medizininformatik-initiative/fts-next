@@ -10,6 +10,7 @@ import ca.uhn.fhir.context.FhirContext;
 import java.nio.charset.StandardCharsets;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockserver.client.MockServerClient;
@@ -173,5 +174,10 @@ class WebClientFhirCodecTest {
     boolean result = encoder.canEncode(resolvableType, MediaType.APPLICATION_JSON);
 
     assertThat(result).isFalse();
+  }
+
+  @AfterEach
+  void tearDown(MockServerClient mockServer) {
+    mockServer.reset();
   }
 }

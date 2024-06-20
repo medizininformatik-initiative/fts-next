@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -128,5 +129,10 @@ class FhirPseudonymProviderTest {
     create(pseudonymProvider.deleteTransportId(transportIdsRequest))
         .expectNext(1L)
         .verifyComplete();
+  }
+
+  @AfterEach
+  void tearDown(MockServerClient mockServer) {
+    mockServer.reset();
   }
 }

@@ -16,6 +16,7 @@ import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtil;
 import care.smith.fts.util.HTTPClientConfig;
 import com.typesafe.config.Config;
 import java.io.IOException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -110,5 +111,10 @@ class DeidentifhirStepTest {
     var bundleFlux = Flux.just(new ConsentedPatientBundle(bundle, consentedPatient));
 
     create(step.deidentify(bundleFlux)).expectNextCount(1).verifyComplete();
+  }
+
+  @AfterEach
+  void tearDown(MockServerClient mockServer) {
+    mockServer.reset();
   }
 }
