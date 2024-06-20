@@ -153,9 +153,11 @@ public class FhirConsentProvider implements ConsentProvider {
             "Parameters",
             "parameter",
             List.of(Map.of("name", "domain", "valueString", domain)));
+    String formatted = "/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, from);
+    log.info(formatted);
     return httpClient
         .post()
-        .uri("/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, from))
+        .uri(formatted)
         .bodyValue(body)
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .retrieve()

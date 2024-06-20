@@ -1,5 +1,6 @@
 package care.smith.fts.tca.consent;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -21,6 +22,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
+import org.mockserver.model.HttpRequest;
+import org.mockserver.model.HttpResponse;
+import org.mockserver.model.JsonBody;
 import org.mockserver.model.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -68,34 +72,65 @@ class FhirConsentProviderTest {
     gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
 
     Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, defaultPageSize);
+
+    JsonBody jsonBody =
+        json(
+            """
+                    {
+                     "resourceType": "Parameters",
+                     "parameter": [{"name": "domain", "valueString": "MII"}]
+                    }
+                    """,
+            ONLY_MATCHING_FIELDS);
+    HttpRequest postRequest =
+        request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
+    HttpResponse httpResponse =
+        response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON);
     mockServer
         .when(
-            request()
-                .withMethod("POST")
-                .withPath("/$allConsentsForDomain")
-                .withQueryStringParameters(
-                    List.of(new Parameter("_offset", "0"), new Parameter("_count", "200")))
-                .withBody(
-                    json(
-                        """
-                                {
-                                 "resourceType": "Parameters",
-                                 "parameter": [{"name": "domain", "valueString": "MII"}]
-                                }
-                                """,
-                        ONLY_MATCHING_FIELDS)))
-        .respond(response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON));
+            postRequest.withQueryStringParameters(
+                List.of(
+                    new Parameter("_offset", "0"),
+                    new Parameter("_count", String.valueOf(defaultPageSize)))))
+        .respond(httpResponse);
+    mockServer
+        .when(
+            postRequest.withQueryStringParameters(
+                List.of(
+                    new Parameter("_offset", String.valueOf(defaultPageSize)),
+                    new Parameter("_count", String.valueOf(2 * defaultPageSize)))))
+        .respond(httpResponse);
 
-    create(fhirConsentProvider.consentedPatientsPage("MII", POLICY_SYSTEM, POLICIES, "123"))
-        .assertNext(b -> b.equalsDeep(bundle))
+    var expectedNextLink =
+        "http://trustcenteragent:1234/cd/consented-patients?from=%s&count=%s"
+            .formatted(defaultPageSize, defaultPageSize);
+
+    log.info("Get first page");
+    create(
+            fhirConsentProvider.consentedPatientsPage(
+                "MII", POLICY_SYSTEM, POLICIES, "http://trustcenteragent:1234"))
+        .assertNext(
+            consentBundle -> {
+              assertThat(consentBundle)
+                  .matches(
+                      b -> b.getLink("next").getUrl().equals(expectedNextLink),
+                      "expect the next link to be %s".formatted(expectedNextLink));
+            })
         .verifyComplete();
-  }
-
-  @Test
-  void httpClientThrowsIOException() throws IOException {
-    //    given(httpClient.execute(any(HttpPost.class), any(HttpClientResponseHandler.class)))
-    //        .willThrow(new IOException());
-    //    assertThatExceptionOfType(IOException.class)
-    //        .isThrownBy(() -> fhirConsentProvider.allConsentedPatients("any", defaultPolicies));
+    log.info("Get second page");
+    create(
+            fhirConsentProvider.consentedPatientsPage(
+                "MII",
+                POLICY_SYSTEM,
+                POLICIES,
+                "http://trustcenteragent:1234",
+                defaultPageSize,
+                defaultPageSize))
+        .assertNext(
+            consentBundle -> {
+              assertThat(consentBundle)
+                  .matches(b -> b.getLink().isEmpty(), "expect that there is no next link");
+            })
+        .verifyComplete();
   }
 }

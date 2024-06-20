@@ -23,8 +23,6 @@ class FhirGeneratorTest {
     String serializedBundle = FhirUtils.fhirResourceToString(bundle);
     Bundle deserializedBundle = FhirUtils.stringToFhirBundle(serializedBundle);
 
-    System.out.println(serializedBundle);
-
     assertThat(deserializedBundle.equalsDeep(bundle)).isTrue();
   }
 }
