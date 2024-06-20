@@ -60,7 +60,7 @@ public class WebClientFhirCodec implements WebClientCustomizer {
         ResolvableType type,
         MimeType mimeType,
         Map<String, Object> hints) {
-      log.info("Decode to Flux");
+      log.trace("Decode to Flux");
       return Flux.from(in).mapNotNull(b -> decode(b, type, mimeType, hints));
     }
 
