@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
-import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.cda.test.MockServerUtil;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.junit.jupiter.api.AfterEach;
@@ -26,7 +25,6 @@ class FhirResolveServiceTest {
 
   private static final String PATIENT_ID = "patient-141392";
   private static final Header CONTENT_JSON = new Header("Content-Type", "application/json");
-  private static final FhirContext FHIR = FhirContext.forR4();
   private static final String KDS_PATIENT = "https://some.example.com/pid";
 
   @Autowired WebClient.Builder builder;

@@ -1,7 +1,6 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.ConsentedPatientExtractor.extractConsentedPatients;
-import static care.smith.fts.util.FhirUtils.typedResourceStream;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -39,13 +38,10 @@ class TCACohortSelector implements CohortSelector {
         .flatMap(
             outerBundle ->
                 Flux.fromStream(
-                    typedResourceStream(outerBundle, Bundle.class)
-                        .flatMap(
-                            b ->
-                                extractConsentedPatients(
-                                    config.patientIdentifierSystem(),
-                                    config.policySystem(),
-                                    b,
-                                    config.policies()))));
+                    extractConsentedPatients(
+                        config.patientIdentifierSystem(),
+                        config.policySystem(),
+                        outerBundle,
+                        config.policies())));
   }
 }

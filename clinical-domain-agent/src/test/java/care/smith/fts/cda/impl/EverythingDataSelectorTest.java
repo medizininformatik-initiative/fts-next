@@ -1,76 +1,73 @@
 package care.smith.fts.cda.impl;
 
-import static java.util.Objects.requireNonNull;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockserver.model.HttpRequest.request;
+import static org.mockito.BDDMockito.given;
 import static org.mockserver.model.HttpResponse.response;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.web.reactive.function.client.WebClient.builder;
+import static reactor.core.publisher.Mono.just;
+import static reactor.test.StepVerifier.create;
 
+import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.Period;
 import care.smith.fts.api.cda.DataSelector;
-import care.smith.fts.cda.test.MockServerUtil;
+import care.smith.fts.cda.services.PatientIdResolver;
 import care.smith.fts.util.HTTPClientConfig;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.IdType;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.jupiter.MockServerExtension;
-import org.mockserver.model.Header;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-@ExtendWith(MockServerExtension.class)
+@ExtendWith(MockitoExtension.class)
 class EverythingDataSelectorTest {
 
   private static final String PATIENT_ID = "patient-112348";
-  private static final Header CONTENT_JSON = new Header("Content-Type", "application/json");
+  private static final PatientIdResolver patient = pid -> new IdType("Patient", pid);
 
-  private EverythingDataSelector dataSelector;
+  @Mock ClientResponse response;
+  private final DataSelector.Config common = new DataSelector.Config(false, null);
+  private final HTTPClientConfig server = new HTTPClientConfig("http://localhost");
 
-  @BeforeEach
-  void setUp(MockServerClient mockServer) throws Exception {
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
-    var server = new HTTPClientConfig(address);
-    var common = new DataSelector.Config(false, null);
-    this.dataSelector =
-        new EverythingDataSelector(
-            common, server.createClient(WebClient.builder()), pid -> new IdType("Patient", pid));
-    try (var inStream = MockServerUtil.class.getResourceAsStream("metadata.json")) {
-      var capStatement = requireNonNull(inStream).readAllBytes();
-      mockServer
-          .when(request().withMethod("GET").withPath("/metadata"))
-          .respond(response().withBody(capStatement).withHeader(CONTENT_JSON));
-    }
+  @Test
+  void noConsentErrors() {
+    var client = builder();
+    var dataSelector = new EverythingDataSelector(common, server.createClient(client), patient);
+
+    create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).expectError().verify();
   }
 
   @Test
-  void noConsentThrows() {
-    assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> dataSelector.select(new ConsentedPatient(PATIENT_ID)));
+  void noConsentSucceedsIfConsentIgnored() {
+    var client = builder().exchangeFunction(req -> Mono.just(ClientResponse.create(OK).build()));
+    DataSelector.Config common = new DataSelector.Config(true, null);
+    var dataSelector = new EverythingDataSelector(common, server.createClient(client), patient);
+
+    create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).verifyComplete();
   }
 
   @Test
-  void selectionSucceeds(MockServerClient mockServer) throws Exception {
+  void selectionSucceeds() throws Exception {
+
+    var client = builder().exchangeFunction(req -> just(response));
+    given(response.statusCode()).willReturn(OK);
     try (InputStream inStream = getClass().getResourceAsStream("patient.json")) {
-      var bundle = requireNonNull(inStream).readAllBytes();
-      mockServer
-          .when(request().withMethod("GET").withPath("/Patient/" + PATIENT_ID + "/$everything"))
-          .respond(response().withBody(bundle).withHeader(CONTENT_JSON));
+      var bundle = FhirContext.forR4().newJsonParser().parseResource(Bundle.class, inStream);
+      given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(bundle));
     }
+    var dataSelector = new EverythingDataSelector(common, server.createClient(client), patient);
 
-    ConsentedPolicies consentedPolicies = new ConsentedPolicies();
+    var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
-    assertThat(dataSelector.select(new ConsentedPatient(PATIENT_ID, consentedPolicies)))
-        .isNotNull();
-  }
-
-  @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+    create(dataSelector.select(new ConsentedPatient(PATIENT_ID, consentedPolicies)))
+        .expectNextCount(1)
+        .verifyComplete();
   }
 }

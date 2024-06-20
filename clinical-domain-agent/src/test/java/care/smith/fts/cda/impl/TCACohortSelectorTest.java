@@ -1,104 +1,123 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
-import static java.lang.String.join;
-import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
-import static org.mockserver.model.MediaType.APPLICATION_JSON;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.web.reactive.function.client.ClientResponse.create;
+import static org.springframework.web.reactive.function.client.WebClient.builder;
+import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.HTTPClientConfig;
+import java.util.Date;
+import java.util.List;
 import java.util.Set;
-import org.junit.jupiter.api.AfterEach;
+import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.jupiter.MockServerExtension;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Flux;
 
-@ExtendWith(MockServerExtension.class)
+@Slf4j
+@ExtendWith(MockitoExtension.class)
 class TCACohortSelectorTest {
 
-  private static final Set<String> POLICIES =
-      Set.of(
-          "IDAT_erheben",
-          "IDAT_speichern_verarbeiten",
-          "MDAT_erheben",
-          "MDAT_speichern_verarbeiten");
-  private static final Set<String> DEFAULT_POLICIES =
-      Set.of(
-          "IDAT_erheben",
-          "IDAT_speichern_verarbeiten",
-          "MDAT_erheben",
-          "MDAT_speichern_verarbeiten");
+  private static final Set<String> POLICIES = Set.of("any");
 
-  private static final String SAMPLE_RESPONSE =
-      """
-      [{"id":"SmithIT16","consentedPolicies":{"policies":{"MDAT_speichern_verarbeiten":[{"start":1690617836.985000000,"end":2637389036.985000000}],"MDAT_erheben":[{"start":1690617836.985000000,"end":2637389036.985000000}],"IDAT_erheben":[{"start":1690617836.985000000,"end":2637389036.985000000}],"IDAT_speichern_verarbeiten":[{"start":1690617836.985000000,"end":2637389036.985000000}]}}}]
-      """;
+  private static final String PID_SYSTEM =
+      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
+  private static final String POLICY_SYSTEM =
+      "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
 
-  private final WebClient.Builder client = WebClient.builder();
+  @Mock ClientResponse response;
 
-  private CohortSelector cohortSelector;
+  private TCACohortSelectorConfig config;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer) {
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
+  void setUp() {
+    var address = "http://localhost";
     var server = new HTTPClientConfig(address, NONE);
-    var config =
-        new TCACohortSelectorConfig(
-            server,
-            "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym",
-            "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy",
-            DEFAULT_POLICIES,
-            POLICIES,
-            "MII");
-    this.cohortSelector = new TCACohortSelector(config, client.baseUrl(address).build());
+    config =
+        new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, POLICIES, "MII");
   }
 
   @Test
-  void jsonResponseParsed(MockServerClient mockServer) {
-    mockServer
-        .when(
-            request()
-                .withMethod("POST")
-                .withPath("/api/v1/cd/consent-request")
-                .withBody(
-                    json(
-                        """
-                        {"policies": ["%s"], "domain": "MII"}
-                        """
-                            .formatted(join("\", \"", POLICIES)),
-                        ONLY_MATCHING_FIELDS)))
-        .respond(response().withBody(SAMPLE_RESPONSE, APPLICATION_JSON));
+  void responseInvalidErrors() {
+    var client = builder().exchangeFunction(req -> just(response));
+    given(response.statusCode()).willReturn(OK);
+    given(response.bodyToFlux(String.class)).willReturn(Flux.just(""));
+    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
+
+    create(cohortSelector.selectCohort()).expectError().verify();
+  }
+
+  @Test
+  void badRequestErrors() {
+    var client = builder().exchangeFunction(req -> just(create(BAD_REQUEST).build()));
+    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
+
+    create(cohortSelector.selectCohort()).expectError().verify();
+  }
+
+  @Test
+  void consentBundleSucceeds() {
+    var client = builder().exchangeFunction(req -> just(response));
+    given(response.statusCode()).willReturn(OK);
+    Bundle inner =
+        Stream.of(
+                new Patient()
+                    .addIdentifier(
+                        new Identifier().setSystem(PID_SYSTEM).setValue("patient-122651")),
+                new Consent().setProvision(denyProvision()))
+            .collect(toBundle());
+    Bundle outer = Stream.of(inner).collect(toBundle());
+    given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(outer));
+    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
     create(cohortSelector.selectCohort()).expectNextCount(1).verifyComplete();
   }
 
   @Test
-  void jsonResponseInvalid(MockServerClient mockServer) {
-    mockServer
-        .when(request().withMethod("POST").withPath("/api/v1/cd/consent-request"))
-        .respond(response().withBody("{}", APPLICATION_JSON));
+  void emptyOuterBundleGivesEmptyResult() {
+    var client = builder().exchangeFunction(req -> just(response));
+    given(response.statusCode()).willReturn(OK);
+    Bundle outer = Stream.<Resource>of().collect(toBundle());
+    given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(outer));
+    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
-    create(cohortSelector.selectCohort()).expectError().verify();
+    create(cohortSelector.selectCohort()).verifyComplete();
   }
 
   @Test
-  void requestThrows(MockServerClient mockServer) {
-    mockServer
-        .when(request().withMethod("POST").withPath("/api/v1/cd/consent-request"))
-        .respond(response().withStatusCode(400));
+  void emptyInnerBundleGivesEmptyResult() {
+    var client = builder().exchangeFunction(req -> just(response));
+    given(response.statusCode()).willReturn(OK);
+    Bundle outer = Stream.of(Stream.<Resource>of().collect(toBundle())).collect(toBundle());
+    given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(outer));
+    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
-    create(cohortSelector.selectCohort()).expectError().verify();
+    create(cohortSelector.selectCohort()).verifyComplete();
   }
 
-  @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+  private static Consent.provisionComponent denyProvision() {
+    return new Consent.provisionComponent()
+        .setType(Consent.ConsentProvisionType.DENY)
+        .addProvision(permitProvision());
+  }
+
+  private static Consent.provisionComponent permitProvision() {
+    var policy =
+        new CodeableConcept().addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode("any"));
+    return new Consent.provisionComponent()
+        .setType(Consent.ConsentProvisionType.PERMIT)
+        .setCode(List.of(policy))
+        .setPeriod(new Period().setStart(new Date(1)).setEnd(new Date(2)));
   }
 }
