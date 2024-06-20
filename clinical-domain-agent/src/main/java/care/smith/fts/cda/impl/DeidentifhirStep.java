@@ -68,11 +68,7 @@ class DeidentifhirStep implements DeidentificationProvider {
 
   private Mono<PseudonymizeResponse> fetchTransportIdsAndDateShiftingValues(
       String patientId, Set<String> ids) {
-    PseudonymizeRequest request = new PseudonymizeRequest();
-    request.setPatientId(patientId);
-    request.setIds(ids);
-    request.setDomain(domain);
-    request.setDateShift(dateShift);
+    PseudonymizeRequest request = new PseudonymizeRequest(patientId, ids, domain, dateShift);
 
     return httpClient
         .post()

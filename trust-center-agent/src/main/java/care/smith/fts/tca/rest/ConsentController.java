@@ -44,9 +44,9 @@ public class ConsentController {
         request.flatMap(
             r ->
                 consentProvider.consentedPatientsPage(
-                    r.getDomain(),
-                    r.getPolicySystem(),
-                    r.getPolicies(),
+                    r.domain(),
+                    r.policySystem(),
+                    r.policies(),
                     requestUrl,
                     from.orElse(0),
                     count.orElse(defaultPageSize)));

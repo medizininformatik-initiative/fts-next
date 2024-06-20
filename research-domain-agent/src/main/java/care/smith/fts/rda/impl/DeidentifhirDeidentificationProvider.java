@@ -30,7 +30,7 @@ class DeidentifhirDeidentificationProvider implements DeidentificationProvider {
   public Flux<Bundle> deidentify(Flux<TransportBundle> bundleFlux) {
     return bundleFlux.flatMap(
         bundle ->
-            fetchPseudonymsForTransportIds(bundle.transportIds())
+            fetchPseudonymsForTransportIds(null, bundle.transportIds())
                 .map(
                     p -> {
                       DeidentifhirService deidentifhir =
@@ -40,12 +40,11 @@ class DeidentifhirDeidentificationProvider implements DeidentificationProvider {
                     }));
   }
 
-  private Mono<PseudonymizeResponse> fetchPseudonymsForTransportIds(Set<String> transportIds) {
+  private Mono<PseudonymizeResponse> fetchPseudonymsForTransportIds(
+      String patientId, Set<String> transportIds) {
 
-    PseudonymizeRequest request = new PseudonymizeRequest();
-    request.setIds(transportIds);
-    request.setDomain(domain);
-    request.setDateShift(dateShift);
+    PseudonymizeRequest request =
+        new PseudonymizeRequest(patientId, transportIds, domain, dateShift);
 
     return httpClient
         .post()

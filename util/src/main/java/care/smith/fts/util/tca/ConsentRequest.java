@@ -2,17 +2,9 @@ package care.smith.fts.util.tca;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.HashSet;
-import lombok.Data;
+import java.util.Set;
 
-@Data
-public class ConsentRequest {
-  @NotNull(groups = ConsentRequest.class)
-  String domain;
-
-  @NotNull(groups = ConsentRequest.class)
-  HashSet<String> policies;
-
-  @NotBlank(groups = ConsentRequest.class)
-  String policySystem;
-}
+public record ConsentRequest(
+    @NotNull(groups = ConsentRequest.class) String domain,
+    @NotNull(groups = ConsentRequest.class) Set<String> policies,
+    @NotBlank(groups = ConsentRequest.class) String policySystem) {}

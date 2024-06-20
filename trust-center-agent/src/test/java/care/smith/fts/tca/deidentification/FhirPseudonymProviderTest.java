@@ -91,15 +91,13 @@ class FhirPseudonymProviderTest {
     // already. By returning null every other call, we simulate that it is a unique ID.
     given(jedis.get(anyString())).willReturn(null, "469680023");
 
-    TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
-    transportIdsRequest.setDomain("domain");
-    transportIdsRequest.setIds(Set.of("id1"));
+    TransportIdsRequest transportIdsRequest = new TransportIdsRequest("domain", Set.of("id1"));
 
     IDMap idMap = new IDMap();
     idMap.put("id1", "Bo1z3Z87i");
     create(
             pseudonymProvider.retrieveTransportIds(
-                transportIdsRequest.getIds(), transportIdsRequest.getDomain()))
+                transportIdsRequest.ids(), transportIdsRequest.domain()))
         .expectNext(idMap)
         .verifyComplete();
   }
@@ -107,8 +105,8 @@ class FhirPseudonymProviderTest {
   @Test
   void retrievePseudonymIDs() {
     given(jedis.get(anyString())).willReturn("123456789", "987654321");
-    TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
-    transportIdsRequest.setIds(Set.of("id1", "id2"));
+    TransportIdsRequest transportIdsRequest =
+        new TransportIdsRequest("domain", Set.of("id1", "id2"));
 
     create(pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest))
         .expectNextMatches(
@@ -123,8 +121,7 @@ class FhirPseudonymProviderTest {
   @Test
   void deleteTransportId() {
     given(jedis.del(new String[] {"tid:id1"})).willReturn(1L);
-    TransportIdsRequest transportIdsRequest = new TransportIdsRequest();
-    transportIdsRequest.setIds(Set.of("id1"));
+    TransportIdsRequest transportIdsRequest = new TransportIdsRequest("domain", Set.of("id1"));
 
     create(pseudonymProvider.deleteTransportId(transportIdsRequest))
         .expectNext(1L)

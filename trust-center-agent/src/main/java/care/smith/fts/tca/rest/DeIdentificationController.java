@@ -42,12 +42,11 @@ public class DeIdentificationController {
         requestData.flatMap(
             r -> {
               Mono<IDMap> transportIds =
-                  pseudonymProvider.retrieveTransportIds(r.getIds(), r.getDomain());
+                  pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
               Mono<ShiftedDates> shiftedDates =
-                  shiftedDatesProvider.generateDateShift(
-                      Set.of(r.getPatientId()), r.getDateShift());
+                  shiftedDatesProvider.generateDateShift(Set.of(r.patientId()), r.dateShift());
               return transportIds.zipWith(
-                  shiftedDates, (t, s) -> new PseudonymizeResponse(t, s.get(r.getPatientId())));
+                  shiftedDates, (t, s) -> new PseudonymizeResponse(t, s.get(r.patientId())));
             });
     return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
   }
@@ -59,7 +58,7 @@ public class DeIdentificationController {
   public Mono<ResponseEntity<IDMap>> getTransportId(
       @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
     var response =
-        requestData.flatMap(r -> pseudonymProvider.retrieveTransportIds(r.getIds(), r.getDomain()));
+        requestData.flatMap(r -> pseudonymProvider.retrieveTransportIds(r.ids(), r.domain()));
     return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
   }
 
@@ -70,8 +69,7 @@ public class DeIdentificationController {
   public Mono<ResponseEntity<ShiftedDates>> getShiftedDates(
       @Valid @RequestBody Mono<DateShiftingRequest> requestData) {
     var response =
-        requestData.flatMap(
-            r -> shiftedDatesProvider.generateDateShift(r.getIds(), r.getDateShift()));
+        requestData.flatMap(r -> shiftedDatesProvider.generateDateShift(r.ids(), r.dateShift()));
     return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
   }
 

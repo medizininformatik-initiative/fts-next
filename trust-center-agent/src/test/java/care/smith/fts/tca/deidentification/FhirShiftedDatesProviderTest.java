@@ -42,16 +42,14 @@ class FhirShiftedDatesProviderTest {
     given(jedis.get("shiftedDate:1")).willReturn("2");
     given(jedis.get("shiftedDate:2")).willReturn("4");
     given(jedis.get("shiftedDate:3")).willReturn("6");
-    var request = new DateShiftingRequest();
-    request.setIds(Set.of("1", "2", "3"));
-    request.setDateShift(Duration.ofDays(14));
+    var request = new DateShiftingRequest(Set.of("1", "2", "3"), Duration.ofDays(14));
 
     var expectedShiftedDates = new ShiftedDates();
     expectedShiftedDates.put("1", Duration.ofMillis(2));
     expectedShiftedDates.put("2", Duration.ofMillis(4));
     expectedShiftedDates.put("3", Duration.ofMillis(6));
 
-    create(provider.generateDateShift(request.getIds(), request.getDateShift()))
+    create(provider.generateDateShift(request.ids(), request.dateShift()))
         .expectNext(expectedShiftedDates)
         .verifyComplete();
   }
