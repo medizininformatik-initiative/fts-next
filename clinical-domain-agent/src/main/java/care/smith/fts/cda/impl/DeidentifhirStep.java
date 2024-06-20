@@ -1,14 +1,17 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
+import static java.util.Set.copyOf;
+
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.DeidentificationProvider;
-import care.smith.fts.cda.services.deidentifhir.DeidentifhirService;
+import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.tca.*;
 import care.smith.fts.util.tca.IDMap;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -37,39 +40,38 @@ class DeidentifhirStep implements DeidentificationProvider {
 
   @Override
   public Flux<TransportBundle> deidentify(Flux<ConsentedPatientBundle> resourceFlux) {
-    return resourceFlux.flatMap(
-        bundle -> {
-          IDATScraper idatScraper = new IDATScraper(scraperConfig, bundle.consentedPatient());
-          var ids = idatScraper.gatherIDs(bundle.bundle());
-          return fetchTransportIdsAndDateShiftingValues(ids)
-              .map(
-                  response -> {
-                    IDMap transportIDs = response.getIdMap();
-                    Duration dateShiftValue = response.getDateShiftValue();
-
-                    DeidentifhirService deidentifhir =
-                        new DeidentifhirService(
-                            deidentifhirConfig,
-                            bundle.consentedPatient(),
-                            transportIDs,
-                            dateShiftValue);
-                    return new TransportBundle(
-                        deidentifhir.deidentify(bundle.bundle()),
-                        new HashSet<>(transportIDs.values()));
-                  });
-        });
+    return resourceFlux.flatMap(this::deidentify);
   }
 
-  private Mono<PseudonymizeResponse> fetchTransportIdsAndDateShiftingValues(Set<String> ids) {
+  private Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
+    ConsentedPatient patient = bundle.consentedPatient();
+    IDATScraper idatScraper = new IDATScraper(scraperConfig, patient);
+    var ids = idatScraper.gatherIDs(bundle.bundle());
+    return fetchTransportIdsAndDateShiftingValues(patient.id(), ids)
+        .map(
+            response -> {
+              IDMap transportIDs = response.idMap();
+              Duration dateShiftValue = response.dateShiftValue();
 
+              var registry = generateRegistry(patient.id(), transportIDs, dateShiftValue);
+              var deidentified =
+                  DeidentifhirUtils.deidentify(
+                      deidentifhirConfig, registry, bundle.bundle(), patient.id());
+              return new TransportBundle(deidentified, copyOf(transportIDs.values()));
+            });
+  }
+
+  private Mono<PseudonymizeResponse> fetchTransportIdsAndDateShiftingValues(
+      String patientId, Set<String> ids) {
     PseudonymizeRequest request = new PseudonymizeRequest();
+    request.setPatientId(patientId);
     request.setIds(ids);
     request.setDomain(domain);
     request.setDateShift(dateShift);
 
     return httpClient
         .post()
-        .uri("/cd/transport-ids-and-date-shifting-values")
+        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(request)
         .retrieve()

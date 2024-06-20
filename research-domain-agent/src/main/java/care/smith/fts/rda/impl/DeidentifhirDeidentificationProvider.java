@@ -34,7 +34,7 @@ class DeidentifhirDeidentificationProvider implements DeidentificationProvider {
                 .map(
                     p -> {
                       DeidentifhirService deidentifhir =
-                          new DeidentifhirService(deidentifhirConfig, p.getIdMap());
+                          new DeidentifhirService(deidentifhirConfig, p.idMap());
 
                       return deidentifhir.replaceIDs(bundle.bundle());
                     }));

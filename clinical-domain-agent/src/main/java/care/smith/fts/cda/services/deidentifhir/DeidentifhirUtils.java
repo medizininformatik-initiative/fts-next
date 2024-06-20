@@ -1,6 +1,5 @@
 package care.smith.fts.cda.services.deidentifhir;
 
-import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.util.deidentifhir.NamespacingService;
 import care.smith.fts.util.tca.IDMap;
 import com.typesafe.config.Config;
@@ -16,15 +15,11 @@ import scala.Function4;
 import scala.collection.immutable.Map;
 import scala.collection.immutable.Seq;
 
-public class DeidentifhirService {
-  private final Deidentifhir deidentifhir;
-  private final ConsentedPatient patient;
-
-  public DeidentifhirService(
-      Config config, ConsentedPatient patient, IDMap transportIds, Duration dateShiftValue) {
-    this.patient = patient;
+public class DeidentifhirUtils {
+  public static Registry generateRegistry(
+      String patientId, IDMap transportIds, Duration dateShiftValue) {
     NamespacingService namespacingService =
-        NamespacingService.withNamespacing(patient.id(), transportIds);
+        NamespacingService.withNamespacing(patientId, transportIds);
     DateShiftingProvider dsp = new DateShiftingProvider(dateShiftValue);
 
     Registry registry = new Registry();
@@ -54,13 +49,13 @@ public class DeidentifhirService {
             Handlers::conditionalReferencesReplacementHandler));
     registry.addHander(
         "shiftDateHandler", JavaCompat.partiallyApply(dsp, Handlers::shiftDateHandler));
-
-    deidentifhir = Deidentifhir.apply(config, registry);
+    return registry;
   }
 
-  public Bundle deidentify(Bundle bundle) {
-    scala.collection.immutable.Map<String, String> staticContext =
-        new Map.Map1<>(Handlers.patientIdentifierKey(), patient.id());
+  public static Bundle deidentify(
+      Config config, Registry registry, Bundle bundle, String patientId) {
+    Map<String, String> staticContext = new Map.Map1<>(Handlers.patientIdentifierKey(), patientId);
+    Deidentifhir deidentifhir = Deidentifhir.apply(config, registry);
     return (Bundle) deidentifhir.deidentify(bundle, staticContext);
   }
 }

@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
@@ -7,18 +8,14 @@ import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
-import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
-import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtil;
-import care.smith.fts.test.TestPatientGenerator;
 import care.smith.fts.util.HTTPClientConfig;
 import com.typesafe.config.Config;
 import java.io.IOException;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,25 +46,68 @@ class DeidentifhirStepTest {
   }
 
   @Test
-  void deidentify(MockServerClient mockServer) throws IOException {
+  void correctRequestSent(MockServerClient mockServer) throws IOException {
     mockServer
         .when(
             request()
                 .withMethod("POST")
-                .withPath("/api/v2/process/example")
+                .withPath("/api/v2/cd/transport-ids-and-date-shifting-values")
                 .withBody(
                     json(
                         """
-                                {"transportIds": {}, "duration": "5y"}
+                                {
+                                  "patientId" : "id1",
+                                  "ids" : [ "id1.identifier.identifierSystem:id1", "id1.id.Patient:id1" ],
+                                  "domain" : "domain",
+                                  "dateShift" : 1209600.0
+                                }
                                 """,
                         ONLY_MATCHING_FIELDS)))
-        .respond(response().withStatusCode(201));
+        .respond(response().withStatusCode(200));
 
-    ConsentedPatient consentedPatient = new ConsentedPatient("id1");
-    var bundle = TestPatientGenerator.generateOnePatient("id1", "2024", "identifierSystem");
-    Flux<ConsentedPatientBundle> bundleFlux =
-        fromIterable(List.of(new ConsentedPatientBundle(bundle, consentedPatient)));
-    Flux<TransportBundle> deidentifiedFlux = step.deidentify(bundleFlux);
-    create(deidentifiedFlux).verifyComplete();
+    var consentedPatient = new ConsentedPatient("id1");
+    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
+    var bundleFlux = Flux.just(new ConsentedPatientBundle(bundle, consentedPatient));
+
+    create(step.deidentify(bundleFlux)).verifyComplete();
+  }
+
+  @Test
+  void emptyTCAResponseYieldsEmptyResult(MockServerClient mockServer) throws IOException {
+    mockServer
+        .when(
+            request()
+                .withMethod("POST")
+                .withPath("/api/v2/cd/transport-ids-and-date-shifting-values"))
+        .respond(response().withStatusCode(200));
+
+    var consentedPatient = new ConsentedPatient("id1");
+    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
+    var bundleFlux = Flux.just(new ConsentedPatientBundle(bundle, consentedPatient));
+
+    create(step.deidentify(bundleFlux)).verifyComplete();
+  }
+
+  @Test
+  void deidentifySucceeds(MockServerClient mockServer) throws IOException {
+    mockServer
+        .when(
+            request()
+                .withMethod("POST")
+                .withPath("/api/v2/cd/transport-ids-and-date-shifting-values"))
+        .respond(
+            response()
+                .withBody(
+                    json(
+                        """
+                                {"idMap":{"original":"pseudonym"},"dateShiftValue":1209600.000000000}
+                                """))
+                .withStatusCode(200));
+
+    var consentedPatient = new ConsentedPatient("id1");
+    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
+    var bundleFlux = Flux.just(new ConsentedPatientBundle(bundle, consentedPatient));
+
+    create(step.deidentify(bundleFlux)).expectNextCount(1).verifyComplete();
   }
 }
