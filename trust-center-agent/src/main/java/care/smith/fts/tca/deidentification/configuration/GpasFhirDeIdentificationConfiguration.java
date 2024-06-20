@@ -1,6 +1,5 @@
 package care.smith.fts.tca.deidentification.configuration;
 
-import care.smith.fts.tca.deidentification.FhirShiftedDatesProvider;
 import care.smith.fts.util.HTTPClientConfig;
 import care.smith.fts.util.auth.HTTPClientAuthMethod;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +12,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
-import redis.clients.jedis.JedisPool;
 
 @Configuration
 @ConfigurationProperties(prefix = "de-identification.gpas.fhir")
@@ -36,10 +34,5 @@ public class GpasFhirDeIdentificationConfiguration {
   @Bean
   public RandomGenerator secureRandom() {
     return new SecureRandom();
-  }
-
-  @Bean
-  public FhirShiftedDatesProvider fhirShiftedDateProvider(JedisPool jedisPool) {
-    return new FhirShiftedDatesProvider(jedisPool);
   }
 }

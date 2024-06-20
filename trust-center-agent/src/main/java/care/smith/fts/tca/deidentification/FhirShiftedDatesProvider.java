@@ -4,11 +4,13 @@ import care.smith.fts.util.tca.ShiftedDates;
 import java.time.Duration;
 import java.util.Set;
 import org.apache.commons.math3.random.RandomDataGenerator;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
 
+@Component
 public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
   private final JedisPool jedisPool;
 
