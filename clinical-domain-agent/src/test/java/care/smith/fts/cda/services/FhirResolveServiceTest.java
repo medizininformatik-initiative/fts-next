@@ -1,5 +1,6 @@
 package care.smith.fts.cda.services;
 
+import static care.smith.fts.cda.test.MockServerUtil.clientConfig;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -33,10 +34,9 @@ class FhirResolveServiceTest {
 
   @BeforeEach
   void setUp(MockServerClient mockServer) throws Exception {
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
-    WebClient client = builder.baseUrl(address).build();
-    this.service = new FhirResolveService(KDS_PATIENT, client);
-    try (var inStream = MockServerUtil.class.getResourceAsStream("metadata.json")) {
+    var config = clientConfig(mockServer);
+    this.service = new FhirResolveService(KDS_PATIENT, config.createClient(builder));
+    try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();
       mockServer
           .when(request().withMethod("GET").withPath("/metadata"))

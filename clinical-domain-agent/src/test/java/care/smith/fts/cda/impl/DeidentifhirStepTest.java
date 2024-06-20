@@ -1,7 +1,6 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
-import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
@@ -13,7 +12,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtil;
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.cda.test.MockServerUtil;
 import com.typesafe.config.Config;
 import java.io.IOException;
 import org.junit.jupiter.api.AfterEach;
@@ -34,8 +33,7 @@ class DeidentifhirStepTest {
   void setUp(MockServerClient mockServer) {
     Config scraperConfig = parseResources(DeidentifhirUtil.class, "IDScraper.profile");
     Config deidentifhirConfig = parseResources(DeidentifhirUtil.class, "CDtoTransport.profile");
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
-    var server = new HTTPClientConfig(address, NONE);
+    var server = MockServerUtil.clientConfig(mockServer);
 
     step =
         new DeidentifhirStep(
