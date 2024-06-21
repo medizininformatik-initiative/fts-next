@@ -55,7 +55,7 @@ class FhirShiftedDatesProviderTest {
   @Test
   void getRandomDateShift() {
     for (int i = 0; i < 1000; i++) {
-      assertThat(provider.getRandomDateShift(-100, 100)).isBetween(-100L, 100L);
+      assertThat(provider.getRandomDateShift(Duration.ofMillis(100))).isBetween(-100L, 100L);
     }
   }
 }
