@@ -4,6 +4,7 @@ import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.*;
 import jakarta.validation.Valid;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +45,7 @@ public class DeIdentificationController {
             r -> {
               Mono<Map<String, String>> transportIds =
                   pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
-              Mono<ShiftedDates> shiftedDates =
+              Mono<Map<String, Duration>> shiftedDates =
                   shiftedDatesProvider.generateDateShift(Set.of(r.patientId()), r.dateShift());
               return transportIds.zipWith(
                   shiftedDates, (t, s) -> new PseudonymizeResponse(t, s.get(r.patientId())));
@@ -67,7 +68,7 @@ public class DeIdentificationController {
       value = "/cd/shifted-dates",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<ShiftedDates>> getShiftedDates(
+  public Mono<ResponseEntity<Map<String, Duration>>> getShiftedDates(
       @Valid @RequestBody Mono<DateShiftingRequest> requestData) {
     var response =
         requestData.flatMap(r -> shiftedDatesProvider.generateDateShift(r.ids(), r.dateShift()));

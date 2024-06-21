@@ -7,8 +7,8 @@ import static org.mockito.BDDMockito.given;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.util.tca.DateShiftingRequest;
-import care.smith.fts.util.tca.ShiftedDates;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +44,8 @@ class FhirShiftedDatesProviderTest {
     given(jedis.get("shiftedDate:3")).willReturn("6");
     var request = new DateShiftingRequest(Set.of("1", "2", "3"), Duration.ofDays(14));
 
-    var expectedShiftedDates = new ShiftedDates();
-    expectedShiftedDates.put("1", Duration.ofMillis(2));
-    expectedShiftedDates.put("2", Duration.ofMillis(4));
-    expectedShiftedDates.put("3", Duration.ofMillis(6));
+    var expectedShiftedDates =
+        Map.of("1", Duration.ofMillis(2), "2", Duration.ofMillis(4), "3", Duration.ofMillis(6));
 
     create(provider.generateDateShift(request.ids(), request.dateShift()))
         .expectNext(expectedShiftedDates)
