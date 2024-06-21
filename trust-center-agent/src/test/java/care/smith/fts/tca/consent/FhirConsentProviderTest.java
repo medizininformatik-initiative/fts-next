@@ -55,10 +55,25 @@ class FhirConsentProviderTest {
           "MDAT_erheben",
           "MDAT_speichern_verarbeiten");
   private static String address;
+  private static FhirGenerator gicsConsentGenerator;
+  private static JsonBody jsonBody;
 
   @BeforeAll
-  static void setUp(MockServerClient mockServer) {
+  static void setUp(MockServerClient mockServer) throws IOException {
     address = "http://localhost:%d".formatted(mockServer.getPort());
+    gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
+    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
+    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
+
+    jsonBody =
+        json(
+            """
+                            {
+                             "resourceType": "Parameters",
+                             "parameter": [{"name": "domain", "valueString": "MII"}]
+                            }
+                            """,
+            ONLY_MATCHING_FIELDS);
   }
 
   @AfterEach
@@ -67,7 +82,7 @@ class FhirConsentProviderTest {
   }
 
   @Test
-  void paging(MockServerClient mockServer) throws IOException {
+  void paging(MockServerClient mockServer) {
 
     int totalEntries = 2 * defaultPageSize;
 
@@ -75,21 +90,8 @@ class FhirConsentProviderTest {
         new FhirConsentProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, defaultPageSize);
 
-    FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
-    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
-    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
-
     Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, defaultPageSize);
 
-    JsonBody jsonBody =
-        json(
-            """
-                    {
-                     "resourceType": "Parameters",
-                     "parameter": [{"name": "domain", "valueString": "MII"}]
-                    }
-                    """,
-            ONLY_MATCHING_FIELDS);
     HttpRequest postRequest =
         request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
     HttpResponse httpResponse =
@@ -135,7 +137,7 @@ class FhirConsentProviderTest {
   }
 
   @Test
-  void noNextLinkOnLastPage(MockServerClient mockServer) throws IOException {
+  void noNextLinkOnLastPage(MockServerClient mockServer) {
     int totalEntries = 1;
     int pageSize = 1;
 
@@ -143,21 +145,9 @@ class FhirConsentProviderTest {
         new FhirConsentProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
 
-    FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
-    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
-    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
-
     Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, pageSize);
 
-    JsonBody jsonBody =
-        json(
-            """
-                            {
-                             "resourceType": "Parameters",
-                             "parameter": [{"name": "domain", "valueString": "MII"}]
-                            }
-                            """,
-            ONLY_MATCHING_FIELDS);
+    ;
     HttpRequest postRequest =
         request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
     HttpResponse httpResponse =
@@ -181,29 +171,15 @@ class FhirConsentProviderTest {
   }
 
   @Test
-  void noConsents(MockServerClient mockServer) throws IOException {
+  void noConsents(MockServerClient mockServer) {
     int totalEntries = 0;
     int pageSize = 1;
 
     fhirConsentProvider =
         new FhirConsentProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
-
-    FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
-    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
-    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
-
     Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, pageSize);
 
-    JsonBody jsonBody =
-        json(
-            """
-                            {
-                             "resourceType": "Parameters",
-                             "parameter": [{"name": "domain", "valueString": "MII"}]
-                            }
-                            """,
-            ONLY_MATCHING_FIELDS);
     HttpRequest postRequest =
         request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
     HttpResponse httpResponse =
