@@ -1,7 +1,7 @@
 package care.smith.fts.rda.impl;
 
-import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
-import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtils.replaceIDs;
+import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.generateRegistry;
+import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.replaceIDs;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.DeidentificationProvider;

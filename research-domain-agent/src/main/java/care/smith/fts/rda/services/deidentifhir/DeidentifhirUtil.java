@@ -10,7 +10,7 @@ import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 
 /** TransportID to Pseudonym */
-public class DeidentifhirUtils {
+public class DeidentifhirUtil {
 
   public static Registry generateRegistry(Map<String, String> transportIdToPseudonym) {
     NamespacingService namespacingService =

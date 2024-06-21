@@ -12,7 +12,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtil;
-import care.smith.fts.cda.test.MockServerUtil;
+import care.smith.fts.test.MockServerUtil;
 import com.typesafe.config.Config;
 import java.io.IOException;
 import org.junit.jupiter.api.AfterEach;
