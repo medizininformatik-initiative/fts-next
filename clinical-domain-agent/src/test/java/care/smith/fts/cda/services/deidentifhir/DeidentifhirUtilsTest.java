@@ -6,6 +6,7 @@ import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.util.FhirUtils;
 import de.ume.deidentifhir.Registry;
 import java.io.IOException;
 import java.time.Duration;
@@ -33,6 +34,8 @@ class DeidentifhirUtilsTest {
     Bundle deidentifiedBundle =
         DeidentifhirUtils.deidentify(config, registry, bundle, patient.id());
     Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
+
+    System.out.println(FhirUtils.fhirResourceToString(b));
     Patient p = (Patient) b.getEntryFirstRep().getResource();
 
     assertThat(p.getId()).isEqualTo("Patient/tid1.id.Patient:tid1");

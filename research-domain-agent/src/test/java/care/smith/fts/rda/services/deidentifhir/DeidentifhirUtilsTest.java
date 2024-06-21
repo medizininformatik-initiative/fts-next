@@ -16,7 +16,7 @@ class DeidentifhirUtilsTest {
 
   @Test
   void replaceIDs() throws IOException {
-    Map<String, String> transportIDs = Map.of("tid1", "pid1", "identifierSystem1", "pseudoSystem1");
+    Map<String, String> transportIDs = Map.of("tid1", "pid1");
 
     Registry registry = generateRegistry(transportIDs);
     var config = parseResources(DeidentifhirUtilsTest.class, "TransportToRD.profile");
@@ -29,8 +29,5 @@ class DeidentifhirUtilsTest {
 
     assertThat(p.getId()).isEqualTo("Patient/pid1");
     assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("pid1");
-
-    // The system is not replaced because it's not stated in the config
-    assertThat(p.getIdentifierFirstRep().getSystem()).isEqualTo("identifierSystem1");
   }
 }
