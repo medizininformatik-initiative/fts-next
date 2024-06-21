@@ -5,8 +5,8 @@ import static java.time.Duration.ofMillis;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
-import org.apache.commons.math3.random.RandomDataGenerator;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -45,7 +45,7 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
   }
 
   public long getRandomLong(long lower, long upper) {
-    return new RandomDataGenerator().nextLong(lower, upper);
+    return new Random().nextLong(lower, upper);
   }
 
   private record Entry(String id, Duration shift) {}
