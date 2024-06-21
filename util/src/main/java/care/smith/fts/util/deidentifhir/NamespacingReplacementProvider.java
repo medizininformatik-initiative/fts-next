@@ -5,38 +5,29 @@ import de.ume.deidentifhir.util.IdentifierValueReplacementProvider;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-public class NamespacingService
+public class NamespacingReplacementProvider
     implements IDReplacementProvider, IdentifierValueReplacementProvider {
   private final Map<String, String> ids;
   private final KeyCreator keyCreator;
 
-  public static NamespacingService withNamespacing(String prefix, Map<String, String> ids) {
-    return new NamespacingService(new NamespacingEnabled(prefix), ids);
+  public static KeyCreator withNamespacing(String prefix) {
+    return new NamespacingEnabled(prefix);
   }
 
-  public static NamespacingService withNamespacing(String prefix) {
-    return new NamespacingService(new NamespacingEnabled(prefix), Map.of());
+  public static KeyCreator withoutNamespacing() {
+    return new NamespacingDisabled();
   }
 
-  public static NamespacingService withoutNamespacing(Set<String> ids) {
-
-    return new NamespacingService(new NamespacingDisabled(), toMap(ids));
+  public static NamespacingReplacementProvider of(KeyCreator keyCreator) {
+    return new NamespacingReplacementProvider(keyCreator, Map.of());
   }
 
-  public static NamespacingService withoutNamespacing(Map<String, String> idMap) {
-
-    return new NamespacingService(new NamespacingDisabled(), idMap);
+  public static NamespacingReplacementProvider of(KeyCreator keyCreator, Map<String, String> ids) {
+    return new NamespacingReplacementProvider(keyCreator, ids);
   }
 
-  private static Map<String, String> toMap(Set<String> set) {
-    return set.stream().collect(Collectors.toMap(Function.identity(), Function.identity()));
-  }
-
-  private NamespacingService(KeyCreator keyCreator, Map<String, String> ids) {
+  private NamespacingReplacementProvider(KeyCreator keyCreator, Map<String, String> ids) {
     this.ids = ids;
     this.keyCreator = keyCreator;
   }
@@ -48,7 +39,7 @@ public class NamespacingService
     if (ids.containsKey(key)) {
       return ids.get(key);
     } else {
-      throw new RuntimeException("no valid mapping found for id: " + key);
+      throw new IllegalArgumentException("no valid mapping found for id: " + key);
     }
   }
 
@@ -59,19 +50,11 @@ public class NamespacingService
     if (ids.containsKey(key)) {
       return ids.get(key);
     } else {
-      throw new RuntimeException("no valid mapping found for value: " + key);
+      throw new IllegalArgumentException("no valid mapping found for value: " + key);
     }
   }
 
-  public String getKeyForResourceTypeAndID(@NotNull String resourceType, @NotBlank String id) {
-    return keyCreator.getKeyForResourceTypeAndID(resourceType, id);
-  }
-
-  public String getKeyForSystemAndValue(@NotNull String system, @NotNull String value) {
-    return keyCreator.getKeyForSystemAndValue(system, value);
-  }
-
-  interface KeyCreator {
+  public interface KeyCreator {
     String getKeyForResourceTypeAndID(@NotNull String resourceType, @NotBlank String id);
 
     String getKeyForSystemAndValue(@NotBlank String system, @NotBlank String value);

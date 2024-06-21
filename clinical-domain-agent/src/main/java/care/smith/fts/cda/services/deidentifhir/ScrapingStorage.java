@@ -1,6 +1,6 @@
 package care.smith.fts.cda.services.deidentifhir;
 
-import care.smith.fts.util.deidentifhir.NamespacingService;
+import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider.KeyCreator;
 import de.ume.deidentifhir.util.IDReplacementProvider;
 import de.ume.deidentifhir.util.IdentifierValueReplacementProvider;
 import java.util.HashSet;
@@ -9,9 +9,9 @@ import lombok.Getter;
 
 public class ScrapingStorage implements IDReplacementProvider, IdentifierValueReplacementProvider {
   @Getter Set<String> gatheredIDATs = new HashSet<>();
-  private final NamespacingService namespacingService;
+  private final KeyCreator namespacingService;
 
-  public ScrapingStorage(NamespacingService namespacingService) {
+  public ScrapingStorage(KeyCreator namespacingService) {
     this.namespacingService = namespacingService;
   }
 

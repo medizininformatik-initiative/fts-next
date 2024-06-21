@@ -2,7 +2,7 @@ package care.smith.fts.cda.services.deidentifhir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.util.deidentifhir.NamespacingService;
+import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +11,7 @@ class ScrapingStorageTest {
 
   @BeforeEach
   void setUp() {
-    scrapingStorage = new ScrapingStorage(NamespacingService.withNamespacing("test"));
+    scrapingStorage = new ScrapingStorage(NamespacingReplacementProvider.withNamespacing("test"));
   }
 
   @Test

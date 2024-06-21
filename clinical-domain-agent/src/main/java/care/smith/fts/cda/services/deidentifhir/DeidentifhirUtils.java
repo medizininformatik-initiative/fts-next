@@ -1,6 +1,6 @@
 package care.smith.fts.cda.services.deidentifhir;
 
-import care.smith.fts.util.deidentifhir.NamespacingService;
+import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
@@ -17,8 +17,8 @@ import scala.collection.immutable.Seq;
 public class DeidentifhirUtils {
   public static Registry generateRegistry(
       String patientId, java.util.Map<String, String> transportIds, Duration dateShiftValue) {
-    NamespacingService namespacingService =
-        NamespacingService.withNamespacing(patientId, transportIds);
+    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
+    var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIds);
     DateShiftingProvider dsp = new DateShiftingProvider(dateShiftValue);
 
     Registry registry = new Registry();
@@ -32,19 +32,19 @@ public class DeidentifhirUtils {
         JavaCompat.partiallyApply("PSEUDONYMISIERT", Handlers::stringReplacementHandler));
     registry.addHander(
         "idReplacementHandler",
-        JavaCompat.partiallyApply(namespacingService, Handlers::idReplacementHandler));
+        JavaCompat.partiallyApply(replacementProvider, Handlers::idReplacementHandler));
     registry.addHander(
         "referenceReplacementHandler",
-        JavaCompat.partiallyApply(namespacingService, Handlers::referenceReplacementHandler));
+        JavaCompat.partiallyApply(replacementProvider, Handlers::referenceReplacementHandler));
     registry.addHander(
         "identifierValueReplacementHandler",
         JavaCompat.partiallyApply2(
-            namespacingService, true, Handlers::identifierValueReplacementHandler));
+            replacementProvider, true, Handlers::identifierValueReplacementHandler));
     registry.addHander(
         "conditionalReferencesReplacementHandler",
         JavaCompat.partiallyApply2(
-            namespacingService,
-            namespacingService,
+            replacementProvider,
+            replacementProvider,
             Handlers::conditionalReferencesReplacementHandler));
     registry.addHander(
         "shiftDateHandler", JavaCompat.partiallyApply(dsp, Handlers::shiftDateHandler));
