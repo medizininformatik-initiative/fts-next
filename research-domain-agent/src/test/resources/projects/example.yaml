@@ -1,0 +1,7 @@
+deidentificationProvider:
+  mock:
+    deidentify: false
+
+bundleSender:
+  mock:
+    expect: [ "patient-102931" ]
