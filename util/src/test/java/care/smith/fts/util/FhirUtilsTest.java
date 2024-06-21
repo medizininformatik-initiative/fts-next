@@ -12,6 +12,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.api.Test;
 
 class FhirUtilsTest {
@@ -105,10 +106,19 @@ class FhirUtilsTest {
   }
 
   @Test
-  public void testToBundleCollector() {
+  public void toBundleCollectorSimple() {
     var resources = List.of(new Patient(), new Patient(), new Patient());
     Bundle bundle = resources.stream().collect(toBundle());
     assertThat(bundle).isNotNull();
     assertThat(bundle.getEntry()).hasSize(3);
+  }
+
+  @Test
+  public void toBundleCollectorCombines() {
+    List<Resource> list1 = List.of(new Patient(), new Patient(), new Patient());
+    List<Resource> list2 = List.of(new Patient(), new Patient(), new Patient());
+    List<Resource> combination = toBundle().combiner().apply(list1, list2);
+    assertThat(combination).isNotNull();
+    assertThat(combination).hasSize(6);
   }
 }
