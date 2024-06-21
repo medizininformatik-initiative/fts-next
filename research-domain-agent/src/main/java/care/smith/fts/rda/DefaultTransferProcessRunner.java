@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
 public class DefaultTransferProcessRunner {
 
   public Flux<Result> run(TransferProcess process, Flux<TransportBundle> data) {
-    Flux<Bundle> deidentified = process.deidentificationProvider().deidentify(data);
+    Flux<Bundle> deidentified = process.deidentificationProvider().replaceIds(data);
     return Flux.from(process.bundleSender().send(deidentified)).map(i -> new Result());
   }
 

@@ -8,7 +8,7 @@ import reactor.core.publisher.Flux;
 
 public interface DeidentificationProvider extends Step {
 
-  Flux<Bundle> deidentify(Flux<TransportBundle> inFlux);
+  Flux<Bundle> replaceIds(Flux<TransportBundle> inFlux);
 
   interface Factory<C> extends StepFactory<DeidentificationProvider, Config, C> {}
 

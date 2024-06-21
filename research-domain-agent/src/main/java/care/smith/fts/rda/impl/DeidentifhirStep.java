@@ -29,14 +29,16 @@ class DeidentifhirStep implements DeidentificationProvider {
   }
 
   @Override
-  public Flux<Bundle> deidentify(Flux<TransportBundle> bundleFlux) {
+  public Flux<Bundle> replaceIds(Flux<TransportBundle> bundleFlux) {
     return bundleFlux.flatMap(
         bundle ->
             fetchPseudonymsForTransportIds(bundle.transportIds())
                 .map(
-                    p ->
-                        replaceIDs(
-                            deidentifhirConfig, generateRegistry(p.idMap()), bundle.bundle())));
+                    p -> {
+                      System.out.println(p.idMap());
+                      return replaceIDs(
+                          deidentifhirConfig, generateRegistry(p.idMap()), bundle.bundle());
+                    }));
   }
 
   private Mono<PseudonymizeResponse> fetchPseudonymsForTransportIds(Set<String> transportIds) {
@@ -45,7 +47,7 @@ class DeidentifhirStep implements DeidentificationProvider {
 
     return httpClient
         .post()
-        .uri("/rd/resolve-pseudonyms")
+        .uri("/api/v2/rd/resolve-pseudonyms")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(request)
         .retrieve()
