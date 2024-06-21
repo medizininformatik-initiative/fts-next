@@ -5,7 +5,6 @@ import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.*;
 import jakarta.validation.Valid;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -89,7 +88,7 @@ public class DeIdentificationController {
       value = "/rd/resolve-project-pseudonyms",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<HashMap<String, String>> fetchProjectPseudonymizedIds(
+  public ResponseEntity<Map<String, String>> fetchProjectPseudonymizedIds(
       @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData) {
     // TODO Implement
     // IDMap pseudonymizedIDs =

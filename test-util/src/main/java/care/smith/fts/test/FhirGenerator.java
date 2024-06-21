@@ -23,7 +23,7 @@ import org.hl7.fhir.r4.model.Bundle;
 @Slf4j
 public class FhirGenerator {
   private final CharBuffer templateBuffer;
-  private final HashMap<String, Replacement> replacements = new HashMap<>();
+  private final Map<String, Replacement> replacements = new HashMap<>();
 
   public FhirGenerator(String templateFile) throws IOException {
     templateBuffer = TemplateLoader.getCharBuffer(templateFile, this.getClass().getClassLoader());

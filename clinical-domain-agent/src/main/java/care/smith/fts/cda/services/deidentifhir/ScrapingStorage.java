@@ -4,10 +4,11 @@ import care.smith.fts.util.deidentifhir.NamespacingService;
 import de.ume.deidentifhir.util.IDReplacementProvider;
 import de.ume.deidentifhir.util.IdentifierValueReplacementProvider;
 import java.util.HashSet;
+import java.util.Set;
 import lombok.Getter;
 
 public class ScrapingStorage implements IDReplacementProvider, IdentifierValueReplacementProvider {
-  @Getter HashSet<String> gatheredIDATs = new HashSet<>();
+  @Getter Set<String> gatheredIDATs = new HashSet<>();
   private final NamespacingService namespacingService;
 
   public ScrapingStorage(NamespacingService namespacingService) {
