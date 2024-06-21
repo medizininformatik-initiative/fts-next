@@ -25,17 +25,16 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
 
   @Override
   public Mono<Map<String, Duration>> generateDateShift(Set<String> ids, Duration dateShiftBy) {
-    var shiftByMillis = dateShiftBy.toMillis();
     try (Jedis jedis = jedisPool.getResource()) {
       return Flux.fromIterable(ids)
-          .map(id -> generateIfNotExists(id, jedis, shiftByMillis))
+          .map(id -> generateIfNotExists(id, jedis, dateShiftBy))
           .map(id -> new Entry(id, ofMillis(parseLong(jedis.get(withPrefix(id))))))
           .collectMap(Entry::id, Entry::shift);
     }
   }
 
-  private String generateIfNotExists(String id, Jedis jedis, long shiftByMillis) {
-    var timeShift = getRandomLong(-shiftByMillis, shiftByMillis);
+  private String generateIfNotExists(String id, Jedis jedis, Duration dateShiftBy) {
+    var timeShift = getRandomDateShift(dateShiftBy);
     jedis.set((withPrefix(id)), String.valueOf(timeShift), new SetParams().nx());
     return id;
   }
@@ -44,8 +43,8 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
     return "%s:%s".formatted(SHIFTED_DATE_PREFIX, id);
   }
 
-  public long getRandomLong(long lower, long upper) {
-    return new Random().nextLong(lower, upper);
+  public long getRandomDateShift(Duration dateShiftBy) {
+    return new Random().nextLong(-dateShiftBy.toMillis(), dateShiftBy.toMillis());
   }
 
   private record Entry(String id, Duration shift) {}
