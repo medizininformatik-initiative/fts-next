@@ -26,6 +26,13 @@
     </dependency>
 
     <dependency>
+      <groupId>care.smith.fts</groupId>
+      <artifactId>test-util</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>ca.uhn.hapi.fhir</groupId>
       <artifactId>hapi-fhir-structures-r4</artifactId>
     </dependency>
