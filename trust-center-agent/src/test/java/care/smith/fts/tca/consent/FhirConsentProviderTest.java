@@ -17,7 +17,7 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -54,19 +54,26 @@ class FhirConsentProviderTest {
           "IDAT_speichern_verarbeiten",
           "MDAT_erheben",
           "MDAT_speichern_verarbeiten");
+  private static String address;
 
-  @BeforeEach
-  void setUp(MockServerClient mockServer) {
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
+  @BeforeAll
+  static void setUp(MockServerClient mockServer) {
+    address = "http://localhost:%d".formatted(mockServer.getPort());
+  }
 
-    fhirConsentProvider =
-        new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, defaultPageSize);
+  @AfterEach
+  void tearDown(MockServerClient mockServer) {
+    mockServer.reset();
   }
 
   @Test
   void paging(MockServerClient mockServer) throws IOException {
+
     int totalEntries = 2 * defaultPageSize;
+
+    fhirConsentProvider =
+        new FhirConsentProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, defaultPageSize);
 
     FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
     gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
@@ -111,12 +118,8 @@ class FhirConsentProviderTest {
             fhirConsentProvider.consentedPatientsPage(
                 "MII", POLICY_SYSTEM, POLICIES, "http://trustcenteragent:1234"))
         .assertNext(
-            consentBundle -> {
-              assertThat(consentBundle)
-                  .matches(
-                      b -> b.getLink("next").getUrl().equals(expectedNextLink),
-                      "expect the next link to be %s".formatted(expectedNextLink));
-            })
+            consentBundle ->
+                assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink))
         .verifyComplete();
     log.info("Get second page");
     create(
@@ -127,16 +130,100 @@ class FhirConsentProviderTest {
                 "http://trustcenteragent:1234",
                 defaultPageSize,
                 defaultPageSize))
+        .assertNext(consentBundle -> assertThat(consentBundle.getLink()).isEmpty())
+        .verifyComplete();
+  }
+
+  @Test
+  void noNextLinkOnLastPage(MockServerClient mockServer) throws IOException {
+    int totalEntries = 1;
+    int pageSize = 1;
+
+    fhirConsentProvider =
+        new FhirConsentProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
+
+    FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
+    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
+    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
+
+    Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, pageSize);
+
+    JsonBody jsonBody =
+        json(
+            """
+                            {
+                             "resourceType": "Parameters",
+                             "parameter": [{"name": "domain", "valueString": "MII"}]
+                            }
+                            """,
+            ONLY_MATCHING_FIELDS);
+    HttpRequest postRequest =
+        request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
+    HttpResponse httpResponse =
+        response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON);
+    mockServer
+        .when(
+            postRequest.withQueryStringParameters(
+                List.of(
+                    new Parameter("_offset", "0"),
+                    new Parameter("_count", String.valueOf(pageSize)))))
+        .respond(httpResponse);
+
+    create(
+            fhirConsentProvider.consentedPatientsPage(
+                "MII", POLICY_SYSTEM, POLICIES, "http://trustcenteragent:1234"))
         .assertNext(
             consentBundle -> {
-              assertThat(consentBundle)
-                  .matches(b -> b.getLink().isEmpty(), "expect that there is no next link");
+              assertThat(consentBundle.getLink("next")).isNull();
             })
         .verifyComplete();
   }
 
-  @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+  @Test
+  void noConsents(MockServerClient mockServer) throws IOException {
+    int totalEntries = 0;
+    int pageSize = 1;
+
+    fhirConsentProvider =
+        new FhirConsentProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
+
+    FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
+    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
+    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
+
+    Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, pageSize);
+
+    JsonBody jsonBody =
+        json(
+            """
+                            {
+                             "resourceType": "Parameters",
+                             "parameter": [{"name": "domain", "valueString": "MII"}]
+                            }
+                            """,
+            ONLY_MATCHING_FIELDS);
+    HttpRequest postRequest =
+        request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
+    HttpResponse httpResponse =
+        response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON);
+    mockServer
+        .when(
+            postRequest.withQueryStringParameters(
+                List.of(
+                    new Parameter("_offset", "0"),
+                    new Parameter("_count", String.valueOf(pageSize)))))
+        .respond(httpResponse);
+
+    create(
+            fhirConsentProvider.consentedPatientsPage(
+                "MII", POLICY_SYSTEM, POLICIES, "http://trustcenteragent:1234"))
+        .assertNext(
+            consentBundle -> {
+              assertThat(consentBundle.getEntry()).isEmpty();
+              assertThat(consentBundle.getLink("next")).isNull();
+            })
+        .verifyComplete();
   }
 }

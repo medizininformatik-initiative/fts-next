@@ -83,7 +83,7 @@ public class FhirConsentProvider implements ConsentProvider {
       Mono<Bundle> bundleMono, String requestUrl, int from, int count) {
     return bundleMono.map(
         b -> {
-          if (b.getTotal() >= from + count) {
+          if (b.getTotal() > from + count) {
             b.addLink(
                 new Bundle.BundleLinkComponent(
                     new StringType("next"),
@@ -123,7 +123,8 @@ public class FhirConsentProvider implements ConsentProvider {
     return typedResourceStream(outerBundle, Bundle.class)
         .filter(b -> hasAllPolicies(policySystem, b, policiesToCheck))
         .map(FhirConsentProvider::filterInnerBundle)
-        .collect(toBundle());
+        .collect(toBundle())
+        .setTotal(outerBundle.getTotal());
   }
 
   /**
