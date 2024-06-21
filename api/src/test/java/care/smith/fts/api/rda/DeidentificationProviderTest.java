@@ -22,6 +22,6 @@ class DeidentificationProviderTest {
 
   @Test
   void testInstantiateConfig() {
-    assertThat(new care.smith.fts.api.cda.DeidentificationProvider.Config()).isNotNull();
+    assertThat(new DeidentificationProvider.Config()).isNotNull();
   }
 }

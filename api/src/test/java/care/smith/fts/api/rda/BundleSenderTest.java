@@ -22,11 +22,11 @@ class BundleSenderTest {
 
   @Test
   void testInstantiateConfig() {
-    assertThat(new care.smith.fts.api.cda.BundleSender.Config()).isNotNull();
+    assertThat(new BundleSender.Config()).isNotNull();
   }
 
   @Test
   void testInstantiateResult() {
-    assertThat(new care.smith.fts.api.cda.BundleSender.Result(0)).isNotNull();
+    assertThat(new BundleSender.Result(0)).isNotNull();
   }
 }
