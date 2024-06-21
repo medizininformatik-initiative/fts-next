@@ -16,6 +16,7 @@ public record GpasParameterResponse(String resourceType, List<Parameter> paramet
     return parameter.stream()
         .map(Parameter::getOriginalAndPseudonym)
         .map(Optional::orElseThrow)
+        .distinct()
         .collect(toMap(OriginalAndPseudonym::original, OriginalAndPseudonym::pseudonym));
   }
 
