@@ -68,18 +68,16 @@ public class ConsentedPatientExtractor {
       String policySystem,
       Bundle bundle,
       Set<String> policiesToCheck) {
-    Optional<String> optionalPid = getPatientIdentifier(bundle, patientIdentifierSystem);
-    if (optionalPid.isEmpty()) {
-      return Optional.empty();
-    }
-    String pid = optionalPid.get();
-
-    var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
-    if (consentedPolicies.hasAllPolicies(policiesToCheck)) {
-      return Optional.of(new ConsentedPatient(pid, consentedPolicies));
-    } else {
-      return Optional.empty();
-    }
+    return getPatientIdentifier(bundle, patientIdentifierSystem)
+        .flatMap(
+            pid -> {
+              var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
+              if (consentedPolicies.hasAllPolicies(policiesToCheck)) {
+                return Optional.of(new ConsentedPatient(pid, consentedPolicies));
+              } else {
+                return Optional.empty();
+              }
+            });
   }
 
   /**
