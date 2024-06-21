@@ -1,6 +1,6 @@
 package care.smith.fts.rda.services.deidentifhir;
 
-import care.smith.fts.util.deidentifhir.NamespacingService;
+import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
@@ -13,24 +13,24 @@ import org.hl7.fhir.r4.model.Bundle;
 public class DeidentifhirUtil {
 
   public static Registry generateRegistry(Map<String, String> transportIdToPseudonym) {
-    NamespacingService namespacingService =
-        NamespacingService.withoutNamespacing(transportIdToPseudonym);
+    var keyCreator = NamespacingReplacementProvider.withoutNamespacing();
+    var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIdToPseudonym);
     Registry registry = new Registry();
     registry.addHander(
         "idReplacementHandler",
-        JavaCompat.partiallyApply(namespacingService, Handlers::idReplacementHandler));
+        JavaCompat.partiallyApply(replacementProvider, Handlers::idReplacementHandler));
     registry.addHander(
         "referenceReplacementHandler",
-        JavaCompat.partiallyApply(namespacingService, Handlers::referenceReplacementHandler));
+        JavaCompat.partiallyApply(replacementProvider, Handlers::referenceReplacementHandler));
     registry.addHander(
         "identifierValueReplacementHandler",
         JavaCompat.partiallyApply2(
-            namespacingService, true, Handlers::identifierValueReplacementHandler));
+            replacementProvider, true, Handlers::identifierValueReplacementHandler));
     registry.addHander(
         "conditionalReferencesReplacementHandler",
         JavaCompat.partiallyApply2(
-            namespacingService,
-            namespacingService,
+            replacementProvider,
+            replacementProvider,
             Handlers::conditionalReferencesReplacementHandler));
     return registry;
   }
