@@ -1,13 +1,13 @@
 package care.smith.fts.cda.services;
 
-import static care.smith.fts.cda.test.MockServerUtil.clientConfig;
+import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
-import care.smith.fts.cda.test.MockServerUtil;
+import care.smith.fts.test.MockServerUtil;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,4 +1,4 @@
-package care.smith.fts.cda.test;
+package care.smith.fts.test;
 
 import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
 
