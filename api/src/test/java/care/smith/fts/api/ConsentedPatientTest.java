@@ -14,6 +14,12 @@ import org.junit.jupiter.api.Test;
 class ConsentedPatientTest {
 
   @Test
+  void emptyConsentYieldsEmptyMaxPeriod() {
+    ConsentedPatient patient = new ConsentedPatient("patient-122522");
+    assertThat(patient.maxConsentedPeriod()).isEmpty();
+  }
+
+  @Test
   void put() {
     ConsentedPatient.ConsentedPolicies consentedPolicies = new ConsentedPatient.ConsentedPolicies();
     Period period = Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00");
