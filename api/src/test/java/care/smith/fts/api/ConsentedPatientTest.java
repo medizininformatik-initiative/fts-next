@@ -116,9 +116,7 @@ class ConsentedPatientTest {
     ConsentedPatient consentedPatient = new ConsentedPatient("patient", consentedPolicies);
 
     String des = om.writeValueAsString(consentedPatient);
-    log.info(des);
     ConsentedPatient ser = om.readValue(des, ConsentedPatient.class);
-    log.info(ser.toString());
     assertThat(ser).isEqualTo(consentedPatient);
   }
 }
