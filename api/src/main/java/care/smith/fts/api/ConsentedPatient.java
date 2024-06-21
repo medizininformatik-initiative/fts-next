@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.chrono.ChronoZonedDateTime;
 import java.util.*;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 public record ConsentedPatient(String id, ConsentedPolicies consentedPolicies) {
 
@@ -34,6 +36,8 @@ public record ConsentedPatient(String id, ConsentedPolicies consentedPolicies) {
     return consentedPolicies.maxConsentedPeriod();
   }
 
+  @ToString
+  @EqualsAndHashCode
   public static class ConsentedPolicies {
 
     @JsonSerialize(using = MultimapSerializer.class)
@@ -57,11 +61,7 @@ public record ConsentedPatient(String id, ConsentedPolicies consentedPolicies) {
           policies.asMap().values().stream()
               .map(ConsentedPolicies::maxEndOfPolicyPeriods)
               .min(ChronoZonedDateTime.timeLineOrder());
-      if (start.isPresent() && end.isPresent() && start.get().compareTo(end.get()) < 0) {
-        return Optional.of(new Period(start.get(), end.get()));
-      } else {
-        return Optional.empty();
-      }
+      return start.flatMap(s -> end.filter(e -> s.compareTo(e) < 0).map(e -> new Period(s, e)));
     }
 
     private static ZonedDateTime minStartOfPolicyPeriods(Collection<Period> col) {
@@ -90,24 +90,6 @@ public record ConsentedPatient(String id, ConsentedPolicies consentedPolicies) {
 
     public void merge(ConsentedPolicies other) {
       other.policies.forEach(policies::put);
-    }
-
-    @Override
-    public String toString() {
-      return "ConsentedPolicies{" + "policies=" + policies + '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-      ConsentedPolicies that = (ConsentedPolicies) o;
-      return Objects.equals(policies, that.policies);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(policies);
     }
   }
 
