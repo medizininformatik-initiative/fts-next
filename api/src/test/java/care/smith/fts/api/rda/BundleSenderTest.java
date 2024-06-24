@@ -27,6 +27,6 @@ class BundleSenderTest {
 
   @Test
   void testInstantiateResult() {
-    assertThat(new BundleSender.Result(0)).isNotNull();
+    assertThat(new BundleSender.Result()).isNotNull();
   }
 }

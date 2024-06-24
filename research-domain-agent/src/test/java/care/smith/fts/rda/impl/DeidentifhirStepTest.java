@@ -22,7 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @ExtendWith(MockServerExtension.class)
 class DeidentifhirStepTest {
@@ -63,7 +63,7 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(Flux.just(new TransportBundle(bundle, Set.of("tid1")))))
+    create(step.replaceIds(Mono.just(new TransportBundle(bundle, Set.of("tid1")))))
         .verifyComplete();
   }
 
@@ -75,7 +75,7 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(Flux.just(new TransportBundle(bundle, Set.of("tid1")))))
+    create(step.replaceIds(Mono.just(new TransportBundle(bundle, Set.of("tid1")))))
         .verifyComplete();
   }
 
@@ -106,7 +106,7 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(Flux.just(new TransportBundle(bundle, Set.of("tid1")))))
+    create(step.replaceIds(Mono.just(new TransportBundle(bundle, Set.of("tid1")))))
         .expectNextCount(1)
         .verifyComplete();
   }

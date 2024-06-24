@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -27,7 +26,7 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project}/start", consumes = "application/json")
-  Mono<Result> start(@PathVariable String project, @RequestBody Flux<TransportBundle> data) {
+  Mono<Result> start(@PathVariable String project, @RequestBody Mono<TransportBundle> data) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process);

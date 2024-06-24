@@ -11,7 +11,6 @@ import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 class DeidentifhirStep implements DeidentificationProvider {
@@ -29,8 +28,8 @@ class DeidentifhirStep implements DeidentificationProvider {
   }
 
   @Override
-  public Flux<Bundle> replaceIds(Flux<TransportBundle> bundleFlux) {
-    return bundleFlux.flatMap(
+  public Mono<Bundle> replaceIds(Mono<TransportBundle> bundleMono) {
+    return bundleMono.flatMap(
         bundle ->
             fetchPseudonymsForTransportIds(bundle.transportIds())
                 .map(

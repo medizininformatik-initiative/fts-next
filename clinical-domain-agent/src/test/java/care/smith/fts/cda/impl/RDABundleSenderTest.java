@@ -1,6 +1,6 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.cda.test.WebClientTestUtil.matchRequest;
+import static care.smith.fts.test.WebClientTestUtil.matchRequest;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
 import static java.util.stream.Stream.generate;

@@ -11,7 +11,7 @@ import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 class TransferProcessControllerTest {
 
@@ -19,19 +19,19 @@ class TransferProcessControllerTest {
 
   @BeforeEach
   void setUp() {
-    api = new TransferProcessController((r, p) -> just(new Result(1)), of(mockTransferProcess()));
+    api = new TransferProcessController((r, p) -> just(new Result()), of(mockTransferProcess()));
   }
 
   @Test
   void startExistingProjectSucceeds() {
-    create(api.start("example", Flux.just(new TransportBundle(new Bundle(), Set.of()))))
-        .expectNext(new Result(1))
+    create(api.start("example", Mono.just(new TransportBundle(new Bundle(), Set.of()))))
+        .expectNext(new Result())
         .verifyComplete();
   }
 
   @Test
   void startNonExistingProjectErrors() {
-    create(api.start("non-existent", Flux.just()))
+    create(api.start("non-existent", Mono.just(new TransportBundle(new Bundle(), Set.of()))))
         .expectError(IllegalStateException.class)
         .verify();
   }

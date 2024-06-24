@@ -1,4 +1,4 @@
-package care.smith.fts.cda.test;
+package care.smith.fts.test;
 
 import static java.util.Optional.empty;
 import static org.mockito.BDDMockito.given;
