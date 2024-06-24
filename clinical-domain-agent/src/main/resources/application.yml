@@ -1,2 +1,12 @@
 transferProcess:
   parallelism: 4
+
+
+management:
+  metrics:
+    distribution.slo:
+      http.server.requests: 25,100,250,500,1000,10000,60000
+  endpoints:
+    web:
+      exposure:
+        include: prometheus

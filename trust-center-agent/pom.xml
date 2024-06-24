@@ -33,6 +33,12 @@
     </dependency>
 
     <dependency>
+      <groupId>care.smith.fts</groupId>
+      <artifactId>monitoring-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-webflux</artifactId>
     </dependency>

@@ -1,0 +1,27 @@
+name: fts-monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.52.0@sha256:5c435642ca4d8427ca26f4901c11114023004709037880cd7860d5b7176aa731
+    volumes:
+    - ./prometheus.yml:/prometheus.yml
+    command:
+    - --enable-feature=native-histograms
+    - --config.file=/prometheus.yml
+    networks: [ "fts" ]
+    ports:
+    - :9090
+
+  grafana:
+    image: grafana/grafana:11.0.0@sha256:0dc5a246ab16bb2c38a349fb588174e832b4c6c2db0981d0c3e6cd774ba66a54
+    volumes:
+    - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
+    - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml
+    - ./grafana/histogram.json:/etc/grafana/histogram.json
+    ports:
+    - 42128:3000
+    networks: [ "fts" ]
+networks:
+  fts:
+    name: ${NETWORK_NAME:-fts-smith-care}
+    external: true
