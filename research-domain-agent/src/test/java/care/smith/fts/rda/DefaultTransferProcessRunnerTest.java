@@ -31,7 +31,7 @@ class DefaultTransferProcessRunnerTest {
             "test", (b) -> fromIterable(List.of(new Bundle())), (b) -> just(result));
 
     create(runner.run(process, Flux.just(new TransportBundle(new Bundle(), Set.of()))))
-        .expectNext(new TransferProcessRunner.Result())
+        .expectNext(new BundleSender.Result(0))
         .verifyComplete();
   }
 }
