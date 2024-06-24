@@ -29,7 +29,6 @@ class TCACohortSelectorFactoryTest {
                         null,
                         null,
                         null,
-                        null,
                         null)))
         .isNotNull();
   }

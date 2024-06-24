@@ -3,4 +3,4 @@ projects:
 
 logging.level:
   org.mockserver.log: WARN
-  care.smith.fts.cda: DEBUG
+  care.smith.fts.cda: TRACE

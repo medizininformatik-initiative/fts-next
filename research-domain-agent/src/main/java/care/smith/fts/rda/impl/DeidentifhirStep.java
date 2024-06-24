@@ -33,11 +33,9 @@ class DeidentifhirStep implements DeidentificationProvider {
         bundle ->
             fetchPseudonymsForTransportIds(bundle.transportIds())
                 .map(
-                    p -> {
-                      System.out.println(p.idMap());
-                      return replaceIDs(
-                          deidentifhirConfig, generateRegistry(p.idMap()), bundle.bundle());
-                    }));
+                    p ->
+                        replaceIDs(
+                            deidentifhirConfig, generateRegistry(p.idMap()), bundle.bundle())));
   }
 
   private Mono<PseudonymizeResponse> fetchPseudonymsForTransportIds(Set<String> transportIds) {

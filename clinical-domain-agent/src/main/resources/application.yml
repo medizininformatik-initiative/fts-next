@@ -1,7 +1,3 @@
-transferProcess:
-  parallelism: 4
-
-
 management:
   metrics:
     distribution.slo:

@@ -1,0 +1,5 @@
+projects:
+  directory: "./projects"
+
+logging.level:
+  care.smith.fts.tca: INFO

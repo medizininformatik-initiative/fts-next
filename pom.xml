@@ -8,7 +8,8 @@
   <artifactId>parent</artifactId>
   <version>${revision}</version>
 
-  <name>SMITH FHIR Transfer Services</name>
+  <name>FTSnext</name>
+  <description>SMITH FHIR Transfer Services</description>
 
   <modules>
     <module>api</module>

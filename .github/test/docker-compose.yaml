@@ -1,0 +1,142 @@
+networks:
+  agents:
+  clinical-domain:
+  research-domain:
+  trust-center:
+  gics:
+  gpas:
+
+services:
+  # Clinical Domain
+  cd-agent:
+    image: creg.smith.care/fts-next/clinical-domain-agent:latest
+    ports: [ ":8080" ]
+    networks: [ "agents", "clinical-domain" ]
+    volumes:
+    - ./cd-agent/projects:/app/projects
+    - ../../clinical-domain-agent/src/test/resources/care/smith/fts/cda/services/deidentifhir/:/app/config/deidentifhir
+    depends_on:
+      cd-hds:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  cd-hds:
+    image: samply/blaze:0.27.1
+    ports: [ ":8080" ]
+    networks: [ "clinical-domain" ]
+    environment:
+      BASE_URL: "http://cd-hds:8080"
+      STORAGE: "in-memory"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Research Domain
+  rd-agent:
+    image: creg.smith.care/fts-next/research-domain-agent:latest
+    ports: [ ":8080" ]
+    networks: [ "agents", "research-domain" ]
+    volumes:
+    - ./rd-agent/projects:/app/projects
+    - ../../research-domain-agent/src/test/resources/care/smith/fts/rda/services/deidentifhir/:/app/config/deidentifhir
+    depends_on:
+      rd-hds:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  rd-hds:
+    image: samply/blaze:0.27.1
+    ports: [ ":8080" ]
+    networks: [ "research-domain" ]
+    environment:
+      BASE_URL: "http://rd-hds:8080"
+      STORAGE: "in-memory"
+      ENFORCE_REFERENTIAL_INTEGRITY: "false"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Trust Center
+  tc-agent:
+    image: creg.smith.care/fts-next/trust-center-agent:latest
+    networks: [ "agents", "trust-center" ]
+    depends_on:
+      keystore:
+        condition: service_started
+      gics:
+        condition: service_healthy
+      gpas:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  keystore:
+    image: valkey/valkey:7.2.5-alpine
+    networks: [ "trust-center" ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  gics:
+    image: creg.smith.care/fts/gics:2023.1.4@sha256:093f317ad936ff8595105bf21abccd4ad33ddd066d132e5ba34d5b37e5b8bd62
+    entrypoint: /bin/bash
+    command: -c "./wait-for-it.sh gics-db:3306 -t 120 && ./run.sh"
+    ports: [ ":8080" ]
+    networks: [ "trust-center", "gics" ]
+    depends_on:
+      gics-db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/gics/gicsService?wsdl" ]
+      interval: 5s
+      timeout: 5s
+      retries: 100
+  gics-db:
+    image: creg.smith.care/fts/gics-db:2023.1.4@sha256:1c5a317df63be49c5a3fc9bce3cddec24e677e296f3a7b93f99f42ed6aceb5cf
+    volumes:
+    - ./gics/initdb/:/docker-entrypoint-initdb.d
+    command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
+    networks: [ "gics" ]
+    healthcheck:
+      test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugics_user", "-pgics_password" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  gpas:
+    image: creg.smith.care/fts/gpas:2023.1.2@sha256:6ccc25c108060fe7dce34a776c60b24139b655796c51256600a86ad3d71818f6
+    entrypoint: /bin/bash
+    command: -c "./wait-for-it.sh gpas-db:3306 -t 120 && ./run.sh"
+    ports: [ ":8080" ]
+    networks: [ "trust-center", "gpas" ]
+    depends_on:
+      gpas-db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/gpas/gpasService?wsdl" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  gpas-db:
+    image: creg.smith.care/fts/gpas-db:2023.1.2@sha256:4b13ae81ab1bcc0cd60110d6c5383d0e9c50c637899d4ba370ea27324d286c41
+    command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
+    networks: [ "gpas" ]
+    healthcheck:
+      test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugpas_user", "-pgpas_password" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20

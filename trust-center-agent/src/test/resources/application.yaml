@@ -2,7 +2,6 @@ consent:
   policySystem: https://ths-greifswald.de/fhir/CodeSystem/gics/Policy
   defaultPolicies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
   patientIdentifierSystem: https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym
-
   gics:
     fhir:
       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
@@ -22,6 +21,7 @@ deIdentification:
     transportIdTTLinSeconds: 1000
   dateShifting:
     shiftByDays: 14
+
 logging:
   level:
     care.smith.fts.util: trace

@@ -15,9 +15,6 @@ public record TCACohortSelectorConfig(
     @NotNull String policySystem,
 
     /* */
-    Set<String> defaultPolicies,
-
-    /* */
     Set<String> policies,
 
     /* */

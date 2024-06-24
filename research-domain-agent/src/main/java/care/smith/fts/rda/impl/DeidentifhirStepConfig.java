@@ -1,13 +1,11 @@
 package care.smith.fts.rda.impl;
 
-import care.smith.fts.util.auth.HTTPClientAuthMethod;
+import care.smith.fts.util.HTTPClientConfig;
 import java.io.File;
 import java.time.Duration;
 
 public record DeidentifhirStepConfig(
-    String tcaBaseUrl,
-    HTTPClientAuthMethod.AuthMethod auth,
-    String domain,
-    Duration dateShift,
-    File deidentifhirConfigFile,
-    File scraperConfigFile) {}
+    TCAConfig tca, Duration dateShift, File deidentifhirConfigFile) {
+
+  record TCAConfig(HTTPClientConfig server, String domain) {}
+}

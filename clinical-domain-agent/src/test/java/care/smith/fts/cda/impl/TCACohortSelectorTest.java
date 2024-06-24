@@ -44,8 +44,7 @@ class TCACohortSelectorTest {
   void setUp() {
     var address = "http://localhost";
     var server = new HTTPClientConfig(address, NONE);
-    config =
-        new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, POLICIES, "MII");
+    config = new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
   }
 
   @Test

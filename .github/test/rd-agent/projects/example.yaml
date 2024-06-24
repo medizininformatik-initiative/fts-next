@@ -1,0 +1,13 @@
+deidentificationProvider:
+  deidentifhir:
+    tca:
+      server:
+        baseUrl: http://tc-agent:8080
+      domain: MII
+    dateShift: P14D
+    deidentifhirConfig: /app/config/deidentifhir/TransportToRD.profile
+
+bundleSender:
+  fhirStore:
+    server:
+      baseUrl: http://rd-hds:8080
