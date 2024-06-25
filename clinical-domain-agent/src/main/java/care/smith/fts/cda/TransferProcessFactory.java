@@ -18,7 +18,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
@@ -26,7 +25,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class TransferProcessFactory<B extends IBaseBundle> {
+public class TransferProcessFactory {
 
   private final ApplicationContext context;
   private final ObjectMapper objectMapper;
