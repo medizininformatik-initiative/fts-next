@@ -26,9 +26,9 @@ public class GpasFhirDeIdentificationConfiguration {
   }
 
   @Bean("gpasFhirHttpClient")
-  public WebClient httpClient() {
+  public WebClient httpClient(WebClient.Builder builder) {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
-    return httpClientConfig.createClient(WebClient.builder());
+    return httpClientConfig.createClient(builder);
   }
 
   @Bean

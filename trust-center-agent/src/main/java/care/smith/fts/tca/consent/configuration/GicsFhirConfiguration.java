@@ -26,15 +26,15 @@ public class GicsFhirConfiguration {
   }
 
   @Bean("gicsFhirHttpClient")
-  public WebClient httpClient() {
+  public WebClient httpClient(WebClient.Builder builder) {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
-    return httpClientConfig.createClient(WebClient.builder());
+    return httpClientConfig.createClient(builder);
   }
 
   @Bean
-  FhirConsentProvider fhirConsentProvider(PolicyHandler policyHandler) {
+  FhirConsentProvider fhirConsentProvider(PolicyHandler policyHandler, WebClient.Builder builder) {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
-    var client = httpClientConfig.createClient(WebClient.builder());
+    var client = httpClientConfig.createClient(builder);
     return new FhirConsentProvider(client, policyHandler, defaultPageSize);
   }
 }

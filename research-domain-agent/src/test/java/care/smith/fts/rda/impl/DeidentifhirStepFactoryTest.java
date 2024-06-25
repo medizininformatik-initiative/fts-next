@@ -8,18 +8,19 @@ import care.smith.fts.rda.impl.DeidentifhirStepConfig.TCAConfig;
 import care.smith.fts.util.HTTPClientConfig;
 import java.io.File;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClient;
 
 class DeidentifhirStepFactoryTest {
 
   @Test
   void getConfigType() {
-    assertThat(new DeidentifhirStepFactory().getConfigType()).isNotNull();
+    assertThat(new DeidentifhirStepFactory(WebClient.builder()).getConfigType()).isNotNull();
   }
 
   @Test
   void create() {
     assertThat(
-            new DeidentifhirStepFactory()
+            new DeidentifhirStepFactory(WebClient.builder())
                 .create(
                     new DeidentificationProvider.Config(),
                     new DeidentifhirStepConfig(
