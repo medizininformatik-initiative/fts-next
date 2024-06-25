@@ -25,7 +25,7 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project}/start")
-  Flux<Result> start(@PathVariable String project) {
+  Flux<Result> start(@PathVariable("project") String project) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process);

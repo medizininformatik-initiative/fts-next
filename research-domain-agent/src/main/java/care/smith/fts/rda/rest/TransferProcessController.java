@@ -26,7 +26,8 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project}/start", consumes = "application/json")
-  Mono<Result> start(@PathVariable String project, @RequestBody Mono<TransportBundle> data) {
+  Mono<Result> start(
+      @PathVariable("project") String project, @RequestBody Mono<TransportBundle> data) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process);
