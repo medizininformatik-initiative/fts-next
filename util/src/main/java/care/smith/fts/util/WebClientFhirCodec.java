@@ -78,7 +78,8 @@ public class WebClientFhirCodec implements WebClientCustomizer {
     @Override
     public boolean canDecode(ResolvableType elementType, MimeType mimeType) {
       boolean can =
-          isBaseResource(elementType.getRawClass()) && getDecodableMimeTypes().contains(mimeType);
+          isBaseResource(elementType.getRawClass())
+              && getDecodableMimeTypes().stream().anyMatch(m -> m.isCompatibleWith(mimeType));
       log.trace("canDecode {} from {}? {}", elementType, mimeType, can);
       return can;
     }
@@ -134,7 +135,7 @@ public class WebClientFhirCodec implements WebClientCustomizer {
       var can =
           elementType.getRawClass() != null
               && isBaseResource(elementType.getRawClass())
-              && getEncodableMimeTypes().contains(mimeType);
+              && getEncodableMimeTypes().stream().anyMatch(m -> m.isCompatibleWith(mimeType));
       log.trace("canEncode {} to {}? {}", elementType, mimeType, can);
       return can;
     }

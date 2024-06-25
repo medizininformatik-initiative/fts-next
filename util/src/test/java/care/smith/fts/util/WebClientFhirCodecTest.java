@@ -100,6 +100,14 @@ class WebClientFhirCodecTest {
     ResolvableType resolvableType = ResolvableType.forClass(Patient.class);
 
     assertThat(decoder.canDecode(resolvableType, MediaType.APPLICATION_JSON)).isTrue();
+    assertThat(
+            decoder.canDecode(resolvableType, MediaType.valueOf("application/json;charset=UTF-8")))
+        .isTrue();
+    assertThat(decoder.canDecode(resolvableType, APPLICATION_FHIR_JSON)).isTrue();
+    assertThat(
+            decoder.canDecode(
+                resolvableType, MediaType.valueOf("application/fhir+json;charset=UTF-8")))
+        .isTrue();
   }
 
   @Test
@@ -164,9 +172,16 @@ class WebClientFhirCodecTest {
   @Test
   void canEncode() {
     ResolvableType resolvableType = ResolvableType.forClass(Patient.class);
-    boolean result = encoder.canEncode(resolvableType, MediaType.APPLICATION_JSON);
 
-    assertThat(result).isTrue();
+    assertThat(encoder.canEncode(resolvableType, MediaType.APPLICATION_JSON)).isTrue();
+    assertThat(
+            encoder.canEncode(resolvableType, MediaType.valueOf("application/json;charset=UTF-8")))
+        .isTrue();
+    assertThat(encoder.canEncode(resolvableType, APPLICATION_FHIR_JSON)).isTrue();
+    assertThat(
+            encoder.canEncode(
+                resolvableType, MediaType.valueOf("application/fhir+json;charset=UTF-8")))
+        .isTrue();
   }
 
   @Test
