@@ -107,20 +107,24 @@ public class FhirPseudonymProvider implements PseudonymProvider {
 
   @Override
   public Mono<Map<String, String>> fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) {
-    Map<String, String> pseudonyms = new HashMap<String, String>();
-    try (Jedis jedis = jedisPool.getResource()) {
-      Set<String> ids = transportIdsRequest.ids();
-      ids.forEach(
-          id -> {
-            var pseudonymId = jedis.get("tid:" + id);
-            pseudonyms.put(id, pseudonymId);
-          });
+    if (!transportIdsRequest.ids().isEmpty()) {
+      Map<String, String> pseudonyms = new HashMap<>();
+      try (Jedis jedis = jedisPool.getResource()) {
+        Set<String> ids = transportIdsRequest.ids();
+        ids.forEach(
+            id -> {
+              var pseudonymId = jedis.get("tid:" + id);
+              pseudonyms.put(id, pseudonymId);
+            });
+      }
+      return Mono.just(pseudonyms);
+    } else {
+      return Mono.empty();
     }
-    return Mono.just(pseudonyms);
   }
 
   @Override
-  public Mono<Long> deleteTransportId(TransportIdsRequest transportIdsRequest) {
+  public Mono<Long> deleteTransportIds(TransportIdsRequest transportIdsRequest) {
     var ids = transportIdsRequest.ids().stream().map(id -> "tid:" + id);
     try (Jedis jedis = jedisPool.getResource()) {
       return Mono.just(jedis.del(ids.toArray(String[]::new)));

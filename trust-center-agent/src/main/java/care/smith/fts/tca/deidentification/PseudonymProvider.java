@@ -36,7 +36,7 @@ public interface PseudonymProvider {
    * @param transportIdsRequest to transport ids
    * @return The number of deleted transport ids
    */
-  Mono<Long> deleteTransportId(TransportIdsRequest transportIdsRequest);
+  Mono<Long> deleteTransportIds(TransportIdsRequest transportIdsRequest);
 
   //  /**
   //   * Returns PSN for original values, that may be compound values.

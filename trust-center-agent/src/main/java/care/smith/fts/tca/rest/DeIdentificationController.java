@@ -3,7 +3,6 @@ package care.smith.fts.tca.rest;
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.*;
-import jakarta.validation.Valid;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -42,35 +41,17 @@ public class DeIdentificationController {
     var response =
         requestData.flatMap(
             r -> {
-              Mono<Map<String, String>> transportIds =
-                  pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
-              Mono<Map<String, Duration>> shiftedDates =
-                  shiftedDatesProvider.generateDateShift(Set.of(r.patientId()), r.dateShift());
-              return transportIds.zipWith(
-                  shiftedDates, (t, s) -> new PseudonymizeResponse(t, s.get(r.patientId())));
+              if (!r.ids().isEmpty()) {
+                Mono<Map<String, String>> transportIds =
+                    pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
+                Mono<Map<String, Duration>> shiftedDates =
+                    shiftedDatesProvider.generateDateShift(Set.of(r.patientId()), r.dateShift());
+                return transportIds.zipWith(
+                    shiftedDates, (t, s) -> new PseudonymizeResponse(t, s.get(r.patientId())));
+              } else {
+                return Mono.empty();
+              }
             });
-    return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
-  }
-
-  @PostMapping(
-      value = "/cd/transport-ids",
-      consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<Map<String, String>>> getTransportId(
-      @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
-    var response =
-        requestData.flatMap(r -> pseudonymProvider.retrieveTransportIds(r.ids(), r.domain()));
-    return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
-  }
-
-  @PostMapping(
-      value = "/cd/shifted-dates",
-      consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<Map<String, Duration>>> getShiftedDates(
-      @Valid @RequestBody Mono<DateShiftingRequest> requestData) {
-    var response =
-        requestData.flatMap(r -> shiftedDatesProvider.generateDateShift(r.ids(), r.dateShift()));
     return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
   }
 
@@ -85,24 +66,12 @@ public class DeIdentificationController {
   }
 
   @PostMapping(
-      value = "/rd/resolve-project-pseudonyms",
-      consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<Map<String, String>> fetchProjectPseudonymizedIds(
-      @Validated(TransportIdsRequest.class) @RequestBody TransportIdsRequest requestData) {
-    // TODO Implement
-    // IDMap pseudonymizedIDs =
-    // pseudonymProvider.fetchProjectPseudonymizedIds(requestData);
-    return ResponseEntity.internalServerError().build();
-  }
-
-  @PostMapping(
       value = "/rd/delete-transport-ids",
       consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.TEXT_PLAIN_VALUE)
-  public Mono<ResponseEntity<Long>> deleteId(
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public Mono<ResponseEntity<Long>> deleteTransportIds(
       @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
-    var response = requestData.flatMap(pseudonymProvider::deleteTransportId);
+    var response = requestData.flatMap(pseudonymProvider::deleteTransportIds);
     return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
   }
 }

@@ -74,6 +74,15 @@ class ConsentedPatientExtractorTest {
   }
 
   @Test
+  void extractConsentedPatientWithUnknownPoliciesYieldsEmptyResult() {
+    Optional<ConsentedPatient> consentedPatient =
+        ConsentedPatientExtractor.extractConsentedPatient(
+            PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle, Set.of("Unknown Policy"));
+
+    assertThat(consentedPatient).isEmpty();
+  }
+
+  @Test
   void hasAllPolicies() {
     boolean result =
         ConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle, POLICIES_TO_CHECK);

@@ -118,11 +118,11 @@ class FhirPseudonymProviderTest {
   }
 
   @Test
-  void deleteTransportId() {
+  void deleteTransportIds() {
     given(jedis.del(new String[] {"tid:id1"})).willReturn(1L);
     TransportIdsRequest transportIdsRequest = new TransportIdsRequest("domain", Set.of("id1"));
 
-    create(pseudonymProvider.deleteTransportId(transportIdsRequest))
+    create(pseudonymProvider.deleteTransportIds(transportIdsRequest))
         .expectNext(1L)
         .verifyComplete();
   }
