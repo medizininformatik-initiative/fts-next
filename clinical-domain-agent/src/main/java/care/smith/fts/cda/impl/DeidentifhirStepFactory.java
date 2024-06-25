@@ -1,6 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static com.typesafe.config.ConfigFactory.parseFile;
+import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.cda.DeidentificationProvider;
 import org.springframework.stereotype.Component;
@@ -30,7 +31,7 @@ public class DeidentifhirStepFactory
         httpClient,
         implConfig.tca().domain(),
         implConfig.dateShift(),
-        parseFile(implConfig.deidentifhirConfig()),
-        parseFile(implConfig.scraperConfig()));
+        parseFile(requireNonNull(implConfig.deidentifhirConfig())),
+        parseFile(requireNonNull(implConfig.scraperConfig())));
   }
 }
