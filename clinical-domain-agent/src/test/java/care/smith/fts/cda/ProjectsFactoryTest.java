@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -19,7 +18,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 @ExtendWith(MockitoExtension.class)
 class ProjectsFactoryTest {
 
-  @Mock TransferProcessFactory<Bundle> processFactory;
+  @Mock TransferProcessFactory processFactory;
   @Mock ConfigurableListableBeanFactory beanFactory;
 
   private final ObjectMapper objectMapper;
@@ -34,9 +33,9 @@ class ProjectsFactoryTest {
 
   @Test
   void emptyDirYieldsNoBeans() throws Exception {
-    var factory = new ProjectsFactory(processFactory, beanFactory, objectMapper, tempDirectory);
+    var factory = new ProjectsFactory(processFactory, objectMapper, tempDirectory);
 
-    factory.registerProcesses();
+    factory.createTransferProcesses();
 
     verifyNoInteractions(processFactory);
     verifyNoInteractions(beanFactory);
@@ -45,17 +44,12 @@ class ProjectsFactoryTest {
   @Test
   void testDirYieldsBeans() throws Exception {
     TransferProcess process =
-        new TransferProcess(
-            "test",
-            () -> null,
-            consentedPatient -> null,
-            (patientBundle) -> null,
-            (transportBundle) -> null);
+        new TransferProcess("example", () -> null, c -> null, b -> null, b -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
-    var factory = new ProjectsFactory(processFactory, beanFactory, objectMapper, testDirectory);
-    factory.registerProcesses();
+    var factory = new ProjectsFactory(processFactory, objectMapper, testDirectory);
+    factory.createTransferProcesses();
 
-    verify(beanFactory, times(1)).registerSingleton("example", process);
+    verify(processFactory, times(1)).create(any(), eq("example"));
   }
 }

@@ -35,9 +35,9 @@ class ProjectsFactoryTest {
 
   @Test
   void emptyDirYieldsNoBeans() throws Exception {
-    var factory = new ProjectsFactory(processFactory, beanFactory, objectMapper, tempDirectory);
+    var factory = new ProjectsFactory(processFactory, objectMapper, tempDirectory);
 
-    factory.registerProcesses();
+    factory.createTransferProcesses();
 
     verifyNoInteractions(processFactory);
     verifyNoInteractions(beanFactory);
@@ -45,12 +45,12 @@ class ProjectsFactoryTest {
 
   @Test
   void testDirYieldsBeans() throws Exception {
-    TransferProcess process = new TransferProcess("test", (b) -> null, (b) -> null);
+    TransferProcess process = new TransferProcess("example", (b) -> null, (b) -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
-    var factory = new ProjectsFactory(processFactory, beanFactory, objectMapper, testDirectory);
-    factory.registerProcesses();
+    var factory = new ProjectsFactory(processFactory, objectMapper, testDirectory);
+    factory.createTransferProcesses();
 
-    verify(beanFactory, times(1)).registerSingleton("example", process);
+    verify(processFactory, times(1)).create(any(), eq("example"));
   }
 }
