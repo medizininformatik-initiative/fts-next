@@ -51,6 +51,7 @@ public class ClinicalDomainAgent {
   @Bean
   public ObjectMapper transferProcessObjectMapper() {
     return new ObjectMapper(new YAMLFactory())
+        .registerModule(new JavaTimeModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   }
 
