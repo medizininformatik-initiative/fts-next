@@ -31,7 +31,7 @@ class FhirStoreBundleSenderTest {
             .exchangeFunction(
                 matchRequest(HttpMethod.POST)
                     .willRespond(ClientResponse.create(BAD_REQUEST).build()));
-    var bundleSender = new FhirStoreBundleSender(config, config.fhirServer().createClient(client));
+    var bundleSender = new FhirStoreBundleSender(config, config.server().createClient(client));
 
     create(bundleSender.send(Mono.just(new Bundle()))).expectError().verify();
   }
@@ -42,7 +42,7 @@ class FhirStoreBundleSenderTest {
         builder()
             .exchangeFunction(
                 matchRequest(HttpMethod.POST).willRespond(ClientResponse.create(OK).build()));
-    var bundleSender = new FhirStoreBundleSender(config, config.fhirServer().createClient(client));
+    var bundleSender = new FhirStoreBundleSender(config, config.server().createClient(client));
 
     create(bundleSender.send(Mono.just(new Bundle())))
         .expectNext(new BundleSender.Result())

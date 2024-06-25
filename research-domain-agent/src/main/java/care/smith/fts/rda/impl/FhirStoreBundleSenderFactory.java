@@ -4,7 +4,7 @@ import care.smith.fts.api.rda.BundleSender;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-@Component("researchDomainAgentBundleSender")
+@Component("fhirStoreBundleSender")
 public class FhirStoreBundleSenderFactory
     implements BundleSender.Factory<FhirStoreBundleSenderConfig> {
 
@@ -22,6 +22,6 @@ public class FhirStoreBundleSenderFactory
   @Override
   public BundleSender create(
       BundleSender.Config commonConfig, FhirStoreBundleSenderConfig implConfig) {
-    return new FhirStoreBundleSender(implConfig, implConfig.fhirServer().createClient(builder));
+    return new FhirStoreBundleSender(implConfig, implConfig.server().createClient(builder));
   }
 }

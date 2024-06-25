@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record FhirStoreBundleSenderConfig(
     /* */
-    @NotNull HTTPClientConfig fhirServer,
+    @NotNull HTTPClientConfig server,
 
     /* */
     String project) {}
