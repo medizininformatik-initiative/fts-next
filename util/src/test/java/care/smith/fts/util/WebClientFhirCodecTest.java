@@ -1,5 +1,6 @@
 package care.smith.fts.util;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;

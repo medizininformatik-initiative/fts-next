@@ -2,6 +2,8 @@ package care.smith.fts.tca.consent;
 
 import static care.smith.fts.util.ConsentedPatientExtractor.hasAllPolicies;
 import static care.smith.fts.util.FhirUtils.*;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import com.google.common.base.Predicates;
 import java.util.List;
@@ -10,7 +12,6 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -162,7 +163,8 @@ public class FhirConsentProvider implements ConsentProvider {
         .post()
         .uri(formatted)
         .bodyValue(body)
-        .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
+        .headers(h -> h.setContentType(APPLICATION_JSON))
+        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class);
   }

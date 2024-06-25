@@ -1,6 +1,8 @@
 package care.smith.fts.util;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static org.springframework.core.io.buffer.DataBufferUtils.join;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import ca.uhn.fhir.context.FhirContext;
 import java.io.IOException;
@@ -41,7 +43,7 @@ public class WebClientFhirCodec implements WebClientCustomizer {
 
   class Decoder extends AbstractDecoder<IBaseResource> {
     public Decoder() {
-      super(MimeType.valueOf("application/fhir+json"), MimeType.valueOf("application/json"));
+      super(APPLICATION_FHIR_JSON, APPLICATION_JSON);
     }
 
     @Override
@@ -96,7 +98,7 @@ public class WebClientFhirCodec implements WebClientCustomizer {
 
   class Encoder extends AbstractEncoder<IBaseResource> {
     public Encoder() {
-      super(MimeType.valueOf("application/fhir+json"), MimeType.valueOf("application/json"));
+      super(APPLICATION_FHIR_JSON, APPLICATION_JSON);
     }
 
     @Override
