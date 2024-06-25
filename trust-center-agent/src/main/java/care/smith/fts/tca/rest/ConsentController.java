@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -28,12 +27,12 @@ public class ConsentController {
     this.defaultPageSize = defaultPageSize;
   }
 
-  @GetMapping(
+  @PostMapping(
       value = "/cd/consented-patients",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<Bundle>> consentedPatients(
-      @Validated(ConsentRequest.class) @RequestBody Mono<ConsentRequest> request,
+      @RequestBody Mono<ConsentRequest> request,
       String requestUrl,
       @RequestParam Optional<Integer> from,
       @RequestParam Optional<Integer> count) {
