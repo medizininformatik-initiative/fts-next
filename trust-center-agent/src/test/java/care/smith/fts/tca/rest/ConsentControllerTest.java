@@ -3,6 +3,7 @@ package care.smith.fts.tca.rest;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.consent.ConsentProvider;
@@ -34,12 +35,13 @@ class ConsentControllerTest {
   void name() {
     var bundle = Stream.<Resource>empty().collect(toBundle());
     var request = new ConsentRequest("MII", Set.of(), "sys");
-    given(provider.consentedPatientsPage("MII", "sys", Set.of(), "/fake/", 0, 1))
+    var requestUrl = fromUriString("/fake/");
+    given(provider.consentedPatientsPage("MII", "sys", Set.of(), requestUrl, 0, 1))
         .willReturn(Mono.just(bundle));
 
     var response =
         controller.consentedPatients(
-            Mono.just(request), "/fake/", Optional.empty(), Optional.empty());
+            Mono.just(request), requestUrl, Optional.empty(), Optional.empty());
 
     create(response).assertNext(b -> assertThat(b.getBody()).isEqualTo(bundle)).verifyComplete();
   }

@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -32,12 +34,10 @@ public class ConsentController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<Bundle>> consentedPatients(
-      @RequestBody Mono<ConsentRequest> request,
-      String requestUrl,
-      @RequestParam Optional<Integer> from,
-      @RequestParam Optional<Integer> count) {
-    log.info("consentedPatients: {}", request);
-
+      @Validated(ConsentRequest.class) @RequestBody Mono<ConsentRequest> request,
+      UriComponentsBuilder uriBuilder,
+      @RequestParam("from") Optional<Integer> from,
+      @RequestParam("count") Optional<Integer> count) {
     var response =
         request.flatMap(
             r ->
@@ -45,7 +45,7 @@ public class ConsentController {
                     r.domain(),
                     r.policySystem(),
                     r.policies(),
-                    requestUrl,
+                    uriBuilder,
                     from.orElse(0),
                     count.orElse(defaultPageSize)));
     return response.map(

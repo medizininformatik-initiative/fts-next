@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 /** This class provides functionalities for handling FHIR consents using an HTTP client. */
@@ -49,7 +50,7 @@ public class FhirConsentProvider implements ConsentProvider {
    */
   @Override
   public Mono<Bundle> consentedPatientsPage(
-      String domain, String policySystem, Set<String> policies, String requestUrl) {
+      String domain, String policySystem, Set<String> policies, UriComponentsBuilder requestUrl) {
     return consentedPatientsPage(domain, policySystem, policies, requestUrl, 0, defaultPageSize);
   }
 
@@ -67,32 +68,33 @@ public class FhirConsentProvider implements ConsentProvider {
       String domain,
       String policySystem,
       Set<String> policies,
-      String requestUrl,
+      UriComponentsBuilder requestUrl,
       int from,
       int count) {
     Set<String> policiesToCheck = policyHandler.getPoliciesToCheck(policies);
     if (policiesToCheck.isEmpty()) {
       return Mono.just(new Bundle());
     }
-    var bundleMono =
-        fetchConsentedPatientsFromGics(policySystem, policiesToCheck, domain, from, count);
-    return addNextLink(bundleMono, requestUrl, from, count);
+    log.trace("Fetching consent from gics");
+    return fetchConsentedPatientsFromGics(policySystem, policiesToCheck, domain, from, count)
+        .map(bundle -> addNextLink(bundle, requestUrl, from, count));
   }
 
-  private Mono<Bundle> addNextLink(
-      Mono<Bundle> bundleMono, String requestUrl, int from, int count) {
-    return bundleMono.map(
-        b -> {
-          if (b.getTotal() > from + count) {
-            b.addLink(
-                new Bundle.BundleLinkComponent(
-                    new StringType("next"),
-                    new UriType(
-                        "%s/cd/consented-patients?from=%s&count=%s"
-                            .formatted(requestUrl, from + count, count))));
-          }
-          return b;
-        });
+  private Bundle addNextLink(Bundle bundle, UriComponentsBuilder requestUrl, int from, int count) {
+    if (bundle.getTotal() > from + count) {
+      bundle.addLink(nextLink(requestUrl, from, count));
+    }
+    return bundle;
+  }
+
+  private static Bundle.BundleLinkComponent nextLink(
+      UriComponentsBuilder requestUrl, int from, int count) {
+    var uri =
+        requestUrl
+            .replaceQueryParam("from", from + count)
+            .replaceQueryParam("count", count)
+            .toUriString();
+    return new Bundle.BundleLinkComponent(new StringType("next"), new UriType(uri));
   }
 
   /**

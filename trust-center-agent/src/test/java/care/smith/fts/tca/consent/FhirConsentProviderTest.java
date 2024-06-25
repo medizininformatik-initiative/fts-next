@@ -6,6 +6,7 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
+import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.test.FhirGenerator;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.HttpRequest;
@@ -35,7 +35,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Slf4j
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
-@ExtendWith(MockitoExtension.class)
 class FhirConsentProviderTest {
   @Autowired WebClient.Builder httpClientBuilder;
   @Autowired PolicyHandler policyHandler;
@@ -111,14 +110,12 @@ class FhirConsentProviderTest {
                     new Parameter("_count", String.valueOf(2 * defaultPageSize)))))
         .respond(httpResponse);
 
-    var expectedNextLink =
-        "http://trustcenteragent:1234/cd/consented-patients?from=%s&count=%s"
-            .formatted(defaultPageSize, defaultPageSize);
+    var expectedNextLink = "/fake?from=%s&count=%s".formatted(defaultPageSize, defaultPageSize);
 
     log.info("Get first page");
     create(
             fhirConsentProvider.consentedPatientsPage(
-                "MII", POLICY_SYSTEM, POLICIES, "http://trustcenteragent:1234"))
+                "MII", POLICY_SYSTEM, POLICIES, fromUriString("/fake")))
         .assertNext(
             consentBundle ->
                 assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink))
@@ -129,7 +126,7 @@ class FhirConsentProviderTest {
                 "MII",
                 POLICY_SYSTEM,
                 POLICIES,
-                "http://trustcenteragent:1234",
+                fromUriString("/fake?from=0&count=200"),
                 defaultPageSize,
                 defaultPageSize))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink()).isEmpty())
@@ -162,7 +159,7 @@ class FhirConsentProviderTest {
 
     create(
             fhirConsentProvider.consentedPatientsPage(
-                "MII", POLICY_SYSTEM, POLICIES, "http://trustcenteragent:1234"))
+                "MII", POLICY_SYSTEM, POLICIES, fromUriString("http://trustcenteragent:1234")))
         .assertNext(
             consentBundle -> {
               assertThat(consentBundle.getLink("next")).isNull();
@@ -194,7 +191,7 @@ class FhirConsentProviderTest {
 
     create(
             fhirConsentProvider.consentedPatientsPage(
-                "MII", POLICY_SYSTEM, POLICIES, "http://trustcenteragent:1234"))
+                "MII", POLICY_SYSTEM, POLICIES, fromUriString("http://trustcenteragent:1234")))
         .assertNext(
             consentBundle -> {
               assertThat(consentBundle.getEntry()).isEmpty();
