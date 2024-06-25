@@ -23,7 +23,7 @@ class TCACohortSelector implements CohortSelector {
   public Flux<ConsentedPatient> selectCohort() {
     return client
         .post()
-        .uri("/api/v1/cd/consented-patients")
+        .uri("/api/v2/cd/consented-patients")
         .bodyValue(
             Map.of(
                 "policies",
