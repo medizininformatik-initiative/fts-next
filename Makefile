@@ -7,7 +7,7 @@ clean:
 	mvn clean
 
 build:
-	mvn install -Dmockserver.logLevel=WARN
+	mvn install -T1C -Dmockserver.logLevel=WARN
 
 images:
 	@for agent in $(AGENTS); do \

@@ -7,5 +7,7 @@ import org.springframework.http.MediaType;
 public abstract class MediaTypes {
   private MediaTypes() {}
 
-  public static final MediaType APPLICATION_FHIR_JSON = parseMediaType("application/fhir+json");
+  public static final String APPLICATION_FHIR_JSON_VALUE = "application/fhir+json";
+
+  public static final MediaType APPLICATION_FHIR_JSON = parseMediaType(APPLICATION_FHIR_JSON_VALUE);
 }

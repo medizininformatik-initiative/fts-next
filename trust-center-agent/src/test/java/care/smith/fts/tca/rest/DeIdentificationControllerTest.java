@@ -7,12 +7,9 @@ import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.PseudonymizeRequest;
 import care.smith.fts.util.tca.TransportIdsRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -27,11 +24,6 @@ class DeIdentificationControllerTest {
   @MockBean PseudonymProvider pseudonymProvider;
   @MockBean ShiftedDatesProvider shiftedDatesProvider;
   @Autowired WebTestClient webClient;
-
-  ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
-
-  @BeforeEach
-  void setUp() {}
 
   @Test
   void getTransportIdsAndDateShiftingValues() {
@@ -48,7 +40,7 @@ class DeIdentificationControllerTest {
         .post()
         .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
         .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
+        .bodyValue(body)
         .exchange()
         .expectStatus()
         .isOk()

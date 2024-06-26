@@ -24,4 +24,4 @@ deIdentification:
 
 logging:
   level:
-    care.smith.fts.util: trace
+    care.smith.fts: trace

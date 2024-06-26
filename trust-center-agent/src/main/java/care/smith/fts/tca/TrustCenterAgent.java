@@ -3,8 +3,8 @@ package care.smith.fts.tca;
 import static java.time.Duration.ofSeconds;
 
 import ca.uhn.fhir.context.FhirContext;
+import care.smith.fts.util.FhirCodecConfiguration;
 import care.smith.fts.util.WebClientDefaults;
-import care.smith.fts.util.WebClientFhirCodec;
 import java.net.http.HttpClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Import;
 @Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
-@Import({WebClientDefaults.class, WebClientFhirCodec.class})
+@Import({WebClientDefaults.class, FhirCodecConfiguration.class})
 public class TrustCenterAgent {
 
   public static void main(String... args) {

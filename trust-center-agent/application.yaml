@@ -1,2 +1,4 @@
 logging.level:
   care.smith.fts.tca: INFO
+  care.smith.fts.util: TRACE
+
