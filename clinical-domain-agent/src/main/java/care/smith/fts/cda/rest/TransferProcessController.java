@@ -25,7 +25,7 @@ public class TransferProcessController {
   Mono<TransferProcessRunner.Result> start(@PathVariable("project") String project) {
     var process = findProcess(project);
     if (process.isPresent()) {
-      log.debug("Running process: {}", process);
+      log.debug("Running process: {}", process.get());
       return processRunner
           .run(process.get())
           .doOnNext(result -> log.debug("Process run finished: {}", result))
