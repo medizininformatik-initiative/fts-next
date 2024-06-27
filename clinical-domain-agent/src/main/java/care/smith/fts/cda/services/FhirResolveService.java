@@ -51,7 +51,7 @@ public class FhirResolveService implements PatientIdResolver {
         .uri(
             uri ->
                 uri.pathSegment("Patient")
-                    .queryParam("identifier", identifierSystem + "/" + patientId)
+                    .queryParam("identifier", identifierSystem + "|" + patientId)
                     .build())
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
