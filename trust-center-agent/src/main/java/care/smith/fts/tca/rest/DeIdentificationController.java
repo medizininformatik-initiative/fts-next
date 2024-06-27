@@ -61,7 +61,10 @@ public class DeIdentificationController {
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<Map<String, String>>> fetchPseudonymizedIds(
       @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
-    var pseudonymizedIDs = requestData.flatMap(pseudonymProvider::fetchPseudonymizedIds);
+    var pseudonymizedIDs =
+        requestData
+            .doOnNext(b -> log.info("ids: %s, domain: %s".formatted(b.ids(), b.domain())))
+            .flatMap(pseudonymProvider::fetchPseudonymizedIds);
     return pseudonymizedIDs.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
   }
 
