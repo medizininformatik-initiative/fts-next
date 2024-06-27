@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -67,9 +68,9 @@ public class WebServerFhirCodecTest {
   public static class Controller {
     @PostMapping(
         path = "/simple",
-        consumes = {APPLICATION_JSON_VALUE, APPLICATION_FHIR_JSON_VALUE},
-        produces = {APPLICATION_JSON_VALUE, APPLICATION_FHIR_JSON_VALUE})
-    Mono<Patient> simple(Mono<Patient> patient) {
+        consumes = {APPLICATION_JSON_VALUE},
+        produces = {APPLICATION_JSON_VALUE})
+    Mono<Patient> simple(@RequestBody Mono<Patient> patient) {
       return patient.log();
     }
 
@@ -77,7 +78,7 @@ public class WebServerFhirCodecTest {
         path = "/response",
         consumes = {APPLICATION_JSON_VALUE, APPLICATION_FHIR_JSON_VALUE},
         produces = {APPLICATION_JSON_VALUE, APPLICATION_FHIR_JSON_VALUE})
-    Mono<ResponseEntity<Patient>> response(Mono<Patient> patient) {
+    Mono<ResponseEntity<Patient>> response(@RequestBody Mono<Patient> patient) {
       return patient.log().map(m -> new ResponseEntity<>(m, HttpStatus.OK));
     }
   }
