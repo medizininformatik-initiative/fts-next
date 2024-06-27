@@ -23,7 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.reactive.function.client.ClientResponse;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,7 +59,7 @@ class EverythingDataSelectorTest {
     given(response.statusCode()).willReturn(OK);
     try (InputStream inStream = getClass().getResourceAsStream("patient.json")) {
       var bundle = FhirContext.forR4().newJsonParser().parseResource(Bundle.class, inStream);
-      given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(bundle));
+      given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(bundle));
     }
     var dataSelector = new EverythingDataSelector(common, server.createClient(client), patient);
 

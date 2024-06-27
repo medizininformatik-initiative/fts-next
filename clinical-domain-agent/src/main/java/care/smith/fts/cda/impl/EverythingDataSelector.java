@@ -29,16 +29,20 @@ public class EverythingDataSelector implements DataSelector {
 
   @Override
   public Flux<Bundle> select(ConsentedPatient patient) {
-    return pidResolver.resolve(patient.id()).flatMapMany(id -> fetchBundle(patient, id));
+    return pidResolver
+        .resolve(patient.id())
+        .flatMapMany(fhirId -> fetchEverything(patient, fhirId));
   }
 
-  private Flux<Bundle> fetchBundle(ConsentedPatient patient, IIdType id) {
+  private Flux<Bundle> fetchEverything(ConsentedPatient patient, IIdType fhirId) {
     return client
         .get()
-        .uri(builder -> buildUri(builder, patient).build(id))
+        .uri(builder -> buildUri(builder, patient).build(fhirId.getIdPart()))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
-        .bodyToFlux(Bundle.class);
+        .bodyToMono(Bundle.class)
+        // TODO Paging using .expand()? see Flare
+        .flux();
   }
 
   private UriBuilder buildUri(UriBuilder builder, ConsentedPatient patient) {
