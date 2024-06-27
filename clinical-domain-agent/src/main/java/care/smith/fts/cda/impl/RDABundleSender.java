@@ -3,18 +3,14 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static java.util.Objects.requireNonNull;
-import static java.util.function.Predicate.not;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.of;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
-import java.util.Optional;
+import care.smith.fts.util.MediaTypes;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.Patient;
-import org.hl7.fhir.r4.model.Resource;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -41,29 +37,17 @@ final class RDABundleSender implements BundleSender {
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {
     return client
         .post()
-        .uri("/api/v2/process/" + config.project())
-        .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
+        .uri(uri -> uri.pathSegment("api", "v2", "{project}", "patient").build(config.project()))
+        .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))
         .bodyValue(requireNonNull(bundle))
         .retrieve()
         .toBodilessEntity();
   }
 
-  public static Bundle toPatientBundle(TransportBundle transportBundle) {
-    Optional<Resource> patient =
-        resourceStream(transportBundle.bundle()).filter(Patient.class::isInstance).findFirst();
-    if (patient.isPresent()) {
-      return toPatientBundle(transportBundle, patient.get());
-    } else {
-      throw new IllegalArgumentException("TransportBundle contains no Patient");
-    }
-  }
-
-  private static Bundle toPatientBundle(TransportBundle transportBundle, Resource resource) {
+  private static Bundle toPatientBundle(TransportBundle transportBundle) {
     Parameters transportIds = new Parameters();
-    transportBundle.transportIds().forEach(id -> transportIds.addParameter("transportId", id));
-    return concat(
-            of(resource, transportIds),
-            resourceStream(transportBundle.bundle()).filter(not(Patient.class::isInstance)))
-        .collect(toBundle());
+    transportIds.setId("transport-ids");
+    transportBundle.transportIds().forEach(id -> transportIds.addParameter("transport-id", id));
+    return concat(of(transportIds), resourceStream(transportBundle.bundle())).collect(toBundle());
   }
 }
