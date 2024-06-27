@@ -1,17 +1,20 @@
 package care.smith.fts.cda;
 
 import care.smith.fts.api.ConsentedPatient;
+import java.util.List;
 import lombok.Builder;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface TransferProcessRunner {
-  Flux<Result> run(TransferProcess process);
+  Mono<Result> run(TransferProcess process);
 
   @Builder
-  public record Result(
+  record PatientResult(
       ConsentedPatient patient,
-      int bundlesSent,
+      long bundlesSent,
       long selectedResources,
       long deidentifedResource,
       long transportIds) {}
+
+  record Result(long bundleCount, long errorCount, List<PatientResult> patientResults) {}
 }

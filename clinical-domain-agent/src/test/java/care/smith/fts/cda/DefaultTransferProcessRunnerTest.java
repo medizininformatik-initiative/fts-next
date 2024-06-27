@@ -1,5 +1,6 @@
 package care.smith.fts.cda;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
@@ -7,7 +8,6 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender;
-import care.smith.fts.cda.TransferProcessRunner.Result;
 import java.util.List;
 import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
@@ -28,7 +28,7 @@ class DefaultTransferProcessRunnerTest {
 
   @Test
   void runMockTestSuccessfully() {
-    BundleSender.Result result = new BundleSender.Result(0);
+    BundleSender.Result result = new BundleSender.Result(1);
     TransferProcess process =
         new TransferProcess(
             "test",
@@ -37,6 +37,13 @@ class DefaultTransferProcessRunnerTest {
             (b) -> fromIterable(List.of(new TransportBundle(new Bundle(), Set.of()))),
             (b) -> just(result));
 
-    create(runner.run(process)).expectNext(new Result(PATIENT, 0, 0, 0, 0)).verifyComplete();
+    create(runner.run(process))
+        .assertNext(
+            r -> {
+              assertThat(r.bundleCount()).isEqualTo(1);
+              assertThat(r.errorCount()).isEqualTo(0);
+              assertThat(r.patientResults()).hasSize(1);
+            })
+        .verifyComplete();
   }
 }
