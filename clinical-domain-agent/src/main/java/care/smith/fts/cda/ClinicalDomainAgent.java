@@ -1,6 +1,5 @@
 package care.smith.fts.cda;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.time.Duration.ofSeconds;
 
 import ca.uhn.fhir.context.FhirContext;
@@ -56,11 +55,7 @@ public class ClinicalDomainAgent {
   }
 
   @Bean
-  public Path projectsDirectory(@Value("${projects.directory:}") String directoryName) {
-    if (isNullOrEmpty(directoryName)) {
-      return Paths.get("projects");
-    } else {
-      return Paths.get(directoryName);
-    }
+  public Path projectsDirectory(@Value("${projects.directory:projects}") String directoryName) {
+    return Paths.get(directoryName);
   }
 }
