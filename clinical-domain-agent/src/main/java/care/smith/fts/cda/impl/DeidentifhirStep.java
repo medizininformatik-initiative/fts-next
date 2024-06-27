@@ -55,9 +55,6 @@ class DeidentifhirStep implements DeidentificationProvider {
               Map<String, String> transportIDs = response.idMap();
               Duration dateShiftValue = response.dateShiftValue();
 
-              log.info(patient.id());
-              log.info(transportIDs.get(patient.id()));
-
               var registry = generateRegistry(patient.id(), transportIDs, dateShiftValue);
               var deidentified =
                   DeidentifhirUtils.deidentify(
