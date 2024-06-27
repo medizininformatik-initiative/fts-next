@@ -1,6 +1,5 @@
 package care.smith.fts.cda;
 
-import care.smith.fts.api.ConsentedPatient;
 import java.util.List;
 import lombok.Builder;
 import reactor.core.publisher.Mono;
@@ -10,11 +9,10 @@ public interface TransferProcessRunner {
 
   @Builder
   record PatientResult(
-      ConsentedPatient patient,
-      long bundlesSent,
-      long selectedResources,
-      long deidentifedResource,
-      long transportIds) {}
+      long bundlesSentCount,
+      long selectedResourcesCount,
+      long deidentifedResourcesCount,
+      long transportIdsCount) {}
 
-  record Result(long bundleCount, long errorCount, List<PatientResult> patientResults) {}
+  record Result(long bunesSentCount, long patientErrorsCount, List<PatientResult> patientResults) {}
 }

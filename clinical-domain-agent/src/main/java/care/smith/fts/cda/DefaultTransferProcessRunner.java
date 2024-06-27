@@ -1,7 +1,6 @@
 package care.smith.fts.cda;
 
 import care.smith.fts.api.*;
-import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
@@ -31,9 +30,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       DataSelector bundleDataSelector,
       DeidentificationProvider bundleDeidentificationProvider,
       BundleSender bundleBundleSender) {
-    Flux<ConsentedPatient> patients = cohortSelector.selectCohort();
     var errors = new AtomicLong();
-    return patients
+    return cohortSelector
+        .selectCohort()
         .flatMap(
             patient -> {
               var selectedResources = new AtomicLong();
@@ -55,11 +54,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
                   .map(
                       sendResult ->
                           PatientResult.builder()
-                              .patient(patient)
-                              .bundlesSent(sendResult.bundleCount())
-                              .selectedResources(selectedResources.get())
-                              .deidentifedResource(deidentifiedResources.get())
-                              .transportIds(transportIds.get())
+                              .bundlesSentCount(sendResult.bundleCount())
+                              .selectedResourcesCount(selectedResources.get())
+                              .deidentifedResourcesCount(deidentifiedResources.get())
+                              .transportIdsCount(transportIds.get())
                               .build());
             })
         .doOnError(e -> errors.incrementAndGet())
@@ -69,7 +67,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   private static Result createResult(List<PatientResult> ps, AtomicLong errors) {
-    long sumBundlesSent = ps.stream().mapToLong(PatientResult::bundlesSent).sum();
+    long sumBundlesSent = ps.stream().mapToLong(PatientResult::bundlesSentCount).sum();
     return new Result(sumBundlesSent, errors.get(), ps);
   }
 }
