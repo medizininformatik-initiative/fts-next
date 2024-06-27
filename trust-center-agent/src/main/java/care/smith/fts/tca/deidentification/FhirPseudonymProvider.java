@@ -1,5 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import java.util.*;
@@ -7,7 +9,6 @@ import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -98,8 +99,9 @@ public class FhirPseudonymProvider implements PseudonymProvider {
     return httpClient
         .post()
         .uri("/$pseudonymizeAllowCreate")
-        .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
+        .headers(h -> h.setContentType(APPLICATION_JSON))
         .bodyValue(params)
+        .headers(h -> h.setAccept(List.of(APPLICATION_JSON)))
         .retrieve()
         .bodyToMono(GpasParameterResponse.class)
         .map(GpasParameterResponse::getMappedID);

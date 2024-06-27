@@ -7,7 +7,6 @@ import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
-import static org.mockserver.model.MediaType.APPLICATION_JSON;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
@@ -27,6 +26,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
+import org.mockserver.model.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -84,7 +84,7 @@ class FhirPseudonymProviderTest {
             response()
                 .withBody(
                     new String(fhirGenerator.generateInputStream().readAllBytes()),
-                    APPLICATION_JSON));
+                    MediaType.create("application", "fhir+json")));
 
     given(jedis.set(anyString(), anyString(), any(SetParams.class))).willReturn("OK");
     // In retrieveTransportIds(), the first jedis.get() checks whether the ID exists

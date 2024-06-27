@@ -33,9 +33,13 @@ public class WebClientDefaults implements WebClientCustomizer {
   }
 
   private void configureObjectMapper(ClientCodecConfigurer cs) {
-    var encoder = new Jackson2JsonEncoder(objectMapper, MediaType.APPLICATION_JSON);
+    var encoder =
+        new Jackson2JsonEncoder(
+            objectMapper, MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_FHIR_JSON);
     cs.defaultCodecs().jackson2JsonEncoder(encoder);
-    var decoder = new Jackson2JsonDecoder(objectMapper, MediaType.APPLICATION_JSON);
+    var decoder =
+        new Jackson2JsonDecoder(
+            objectMapper, MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_FHIR_JSON);
     cs.defaultCodecs().jackson2JsonDecoder(decoder);
   }
 }
