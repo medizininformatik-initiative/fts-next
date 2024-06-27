@@ -37,8 +37,8 @@ class TCACohortSelector implements CohortSelector {
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
-        .bodyToFlux(Bundle.class)
-        .flatMap(
+        .bodyToMono(Bundle.class)
+        .flatMapMany(
             outerBundle ->
                 Flux.fromStream(
                     extractConsentedPatients(

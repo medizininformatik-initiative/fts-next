@@ -23,7 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.reactive.function.client.ClientResponse;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
@@ -51,7 +51,7 @@ class TCACohortSelectorTest {
   void responseInvalidErrors() {
     var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
-    given(response.bodyToFlux(String.class)).willReturn(Flux.just(""));
+    given(response.bodyToMono(String.class)).willReturn(Mono.just(""));
     var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
     create(cohortSelector.selectCohort()).expectError().verify();
@@ -77,7 +77,7 @@ class TCACohortSelectorTest {
                 new Consent().setProvision(denyProvision()))
             .collect(toBundle());
     Bundle outer = Stream.of(inner).collect(toBundle());
-    given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(outer));
+    given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
     var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
     create(cohortSelector.selectCohort()).expectNextCount(1).verifyComplete();
@@ -88,7 +88,7 @@ class TCACohortSelectorTest {
     var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     Bundle outer = Stream.<Resource>of().collect(toBundle());
-    given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(outer));
+    given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
     var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
     create(cohortSelector.selectCohort()).verifyComplete();
@@ -99,7 +99,7 @@ class TCACohortSelectorTest {
     var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     Bundle outer = Stream.of(Stream.<Resource>of().collect(toBundle())).collect(toBundle());
-    given(response.bodyToFlux(Bundle.class)).willReturn(Flux.just(outer));
+    given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
     var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
     create(cohortSelector.selectCohort()).verifyComplete();
