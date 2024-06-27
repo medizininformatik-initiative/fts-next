@@ -8,10 +8,12 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 class TCACohortSelector implements CohortSelector {
   private final TCACohortSelectorConfig config;
   private final WebClient client;
@@ -38,6 +40,8 @@ class TCACohortSelector implements CohortSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
+        // TODO Paging using .expand()? see Flare
+        .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getTotal()))
         .flatMapMany(
             outerBundle ->
                 Flux.fromStream(
