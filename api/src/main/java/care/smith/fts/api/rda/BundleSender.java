@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 
 public interface BundleSender extends Step {
 
-  Mono<Result> send(Mono<Bundle> bundles);
+  Mono<Result> send(Bundle bundles);
 
   interface Factory<C> extends StepFactory<BundleSender, Config, C> {}
 

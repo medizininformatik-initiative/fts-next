@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 
 public interface DeidentificationProvider extends Step {
 
-  Mono<Bundle> replaceIds(Mono<TransportBundle> inFlux);
+  Mono<Bundle> replaceIds(TransportBundle bundle);
 
   interface Factory<C> extends StepFactory<DeidentificationProvider, Config, C> {}
 

@@ -8,11 +8,13 @@ import care.smith.fts.api.rda.DeidentificationProvider;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 class DeidentifhirStep implements DeidentificationProvider {
   private final WebClient httpClient;
   private final String domain;
@@ -28,20 +30,13 @@ class DeidentifhirStep implements DeidentificationProvider {
   }
 
   @Override
-  public Mono<Bundle> replaceIds(Mono<TransportBundle> bundleMono) {
-    return bundleMono.flatMap(
-        bundle ->
-            fetchPseudonymsForTransportIds(bundle.transportIds())
-                .map(
-                    p ->
-                        replaceIDs(
-                            deidentifhirConfig, generateRegistry(p.idMap()), bundle.bundle())));
+  public Mono<Bundle> replaceIds(TransportBundle bundle) {
+    return fetchPseudonymsForTransportIds(bundle.transportIds())
+        .map(p -> replaceIDs(deidentifhirConfig, generateRegistry(p.idMap()), bundle.bundle()));
   }
 
   private Mono<PseudonymizeResponse> fetchPseudonymsForTransportIds(Set<String> transportIds) {
-
     var request = new TransportIdsRequest(domain, transportIds);
-
     return httpClient
         .post()
         .uri("/api/v2/rd/resolve-pseudonyms")

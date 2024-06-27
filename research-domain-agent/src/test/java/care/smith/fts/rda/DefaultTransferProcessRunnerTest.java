@@ -28,7 +28,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcess("test", (b) -> Mono.just(new Bundle()), (b) -> just(result));
 
     create(runner.run(process, Mono.just(new TransportBundle(new Bundle(), Set.of()))))
-        .expectNext(new BundleSender.Result())
+        .expectNext(new TransferProcessRunner.Result(0, 0))
         .verifyComplete();
   }
 }

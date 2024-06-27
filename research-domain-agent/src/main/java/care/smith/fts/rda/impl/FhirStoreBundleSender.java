@@ -9,25 +9,20 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 final class FhirStoreBundleSender implements BundleSender {
-  private final FhirStoreBundleSenderConfig config;
   private final WebClient client;
 
-  public FhirStoreBundleSender(FhirStoreBundleSenderConfig config, WebClient client) {
-    this.config = config;
+  public FhirStoreBundleSender(WebClient client) {
     this.client = client;
   }
 
   @Override
-  public Mono<Result> send(Mono<Bundle> bundleMono) {
-    return bundleMono
-        .map(FhirStoreBundleSender::toTransactionBundle)
-        .flatMap(
-            b ->
-                client
-                    .post()
-                    .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
-                    .retrieve()
-                    .toBodilessEntity())
+  public Mono<Result> send(Bundle bundle) {
+    return client
+        .post()
+        .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
+        .bodyValue(toTransactionBundle(bundle))
+        .retrieve()
+        .toBodilessEntity()
         .map(b -> new Result());
   }
 

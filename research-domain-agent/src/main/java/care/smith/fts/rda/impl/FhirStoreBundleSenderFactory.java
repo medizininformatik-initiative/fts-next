@@ -22,6 +22,6 @@ public class FhirStoreBundleSenderFactory
   @Override
   public BundleSender create(
       BundleSender.Config commonConfig, FhirStoreBundleSenderConfig implConfig) {
-    return new FhirStoreBundleSender(implConfig, implConfig.server().createClient(builder));
+    return new FhirStoreBundleSender(implConfig.server().createClient(builder));
   }
 }

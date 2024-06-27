@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.ClientResponse;
-import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
 class FhirStoreBundleSenderTest {
@@ -31,9 +30,9 @@ class FhirStoreBundleSenderTest {
             .exchangeFunction(
                 matchRequest(HttpMethod.POST)
                     .willRespond(ClientResponse.create(BAD_REQUEST).build()));
-    var bundleSender = new FhirStoreBundleSender(config, config.server().createClient(client));
+    var bundleSender = new FhirStoreBundleSender(config.server().createClient(client));
 
-    create(bundleSender.send(Mono.just(new Bundle()))).expectError().verify();
+    create(bundleSender.send(new Bundle())).expectError().verify();
   }
 
   @Test
@@ -42,10 +41,8 @@ class FhirStoreBundleSenderTest {
         builder()
             .exchangeFunction(
                 matchRequest(HttpMethod.POST).willRespond(ClientResponse.create(OK).build()));
-    var bundleSender = new FhirStoreBundleSender(config, config.server().createClient(client));
+    var bundleSender = new FhirStoreBundleSender(config.server().createClient(client));
 
-    create(bundleSender.send(Mono.just(new Bundle())))
-        .expectNext(new BundleSender.Result())
-        .verifyComplete();
+    create(bundleSender.send(new Bundle())).expectNext(new BundleSender.Result()).verifyComplete();
   }
 }
