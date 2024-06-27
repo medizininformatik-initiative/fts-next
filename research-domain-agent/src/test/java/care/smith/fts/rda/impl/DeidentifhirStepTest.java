@@ -97,7 +97,7 @@ class DeidentifhirStepTest {
                 .withBody(
                     json(
                         """
-                        {"idMap":  {"tid1": "pid1"}, "dateShiftValue": 1234 }
+                        {"tid1": "pid1"}
                         """))
                 .withStatusCode(200));
 

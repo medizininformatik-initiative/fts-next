@@ -7,9 +7,11 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.DeidentificationProvider;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -32,12 +34,11 @@ class DeidentifhirStep implements DeidentificationProvider {
   @Override
   public Mono<Bundle> replaceIds(TransportBundle bundle) {
     return fetchPseudonymsForTransportIds(bundle.transportIds())
-        .doOnNext(r -> log.info("tid -> pid: %s".formatted(r.idMap())))
-        .map(p -> replaceIDs(deidentifhirConfig, generateRegistry(p.idMap()), bundle.bundle()))
-        .doOnNext(b -> log.info("total bundle entries: %s".formatted(b.getTotal())));
+        .map(p -> replaceIDs(deidentifhirConfig, generateRegistry(p), bundle.bundle()))
+        .doOnNext(b -> log.trace("total bundle entries: {}", b.getTotal()));
   }
 
-  private Mono<PseudonymizeResponse> fetchPseudonymsForTransportIds(Set<String> transportIds) {
+  private Mono<Map<String, String>> fetchPseudonymsForTransportIds(Set<String> transportIds) {
     var request = new TransportIdsRequest(domain, transportIds);
     return httpClient
         .post()
@@ -45,6 +46,6 @@ class DeidentifhirStep implements DeidentificationProvider {
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(request)
         .retrieve()
-        .bodyToMono(PseudonymizeResponse.class);
+        .bodyToMono(new ParameterizedTypeReference<>() {});
   }
 }
