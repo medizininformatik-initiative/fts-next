@@ -1,10 +1,13 @@
 package care.smith.fts.rda.impl;
 
+import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.Resource;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -28,8 +31,18 @@ final class FhirStoreBundleSender implements BundleSender {
 
   private static Bundle toTransactionBundle(Bundle bundle) {
     Bundle transactionBundle = new Bundle();
-    transactionBundle.setType(Bundle.BundleType.TRANSACTION);
-    transactionBundle.addEntry(new BundleEntryComponent().setResource(bundle));
+    resourceStream(bundle)
+        .map(FhirStoreBundleSender::createPutEntry)
+        .forEach(entry -> transactionBundle.addEntry());
+    transactionBundle.setType(TRANSACTION);
     return transactionBundle;
+  }
+
+  private static BundleEntryComponent createPutEntry(Resource r) {
+    var value =
+        new Bundle.BundleEntryRequestComponent()
+            .setMethod(Bundle.HTTPVerb.PUT)
+            .setUrl("%s/%s".formatted(r.getResourceType().getPath(), r.getIdPart()));
+    return new BundleEntryComponent().setRequest(value).setResource(r);
   }
 }
