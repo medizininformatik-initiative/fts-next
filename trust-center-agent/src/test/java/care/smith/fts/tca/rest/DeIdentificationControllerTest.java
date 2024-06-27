@@ -35,7 +35,7 @@ class DeIdentificationControllerTest {
     var body =
         new PseudonymizeRequest("patientId1", Set.of("id1", "id2"), "domain", Duration.ofDays(14));
     var expectedResponse =
-        "{\"idMap\":{\"id1\":\"tid1\",\"id2\":\"tid2\"},\"dateShiftValue\":86400}";
+        "{\"idMap\":{\"id1\":\"tid1\",\"id2\":\"tid2\"},\"dateShiftValue\":\"PT24H\"}";
     webClient
         .post()
         .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
