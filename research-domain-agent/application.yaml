@@ -1,2 +1,3 @@
 logging.level:
-  care.smith.fts.rda: INFO
+  care.smith.fts: DEBUG
+  care.smith.fts.rda: TRACE
