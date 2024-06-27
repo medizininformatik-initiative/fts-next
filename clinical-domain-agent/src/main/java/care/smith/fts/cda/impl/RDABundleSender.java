@@ -28,7 +28,7 @@ final class RDABundleSender implements BundleSender {
   @Override
   public Mono<Result> send(Flux<TransportBundle> bundles) {
     return bundles
-        .map(RDABundleSender::toPatientBundle)
+        .map(RDABundleSender::toPlainBundle)
         .flatMap(this::sendBundle)
         .reduce(0, (res, resp) -> res + 1)
         .map(Result::new);
@@ -44,7 +44,7 @@ final class RDABundleSender implements BundleSender {
         .toBodilessEntity();
   }
 
-  private static Bundle toPatientBundle(TransportBundle transportBundle) {
+  private static Bundle toPlainBundle(TransportBundle transportBundle) {
     Parameters transportIds = new Parameters();
     transportIds.setId("transport-ids");
     transportBundle.transportIds().forEach(id -> transportIds.addParameter("transport-id", id));
