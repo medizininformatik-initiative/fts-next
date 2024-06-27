@@ -41,16 +41,17 @@ public class TransferProcessController {
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
       return processRunner
-          .run(process.get(), data.map(this::fromTransportBundle))
-          .doOnNext(result1 -> log.debug("Process run finished: {}", result1))
+          .run(process.get(), data.map(TransferProcessController::fromPlainBundle))
+          .doOnNext(r -> log.debug("Process run finished: {}", r))
           .doOnCancel(() -> log.warn("Process run cancelled"))
-          .doOnError(err -> log.debug("Process run errored", err));
+          .doOnError(err -> log.warn("Process run errored", err));
     } else {
       return error(new IllegalStateException("Project %s could not be found".formatted(project)));
     }
   }
 
-  private TransportBundle fromTransportBundle(Bundle bundle) {
+  static TransportBundle fromPlainBundle(Bundle bundle) {
+    log.trace("Converting from PlainBundle to TransportBundle");
     var bundleWithoutParameters =
         resourceStream(bundle)
             .filter(not(and(Parameters.class::isInstance, p -> p.getId().equals("transport-ids"))))
@@ -58,7 +59,7 @@ public class TransferProcessController {
     var transportIds =
         resourceStream(bundle)
             .filter(Parameters.class::isInstance)
-            .filter(p -> p.getId().equals("transport-ids"))
+            .filter(p -> p.getIdPart().equals("transport-ids"))
             .map(Parameters.class::cast)
             .findFirst()
             .map(TransferProcessController::extractTransportIds)

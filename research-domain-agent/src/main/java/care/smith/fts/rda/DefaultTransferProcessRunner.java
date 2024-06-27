@@ -26,10 +26,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
             b -> log.debug("processing patient bundle, resources: {}", b.bundle().getTotal()))
         .doOnNext(b -> receivedResources.getAndAdd(b.bundle().getTotal()))
         .flatMap(deidentificationProvider::replaceIds)
-        .doOnNext(b -> log.debug("ids replaced, resources: {}", b.getTotal()))
         .doOnNext(b -> sentResources.getAndAdd(b.getTotal()))
         .flatMap(bundleSender::send)
-        .doOnNext(b -> log.debug("bundle sent"))
         .doOnError(err -> log.info("Could not process patient: {}", err.getMessage()))
         .map(r -> new Result(receivedResources.get(), sentResources.get()));
   }
