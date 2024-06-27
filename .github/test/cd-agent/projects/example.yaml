@@ -10,7 +10,7 @@ cohortSelector:
 dataSelector:
   everything:
     fhirServer:
-      baseUrl: http://cd-hds:8080
+      baseUrl: http://cd-hds:8080/fhir
     resolve:
       patientIdentifierSystem: http://fts.smith.care
 

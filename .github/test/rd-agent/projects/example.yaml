@@ -10,4 +10,4 @@ deidentificationProvider:
 bundleSender:
   fhirStore:
     server:
-      baseUrl: http://rd-hds:8080
+      baseUrl: http://rd-hds:8080/fhir
