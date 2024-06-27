@@ -1,7 +1,8 @@
 package care.smith.fts.cda.services;
 
 import org.hl7.fhir.instance.model.api.IIdType;
+import reactor.core.publisher.Mono;
 
 public interface PatientIdResolver {
-  IIdType resolve(String patientId);
+  Mono<IIdType> resolve(String patientId);
 }

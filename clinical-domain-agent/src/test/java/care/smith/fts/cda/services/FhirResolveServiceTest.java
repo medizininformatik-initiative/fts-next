@@ -2,13 +2,12 @@ package care.smith.fts.cda.services;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static java.util.Objects.requireNonNull;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
+import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.test.MockServerUtil;
-import org.hl7.fhir.instance.model.api.IIdType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +44,7 @@ class FhirResolveServiceTest {
   }
 
   @Test
-  void noPatientsThrow(MockServerClient mockServer) throws Exception {
+  void noPatientsErrors(MockServerClient mockServer) throws Exception {
     try (var inStream = getClass().getResourceAsStream("search-0.json")) {
       var bundle = requireNonNull(inStream).readAllBytes();
       mockServer
@@ -53,10 +52,11 @@ class FhirResolveServiceTest {
           .respond(response().withBody(bundle).withHeader(CONTENT_JSON));
     }
 
-    assertThatExceptionOfType(IllegalStateException.class)
-        .isThrownBy(() -> service.resolve("external-141392"))
-        .withMessageContaining("Unable to resolve")
-        .withMessageContaining("external-141392");
+    create(service.resolve("external-141392"))
+        .verifyErrorMatches(
+            err ->
+                err.getMessage().contains("Unable to resolve")
+                    && err.getMessage().contains("external-141392"));
   }
 
   @Test
@@ -68,12 +68,13 @@ class FhirResolveServiceTest {
           .respond(response().withBody(bundle).withHeader(CONTENT_JSON));
     }
 
-    IIdType pid = service.resolve("external-141392");
-    assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID);
+    create(service.resolve("external-141392"))
+        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
+        .verifyComplete();
   }
 
   @Test
-  void multiplePatientsThrow(MockServerClient mockServer) throws Exception {
+  void multiplePatientsError(MockServerClient mockServer) throws Exception {
     try (var inStream = getClass().getResourceAsStream("search-2.json")) {
       var bundle = requireNonNull(inStream).readAllBytes();
       mockServer
@@ -81,10 +82,11 @@ class FhirResolveServiceTest {
           .respond(response().withBody(bundle).withHeader(CONTENT_JSON));
     }
 
-    assertThatExceptionOfType(IllegalStateException.class)
-        .isThrownBy(() -> service.resolve("external-141392"))
-        .withMessageContaining("more then one")
-        .withMessageContaining("external-141392");
+    create(service.resolve("external-075521"))
+        .verifyErrorMatches(
+            err ->
+                err.getMessage().contains("more then one")
+                    && err.getMessage().contains("external-075521"));
   }
 
   @Test

@@ -1,18 +1,19 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
-import java.net.URI;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
+import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class EverythingDataSelector implements DataSelector {
   private final Config common;
@@ -28,16 +29,24 @@ public class EverythingDataSelector implements DataSelector {
 
   @Override
   public Flux<Bundle> select(ConsentedPatient patient) {
-    return Mono.fromSupplier(() -> client.get().uri(builder -> buildUri(builder, patient)))
-        .flatMapMany(req -> req.retrieve().bodyToFlux(Bundle.class));
+    return pidResolver.resolve(patient.id()).flatMapMany(id -> fetchBundle(patient, id));
   }
 
-  private URI buildUri(UriBuilder builder, ConsentedPatient patient) {
+  private Flux<Bundle> fetchBundle(ConsentedPatient patient, IIdType id) {
+    return client
+        .get()
+        .uri(builder -> buildUri(builder, patient).build(id))
+        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
+        .retrieve()
+        .bodyToFlux(Bundle.class);
+  }
+
+  private UriBuilder buildUri(UriBuilder builder, ConsentedPatient patient) {
     builder = builder.pathSegment("Patient", "{id}", "$everything");
     if (!common.ignoreConsent()) {
       builder = addConsentParams(builder, patient);
     }
-    return builder.build(pidResolver.resolve(patient.id()));
+    return builder;
   }
 
   private UriBuilder addConsentParams(UriBuilder params, ConsentedPatient patient) {

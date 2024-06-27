@@ -5,6 +5,7 @@ import care.smith.fts.cda.services.PatientIdResolver;
 import org.hl7.fhir.r4.model.IdType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Component("everythingDataSelector")
 public class EverythingDataSelectorFactory
@@ -32,7 +33,7 @@ public class EverythingDataSelectorFactory
     if (config.resolve() != null) {
       return config.resolve().createService(client);
     } else {
-      return pid -> new IdType("Patient", pid);
+      return pid -> Mono.just(new IdType("Patient", pid));
     }
   }
 }

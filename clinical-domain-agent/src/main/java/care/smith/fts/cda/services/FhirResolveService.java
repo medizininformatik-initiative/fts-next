@@ -1,8 +1,10 @@
 package care.smith.fts.cda.services;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
@@ -30,17 +32,17 @@ public class FhirResolveService implements PatientIdResolver {
    * @return the ID of the FHIR resource
    */
   @Override
-  public IIdType resolve(String patientId) {
-    return this.resolveFromPatient(patientId).getIdElement();
+  public Mono<IIdType> resolve(String patientId) {
+    return this.resolveFromPatient(patientId).map(IBaseResource::getIdElement);
   }
 
-  private IBaseResource resolveFromPatient(String patientId) {
+  private Mono<IBaseResource> resolveFromPatient(String patientId) {
     requireNonNull(emptyToNull(patientId), "patientId must not be null or empty");
-    Bundle patients = fetchPatientBundle(patientId).block();
-    requireNonNull(patients, "Patient bundle must not be null");
-    checkBundleNotEmpty(patients, patientId);
-    checkSinglePatient(patients, patientId);
-    return patients.getEntryFirstRep().getResource();
+    return fetchPatientBundle(patientId)
+        .doOnNext(ps -> requireNonNull(ps, "Patient bundle must not be null"))
+        .doOnNext(ps -> checkBundleNotEmpty(ps, patientId))
+        .doOnNext(ps -> checkSinglePatient(ps, patientId))
+        .map(ps -> ps.getEntryFirstRep().getResource());
   }
 
   private Mono<Bundle> fetchPatientBundle(String patientId) {
@@ -51,6 +53,7 @@ public class FhirResolveService implements PatientIdResolver {
                 uri.pathSegment("Patient")
                     .queryParam("identifier", identifierSystem + "/" + patientId)
                     .build())
+        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class);
   }

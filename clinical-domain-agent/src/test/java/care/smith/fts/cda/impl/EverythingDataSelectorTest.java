@@ -30,7 +30,7 @@ import reactor.core.publisher.Mono;
 class EverythingDataSelectorTest {
 
   private static final String PATIENT_ID = "patient-112348";
-  private static final PatientIdResolver patient = pid -> new IdType("Patient", pid);
+  private static final PatientIdResolver patient = pid -> Mono.just(new IdType("Patient", pid));
 
   @Mock ClientResponse response;
   private final DataSelector.Config common = new DataSelector.Config(false, null);
