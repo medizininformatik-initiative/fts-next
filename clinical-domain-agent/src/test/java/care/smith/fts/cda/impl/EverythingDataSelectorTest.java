@@ -1,7 +1,6 @@
 package care.smith.fts.cda.impl;
 
 import static org.mockito.BDDMockito.given;
-import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.web.reactive.function.client.WebClient.builder;
 import static reactor.core.publisher.Mono.just;
