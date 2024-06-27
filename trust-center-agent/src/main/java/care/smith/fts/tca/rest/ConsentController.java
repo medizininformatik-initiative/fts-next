@@ -1,6 +1,7 @@
 package care.smith.fts.tca.rest;
 
 import care.smith.fts.tca.consent.ConsentProvider;
+import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.tca.ConsentRequest;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class ConsentController {
   @PostMapping(
       value = "/cd/consented-patients",
       consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
   public Mono<ResponseEntity<Bundle>> consentedPatients(
       @Validated(ConsentRequest.class) @RequestBody Mono<ConsentRequest> request,
       UriComponentsBuilder uriBuilder,
