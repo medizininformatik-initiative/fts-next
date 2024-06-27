@@ -53,12 +53,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
                   .send(transportBundleFlux)
                   .map(
                       sendResult ->
-                          PatientResult.builder()
-                              .bundlesSentCount(sendResult.bundleCount())
-                              .selectedResourcesCount(selectedResources.get())
-                              .deidentifedResourcesCount(deidentifiedResources.get())
-                              .transportIdsCount(transportIds.get())
-                              .build());
+                          new PatientResult(
+                              sendResult.bundleCount(),
+                              selectedResources.get(),
+                              deidentifiedResources.get(),
+                              transportIds.get()));
             })
         .doOnError(e -> errors.incrementAndGet())
         .onErrorContinue((err, o) -> log.info("Could not process patient: {}", err.getMessage()))
