@@ -94,8 +94,6 @@ services:
       retries: 10
   gics:
     image: creg.smith.care/fts/gics:2023.1.4@sha256:093f317ad936ff8595105bf21abccd4ad33ddd066d132e5ba34d5b37e5b8bd62
-    entrypoint: /bin/bash
-    command: -c "./wait-for-it.sh gics-db:3306 -t 120 && ./run.sh"
     ports: [ ":8080" ]
     networks: [ "trust-center", "gics" ]
     depends_on:
@@ -107,10 +105,15 @@ services:
       timeout: 5s
       retries: 100
   gics-db:
-    image: creg.smith.care/fts/gics-db:2023.1.4@sha256:1c5a317df63be49c5a3fc9bce3cddec24e677e296f3a7b93f99f42ed6aceb5cf
+    image: mysql:8.4.0@sha256:dab7049abafe3a0e12cbe5e49050cf149881c0cd9665c289e5808b9dad39c9e0
     volumes:
     - ./gics/initdb/:/docker-entrypoint-initdb.d
-    command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
+    command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin --mysql-native-password=ON
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gics
+      MYSQL_USER: gics_user
+      MYSQL_PASSWORD: gics_password
     networks: [ "gics" ]
     healthcheck:
       test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugics_user", "-pgics_password" ]
@@ -119,8 +122,6 @@ services:
       retries: 20
   gpas:
     image: creg.smith.care/fts/gpas:2023.1.2@sha256:6ccc25c108060fe7dce34a776c60b24139b655796c51256600a86ad3d71818f6
-    entrypoint: /bin/bash
-    command: -c "./wait-for-it.sh gpas-db:3306 -t 120 && ./run.sh"
     ports: [ ":8080" ]
     networks: [ "trust-center", "gpas" ]
     depends_on:
@@ -132,8 +133,15 @@ services:
       timeout: 5s
       retries: 20
   gpas-db:
-    image: creg.smith.care/fts/gpas-db:2023.1.2@sha256:4b13ae81ab1bcc0cd60110d6c5383d0e9c50c637899d4ba370ea27324d286c41
-    command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
+    image: mysql:8.4.0@sha256:dab7049abafe3a0e12cbe5e49050cf149881c0cd9665c289e5808b9dad39c9e0
+    volumes:
+    - ./gpas/initdb/:/docker-entrypoint-initdb.d
+    command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin --mysql-native-password=ON
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gpas
+      MYSQL_USER: gpas_user
+      MYSQL_PASSWORD: gpas_password
     networks: [ "gpas" ]
     healthcheck:
       test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugpas_user", "-pgpas_password" ]
