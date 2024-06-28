@@ -54,7 +54,8 @@ public class TransferProcessController {
     log.trace("Converting from PlainBundle to TransportBundle");
     var bundleWithoutParameters =
         resourceStream(bundle)
-            .filter(not(and(Parameters.class::isInstance, p -> p.getId().equals("transport-ids"))))
+            .filter(
+                not(and(Parameters.class::isInstance, p -> p.getIdPart().equals("transport-ids"))))
             .collect(toBundle());
     var transportIds =
         resourceStream(bundle)
