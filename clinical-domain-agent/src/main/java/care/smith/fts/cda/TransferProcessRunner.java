@@ -1,10 +1,9 @@
 package care.smith.fts.cda;
 
-import java.util.List;
 import reactor.core.publisher.Mono;
 
 public interface TransferProcessRunner {
-  Mono<Result> run(TransferProcess process);
+  Mono<SummaryResult> run(TransferProcess process);
 
   record PatientResult(
       long bundlesSentCount,
@@ -12,5 +11,5 @@ public interface TransferProcessRunner {
       long deidentifedResourcesCount,
       long transportIdsCount) {}
 
-  record Result(long bunesSentCount, long patientErrorsCount, List<PatientResult> patientResults) {}
+  record SummaryResult(long bundlesSentCount, long patientsSkippedCount) {}
 }

@@ -5,26 +5,25 @@ import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.cda.TransferProcess;
-import care.smith.fts.cda.TransferProcessRunner.Result;
-import java.util.List;
+import care.smith.fts.cda.TransferProcessRunner.SummaryResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class TransferProcessControllerTest {
 
-  private static final Result PATIENT_RESULT = new Result(0, 0, List.of());
+  private static final SummaryResult PATIENT_SUMMARY_RESULT = new SummaryResult(0, 0);
   private TransferProcessController api;
 
   @BeforeEach
   void setUp() {
     api =
         new TransferProcessController(
-            r -> just(new Result(0, 0, List.of())), of(mockTransferProcess()));
+            r -> just(new SummaryResult(0, 0)), of(mockTransferProcess()));
   }
 
   @Test
   void startExistingProjectSucceeds() {
-    create(api.start("example")).expectNext(PATIENT_RESULT).verifyComplete();
+    create(api.start("example")).expectNext(PATIENT_SUMMARY_RESULT).verifyComplete();
   }
 
   @Test

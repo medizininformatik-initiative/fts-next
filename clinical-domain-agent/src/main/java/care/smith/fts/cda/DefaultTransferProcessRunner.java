@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   @Override
-  public Mono<Result> run(TransferProcess process) {
+  public Mono<SummaryResult> run(TransferProcess process) {
     return runProcess(
         process.cohortSelector(),
         process.dataSelector(),
@@ -25,12 +25,12 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
         process.bundleSender());
   }
 
-  private static Mono<Result> runProcess(
+  private static Mono<SummaryResult> runProcess(
       CohortSelector cohortSelector,
       DataSelector bundleDataSelector,
       DeidentificationProvider bundleDeidentificationProvider,
       BundleSender bundleBundleSender) {
-    var errors = new AtomicLong();
+    var skipped = new AtomicLong();
     return cohortSelector
         .selectCohort()
         .flatMap(
@@ -59,14 +59,14 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
                               deidentifiedResources.get(),
                               transportIds.get()));
             })
-        .doOnError(e -> errors.incrementAndGet())
-        .onErrorContinue((err, o) -> log.info("Could not process patient: {}", err.getMessage()))
+        .doOnError(e -> skipped.incrementAndGet())
+        .onErrorContinue((err, o) -> log.debug("Skipping patient: {}", err.getMessage()))
         .collectList()
-        .map(ps -> createResult(ps, errors));
+        .map(ps -> createResult(ps, skipped.get()));
   }
 
-  private static Result createResult(List<PatientResult> ps, AtomicLong errors) {
+  private static SummaryResult createResult(List<PatientResult> ps, long patientsSkippedCount) {
     long sumBundlesSent = ps.stream().mapToLong(PatientResult::bundlesSentCount).sum();
-    return new Result(sumBundlesSent, errors.get(), ps);
+    return new SummaryResult(sumBundlesSent, patientsSkippedCount);
   }
 }

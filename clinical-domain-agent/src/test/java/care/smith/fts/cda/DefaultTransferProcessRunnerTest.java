@@ -40,9 +40,8 @@ class DefaultTransferProcessRunnerTest {
     create(runner.run(process))
         .assertNext(
             r -> {
-              assertThat(r.bunesSentCount()).isEqualTo(1);
-              assertThat(r.patientErrorsCount()).isEqualTo(0);
-              assertThat(r.patientResults()).hasSize(1);
+              assertThat(r.bundlesSentCount()).isEqualTo(1);
+              assertThat(r.patientsSkippedCount()).isEqualTo(0);
             })
         .verifyComplete();
   }

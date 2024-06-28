@@ -22,13 +22,13 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project}/start")
-  Mono<TransferProcessRunner.Result> start(@PathVariable("project") String project) {
+  Mono<TransferProcessRunner.SummaryResult> start(@PathVariable("project") String project) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
       return processRunner
           .run(process.get())
-          .doOnNext(result -> log.debug("Process run finished: {}", result))
+          .doOnNext(summaryResult -> log.debug("Process run finished: {}", summaryResult))
           .doOnCancel(() -> log.warn("Process run cancelled"))
           .doOnError(err -> log.debug("Process run errored", err));
     } else {
