@@ -14,7 +14,7 @@ services:
     networks: [ "agents", "clinical-domain" ]
     volumes:
     - ./cd-agent/projects:/app/projects
-    - ../../clinical-domain-agent/src/test/resources/care/smith/fts/cda/services/deidentifhir/:/app/config/deidentifhir
+    - ./deidentifhir/:/app/config/deidentifhir
     depends_on:
       cd-hds:
         condition: service_healthy
@@ -44,7 +44,7 @@ services:
     networks: [ "agents", "research-domain" ]
     volumes:
     - ./rd-agent/projects:/app/projects
-    - ../../research-domain-agent/src/test/resources/care/smith/fts/rda/services/deidentifhir/:/app/config/deidentifhir
+    - ./deidentifhir/:/app/config/deidentifhir
     depends_on:
       rd-hds:
         condition: service_healthy
