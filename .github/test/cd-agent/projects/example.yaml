@@ -19,7 +19,7 @@ deidentificationProvider:
     tca:
       server:
         baseUrl: http://tc-agent:8080
-      domain: MII
+      domain: MII1234
     dateShift: P14D
     deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
     scraperConfig: /app/config/deidentifhir/IDScraper.profile

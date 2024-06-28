@@ -8,7 +8,9 @@ import java.util.*;
 import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.OperationOutcome;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -48,7 +50,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    */
   @Override
   public Mono<Map<String, String>> retrieveTransportIds(Set<String> ids, String domain) {
-    Map<String, String> transportIds = new HashMap<String, String>();
+    var transportIds = new HashMap<String, String>();
     ids.forEach(id -> transportIds.put(id, getUniqueTransportId()));
 
     return fetchOrCreatePseudonyms(domain, ids)
@@ -96,6 +98,9 @@ public class FhirPseudonymProvider implements PseudonymProvider {
             ids.stream().map(id -> Map.of("name", "original", "valueString", id)));
     var params = Map.of("resourceType", "Parameters", "parameter", idParams.toList());
 
+    log.info(
+        "fetchOrCreatePseudonyms for domain: %s and ids: %s".formatted(domain, ids.toString()));
+
     return httpClient
         .post()
         .uri("/$pseudonymizeAllowCreate")
@@ -103,6 +108,19 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .bodyValue(params)
         .headers(h -> h.setAccept(List.of(APPLICATION_JSON)))
         .retrieve()
+        .onStatus(
+            r -> r.equals(HttpStatus.BAD_REQUEST),
+            s ->
+                s.bodyToMono(OperationOutcome.class)
+                    .flatMap(
+                        b -> {
+                          var diagnostics = b.getIssueFirstRep().getDiagnostics();
+                          if (diagnostics == null || diagnostics.isBlank()) {
+                            diagnostics = "Unknown Error";
+                          }
+                          log.error("Bad Request: {}", diagnostics);
+                          return Mono.error(new CreatePseudonymException(diagnostics));
+                        }))
         .bodyToMono(GpasParameterResponse.class)
         .map(GpasParameterResponse::getMappedID);
   }

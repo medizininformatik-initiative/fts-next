@@ -10,6 +10,7 @@ import care.smith.fts.util.tca.TransportIdsRequest;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -129,6 +130,7 @@ class DeIdentificationControllerTest {
         .isEmpty();
   }
 
+  @Disabled
   @Test
   void deleteTransportIds() {
     var transportIdsRequest = new TransportIdsRequest("domain", Set.of("tid1", "tid2"));

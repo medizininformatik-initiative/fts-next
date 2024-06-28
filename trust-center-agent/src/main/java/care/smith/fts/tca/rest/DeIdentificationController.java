@@ -1,5 +1,6 @@
 package care.smith.fts.tca.rest;
 
+import care.smith.fts.tca.deidentification.CreatePseudonymException;
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.tca.*;
@@ -10,12 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -36,6 +35,7 @@ public class DeIdentificationController {
       value = "/cd/transport-ids-and-date-shifting-values",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
+  @ExceptionHandler(CreatePseudonymException.class)
   public Mono<ResponseEntity<PseudonymizeResponse>> getTransportIdsAndDateShiftingValues(
       @Validated(PseudonymizeRequest.class) @RequestBody Mono<PseudonymizeRequest> requestData) {
     var response =
@@ -52,7 +52,15 @@ public class DeIdentificationController {
                 return Mono.empty();
               }
             });
-    return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
+    return response
+        .map(r -> new ResponseEntity<>(r, HttpStatus.OK))
+        .onErrorResume(
+            r ->
+                Mono.just(
+                    ResponseEntity.of(
+                            ProblemDetail.forStatusAndDetail(
+                                HttpStatus.BAD_REQUEST, r.getMessage()))
+                        .build()));
   }
 
   @PostMapping(
