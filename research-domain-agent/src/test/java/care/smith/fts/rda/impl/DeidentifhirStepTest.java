@@ -3,6 +3,7 @@ package care.smith.fts.rda.impl;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -15,6 +16,8 @@ import care.smith.fts.test.MockServerUtil;
 import com.typesafe.config.Config;
 import java.io.IOException;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,11 +89,11 @@ class DeidentifhirStepTest {
                 .withBody(
                     json(
                         """
-                                           {
-                                             "domain": "domain",
-                                             "ids": ["tid1"]
-                                           }
-                                           """,
+                            {
+                              "domain": "domain",
+                              "ids": ["tid1"]
+                            }
+                            """,
                         ONLY_MATCHING_FIELDS)))
         .respond(
             response()
@@ -104,7 +107,15 @@ class DeidentifhirStepTest {
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
     create(step.replaceIds(new TransportBundle(bundle, Set.of("tid1"))))
-        .expectNextCount(1)
+        .assertNext(
+            b -> {
+              assertThat(b.getEntry().size()).isEqualTo(1);
+              assertThat(b.getEntryFirstRep()).isNotNull();
+
+              Bundle innerBundle = (Bundle) b.getEntryFirstRep().getResource();
+              Resource resource = innerBundle.getEntryFirstRep().getResource();
+              assertThat(resource.getIdPart()).isEqualTo("pid1");
+            })
         .verifyComplete();
   }
 }

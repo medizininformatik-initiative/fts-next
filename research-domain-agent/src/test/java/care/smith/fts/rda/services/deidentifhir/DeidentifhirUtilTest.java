@@ -27,6 +27,8 @@ class DeidentifhirUtilTest {
     Bundle b = (Bundle) pseudomizedBundle.getEntryFirstRep().getResource();
     Patient p = (Patient) b.getEntryFirstRep().getResource();
 
+    assertThat(pseudomizedBundle.getEntry()).hasSize(1);
+    assertThat(b.getEntry()).hasSize(1);
     assertThat(p.getId()).isEqualTo("Patient/pid1");
     assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("pid1");
   }
