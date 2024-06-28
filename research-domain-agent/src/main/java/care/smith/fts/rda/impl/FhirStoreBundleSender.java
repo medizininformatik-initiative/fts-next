@@ -5,12 +5,14 @@ import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Resource;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 final class FhirStoreBundleSender implements BundleSender {
   private final WebClient client;
 
@@ -20,12 +22,15 @@ final class FhirStoreBundleSender implements BundleSender {
 
   @Override
   public Mono<Result> send(Bundle bundle) {
+    log.trace("Sending bundle");
     return client
         .post()
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
         .bodyValue(toTransactionBundle(bundle))
         .retrieve()
         .toBodilessEntity()
+        .doOnNext(res -> log.trace("Response received: {}", res))
+        .doOnError(err -> log.debug("Error received", err))
         .map(b -> new Result());
   }
 
@@ -33,7 +38,7 @@ final class FhirStoreBundleSender implements BundleSender {
     Bundle transactionBundle = new Bundle();
     resourceStream(bundle)
         .map(FhirStoreBundleSender::createPutEntry)
-        .forEach(entry -> transactionBundle.addEntry());
+        .forEach(transactionBundle::addEntry);
     transactionBundle.setType(TRANSACTION);
     return transactionBundle;
   }
@@ -42,7 +47,7 @@ final class FhirStoreBundleSender implements BundleSender {
     var value =
         new Bundle.BundleEntryRequestComponent()
             .setMethod(Bundle.HTTPVerb.PUT)
-            .setUrl("%s/%s".formatted(r.getResourceType().getPath(), r.getIdPart()));
+            .setUrl("%s/%s".formatted(r.getResourceType().name(), r.getIdPart()));
     return new BundleEntryComponent().setRequest(value).setResource(r);
   }
 }
