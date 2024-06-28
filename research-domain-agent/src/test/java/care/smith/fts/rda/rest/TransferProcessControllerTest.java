@@ -51,7 +51,7 @@ class TransferProcessControllerTest {
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
     assertThat(transportBundle.transportIds()).containsExactlyInAnyOrder("some");
-    assertThat(transportBundle.bundle().getTotal()).isEqualTo(0);
+    assertThat(transportBundle.bundle().getEntry()).hasSize(0);
   }
 
   @Test
@@ -67,7 +67,7 @@ class TransferProcessControllerTest {
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
     assertThat(transportBundle.transportIds()).containsExactlyInAnyOrder("some");
-    assertThat(transportBundle.bundle().getTotal()).isEqualTo(2);
+    assertThat(transportBundle.bundle().getEntry()).hasSize(2);
   }
 
   @Test
@@ -81,7 +81,7 @@ class TransferProcessControllerTest {
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
     assertThat(transportBundle.transportIds()).isEmpty();
-    assertThat(transportBundle.bundle().getTotal()).isEqualTo(0);
+    assertThat(transportBundle.bundle().getEntry()).hasSize(0);
   }
 
   @Test
@@ -95,7 +95,7 @@ class TransferProcessControllerTest {
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
     assertThat(transportBundle.transportIds()).isEmpty();
-    assertThat(transportBundle.bundle().getTotal()).isEqualTo(1);
+    assertThat(transportBundle.bundle().getEntry()).hasSize(1);
   }
 
   private static TransferProcess mockTransferProcess() {

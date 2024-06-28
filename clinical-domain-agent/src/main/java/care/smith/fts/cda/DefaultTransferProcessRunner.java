@@ -39,7 +39,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
               Flux<ConsentedPatientBundle> data =
                   bundleDataSelector
                       .select(patient)
-                      .doOnNext(b -> selectedResources.getAndAdd(b.getTotal()))
+                      .doOnNext(b -> selectedResources.getAndAdd(b.getEntry().size()))
                       .map(b -> new ConsentedPatientBundle(b, patient));
 
               var deidentifiedResources = new AtomicLong();
@@ -47,7 +47,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
               Flux<TransportBundle> transportBundleFlux =
                   bundleDeidentificationProvider
                       .deidentify(data)
-                      .doOnNext(b -> deidentifiedResources.getAndAdd(b.bundle().getTotal()))
+                      .doOnNext(b -> deidentifiedResources.getAndAdd(b.bundle().getEntry().size()))
                       .doOnNext(b -> transportIds.getAndAdd(b.transportIds().size()));
               return bundleBundleSender
                   .send(transportBundleFlux)

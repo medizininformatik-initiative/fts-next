@@ -35,7 +35,7 @@ class DeidentifhirStep implements DeidentificationProvider {
   public Mono<Bundle> replaceIds(TransportBundle bundle) {
     return fetchPseudonymsForTransportIds(bundle.transportIds())
         .map(p -> replaceIDs(deidentifhirConfig, generateRegistry(p), bundle.bundle()))
-        .doOnNext(b -> log.trace("total bundle entries: {}", b.getTotal()));
+        .doOnNext(b -> log.trace("total bundle entries: {}", b.getEntry().size()));
   }
 
   private Mono<Map<String, String>> fetchPseudonymsForTransportIds(Set<String> transportIds) {

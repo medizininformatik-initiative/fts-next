@@ -41,7 +41,7 @@ class TCACohortSelector implements CohortSelector {
         .retrieve()
         .bodyToMono(Bundle.class)
         // TODO Paging using .expand()? see Flare
-        .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getTotal()))
+        .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .flatMapMany(
             outerBundle ->
                 Flux.fromStream(

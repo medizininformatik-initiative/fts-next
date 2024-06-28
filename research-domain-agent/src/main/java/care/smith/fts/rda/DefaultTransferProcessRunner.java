@@ -23,10 +23,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     var receivedResources = new AtomicLong();
     var sentResources = new AtomicLong();
     return data.doOnNext(
-            b -> log.debug("processing patient bundle, resources: {}", b.bundle().getTotal()))
-        .doOnNext(b -> receivedResources.getAndAdd(b.bundle().getTotal()))
+            b ->
+                log.debug("processing patient bundle, resources: {}", b.bundle().getEntry().size()))
+        .doOnNext(b -> receivedResources.getAndAdd(b.bundle().getEntry().size()))
         .flatMap(deidentificationProvider::replaceIds)
-        .doOnNext(b -> sentResources.getAndAdd(b.getTotal()))
+        .doOnNext(b -> sentResources.getAndAdd(b.getEntry().size()))
         .flatMap(bundleSender::send)
         .doOnError(err -> log.info("Could not process patient: {}", err.getMessage()))
         .map(r -> new Result(receivedResources.get(), sentResources.get()));

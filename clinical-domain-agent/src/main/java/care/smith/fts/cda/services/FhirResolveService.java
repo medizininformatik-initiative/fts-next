@@ -59,14 +59,14 @@ public class FhirResolveService implements PatientIdResolver {
   }
 
   private void checkSinglePatient(Bundle patients, String patientId) {
-    if (patients.getTotal() != 1 || patients.getEntry().size() != 1) {
+    if (patients.getEntry().size() != 1) {
       throw new IllegalStateException(
           "Received more then one result while resolving patient ID %s".formatted(patientId));
     }
   }
 
   private void checkBundleNotEmpty(Bundle patients, String patientId) {
-    if (patients.getTotal() == 0 || patients.getEntry().isEmpty()) {
+    if (patients.getEntry().isEmpty()) {
       throw new IllegalStateException("Unable to resolve patient ID %s".formatted(patientId));
     }
   }
