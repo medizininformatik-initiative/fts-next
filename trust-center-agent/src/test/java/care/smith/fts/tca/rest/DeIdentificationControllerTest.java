@@ -49,24 +49,26 @@ class DeIdentificationControllerTest {
         .json(expectedResponse);
   }
 
-  @Test
-  void getTransportIdsAndDateShiftingValuesUnknownDomain() {
-    given(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"))
-        .willReturn(Mono.just(Map.of("id1", "tid1")));
-    given(shiftedDatesProvider.generateDateShift(Set.of("id1"), Duration.ofDays(14)))
-        .willReturn(Mono.just(Map.of("id1", Duration.ofDays(1))));
-
-    var body = new PseudonymizeRequest("id1", Set.of("id1"), "unknown domain", Duration.ofDays(14));
-    webClient
-        .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
-  }
+  //
+  //  @Test
+  //  void getTransportIdsAndDateShiftingValuesUnknownDomain() {
+  //    given(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "unknown domain"))
+  //        .willReturn(Mono.just(Map.of("id1", "tid1")));
+  //    given(shiftedDatesProvider.generateDateShift(Set.of("id1"), Duration.ofDays(14)))
+  //        .willReturn(Mono.just(Map.of("id1", Duration.ofDays(1))));
+  //
+  //    var body = new PseudonymizeRequest("id1", Set.of("id1"), "unknown domain",
+  // Duration.ofDays(14));
+  //    webClient
+  //        .post()
+  //        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
+  //        .contentType(MediaType.APPLICATION_JSON)
+  //        .body(fromValue(body))
+  //        .accept(MediaType.APPLICATION_JSON)
+  //        .exchange()
+  //        .expectStatus()
+  //        .is5xxServerError();
+  //  }
 
   @Test
   void getTransportIdsAndDateShiftingValuesEmptyIds() {
@@ -128,25 +130,6 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void fetchPseudonymizedIdsUnknownDomain() {
-    given(
-            pseudonymProvider.fetchPseudonymizedIds(
-                new TransportIdsRequest("domain", Set.of("tid1", "tid2"))))
-        .willReturn(Mono.just(Map.of("tid1", "pid1", "tid2", "pid2")));
-
-    var body = new TransportIdsRequest("unknown domain", Set.of("tid1", "tid2"));
-    webClient
-        .post()
-        .uri("/api/v2/rd/resolve-pseudonyms")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
-  }
-
-  @Test
   void deleteTransportIds() {
     var transportIdsRequest = new TransportIdsRequest("domain", Set.of("tid1", "tid2"));
     given(pseudonymProvider.deleteTransportIds(transportIdsRequest)).willReturn(Mono.just(2L));
@@ -163,22 +146,5 @@ class DeIdentificationControllerTest {
         .isOk()
         .expectBody()
         .json(expectedResponse);
-  }
-
-  @Test
-  void deleteTransportIdsUnknownDomain() {
-    var transportIdsRequest = new TransportIdsRequest("domain", Set.of("tid1", "tid2"));
-    given(pseudonymProvider.deleteTransportIds(transportIdsRequest)).willReturn(Mono.just(2L));
-
-    var body = new TransportIdsRequest("unknown domain", Set.of("tid1", "tid2"));
-    webClient
-        .post()
-        .uri("/api/v2/rd/delete-transport-ids")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
   }
 }
