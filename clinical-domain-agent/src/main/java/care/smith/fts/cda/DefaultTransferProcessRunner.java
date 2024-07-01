@@ -5,7 +5,8 @@ import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.DeidentificationProvider;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,57 +17,67 @@ import reactor.core.publisher.Mono;
 @Component
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
+  private final Map<String, Run> runs = new HashMap<>();
+
   @Override
-  public Mono<SummaryResult> run(TransferProcess process) {
-    return runProcess(
-        process.cohortSelector(),
-        process.dataSelector(),
-        process.deidentificationProvider(),
-        process.bundleSender());
+  public String run(TransferProcess process) {
+    var id = "processId";
+    Run run = new Run(process);
+    run.execute();
+    runs.put(id, run);
+    return id;
   }
 
-  private static Mono<SummaryResult> runProcess(
-      CohortSelector cohortSelector,
-      DataSelector bundleDataSelector,
-      DeidentificationProvider bundleDeidentificationProvider,
-      BundleSender bundleBundleSender) {
-    var skipped = new AtomicLong();
-    return cohortSelector
-        .selectCohort()
-        .flatMap(
-            patient -> {
-              var selectedResources = new AtomicLong();
-              Flux<ConsentedPatientBundle> data =
-                  bundleDataSelector
-                      .select(patient)
-                      .doOnNext(b -> selectedResources.getAndAdd(b.getEntry().size()))
-                      .map(b -> new ConsentedPatientBundle(b, patient));
-
-              var deidentifiedResources = new AtomicLong();
-              var transportIds = new AtomicLong();
-              Flux<TransportBundle> transportBundleFlux =
-                  bundleDeidentificationProvider
-                      .deidentify(data)
-                      .doOnNext(b -> deidentifiedResources.getAndAdd(b.bundle().getEntry().size()))
-                      .doOnNext(b -> transportIds.getAndAdd(b.transportIds().size()));
-              return bundleBundleSender
-                  .send(transportBundleFlux)
-                  .map(
-                      sendResult ->
-                          new PatientResult(
-                              sendResult.bundleCount(),
-                              selectedResources.get(),
-                              deidentifiedResources.get(),
-                              transportIds.get()));
-            })
-        .doOnError(e -> skipped.incrementAndGet())
-        .onErrorContinue((err, o) -> log.debug("Skipping patient: {}", err.getMessage()))
-        .collectList()
-        .map(ps -> createResult(ps, skipped.get()));
+  @Override
+  public Mono<State> state(String id) {
+    Run run = runs.get(id);
+    if (run != null) {
+      return Mono.just(run.state());
+    } else {
+      return Mono.error(new IllegalArgumentException());
+    }
   }
 
-  private static SummaryResult createResult(List<PatientResult> ps, long patientsSkippedCount) {
-    long sumBundlesSent = ps.stream().mapToLong(PatientResult::bundlesSentCount).sum();
-    return new SummaryResult(sumBundlesSent, patientsSkippedCount);
+  public static class Run {
+
+    private final CohortSelector cohortSelector;
+    private final DataSelector dataSelector;
+    private final DeidentificationProvider deidentificationProvider;
+    private final AtomicLong skippedPatients;
+    private final BundleSender bundleSender;
+    private final AtomicLong sentBundles;
+
+    public Run(TransferProcess process) {
+      cohortSelector = process.cohortSelector();
+      dataSelector = process.dataSelector();
+      deidentificationProvider = process.deidentificationProvider();
+      bundleSender = process.bundleSender();
+
+      skippedPatients = new AtomicLong();
+      sentBundles = new AtomicLong();
+    }
+
+    public void execute() {
+      cohortSelector
+          .selectCohort()
+          .flatMap(
+              patient -> {
+                Flux<ConsentedPatientBundle> data =
+                    dataSelector.select(patient).map(b -> new ConsentedPatientBundle(b, patient));
+                Flux<TransportBundle> transportBundleFlux =
+                    deidentificationProvider.deidentify(data);
+                return bundleSender
+                    .send(transportBundleFlux)
+                    .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()));
+              })
+          .doOnError(e -> skippedPatients.incrementAndGet())
+          .onErrorContinue((err, o) -> log.debug("Skipping patient: {}", err.getMessage()))
+          .collectList()
+          .subscribe();
+    }
+
+    public State state() {
+      return new State("", true, sentBundles.get(), skippedPatients.get());
+    }
   }
 }

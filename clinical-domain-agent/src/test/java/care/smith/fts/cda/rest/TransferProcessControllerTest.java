@@ -1,34 +1,62 @@
 package care.smith.fts.cda.rest;
 
 import static java.util.List.of;
-import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.cda.TransferProcess;
-import care.smith.fts.cda.TransferProcessRunner.SummaryResult;
+import care.smith.fts.cda.TransferProcessRunner;
+import care.smith.fts.cda.TransferProcessRunner.State;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
 
 class TransferProcessControllerTest {
 
-  private static final SummaryResult PATIENT_SUMMARY_RESULT = new SummaryResult(0, 0);
+  private static final String processId = "processId";
+  private static final State PATIENT_SUMMARY_RESULT = new State(processId, true, 0, 0);
   private TransferProcessController api;
 
   @BeforeEach
   void setUp() {
     api =
         new TransferProcessController(
-            r -> just(new SummaryResult(0, 0)), of(mockTransferProcess()));
+            new TransferProcessRunner() {
+              @Override
+              public String run(TransferProcess process) {
+                return "processId";
+              }
+
+              @Override
+              public Mono<State> state(String id) {
+                return Mono.just(PATIENT_SUMMARY_RESULT);
+              }
+            },
+            of(mockTransferProcess()));
   }
 
   @Test
   void startExistingProjectSucceeds() {
-    create(api.start("example")).expectNext(PATIENT_SUMMARY_RESULT).verifyComplete();
+    var start = api.start("example", UriComponentsBuilder.fromUriString("http://localhost:1234"));
+    var uri =
+        UriComponentsBuilder.fromUriString("http://localhost:1234")
+            .path("api/v2/process/status/processId")
+            .build()
+            .toUri();
+    create(start)
+        .expectNext(
+            ResponseEntity.accepted()
+                .headers(h -> h.add("Content-Location", uri.toString()))
+                .build())
+        .verifyComplete();
   }
 
   @Test
   void startNonExistingProjectErrors() {
-    create(api.start("non-existent")).expectError(IllegalStateException.class).verify();
+    var start =
+        api.start("non-existent", UriComponentsBuilder.fromUriString("http://localhost:1234"));
+    create(start).expectError(IllegalStateException.class).verify();
   }
 
   private static TransferProcess mockTransferProcess() {

@@ -2,10 +2,14 @@ package care.smith.fts.cda.rest;
 
 import care.smith.fts.cda.TransferProcess;
 import care.smith.fts.cda.TransferProcessRunner;
+import care.smith.fts.cda.TransferProcessRunner.State;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -22,19 +26,30 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project}/start")
-  Mono<TransferProcessRunner.SummaryResult> start(@PathVariable("project") String project) {
+  Mono<ResponseEntity<Void>> start(
+      @PathVariable("project") String project, UriComponentsBuilder uriBuilder) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
-      return processRunner
-          .run(process.get())
-          .doOnNext(summaryResult -> log.debug("Process run finished: {}", summaryResult))
-          .doOnCancel(() -> log.warn("Process run cancelled"))
-          .doOnError(err -> log.debug("Process run errored", err));
+      String id = processRunner.run(process.get());
+      var jobUri = generateJobUri(uriBuilder, id);
+      return Mono.just(
+          ResponseEntity.accepted()
+              .headers(h -> h.add("Content-Location", jobUri.toString()))
+              .build());
     } else {
       return Mono.error(
           new IllegalStateException("Project %s could not be found".formatted(project)));
     }
+  }
+
+  private URI generateJobUri(UriComponentsBuilder uriBuilder, String id) {
+    return uriBuilder.replacePath("api/v2/process/status/{id}").build(id);
+  }
+
+  @GetMapping("/status/{processId}")
+  Mono<ResponseEntity<State>> status(@PathVariable("processId") String processId) {
+    return Mono.just(processId).flatMap(processRunner::state).map(ResponseEntity::ok);
   }
 
   private Optional<TransferProcess> findProcess(String project) {

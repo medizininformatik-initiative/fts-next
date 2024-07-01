@@ -1,5 +1,6 @@
 package care.smith.fts.cda;
 
+import static java.lang.Thread.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.just;
@@ -27,7 +28,7 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void runMockTestSuccessfully() {
+  void runMockTestSuccessfully() throws InterruptedException {
     BundleSender.Result result = new BundleSender.Result(1);
     TransferProcess process =
         new TransferProcess(
@@ -37,7 +38,9 @@ class DefaultTransferProcessRunnerTest {
             (b) -> fromIterable(List.of(new TransportBundle(new Bundle(), Set.of()))),
             (b) -> just(result));
 
-    create(runner.run(process))
+    String processId = runner.run(process);
+    sleep(500L);
+    create(runner.state(processId))
         .assertNext(
             r -> {
               assertThat(r.bundlesSentCount()).isEqualTo(1);

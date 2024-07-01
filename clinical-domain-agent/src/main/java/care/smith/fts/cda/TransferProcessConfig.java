@@ -13,9 +13,13 @@ public record TransferProcessConfig(
   public String toString() {
     return "TransferProcessConfig{cohortSelector=%s, dataSelector=%s, deidentificationProvider=%s, bundleSender=%s}"
         .formatted(
-            cohortSelector.keySet(),
-            dataSelector.keySet(),
-            deidentificationProvider.keySet(),
-            bundleSender.keySet());
+            printEntry(cohortSelector),
+            printEntry(dataSelector),
+            printEntry(deidentificationProvider),
+            printEntry(bundleSender));
+  }
+
+  private Object printEntry(Map<String, ?> v) {
+    return v != null ? v.keySet() : "null";
   }
 }

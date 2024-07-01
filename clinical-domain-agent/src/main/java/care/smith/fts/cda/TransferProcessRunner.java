@@ -3,13 +3,9 @@ package care.smith.fts.cda;
 import reactor.core.publisher.Mono;
 
 public interface TransferProcessRunner {
-  Mono<SummaryResult> run(TransferProcess process);
+  String run(TransferProcess process);
 
-  record PatientResult(
-      long bundlesSentCount,
-      long selectedResourcesCount,
-      long deidentifedResourcesCount,
-      long transportIdsCount) {}
+  Mono<State> state(String id);
 
-  record SummaryResult(long bundlesSentCount, long patientsSkippedCount) {}
+  record State(String id, boolean running, long bundlesSentCount, long patientsSkippedCount) {}
 }
