@@ -39,12 +39,12 @@ class DeidentifhirStep implements DeidentificationProvider {
   }
 
   private Mono<Map<String, String>> fetchPseudonymsForTransportIds(Set<String> transportIds) {
-    var request = new TransportIdsRequest(domain, transportIds);
+
     return httpClient
         .post()
         .uri("/api/v2/rd/resolve-pseudonyms")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
-        .bodyValue(request)
+        .bodyValue(transportIds)
         .retrieve()
         .bodyToMono(new ParameterizedTypeReference<>() {});
   }

@@ -59,10 +59,9 @@ public class DeIdentificationController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<Map<String, String>>> fetchPseudonymizedIds(
-      @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
+      @RequestBody Mono<Set<String>> ids) {
     var pseudonymizedIDs =
-        requestData
-            .doOnNext(b -> log.info("ids: %s, domain: %s".formatted(b.ids(), b.domain())))
+        ids.doOnNext(b -> log.info("ids: {}", ids))
             .flatMap(pseudonymProvider::fetchPseudonymizedIds);
     return pseudonymizedIDs.map(ResponseEntity::ok);
   }
@@ -71,9 +70,8 @@ public class DeIdentificationController {
       value = "/rd/delete-transport-ids",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<Long>> deleteTransportIds(
-      @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
-    var response = requestData.flatMap(pseudonymProvider::deleteTransportIds);
+  public Mono<ResponseEntity<Long>> deleteTransportIds(@RequestBody Mono<Set<String>> ids) {
+    var response = ids.flatMap(pseudonymProvider::deleteTransportIds);
     return response.map(ResponseEntity::ok);
   }
 }

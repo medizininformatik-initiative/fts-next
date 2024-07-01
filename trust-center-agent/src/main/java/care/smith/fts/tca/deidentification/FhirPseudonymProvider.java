@@ -4,7 +4,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.TransportIdsRequest;
 import java.util.*;
 import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
@@ -131,11 +130,10 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public Mono<Map<String, String>> fetchPseudonymizedIds(TransportIdsRequest transportIdsRequest) {
-    if (!transportIdsRequest.ids().isEmpty()) {
+  public Mono<Map<String, String>> fetchPseudonymizedIds(Set<String> ids) {
+    if (!ids.isEmpty()) {
       Map<String, String> pseudonyms = new HashMap<>();
       try (Jedis jedis = jedisPool.getResource()) {
-        Set<String> ids = transportIdsRequest.ids();
         ids.forEach(
             id -> {
               var pseudonymId = jedis.get("tid:" + id);
@@ -149,10 +147,10 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public Mono<Long> deleteTransportIds(TransportIdsRequest transportIdsRequest) {
-    var ids = transportIdsRequest.ids().stream().map(id -> "tid:" + id);
+  public Mono<Long> deleteTransportIds(Set<String> ids) {
+    var pids = ids.stream().map(id -> "tid:" + id);
     try (Jedis jedis = jedisPool.getResource()) {
-      return Mono.just(jedis.del(ids.toArray(String[]::new)));
+      return Mono.just(jedis.del(pids.toArray(String[]::new)));
     }
   }
 }

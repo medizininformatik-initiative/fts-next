@@ -55,10 +55,7 @@ class DeidentifhirStepTest {
                 .withBody(
                     json(
                         """
-                               {
-                                 "domain": "domain",
-                                 "ids": ["tid1"]
-                               }
+                               ["tid1"]
                                """,
                         ONLY_MATCHING_FIELDS)))
         .respond(response().withStatusCode(200));
@@ -89,10 +86,7 @@ class DeidentifhirStepTest {
                 .withBody(
                     json(
                         """
-                            {
-                              "domain": "domain",
-                              "ids": ["tid1"]
-                            }
+                            ["tid1"]
                             """,
                         ONLY_MATCHING_FIELDS)))
         .respond(

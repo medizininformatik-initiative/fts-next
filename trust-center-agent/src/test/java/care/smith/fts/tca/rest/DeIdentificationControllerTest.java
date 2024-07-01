@@ -5,8 +5,8 @@ import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
+import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.PseudonymizeRequest;
-import care.smith.fts.util.tca.TransportIdsRequest;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -50,26 +50,24 @@ class DeIdentificationControllerTest {
         .json(expectedResponse);
   }
 
-  //
-  //  @Test
-  //  void getTransportIdsAndDateShiftingValuesUnknownDomain() {
-  //    given(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "unknown domain"))
-  //        .willReturn(Mono.just(Map.of("id1", "tid1")));
-  //    given(shiftedDatesProvider.generateDateShift(Set.of("id1"), Duration.ofDays(14)))
-  //        .willReturn(Mono.just(Map.of("id1", Duration.ofDays(1))));
-  //
-  //    var body = new PseudonymizeRequest("id1", Set.of("id1"), "unknown domain",
-  // Duration.ofDays(14));
-  //    webClient
-  //        .post()
-  //        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
-  //        .contentType(MediaType.APPLICATION_JSON)
-  //        .body(fromValue(body))
-  //        .accept(MediaType.APPLICATION_JSON)
-  //        .exchange()
-  //        .expectStatus()
-  //        .is5xxServerError();
-  //  }
+  @Test
+  void getTransportIdsAndDateShiftingValuesUnknownDomain() {
+    given(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "unknown domain"))
+        .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
+    given(shiftedDatesProvider.generateDateShift(Set.of("id1"), Duration.ofDays(14)))
+        .willReturn(Mono.just(Map.of("id1", Duration.ofDays(1))));
+
+    var body = new PseudonymizeRequest("id1", Set.of("id1"), "unknown domain", Duration.ofDays(14));
+    webClient
+        .post()
+        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(fromValue(body))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError();
+  }
 
   @Test
   void getTransportIdsAndDateShiftingValuesEmptyIds() {
@@ -94,8 +92,8 @@ class DeIdentificationControllerTest {
 
   @Test
   void fetchPseudonymizedIds() {
-    var transportIdsRequest = new TransportIdsRequest("domain", Set.of("tid1", "tid2"));
-    given(pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest))
+    var ids = Set.of("tid1", "tid2");
+    given(pseudonymProvider.fetchPseudonymizedIds(ids))
         .willReturn(Mono.just(Map.of("tid1", "pid1", "tid2", "pid2")));
 
     var expectedResponse = "{\"tid1\":\"pid1\",\"tid2\":\"pid2\"}";
@@ -103,7 +101,7 @@ class DeIdentificationControllerTest {
         .post()
         .uri("/api/v2/rd/resolve-pseudonyms")
         .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(transportIdsRequest))
+        .body(fromValue(ids))
         .accept(MediaType.APPLICATION_JSON)
         .exchange()
         .expectStatus()
@@ -114,14 +112,14 @@ class DeIdentificationControllerTest {
 
   @Test
   void fetchPseudonymizedIdsEmptyIds() {
-    var transportIdsRequest = new TransportIdsRequest("domain", Set.of());
-    given(pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest)).willReturn(Mono.empty());
+    Set<String> ids = Set.of();
+    given(pseudonymProvider.fetchPseudonymizedIds(ids)).willReturn(Mono.empty());
 
     webClient
         .post()
         .uri("/api/v2/rd/resolve-pseudonyms")
         .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(transportIdsRequest))
+        .body(fromValue(ids))
         .accept(MediaType.APPLICATION_JSON)
         .exchange()
         .expectStatus()
@@ -133,15 +131,15 @@ class DeIdentificationControllerTest {
   @Disabled
   @Test
   void deleteTransportIds() {
-    var transportIdsRequest = new TransportIdsRequest("domain", Set.of("tid1", "tid2"));
-    given(pseudonymProvider.deleteTransportIds(transportIdsRequest)).willReturn(Mono.just(2L));
+    var ids = Set.of("tid1", "tid2");
+    given(pseudonymProvider.deleteTransportIds(ids)).willReturn(Mono.just(2L));
 
     var expectedResponse = "2";
     webClient
         .post()
         .uri("/api/v2/rd/delete-transport-ids")
         .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(transportIdsRequest))
+        .body(fromValue(ids))
         .accept(MediaType.APPLICATION_JSON)
         .exchange()
         .expectStatus()

@@ -9,4 +9,4 @@ public record PseudonymizeRequest(
     @NotNull(groups = PseudonymizeRequest.class) String patientId,
     @NotNull(groups = PseudonymizeRequest.class) Set<String> ids,
     @NotBlank(groups = PseudonymizeRequest.class) String domain,
-    @NotNull(groups = TransportIdsRequest.class) Duration dateShift) {}
+    @NotNull(groups = PseudonymizeRequest.class) Duration dateShift) {}

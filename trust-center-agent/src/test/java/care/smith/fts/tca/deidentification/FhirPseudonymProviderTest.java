@@ -11,7 +11,6 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.util.tca.TransportIdsRequest;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
@@ -91,12 +90,8 @@ class FhirPseudonymProviderTest {
     // already. By returning null every other call, we simulate that it is a unique ID.
     given(jedis.get(anyString())).willReturn(null, "469680023");
 
-    TransportIdsRequest transportIdsRequest = new TransportIdsRequest("domain", Set.of("id1"));
-
     Map<String, String> idMap = Map.of("id1", "Bo1z3Z87i");
-    create(
-            pseudonymProvider.retrieveTransportIds(
-                transportIdsRequest.ids(), transportIdsRequest.domain()))
+    create(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"))
         .expectNext(idMap)
         .verifyComplete();
   }
@@ -104,10 +99,7 @@ class FhirPseudonymProviderTest {
   @Test
   void retrievePseudonymIDs() {
     given(jedis.get(anyString())).willReturn("123456789", "987654321");
-    TransportIdsRequest transportIdsRequest =
-        new TransportIdsRequest("domain", Set.of("id1", "id2"));
-
-    create(pseudonymProvider.fetchPseudonymizedIds(transportIdsRequest))
+    create(pseudonymProvider.fetchPseudonymizedIds(Set.of("id1", "id2")))
         .expectNextMatches(
             m ->
                 m.containsKey("id1")
@@ -120,11 +112,7 @@ class FhirPseudonymProviderTest {
   @Test
   void deleteTransportIds() {
     given(jedis.del(new String[] {"tid:id1"})).willReturn(1L);
-    TransportIdsRequest transportIdsRequest = new TransportIdsRequest("domain", Set.of("id1"));
-
-    create(pseudonymProvider.deleteTransportIds(transportIdsRequest))
-        .expectNext(1L)
-        .verifyComplete();
+    create(pseudonymProvider.deleteTransportIds(Set.of("id1"))).expectNext(1L).verifyComplete();
   }
 
   @AfterEach
