@@ -1,17 +1,16 @@
 package care.smith.fts.tca.rest;
 
-import care.smith.fts.tca.deidentification.CreatePseudonymException;
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
+import care.smith.fts.util.error.ErrorResponseUtil;
+import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +34,7 @@ public class DeIdentificationController {
       value = "/cd/transport-ids-and-date-shifting-values",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  @ExceptionHandler(CreatePseudonymException.class)
+  @ExceptionHandler(UnknownDomainException.class)
   public Mono<ResponseEntity<PseudonymizeResponse>> getTransportIdsAndDateShiftingValues(
       @Validated(PseudonymizeRequest.class) @RequestBody Mono<PseudonymizeRequest> requestData) {
     var response =
@@ -52,15 +51,7 @@ public class DeIdentificationController {
                 return Mono.empty();
               }
             });
-    return response
-        .map(r -> new ResponseEntity<>(r, HttpStatus.OK))
-        .onErrorResume(
-            r ->
-                Mono.just(
-                    ResponseEntity.of(
-                            ProblemDetail.forStatusAndDetail(
-                                HttpStatus.BAD_REQUEST, r.getMessage()))
-                        .build()));
+    return response.map(ResponseEntity::ok).onErrorResume(ErrorResponseUtil::badRequest);
   }
 
   @PostMapping(
@@ -73,7 +64,7 @@ public class DeIdentificationController {
         requestData
             .doOnNext(b -> log.info("ids: %s, domain: %s".formatted(b.ids(), b.domain())))
             .flatMap(pseudonymProvider::fetchPseudonymizedIds);
-    return pseudonymizedIDs.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
+    return pseudonymizedIDs.map(ResponseEntity::ok);
   }
 
   @PostMapping(
@@ -83,6 +74,6 @@ public class DeIdentificationController {
   public Mono<ResponseEntity<Long>> deleteTransportIds(
       @Validated(TransportIdsRequest.class) @RequestBody Mono<TransportIdsRequest> requestData) {
     var response = requestData.flatMap(pseudonymProvider::deleteTransportIds);
-    return response.map(r -> new ResponseEntity<>(r, HttpStatus.OK));
+    return response.map(ResponseEntity::ok);
   }
 }

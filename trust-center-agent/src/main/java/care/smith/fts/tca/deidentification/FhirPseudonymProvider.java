@@ -3,6 +3,7 @@ package care.smith.fts.tca.deidentification;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
+import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.TransportIdsRequest;
 import java.util.*;
 import java.util.random.RandomGenerator;
@@ -12,6 +13,7 @@ import org.hl7.fhir.r4.model.OperationOutcome;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import redis.clients.jedis.Jedis;
@@ -109,20 +111,23 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .headers(h -> h.setAccept(List.of(APPLICATION_JSON)))
         .retrieve()
         .onStatus(
-            r -> r.equals(HttpStatus.BAD_REQUEST),
-            s ->
-                s.bodyToMono(OperationOutcome.class)
-                    .flatMap(
-                        b -> {
-                          var diagnostics = b.getIssueFirstRep().getDiagnostics();
-                          if (diagnostics == null || diagnostics.isBlank()) {
-                            diagnostics = "Unknown Error";
-                          }
-                          log.error("Bad Request: {}", diagnostics);
-                          return Mono.error(new CreatePseudonymException(diagnostics));
-                        }))
+            r -> r.equals(HttpStatus.BAD_REQUEST), FhirPseudonymProvider::handleGpasBadRequest)
         .bodyToMono(GpasParameterResponse.class)
         .map(GpasParameterResponse::getMappedID);
+  }
+
+  private static Mono<Throwable> handleGpasBadRequest(ClientResponse r) {
+    return r.bodyToMono(OperationOutcome.class)
+        .flatMap(
+            b -> {
+              var diagnostics = b.getIssueFirstRep().getDiagnostics();
+              log.error("Bad Request: {}", diagnostics);
+              if (diagnostics != null && diagnostics.startsWith("Unknown domain")) {
+                return Mono.error(new UnknownDomainException(diagnostics));
+              } else {
+                return Mono.error(new UnknownError());
+              }
+            });
   }
 
   @Override

@@ -9,12 +9,15 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.DeidentificationProvider;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
+import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -73,6 +76,11 @@ class DeidentifhirStep implements DeidentificationProvider {
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(request)
         .retrieve()
+        .onStatus(
+            r -> r.equals(HttpStatus.BAD_REQUEST),
+            s ->
+                s.bodyToMono(ProblemDetail.class)
+                    .flatMap(b -> Mono.error(new UnknownDomainException(b.getDetail()))))
         .bodyToMono(PseudonymizeResponse.class);
   }
 }
