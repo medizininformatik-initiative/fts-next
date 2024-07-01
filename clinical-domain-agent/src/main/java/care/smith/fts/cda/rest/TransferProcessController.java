@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/v2/process")
 public class TransferProcessController {
+  private static final String X_PROGRESS_HEADER = "X-Progress";
 
   private final TransferProcessRunner processRunner;
   private final List<TransferProcess> processes;
@@ -49,7 +51,15 @@ public class TransferProcessController {
 
   @GetMapping("/status/{processId}")
   Mono<ResponseEntity<State>> status(@PathVariable("processId") String processId) {
-    return Mono.just(processId).flatMap(processRunner::state).map(ResponseEntity::ok);
+    return processRunner.state(processId).map(s -> responseForStatus(s).body(s));
+  }
+
+  private static BodyBuilder responseForStatus(State s) {
+    return switch (s.status()) {
+      case QUEUED -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS_HEADER, "Queued"));
+      case RUNNING -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS_HEADER, "Running"));
+      case COMPLETED -> ResponseEntity.ok();
+    };
   }
 
   private Optional<TransferProcess> findProcess(String project) {

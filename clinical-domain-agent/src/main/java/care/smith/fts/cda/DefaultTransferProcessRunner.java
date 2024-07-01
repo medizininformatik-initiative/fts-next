@@ -2,12 +2,14 @@ package care.smith.fts.cda;
 
 import care.smith.fts.api.*;
 import care.smith.fts.api.cda.BundleSender;
+import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.DeidentificationProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -46,6 +48,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private final AtomicLong skippedPatients;
     private final BundleSender bundleSender;
     private final AtomicLong sentBundles;
+    private final AtomicReference<Status> status;
 
     public Run(TransferProcess process) {
       cohortSelector = process.cohortSelector();
@@ -55,9 +58,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
       skippedPatients = new AtomicLong();
       sentBundles = new AtomicLong();
+      status = new AtomicReference<>(Status.QUEUED);
     }
 
     public void execute() {
+      status.set(Status.RUNNING);
       cohortSelector
           .selectCohort()
           .flatMap(
@@ -72,12 +77,12 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
               })
           .doOnError(e -> skippedPatients.incrementAndGet())
           .onErrorContinue((err, o) -> log.debug("Skipping patient: {}", err.getMessage()))
-          .collectList()
+          .doOnComplete(() -> status.set(Status.COMPLETED))
           .subscribe();
     }
 
     public State state() {
-      return new State("", true, sentBundles.get(), skippedPatients.get());
+      return new State("", status.get(), sentBundles.get(), skippedPatients.get());
     }
   }
 }

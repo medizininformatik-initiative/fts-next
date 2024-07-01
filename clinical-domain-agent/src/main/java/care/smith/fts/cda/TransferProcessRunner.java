@@ -7,5 +7,11 @@ public interface TransferProcessRunner {
 
   Mono<State> state(String id);
 
-  record State(String id, boolean running, long bundlesSentCount, long patientsSkippedCount) {}
+  record State(String id, Status status, long bundlesSentCount, long patientsSkippedCount) {}
+
+  enum Status {
+    QUEUED,
+    RUNNING,
+    COMPLETED
+  }
 }

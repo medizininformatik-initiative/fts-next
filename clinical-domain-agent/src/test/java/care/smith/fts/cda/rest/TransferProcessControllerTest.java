@@ -6,6 +6,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.cda.TransferProcess;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessRunner.State;
+import care.smith.fts.cda.TransferProcessRunner.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,7 @@ import reactor.core.publisher.Mono;
 class TransferProcessControllerTest {
 
   private static final String processId = "processId";
-  private static final State PATIENT_SUMMARY_RESULT = new State(processId, true, 0, 0);
+  private static final State PATIENT_SUMMARY_RESULT = new State(processId, Status.RUNNING, 0, 0);
   private TransferProcessController api;
 
   @BeforeEach
