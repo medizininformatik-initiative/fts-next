@@ -65,20 +65,20 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       status.set(Status.RUNNING);
       cohortSelector
           .selectCohort()
-          .flatMap(
-              patient -> {
-                Flux<ConsentedPatientBundle> data =
-                    dataSelector.select(patient).map(b -> new ConsentedPatientBundle(b, patient));
-                Flux<TransportBundle> transportBundleFlux =
-                    deidentificationProvider.deidentify(data);
-                return bundleSender
-                    .send(transportBundleFlux)
-                    .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()));
-              })
+          .flatMap(this::executePatient)
           .doOnError(e -> skippedPatients.incrementAndGet())
           .onErrorContinue((err, o) -> log.debug("Skipping patient: {}", err.getMessage()))
           .doOnComplete(() -> status.set(Status.COMPLETED))
           .subscribe();
+    }
+
+    private Flux<Result> executePatient(ConsentedPatient patient) {
+      return dataSelector
+          .select(patient)
+          .map(b -> new ConsentedPatientBundle(b, patient))
+          .transform(deidentificationProvider::deidentify)
+          .transform(bundleSender::send)
+          .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()));
     }
 
     public State state() {
