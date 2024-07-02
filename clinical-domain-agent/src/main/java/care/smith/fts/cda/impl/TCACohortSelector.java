@@ -25,6 +25,7 @@ class TCACohortSelector implements CohortSelector {
 
   @Override
   public Flux<ConsentedPatient> selectCohort() {
+    log.info("TRHW client {}", client.toString());
     return client
         .post()
         .uri("/api/v2/cd/consented-patients")
@@ -42,6 +43,7 @@ class TCACohortSelector implements CohortSelector {
         .bodyToMono(Bundle.class)
         // TODO Paging using .expand()? see Flare
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
+        .doOnError(b -> log.error(b.getMessage()))
         .flatMapMany(
             outerBundle ->
                 Flux.fromStream(

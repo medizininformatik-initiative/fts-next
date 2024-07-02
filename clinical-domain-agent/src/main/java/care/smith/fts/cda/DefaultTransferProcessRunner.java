@@ -65,6 +65,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       status.set(Status.RUNNING);
       cohortSelector
           .selectCohort()
+          .doOnError(e -> log.error("Error: {}", e.getMessage()))
           .flatMap(this::executePatient)
           .doOnError(e -> skippedPatients.incrementAndGet())
           .onErrorContinue((err, o) -> log.debug("Skipping patient: {}", err.getMessage()))
