@@ -9,6 +9,8 @@ import static reactor.core.publisher.Mono.error;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.TransferProcess;
 import care.smith.fts.rda.TransferProcessRunner;
+import care.smith.fts.rda.TransferProcessRunner.Result;
+import care.smith.fts.util.error.ErrorResponseUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -18,6 +20,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.PrimitiveType;
 import org.hl7.fhir.r4.model.StringType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -35,16 +38,20 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project}/patient", consumes = "application/fhir+json")
-  Mono<TransferProcessRunner.Result> start(
+  Mono<ResponseEntity<Result>> start(
       @PathVariable("project") String project, @RequestBody Mono<Bundle> data) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
-      return processRunner
-          .run(process.get(), data.map(TransferProcessController::fromPlainBundle))
+      var response =
+          processRunner.run(process.get(), data.map(TransferProcessController::fromPlainBundle));
+
+      return response
+          .map(ResponseEntity::ok)
           .doOnNext(r -> log.debug("Process run finished: {}", r))
           .doOnCancel(() -> log.warn("Process run cancelled"))
-          .doOnError(err -> log.warn("Process run errored", err));
+          .doOnError(err -> log.error("Process run errored", err))
+          .onErrorResume(ErrorResponseUtil::internalServerError);
     } else {
       return error(new IllegalStateException("Project %s could not be found".formatted(project)));
     }

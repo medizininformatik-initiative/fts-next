@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 
 class TransferProcessControllerTest {
@@ -29,7 +30,7 @@ class TransferProcessControllerTest {
   @Test
   void startExistingProjectSucceeds() {
     create(api.start("example", Mono.just(new Bundle())))
-        .expectNext(new Result(0, 0))
+        .expectNext(ResponseEntity.ok(new Result(0, 0)))
         .verifyComplete();
   }
 
