@@ -51,7 +51,16 @@ public class DeIdentificationController {
                 return Mono.empty();
               }
             });
-    return response.map(ResponseEntity::ok).onErrorResume(ErrorResponseUtil::badRequest);
+    return response
+        .map(ResponseEntity::ok)
+        .onErrorResume(
+            e -> {
+              if (e instanceof UnknownDomainException) {
+                return ErrorResponseUtil.badRequest(e);
+              } else {
+                return ErrorResponseUtil.internalServerError(e);
+              }
+            });
   }
 
   @PostMapping(
