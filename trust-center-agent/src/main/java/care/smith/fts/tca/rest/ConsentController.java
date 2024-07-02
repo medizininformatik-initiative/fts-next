@@ -2,13 +2,14 @@ package care.smith.fts.tca.rest;
 
 import care.smith.fts.tca.consent.ConsentProvider;
 import care.smith.fts.util.MediaTypes;
+import care.smith.fts.util.error.ErrorResponseUtil;
+import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentRequest;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -49,7 +50,15 @@ public class ConsentController {
                     uriBuilder,
                     from.orElse(0),
                     count.orElse(defaultPageSize)));
-    return response.map(
-        consentedPatients -> new ResponseEntity<>(consentedPatients, HttpStatus.OK));
+    return response
+        .map(ResponseEntity::ok)
+        .onErrorResume(
+            e -> {
+              if (e instanceof UnknownDomainException) {
+                return ErrorResponseUtil.badRequest(e);
+              } else {
+                return ErrorResponseUtil.internalServerError(e);
+              }
+            });
   }
 }

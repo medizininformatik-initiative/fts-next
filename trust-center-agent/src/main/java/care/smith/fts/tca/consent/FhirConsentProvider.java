@@ -5,6 +5,7 @@ import static care.smith.fts.util.FhirUtils.*;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
+import care.smith.fts.util.error.UnknownDomainException;
 import com.google.common.base.Predicates;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +13,9 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
@@ -158,7 +161,6 @@ public class FhirConsentProvider implements ConsentProvider {
             "parameter",
             List.of(Map.of("name", "domain", "valueString", domain)));
     String formatted = "/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, from);
-    log.info(formatted);
     return httpClient
         .post()
         .uri(formatted)
@@ -166,6 +168,21 @@ public class FhirConsentProvider implements ConsentProvider {
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))
         .retrieve()
+        .onStatus(r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentProvider::handleGicsNotFound)
         .bodyToMono(Bundle.class);
+  }
+
+  private static Mono<Throwable> handleGicsNotFound(ClientResponse r) {
+    return r.bodyToMono(OperationOutcome.class)
+        .flatMap(
+            b -> {
+              var diagnostics = b.getIssueFirstRep().getDiagnostics();
+              log.error(diagnostics);
+              if (diagnostics != null && diagnostics.startsWith("No consents found for domain")) {
+                return Mono.error(new UnknownDomainException(diagnostics));
+              } else {
+                return Mono.error(new UnknownError());
+              }
+            });
   }
 }
