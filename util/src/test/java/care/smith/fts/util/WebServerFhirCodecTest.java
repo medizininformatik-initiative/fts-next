@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,7 +29,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-@Disabled
 @Slf4j
 @SpringBootTest(classes = WebServerFhirCodecTest.Config.class, webEnvironment = RANDOM_PORT)
 public class WebServerFhirCodecTest {
