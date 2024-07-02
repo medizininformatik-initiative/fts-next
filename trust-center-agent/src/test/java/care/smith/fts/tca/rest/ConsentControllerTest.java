@@ -32,7 +32,7 @@ class ConsentControllerTest {
   }
 
   @Test
-  void name() {
+  void emptyPageYieldsEmptyBundle() {
     var bundle = Stream.<Resource>empty().collect(toBundle());
     var request = new ConsentRequest("MII", Set.of(), "sys");
     var requestUrl = fromUriString("/fake/");

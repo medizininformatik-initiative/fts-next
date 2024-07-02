@@ -1,0 +1,57 @@
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {
+      "name": "pseudonym",
+      "part": [
+        {
+          "name": "original",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "id1"
+          }
+        },
+        {
+          "name": "target",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "MII"
+          }
+        },
+        {
+          "name": "pseudonym",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "853920267"
+          }
+        }
+      ]
+    },
+    {
+      "name": "pseudonym",
+      "part": [
+        {
+          "name": "original",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "id2"
+          }
+        },
+        {
+          "name": "target",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "MII"
+          }
+        },
+        {
+          "name": "pseudonym",
+          "valueIdentifier": {
+            "system": "https://ths-greifswald.de/gpas",
+            "value": "814470341"
+          }
+        }
+      ]
+    }
+  ]
+}
