@@ -66,7 +66,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
                       if (jedis.set(kid, pid, new SetParams().nx()).equals("OK")) {
                         jedis.expire(kid, configuration.getTransportIdTTLinSeconds());
                       } else {
-                        throw new RuntimeException(
+                        throw new IllegalStateException(
                             "Could not put {kid}-{pid} into key-value-store");
                       }
                     });
