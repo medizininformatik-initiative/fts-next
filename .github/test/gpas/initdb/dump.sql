@@ -18,8 +18,7 @@
 CREATE
 DATABASE /*!32312 IF NOT EXISTS*/ `gpas` /*!40100 DEFAULT CHARACTER SET utf8mb3 COLLATE utf8mb3_bin */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
-USE
-`gpas`;
+USE `gpas`;
 
 --
 -- Table structure for table `domain`
@@ -125,7 +124,8 @@ DROP TABLE IF EXISTS `psn_domain_count`;
 SET
 @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
-/*!50001 CREATE VIEW `psn_domain_count` AS SELECT 
+/*!50001 CREATE VIEW `psn_domain_count` AS
+SELECT
  1 AS `attribut`,
  1 AS `value`*/;
 SET
