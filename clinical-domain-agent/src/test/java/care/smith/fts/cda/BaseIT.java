@@ -4,13 +4,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.util.FileSystemUtils.deleteRecursively;
 
 import care.smith.fts.cda.rest.TransferProcessControllerIT;
+import care.smith.fts.test.MockServerUtil;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterAll;
 import org.mockserver.client.MockServerClient;
-import org.mockserver.integration.ClientAndServer;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -58,21 +57,14 @@ public abstract class BaseIT {
   }
 
   private static MockServerClient tcaMockServer() throws IOException {
-    return ClientAndServer.startClientAndServer(findFreePort());
+    return MockServerUtil.onRandomPort();
   }
 
   private static MockServerClient rdaMockServer() throws IOException {
-    return ClientAndServer.startClientAndServer(findFreePort());
+    return MockServerUtil.onRandomPort();
   }
 
   private static MockServerClient hdsMockServer() throws IOException {
-    return ClientAndServer.startClientAndServer(findFreePort());
-  }
-
-  public static int findFreePort() throws IOException {
-    try (ServerSocket socket = new ServerSocket(0)) {
-      socket.setReuseAddress(true);
-      return socket.getLocalPort();
-    }
+    return MockServerUtil.onRandomPort();
   }
 }
