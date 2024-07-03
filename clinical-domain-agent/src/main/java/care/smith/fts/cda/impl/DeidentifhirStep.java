@@ -70,6 +70,8 @@ class DeidentifhirStep implements DeidentificationProvider {
       String patientId, Set<String> ids) {
     PseudonymizeRequest request = new PseudonymizeRequest(patientId, ids, domain, dateShift);
 
+    log.info("Fetching pseudonymize: {}", request);
+
     return httpClient
         .post()
         .uri("/api/v2/cd/transport-ids-and-date-shifting-values")

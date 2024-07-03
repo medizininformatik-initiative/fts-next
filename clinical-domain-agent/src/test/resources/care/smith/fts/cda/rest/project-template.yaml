@@ -19,13 +19,13 @@ deidentificationProvider:
     tca:
       server:
         baseUrl: <tc-agent>
-      domain: MII1234
+      domain: MII
     dateShift: P14D
-    deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
-    scraperConfig: /app/config/deidentifhir/IDScraper.profile
+    deidentifhirConfig: src/test/resources/care/smith/fts/cda/services/deidentifhir/CDtoTransport.profile
+    scraperConfig: src/test/resources/care/smith/fts/cda/services/deidentifhir/IDScraper.profile
 
 bundleSender:
   researchDomainAgent:
     server:
       baseUrl: <rd-agent>
-    project: example
+    project: test

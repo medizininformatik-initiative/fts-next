@@ -8,6 +8,7 @@ import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.DeidentificationProvider;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   @Override
   public String run(TransferProcess process) {
-    var id = "processId";
+    var id = UUID.randomUUID().toString();
     Run run = new Run(process);
     run.execute();
     runs.put(id, run);
