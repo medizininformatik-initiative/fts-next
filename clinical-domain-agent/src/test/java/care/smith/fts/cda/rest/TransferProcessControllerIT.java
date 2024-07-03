@@ -4,47 +4,19 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
+import care.smith.fts.cda.BaseIT;
 import care.smith.fts.cda.ClinicalDomainAgent;
-import care.smith.fts.cda.IntegrationTestConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockserver.client.MockServerClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
 
 @Slf4j
-@SpringBootTest(
-    classes = {ClinicalDomainAgent.class, IntegrationTestConfiguration.class},
-    webEnvironment = RANDOM_PORT)
-@TestPropertySource(properties = {"spring.config.location=src/test/resources/application.yaml"})
-public class TransferProcessControllerIT {
-
-  @Autowired
-  @Qualifier("tcaMockServer")
-  MockServerClient tcaMockServer;
-
-  @Autowired
-  @Qualifier("tcaWebClient")
-  WebClient tcaWebClient;
-
-  @Autowired
-  @Qualifier("tcaWebClientBuilder")
-  WebClient.Builder tcaWebClientBuilder;
-
-  @Autowired
-  @Qualifier("rdaMockServer")
-  MockServerClient rdaMockServer;
-
-  @Autowired
-  @Qualifier("rdaWebClient")
-  WebClient rdaWebClient;
-
+@SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
+public class TransferProcessControllerIT extends BaseIT {
   private WebClient client;
 
   @BeforeEach
@@ -54,17 +26,13 @@ public class TransferProcessControllerIT {
 
   @Test
   void successfulRequest() {
-    tcaMockServer
-        .when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
+    tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(response().withStatusCode(404));
-
-    log.info("tcaMockServer port: {}", tcaMockServer.getPort());
-    log.info("tcaMockServer contextPath: {}", tcaMockServer.contextPath());
 
     StepVerifier.create(
             client
                 .post()
-                .uri("/api/v2/process/example-it/start")
+                .uri("/api/v2/process/test/start")
                 .retrieve()
                 .bodyToMono(String.class)
                 .doOnNext(e -> log.info("Result: {}", e))

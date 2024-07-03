@@ -1,7 +1,7 @@
 cohortSelector:
   trustCenterAgent:
     server:
-      baseUrl: http://tc-agent:8080
+      baseUrl: <tc-agent>
     domain: MII
     patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
     policySystem: "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy"
@@ -10,7 +10,7 @@ cohortSelector:
 dataSelector:
   everything:
     fhirServer:
-      baseUrl: http://cd-hds:8080/fhir
+      baseUrl: <hds>
     resolve:
       patientIdentifierSystem: http://fts.smith.care
 
@@ -18,7 +18,7 @@ deidentificationProvider:
   deidentifhir:
     tca:
       server:
-        baseUrl: http://tc-agent:8080
+        baseUrl: <tc-agent>
       domain: MII1234
     dateShift: P14D
     deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
@@ -27,5 +27,5 @@ deidentificationProvider:
 bundleSender:
   researchDomainAgent:
     server:
-      baseUrl: http://rd-agent:8080
+      baseUrl: <rd-agent>
     project: example

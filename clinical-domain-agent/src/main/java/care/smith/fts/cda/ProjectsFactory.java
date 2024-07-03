@@ -39,6 +39,7 @@ public class ProjectsFactory {
 
   @Bean
   public List<TransferProcess> createTransferProcesses() throws IOException {
+    log.trace("Reading project files from {}", projectsDir);
     try (var files = Files.list(projectsDir)) {
       return files
           .filter(this::matchesFilePattern)
