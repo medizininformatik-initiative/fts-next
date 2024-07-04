@@ -32,7 +32,7 @@ class TransferProcessControllerTest {
               }
 
               @Override
-              public Mono<State> state(String id) {
+              public Mono<State> state(String processId) {
                 return Mono.just(PATIENT_SUMMARY_RESULT);
               }
             },
@@ -51,7 +51,7 @@ class TransferProcessControllerTest {
         .expectNext(
             ResponseEntity.accepted()
                 .headers(h -> h.add("Content-Location", uri.toString()))
-                .body(new State("processId", Status.RUNNING, 0, 0)))
+                .build()) // body(new State("processId", Status.RUNNING, 0, 0)))
         .verifyComplete();
   }
 

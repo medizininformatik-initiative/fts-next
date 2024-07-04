@@ -12,6 +12,9 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 import care.smith.fts.cda.BaseIT;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.TransferProcessRunner.State;
+import care.smith.fts.cda.rest.TransferProcessControllerIT.ITDataSelector.FetchData;
+import care.smith.fts.cda.rest.TransferProcessControllerIT.ITDataSelector.FhirResolveService;
+import care.smith.fts.cda.rest.TransferProcessControllerIT.ITDataSelector.TransportIds;
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerator.Fixed;
 import care.smith.fts.test.FhirGenerator.UUID;
@@ -31,6 +34,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockserver.matchers.MatchType;
+import org.mockserver.model.Delay;
+import org.mockserver.model.HttpError;
 import org.mockserver.model.MediaType;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -54,27 +59,27 @@ import reactor.test.StepVerifier;
  * 5. Send Patient to RDA
  *
  * Things that can go wrong:
- * 1. Invalid project
- * 2. CohortSelector
- *   a. TCA slow or down
- *   b. Wrong content type
- *   c. TCA/gICS: unknown domain, this is the only setting that returns an error (bad request),
+ * - [x] Invalid project
+ * - [ ] CohortSelector
+ *   - [ ] TCA slow or down
+ *   - [ ] Wrong content type
+ *   - [ ] TCA/gICS: unknown domain, this is the only setting that returns an error (bad request),
  * other settings may return an empty bundle
- * 3. DataSelector
- *   a. HDS slow or down
- *   b. FhirResolveService
- *     - wrong content type
- *     - may return error:
- *       - More than one result
- *       - Unable to resolve patient id
- *   c. everything
- *     - wrong content type
- *     - paging - not implemented
- * 4. Deidentifhir
- *   a. TCA slow or down
- *   b. gPAS unknown domain -> bad request
- * 5. BundleSender
- *   a. RDA slow or down
+ * - [ ] DataSelector
+ *   - [ ] HDS slow or down
+ *   - [ ] FhirResolveService
+ *     - [ ] wrong content type
+ *     - [ ] may return error:
+ *       - [ ] More than one result
+ *       - [ ] Unable to resolve patient id
+ *   - [ ] everything
+ *     - [ ] wrong content type
+ *     - [ ] paging - not implemented
+ * - [ ] Deidentifhir
+ *   - [ ] TCA slow or down
+ *   - [ ] gPAS unknown domain -> bad request
+ * - [ ] BundleSender
+ *   - [ ] RDA slow or down
  */
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
@@ -89,17 +94,31 @@ public class TransferProcessControllerIT extends BaseIT {
   }
 
   static class ITCohortSelector {
-    static void success(String patientId) throws IOException {
+
+    private static Bundle validConsent(String patientId) throws IOException {
       FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
       gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
       gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Fixed(patientId));
-      var consent = gicsConsentGenerator.generateBundle(1, 1);
+      return gicsConsentGenerator.generateBundle(1, 1);
+    }
+
+    static void success(String patientId) throws IOException {
+      var consent = validConsent(patientId);
       tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
           .respond(
               response()
                   .withStatusCode(200)
                   .withContentType(APPLICATION_JSON)
                   .withBody(FhirUtils.fhirResourceToString(consent)));
+    }
+
+    static void isDown() {
+      tca.when(request()).error(HttpError.error().withDropConnection(true));
+    }
+
+    static void timeoutResponse() {
+      tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
+          .respond(request -> null, Delay.minutes(10));
     }
   }
 
@@ -191,9 +210,9 @@ public class TransferProcessControllerIT extends BaseIT {
     var patient = TestPatientGenerator.generateOnePatient(patientId, "2025", identifierSystem);
 
     ITCohortSelector.success(patientId);
-    ITDataSelector.TransportIds.success(om, patientId, identifierSystem);
-    ITDataSelector.FhirResolveService.success(patientId, identifierSystem);
-    ITDataSelector.FetchData.success(patientId, patient);
+    TransportIds.success(om, patientId, identifierSystem);
+    FhirResolveService.success(patientId, identifierSystem);
+    FetchData.success(patientId, patient);
 
     ITBundleSender.success();
 
@@ -206,9 +225,7 @@ public class TransferProcessControllerIT extends BaseIT {
                 .mapNotNull(r -> r.getHeaders().get("Content-Location"))
                 .doOnNext(r -> assertThat(r).isNotEmpty())
                 .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(r -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class))
-                .doOnNext(e -> log.info("Result: {}", e))
-                .doOnError(e -> log.info("Error", e)))
+                .flatMap(r -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
         .expectNextCount(1)
         .verifyComplete();
   }
@@ -225,10 +242,58 @@ public class TransferProcessControllerIT extends BaseIT {
                     (c) ->
                         c.bodyToMono(ProblemDetail.class)
                             .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))
-                .bodyToMono(String.class))
+                .toBodilessEntity())
         .expectErrorMessage("Project non-existent could not be found")
         .verifyThenAssertThat()
         .hasOperatorErrors();
+  }
+
+  @Test
+  void cohortSelectorTCADown() {
+    ITCohortSelector.isDown();
+    client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .flatMap(
+            r ->
+                Mono.delay(Duration.ofSeconds(1))
+                    .flatMap(
+                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
+        .as(
+            response ->
+                StepVerifier.create(response)
+                    .assertNext(
+                        r -> {
+                          assertThat(r.patientsSkippedCount()).isEqualTo(1);
+                        })
+                    .verifyComplete());
+  }
+
+  @Test
+  void cohortSelectorTimeoutConsentedPatientsRequest() {
+    ITCohortSelector.timeoutResponse();
+    client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .flatMap(
+            r ->
+                Mono.delay(Duration.ofSeconds(10))
+                    .flatMap(
+                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
+        .as(
+            response ->
+                StepVerifier.create(response)
+                    .assertNext(
+                        r -> {
+                          assertThat(r.patientsSkippedCount()).isEqualTo(1);
+                        })
+                    .verifyComplete());
   }
 }
 

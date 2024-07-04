@@ -30,7 +30,7 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/{project:\\w+}/start")
-  Mono<ResponseEntity<State>> start(
+  Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project, UriComponentsBuilder uriBuilder) {
     var process = findProcess(project);
     if (process.isPresent()) {
@@ -43,7 +43,7 @@ public class TransferProcessController {
               s ->
                   ResponseEntity.accepted()
                       .headers(h -> h.add("Content-Location", jobUri.toString()))
-                      .body(s));
+                      .build());
     } else {
       log.warn("Project '{}' not found", project);
       return internalServerError(

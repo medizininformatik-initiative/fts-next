@@ -24,18 +24,19 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   @Override
   public String run(TransferProcess process) {
-    var id = UUID.randomUUID().toString();
+    var processId = UUID.randomUUID().toString();
+    log.info("Run process with processId: {}", processId);
     Run run = new Run(process);
     run.execute();
-    runs.put(id, run);
-    return id;
+    runs.put(processId, run);
+    return processId;
   }
 
   @Override
-  public Mono<State> state(String id) {
-    Run run = runs.get(id);
+  public Mono<State> state(String processId) {
+    Run run = runs.get(processId);
     if (run != null) {
-      return Mono.just(run.state());
+      return Mono.just(run.state(processId));
     } else {
       return Mono.error(new IllegalArgumentException());
     }
@@ -83,8 +84,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()));
     }
 
-    public State state() {
-      return new State("", status.get(), sentBundles.get(), skippedPatients.get());
+    public State state(String processId) {
+      return new State(processId, status.get(), sentBundles.get(), skippedPatients.get());
     }
   }
 }
