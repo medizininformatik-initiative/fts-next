@@ -1,5 +1,7 @@
 package care.smith.fts.cda.rest;
 
+import static care.smith.fts.util.error.ErrorResponseUtil.internalServerError;
+
 import care.smith.fts.cda.TransferProcess;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessRunner.State;
@@ -27,20 +29,24 @@ public class TransferProcessController {
     this.processes = processes;
   }
 
-  @PostMapping(value = "/{project}/start")
-  Mono<ResponseEntity<Void>> start(
+  @PostMapping(value = "/{project:\\w+}/start")
+  Mono<ResponseEntity<State>> start(
       @PathVariable("project") String project, UriComponentsBuilder uriBuilder) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
       String id = processRunner.run(process.get());
       var jobUri = generateJobUri(uriBuilder, id);
-      return Mono.just(
-          ResponseEntity.accepted()
-              .headers(h -> h.add("Content-Location", jobUri.toString()))
-              .build());
+      return processRunner
+          .state(id)
+          .map(
+              s ->
+                  ResponseEntity.accepted()
+                      .headers(h -> h.add("Content-Location", jobUri.toString()))
+                      .body(s));
     } else {
-      return Mono.error(
+      log.warn("Project '{}' not found", project);
+      return internalServerError(
           new IllegalStateException("Project %s could not be found".formatted(project)));
     }
   }

@@ -9,6 +9,8 @@ import care.smith.fts.cda.TransferProcessRunner.State;
 import care.smith.fts.cda.TransferProcessRunner.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
@@ -49,7 +51,7 @@ class TransferProcessControllerTest {
         .expectNext(
             ResponseEntity.accepted()
                 .headers(h -> h.add("Content-Location", uri.toString()))
-                .build())
+                .body(new State("processId", Status.RUNNING, 0, 0)))
         .verifyComplete();
   }
 
@@ -57,7 +59,14 @@ class TransferProcessControllerTest {
   void startNonExistingProjectErrors() {
     var start =
         api.start("non-existent", UriComponentsBuilder.fromUriString("http://localhost:1234"));
-    create(start).expectError(IllegalStateException.class).verify();
+    create(start)
+        .expectNext(
+            ResponseEntity.of(
+                    ProblemDetail.forStatusAndDetail(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Project non-existent could not be found"))
+                .build())
+        .verifyComplete();
   }
 
   private static TransferProcess mockTransferProcess() {
