@@ -46,7 +46,7 @@ public abstract class BaseIT {
     var projectFile = Files.createFile(tempDir.resolve("test.yaml"));
     try (var inStream =
             TransferProcessControllerIT.class.getResourceAsStream("project-template.yaml");
-        var outStream = Files.newOutputStream(projectFile); ) {
+        var outStream = Files.newOutputStream(projectFile)) {
       var config =
           new String(inStream.readAllBytes(), UTF_8)
               .replace("<tc-agent>", "http://localhost:%d".formatted(tca.getPort()))
