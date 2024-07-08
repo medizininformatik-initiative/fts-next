@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
 
@@ -59,7 +60,9 @@ class TCACohortSelectorTest {
 
   @Test
   void badRequestErrors() {
-    var client = builder().exchangeFunction(req -> just(create(BAD_REQUEST).build()));
+    given(response.bodyToMono(ProblemDetail.class))
+        .willReturn(Mono.just(ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Some TCA Error")));
+    var client = builder().exchangeFunction(req -> just(response));
     var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
 
     create(cohortSelector.selectCohort()).expectError().verify();

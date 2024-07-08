@@ -10,6 +10,7 @@ import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.TransferProcessRunner.State;
 import care.smith.fts.cda.TransferProcessRunner.Status;
 import care.smith.fts.test.TestPatientGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
@@ -41,14 +42,15 @@ import reactor.test.StepVerifier;
  *
  * Things that can go wrong:
  * - [x] Invalid project
- * - [ ] CohortSelector
+ * - [x] CohortSelector
  *   - [x] TCA slow
- *   - [x] or down
- *   - [ ] Wrong content type
- *   - [ ] TCA/gICS: unknown domain, this is the only setting that returns an error (bad request),
+ *   - [x] TCA down
+ *   - [x] Wrong content type
+ *   - [x] TCA/gICS: unknown domain, this is the only setting that returns an error (bad request),
  * other settings may return an empty bundle
  * - [ ] DataSelector
- *   - [ ] HDS slow or down
+ *   - [ ] HDS slow
+ *   - [ ] HDS down
  *   - [ ] FhirResolveService
  *     - [ ] wrong content type
  *     - [ ] may return error:
@@ -73,6 +75,7 @@ public class TransferProcessControllerIT extends BaseIT {
   ITCohortSelector itCohortSelector = new ITCohortSelector(tca);
   ITDataSelector itDataSelector = new ITDataSelector(tca, hds);
   ITBundleSender itBundleSender = new ITBundleSender(rda);
+  private static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 
   @BeforeEach
   void setUp(@LocalServerPort int port) {
@@ -88,12 +91,12 @@ public class TransferProcessControllerIT extends BaseIT {
   void successfulRequest() throws IOException {
 
     String patientId = randomUUID().toString();
-    var identifierSystem = "http://fts.smith.care";
-    var patient = TestPatientGenerator.generateOnePatient(patientId, "2025", identifierSystem);
+    var patient =
+        TestPatientGenerator.generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
 
     itCohortSelector.success(patientId);
-    itDataSelector.itTransportIds.success(om, patientId, identifierSystem);
-    itDataSelector.itFhirResolveService.success(patientId, identifierSystem);
+    itDataSelector.itTransportIds.success(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    itDataSelector.itFhirResolveService.success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
     itDataSelector.itFetchData.success(patientId, patient);
 
     itBundleSender.success();
@@ -208,6 +211,64 @@ public class TransferProcessControllerIT extends BaseIT {
                     .assertNext(
                         r -> {
                           assertThat(r.status()).isEqualTo(Status.ERROR);
+                        })
+                    .verifyComplete());
+  }
+
+  @Test
+  void cohortSelectorUnknownDomain() throws JsonProcessingException {
+    itCohortSelector.unknownDomain(om);
+    client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .flatMap(
+            r ->
+                Mono.delay(Duration.ofMillis(200))
+                    .flatMap(
+                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
+        .as(
+            response ->
+                StepVerifier.create(response)
+                    .assertNext(
+                        r -> {
+                          assertThat(r.status()).isEqualTo(Status.ERROR);
+                        })
+                    .verifyComplete());
+  }
+
+  @Test
+  void deidentifhirUnknownDomain() throws IOException {
+    String patientId = randomUUID().toString();
+    var patient =
+        TestPatientGenerator.generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
+    itCohortSelector.success(patientId);
+    itDataSelector.itFhirResolveService.success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    itDataSelector.itFetchData.success(patientId, patient);
+
+    itDataSelector.itTransportIds.unknownDomain(om);
+
+    client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .flatMap(
+            r ->
+                Mono.delay(Duration.ofSeconds(3))
+                    .flatMap(
+                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
+        .as(
+            response ->
+                StepVerifier.create(response)
+                    .assertNext(
+                        r -> {
+                          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+                          assertThat(r.bundlesSentCount()).isEqualTo(0);
+                          assertThat(r.patientsSkippedCount()).isEqualTo(1);
                         })
                     .verifyComplete());
   }

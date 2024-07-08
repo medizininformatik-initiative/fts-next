@@ -5,6 +5,8 @@ import care.smith.fts.test.FhirGenerator.Fixed;
 import care.smith.fts.test.FhirGenerator.UUID;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.MediaTypes;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
@@ -13,6 +15,8 @@ import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.mockserver.model.MediaType;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 
 public class ITCohortSelector {
 
@@ -57,5 +61,17 @@ public class ITCohortSelector {
                 .withStatusCode(200)
                 .withContentType(MediaType.PLAIN_TEXT_UTF_8)
                 .withBody(FhirUtils.fhirResourceToString(consent)));
+  }
+
+  void unknownDomain(ObjectMapper om) throws JsonProcessingException {
+    tca.when(HttpRequest.request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
+        .respond(
+            HttpResponse.response()
+                .withStatusCode(400)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(
+                    om.writeValueAsString(
+                        ProblemDetail.forStatusAndDetail(
+                            HttpStatus.BAD_REQUEST, "No consents found for domain  'MII1234'"))));
   }
 }

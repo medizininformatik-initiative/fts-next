@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
 import reactor.core.publisher.Flux;
@@ -42,14 +44,21 @@ class TCACohortSelector implements CohortSelector {
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
+        .onStatus(
+            r -> r.equals(HttpStatus.BAD_REQUEST),
+            r ->
+                r.bodyToMono(ProblemDetail.class)
+                    .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
         .bodyToMono(Bundle.class)
         // TODO Paging using .expand()? see Flare
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .onErrorResume(
             WebClientException.class,
-            e ->
-                Mono.error(
-                    new TransferProcessException("Error communicating with trust center agent", e)))
+            e -> {
+              log.error(e.getMessage());
+              return Mono.error(
+                  new TransferProcessException("Error communicating with trust center agent", e));
+            })
         .flatMapMany(
             outerBundle ->
                 Flux.fromStream(
