@@ -10,6 +10,9 @@ import care.smith.fts.test.FhirGenerator.UUID;
 import care.smith.fts.util.FhirUtils;
 import java.io.IOException;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.Delay;
+import org.mockserver.model.HttpError;
+import org.mockserver.model.HttpRequest;
 import org.mockserver.model.MediaType;
 
 public class MockFhirResolveService {
@@ -38,5 +41,13 @@ public class MockFhirResolveService {
                 .withBody(
                     FhirUtils.fhirResourceToString(
                         fhirResolveGen.generateBundle(1, 1).getEntryFirstRep().getResource())));
+  }
+
+  public void isDown() {
+    hds.when(HttpRequest.request()).error(HttpError.error().withDropConnection(true));
+  }
+
+  public void timeout() {
+    hds.when(request()).respond(request -> null, Delay.minutes(10));
   }
 }

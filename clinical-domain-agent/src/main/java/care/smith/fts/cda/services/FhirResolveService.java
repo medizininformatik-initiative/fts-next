@@ -39,6 +39,7 @@ public class FhirResolveService implements PatientIdResolver {
   private Mono<IBaseResource> resolveFromPatient(String patientId) {
     requireNonNull(emptyToNull(patientId), "patientId must not be null or empty");
     return fetchPatientBundle(patientId)
+        .doOnError(e -> log.error(e.getMessage()))
         .doOnNext(ps -> requireNonNull(ps, "Patient bundle must not be null"))
         .doOnNext(ps -> checkBundleNotEmpty(ps, patientId))
         .doOnNext(ps -> checkSinglePatient(ps, patientId))
