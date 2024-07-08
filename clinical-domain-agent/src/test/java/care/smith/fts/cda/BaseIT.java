@@ -3,7 +3,7 @@ package care.smith.fts.cda;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.util.FileSystemUtils.deleteRecursively;
 
-import care.smith.fts.cda.rest.TransferProcessControllerIT;
+import care.smith.fts.cda.rest.it.TransferProcessControllerIT;
 import care.smith.fts.test.MockServerUtil;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,6 +28,12 @@ public abstract class BaseIT {
   @DynamicPropertySource
   static void registerTempDir(DynamicPropertyRegistry registry) {
     registry.add("projects.directory", tempDir::toString);
+  }
+
+  protected static void resetAll() {
+    tca.reset();
+    hds.reset();
+    rda.reset();
   }
 
   static {

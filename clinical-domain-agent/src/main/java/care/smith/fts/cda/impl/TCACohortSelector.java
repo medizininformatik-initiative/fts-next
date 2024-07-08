@@ -6,12 +6,15 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.util.error.TransferProcessException;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 class TCACohortSelector implements CohortSelector {
@@ -25,7 +28,6 @@ class TCACohortSelector implements CohortSelector {
 
   @Override
   public Flux<ConsentedPatient> selectCohort() {
-    log.info("TRHW client {}", client.toString());
     return client
         .post()
         .uri("/api/v2/cd/consented-patients")
@@ -43,7 +45,11 @@ class TCACohortSelector implements CohortSelector {
         .bodyToMono(Bundle.class)
         // TODO Paging using .expand()? see Flare
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
-        .doOnError(b -> log.error(b.getMessage()))
+        .onErrorResume(
+            WebClientException.class,
+            e ->
+                Mono.error(
+                    new TransferProcessException("Error communicating with trust center agent", e)))
         .flatMapMany(
             outerBundle ->
                 Flux.fromStream(

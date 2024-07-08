@@ -12,6 +12,7 @@ public interface TransferProcessRunner {
   enum Status {
     QUEUED,
     RUNNING,
-    COMPLETED
+    COMPLETED,
+    ERROR
   }
 }

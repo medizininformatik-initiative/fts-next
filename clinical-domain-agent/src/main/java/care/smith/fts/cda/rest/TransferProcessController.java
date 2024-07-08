@@ -64,7 +64,7 @@ public class TransferProcessController {
     return switch (s.status()) {
       case QUEUED -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS_HEADER, "Queued"));
       case RUNNING -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS_HEADER, "Running"));
-      case COMPLETED -> ResponseEntity.ok();
+      case COMPLETED, ERROR -> ResponseEntity.ok();
     };
   }
 
