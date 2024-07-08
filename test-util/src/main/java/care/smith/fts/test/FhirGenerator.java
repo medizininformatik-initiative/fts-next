@@ -108,16 +108,16 @@ public class FhirGenerator {
     }
   }
 
-  public static class Increasing implements Replacement {
+  public static class Incrementing implements Replacement {
     private final String prefix;
     private long index;
 
-    public Increasing(String prefix, long index) {
+    public Incrementing(String prefix, long index) {
       this.prefix = prefix;
       this.index = index;
     }
 
-    public Increasing(String prefix) {
+    public Incrementing(String prefix) {
       this(prefix, 0);
     }
 

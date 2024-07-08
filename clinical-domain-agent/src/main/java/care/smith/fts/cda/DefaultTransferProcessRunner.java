@@ -83,7 +83,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()))
           .doOnError(e -> skippedPatients.incrementAndGet())
           .doOnError(e -> log.error("Skipping patient: {}", e.getMessage()))
-          .onErrorContinue((err, o) -> {});
+          .onErrorResume(e -> Mono.just(new Result(0)));
     }
 
     public State state(String processId) {

@@ -1,4 +1,4 @@
-package care.smith.fts.cda.rest.it;
+package care.smith.fts.cda.rest.it.mock;
 
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -15,15 +15,15 @@ import java.util.Map;
 import java.util.Set;
 import org.mockserver.client.MockServerClient;
 
-class ITTransportIds {
+public class MockTransportIds {
 
   private final MockServerClient tca;
 
-  public ITTransportIds(MockServerClient tca) {
+  public MockTransportIds(MockServerClient tca) {
     this.tca = tca;
   }
 
-  void success(ObjectMapper om, String patientId, String identifierSystem)
+  public void success(ObjectMapper om, String patientId, String identifierSystem)
       throws JsonProcessingException {
     var tid1 = patientId + ".identifier." + identifierSystem + ":" + patientId;
     var tid2 = patientId + ".id.Patient:" + patientId;
@@ -45,16 +45,11 @@ class ITTransportIds {
                 .withBody(om.writeValueAsString(pseudonymizeResponse)));
   }
 
-  void unknownDomain(ObjectMapper om, String patientId, String identifierSystem)
-      throws JsonProcessingException {
-    var tid1 = patientId + ".identifier." + identifierSystem + ":" + patientId;
-    var tid2 = patientId + ".id.Patient:" + patientId;
+  public void unknownDomain(ObjectMapper om) throws JsonProcessingException {
+    var tid = "id1" + ".id.Patient:" + "id1";
 
     var pseudonymizeRequest =
-        new PseudonymizeRequest(
-            patientId, Set.of(tid1, tid2), "unknown domain", Duration.ofDays(14));
-    PseudonymizeResponse pseudonymizeResponse =
-        new PseudonymizeResponse(Map.of(tid1, "tid1", tid2, "tid2"), Duration.ofDays(1));
+        new PseudonymizeRequest("id1", Set.of(tid), "unknown domain", Duration.ofDays(14));
 
     tca.when(
             request()
@@ -64,9 +59,9 @@ class ITTransportIds {
                 .withBody(json(om.writeValueAsString(pseudonymizeRequest))))
         .respond(
             response()
-                .withStatusCode(401)
+                .withStatusCode(400)
                 .withBody(
                     om.writeValueAsString(
-                        new UnknownDomainException("Unknown domain: unknown domain"))));
+                        new UnknownDomainException("Unknown domain 'unknown domain'"))));
   }
 }

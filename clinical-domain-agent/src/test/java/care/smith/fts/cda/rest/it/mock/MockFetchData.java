@@ -1,4 +1,4 @@
-package care.smith.fts.cda.rest.it;
+package care.smith.fts.cda.rest.it.mock;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static org.mockserver.model.HttpRequest.request;
@@ -9,15 +9,15 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.MediaType;
 
-class ITFetchData {
+public class MockFetchData {
 
   private final MockServerClient hds;
 
-  public ITFetchData(MockServerClient hds) {
+  public MockFetchData(MockServerClient hds) {
     this.hds = hds;
   }
 
-  void success(String patientId, Bundle patient) {
+  public void success(String patientId, Bundle patient) {
     hds.when(
             request()
                 .withMethod("GET")

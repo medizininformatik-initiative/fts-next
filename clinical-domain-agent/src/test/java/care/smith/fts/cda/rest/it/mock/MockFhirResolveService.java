@@ -1,4 +1,4 @@
-package care.smith.fts.cda.rest.it;
+package care.smith.fts.cda.rest.it.mock;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static org.mockserver.model.HttpRequest.request;
@@ -12,15 +12,15 @@ import java.io.IOException;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.MediaType;
 
-class ITFhirResolveService {
+public class MockFhirResolveService {
 
   private final MockServerClient hds;
 
-  public ITFhirResolveService(MockServerClient hds) {
+  public MockFhirResolveService(MockServerClient hds) {
     this.hds = hds;
   }
 
-  void success(String patientId, String identifierSystem) throws IOException {
+  public void success(String patientId, String identifierSystem) throws IOException {
     var fhirResolveGen = new FhirGenerator("FhirResolveSearchRequestTemplate.json");
     fhirResolveGen.replaceTemplateFieldWith("$PATIENT_ID", new Fixed(patientId));
     fhirResolveGen.replaceTemplateFieldWith("$HDS_ID", new UUID());

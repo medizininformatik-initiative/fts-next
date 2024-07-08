@@ -1,31 +1,20 @@
 package care.smith.fts.cda.rest.it;
 
-import static java.util.UUID.randomUUID;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 import care.smith.fts.cda.BaseIT;
 import care.smith.fts.cda.ClinicalDomainAgent;
-import care.smith.fts.cda.TransferProcessRunner.State;
-import care.smith.fts.cda.TransferProcessRunner.Status;
-import care.smith.fts.test.TestPatientGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import care.smith.fts.cda.rest.it.mock.MockBundleSender;
+import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
+import care.smith.fts.cda.rest.it.mock.MockDataSelector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.io.IOException;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 /*
  * CDA has two endpoints to test: `/{project}/start` and `/status/{projectId}`.
@@ -68,14 +57,15 @@ import reactor.test.StepVerifier;
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
 public class TransferProcessControllerIT extends BaseIT {
-  private WebClient client;
+  protected WebClient client;
 
   ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
-  ITCohortSelector itCohortSelector = new ITCohortSelector(tca);
-  ITDataSelector itDataSelector = new ITDataSelector(tca, hds);
-  ITBundleSender itBundleSender = new ITBundleSender(rda);
-  private static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
+  MockCohortSelector mockCohortSelector = new MockCohortSelector(tca);
+  MockDataSelector mockDataSelector = new MockDataSelector(tca, hds);
+  MockBundleSender mockBundleSender = new MockBundleSender(rda);
+
+  protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 
   @BeforeEach
   void setUp(@LocalServerPort int port) {
@@ -85,192 +75,6 @@ public class TransferProcessControllerIT extends BaseIT {
   @AfterEach
   void tearDown() {
     resetAll();
-  }
-
-  @Test
-  void successfulRequest() throws IOException {
-
-    String patientId = randomUUID().toString();
-    var patient =
-        TestPatientGenerator.generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
-
-    itCohortSelector.success(patientId);
-    itDataSelector.itTransportIds.success(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
-    itDataSelector.itFhirResolveService.success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
-    itDataSelector.itFetchData.success(patientId, patient);
-
-    itBundleSender.success();
-
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/test/start")
-                .retrieve()
-                .toBodilessEntity()
-                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-                .doOnNext(r -> assertThat(r).isNotEmpty())
-                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(
-                    r ->
-                        Mono.delay(Duration.ofSeconds(3))
-                            .flatMap(
-                                i ->
-                                    client
-                                        .get()
-                                        .uri(r.getFirst())
-                                        .retrieve()
-                                        .bodyToMono(State.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(1))
-        .verifyComplete();
-  }
-
-  @Test
-  void invalidProject() {
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/non-existent/start")
-                .retrieve()
-                .onStatus(
-                    r -> r.equals(HttpStatus.resolve(500)),
-                    (c) ->
-                        c.bodyToMono(ProblemDetail.class)
-                            .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))
-                .toBodilessEntity())
-        .expectErrorMessage("Project non-existent could not be found")
-        .verifyThenAssertThat()
-        .hasOperatorErrors();
-  }
-
-  @Test
-  void cohortSelectorTCADown() {
-    itCohortSelector.isDown();
-
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofSeconds(1))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.ERROR);
-                        })
-                    .verifyComplete());
-  }
-
-  @Test
-  void cohortSelectorTimeoutConsentedPatientsRequest() {
-    itCohortSelector.timeoutResponse();
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofSeconds(10))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.ERROR);
-                        })
-                    .verifyComplete());
-  }
-
-  @Test
-  void cohortSelectorSendsWrongContentType() throws IOException {
-    itCohortSelector.wrongContentType();
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofMillis(200))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.ERROR);
-                        })
-                    .verifyComplete());
-  }
-
-  @Test
-  void cohortSelectorUnknownDomain() throws JsonProcessingException {
-    itCohortSelector.unknownDomain(om);
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofMillis(200))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.ERROR);
-                        })
-                    .verifyComplete());
-  }
-
-  @Test
-  void deidentifhirUnknownDomain() throws IOException {
-    String patientId = randomUUID().toString();
-    var patient =
-        TestPatientGenerator.generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
-    itCohortSelector.success(patientId);
-    itDataSelector.itFhirResolveService.success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
-    itDataSelector.itFetchData.success(patientId, patient);
-
-    itDataSelector.itTransportIds.unknownDomain(om);
-
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofSeconds(3))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.COMPLETED);
-                          assertThat(r.bundlesSentCount()).isEqualTo(0);
-                          assertThat(r.patientsSkippedCount()).isEqualTo(1);
-                        })
-                    .verifyComplete());
   }
 }
 
