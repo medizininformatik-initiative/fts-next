@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -67,21 +66,24 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       status.set(Status.RUNNING);
       cohortSelector
           .selectCohort()
-          .doOnError(e -> log.error("Error: {}", e.getMessage()))
+          .doOnError(e -> log.error(e.getMessage()))
+          .doOnError(e -> status.set(Status.ERROR))
           .flatMap(this::executePatient)
-          .doOnError(e -> skippedPatients.incrementAndGet())
-          .onErrorContinue((err, o) -> log.debug("Skipping patient: {}", err.getMessage()))
           .doOnComplete(() -> status.set(Status.COMPLETED))
+          .onErrorComplete()
           .subscribe();
     }
 
-    private Flux<Result> executePatient(ConsentedPatient patient) {
+    private Mono<Result> executePatient(ConsentedPatient patient) {
       return dataSelector
           .select(patient)
           .map(b -> new ConsentedPatientBundle(b, patient))
           .transform(deidentificationProvider::deidentify)
-          .transform(bundleSender::send)
-          .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()));
+          .as(bundleSender::send)
+          .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()))
+          .doOnError(e -> skippedPatients.incrementAndGet())
+          .doOnError(e -> log.error("Skipping patient: {}", e.getMessage()))
+          .onErrorContinue((err, o) -> {});
     }
 
     public State state(String processId) {
