@@ -16,7 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
 @ExtendWith(MockitoExtension.class)
-class ProjectsFactoryTest {
+class ProjectReaderTest {
 
   @Mock TransferProcessFactory processFactory;
   @Mock ConfigurableListableBeanFactory beanFactory;
@@ -25,7 +25,7 @@ class ProjectsFactoryTest {
   private final Path testDirectory = Paths.get("src/test/resources/projects");
   private @TempDir Path tempDirectory;
 
-  public ProjectsFactoryTest() {
+  public ProjectReaderTest() {
     objectMapper =
         new ObjectMapper(new YAMLFactory())
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -33,7 +33,7 @@ class ProjectsFactoryTest {
 
   @Test
   void emptyDirYieldsNoBeans() throws Exception {
-    var factory = new ProjectsFactory(processFactory, objectMapper, tempDirectory);
+    var factory = new ProjectReader(processFactory, objectMapper, tempDirectory);
 
     factory.createTransferProcesses();
 
@@ -47,7 +47,7 @@ class ProjectsFactoryTest {
         new TransferProcess("example", () -> null, c -> null, b -> null, b -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
-    var factory = new ProjectsFactory(processFactory, objectMapper, testDirectory);
+    var factory = new ProjectReader(processFactory, objectMapper, testDirectory);
     factory.createTransferProcesses();
 
     verify(processFactory, times(1)).create(any(), eq("example"));

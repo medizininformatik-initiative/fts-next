@@ -1,16 +1,16 @@
 package care.smith.fts.api.cda;
 
-import care.smith.fts.api.Step;
-import care.smith.fts.api.StepFactory;
+import care.smith.fts.api.TransferProcessStep;
+import care.smith.fts.api.TransferProcessStepFactory;
 import care.smith.fts.api.TransportBundle;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface BundleSender extends Step {
+public interface BundleSender extends TransferProcessStep {
 
   Mono<Result> send(Flux<TransportBundle> bundles);
 
-  interface Factory<C> extends StepFactory<BundleSender, Config, C> {}
+  interface Factory<C> extends TransferProcessStepFactory<BundleSender, Config, C> {}
 
   record Config() {}
 

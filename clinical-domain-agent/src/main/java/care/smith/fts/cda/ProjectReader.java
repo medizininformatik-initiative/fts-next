@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class ProjectsFactory {
+public class ProjectReader {
 
   private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(?<name>.*)[.](?:ya?ml|json)$");
 
@@ -28,7 +28,7 @@ public class ProjectsFactory {
   private final ObjectMapper objectMapper;
   private final Path projectsDir;
 
-  public ProjectsFactory(
+  public ProjectReader(
       TransferProcessFactory processFactory,
       @Qualifier("transferProcessObjectMapper") ObjectMapper objectMapper,
       Path projectsDir) {
