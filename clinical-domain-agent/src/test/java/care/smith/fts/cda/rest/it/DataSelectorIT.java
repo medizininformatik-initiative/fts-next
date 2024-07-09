@@ -6,6 +6,7 @@ import care.smith.fts.cda.TransferProcessRunner.State;
 import care.smith.fts.cda.TransferProcessRunner.Status;
 import java.io.IOException;
 import java.time.Duration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -13,34 +14,32 @@ import reactor.test.StepVerifier;
 public class DataSelectorIT extends TransferProcessControllerIT {
   private static final String patientId = "patientId";
 
-  @Test
-  void hdsDown() throws IOException {
+  @BeforeEach
+  void setUp() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
     mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+  }
+
+  @Test
+  void hdsDown() {
     mockDataSelector.getMockFetchData().isDown(patientId);
     startProcess(1);
   }
 
   @Test
-  void hdsTimeout() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+  void hdsTimeout() {
     mockDataSelector.getMockFetchData().timeout(patientId);
     startProcess(11);
   }
 
   @Test
   void hdsReturnsWrongContentType() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
     mockDataSelector.getMockFetchData().wrongContentType(patientId);
     startProcess(1);
   }
 
   @Test
-  void hdsReturnsEmptyBundle() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+  void hdsReturnsEmptyBundle() {
     mockDataSelector.getMockFetchData().emptyBundle(patientId);
     startProcess(1);
   }
