@@ -52,13 +52,12 @@ class TCACohortSelector implements CohortSelector {
         .bodyToMono(Bundle.class)
         // TODO Paging using .expand()? see Flare
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
+        .doOnError(e -> log.error(e.getMessage()))
         .onErrorResume(
             WebClientException.class,
-            e -> {
-              log.error(e.getMessage());
-              return Mono.error(
-                  new TransferProcessException("Error communicating with trust center agent", e));
-            })
+            e ->
+                Mono.error(
+                    new TransferProcessException("Error communicating with trust center agent", e)))
         .flatMapMany(
             outerBundle ->
                 Flux.fromStream(
