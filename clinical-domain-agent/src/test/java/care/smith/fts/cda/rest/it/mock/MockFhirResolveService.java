@@ -9,6 +9,7 @@ import care.smith.fts.test.FhirGenerator.Fixed;
 import care.smith.fts.test.FhirGenerator.UUID;
 import care.smith.fts.util.FhirUtils;
 import java.io.IOException;
+import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
 import org.mockserver.model.HttpError;
@@ -52,18 +53,12 @@ public class MockFhirResolveService {
   }
 
   public void wrongContentType() throws IOException {
-    var fhirResolveGen = new FhirGenerator("FhirResolveSearchRequestTemplate.json");
-    fhirResolveGen.replaceTemplateFieldWith("$PATIENT_ID", new Fixed("id1"));
-    fhirResolveGen.replaceTemplateFieldWith("$HDS_ID", new UUID());
-
     hds.when(request().withMethod("GET"))
         .respond(
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.PLAIN_TEXT_UTF_8)
-                .withBody(
-                    FhirUtils.fhirResourceToString(
-                        fhirResolveGen.generateBundle(1, 1).getEntryFirstRep().getResource())));
+                .withBody(FhirUtils.fhirResourceToString(new Bundle())));
   }
 
   public void moreThanOneResult() throws IOException {
@@ -77,5 +72,14 @@ public class MockFhirResolveService {
                 .withStatusCode(200)
                 .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
                 .withBody(FhirUtils.fhirResourceToString(fhirResolveGen.generateBundle(2, 2))));
+  }
+
+  public void emptyBundle() throws IOException {
+    hds.when(request().withMethod("GET"))
+        .respond(
+            response()
+                .withStatusCode(200)
+                .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
+                .withBody(FhirUtils.fhirResourceToString(new Bundle())));
   }
 }

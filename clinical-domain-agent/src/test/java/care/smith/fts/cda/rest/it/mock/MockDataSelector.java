@@ -1,24 +1,14 @@
 package care.smith.fts.cda.rest.it.mock;
 
+import lombok.Getter;
 import org.mockserver.client.MockServerClient;
 
+@Getter
 public class MockDataSelector {
 
   MockFhirResolveService mockFhirResolveService;
   MockTransportIds mockTransportIds;
   MockFetchData mockFetchData;
-
-  public MockFhirResolveService getMockFhirResolveService() {
-    return mockFhirResolveService;
-  }
-
-  public MockTransportIds getMockTransportIds() {
-    return mockTransportIds;
-  }
-
-  public MockFetchData getMockFetchData() {
-    return mockFetchData;
-  }
 
   public MockDataSelector(MockServerClient tca, MockServerClient hds) {
     this.mockFhirResolveService = new MockFhirResolveService(hds);

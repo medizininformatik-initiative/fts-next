@@ -1,10 +1,9 @@
 package care.smith.fts.cda.rest.it;
 
+import static care.smith.fts.test.TestPatientGenerator.generateNPatients;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hl7.fhir.r4.model.ResourceType.Bundle;
 
 import care.smith.fts.cda.TransferProcessRunner.State;
-import care.smith.fts.test.TestPatientGenerator;
 import java.io.IOException;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +21,7 @@ public class GeneralIT extends TransferProcessControllerIT {
   void successfulRequest() throws IOException {
 
     String patientId = "patientId";
-    var patientsAndIds =
-        TestPatientGenerator.generateNPatients(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
+    var patientsAndIds = generateNPatients(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 

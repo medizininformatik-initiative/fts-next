@@ -14,23 +14,34 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   private static final String patientId = "patientId";
 
   @Test
-  void fhirResolveServiceHdsDown() throws IOException {
+  void hdsDown() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.getMockFhirResolveService().isDown();
+    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.getMockFetchData().isDown();
     startProcess(1);
   }
 
   @Test
-  void fhirResolveServiceHdsTimeout() throws IOException {
+  void hdsTimeout() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.getMockFhirResolveService().timeout();
+    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.getMockFetchData().timeout();
     startProcess(11);
   }
 
   @Test
-  void fhirResolveServiceHdsReturnsWrongContentType() throws IOException {
+  void hdsReturnsWrongContentType() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.getMockFhirResolveService().wrongContentType();
+    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.getMockFetchData().wrongContentType();
+    startProcess(1);
+  }
+
+  @Test
+  void hdsReturnsEmptyBundle() throws IOException {
+    mockCohortSelector.successOnePatient(patientId);
+    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.getMockFetchData().emptyBundle();
     startProcess(1);
   }
 

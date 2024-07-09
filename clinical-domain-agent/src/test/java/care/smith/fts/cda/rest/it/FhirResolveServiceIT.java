@@ -41,6 +41,13 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
     startProcess(1);
   }
 
+  @Test
+  void hdsReturnsEmptyBundle() throws IOException {
+    mockCohortSelector.successOnePatient(patientId);
+    mockDataSelector.getMockFhirResolveService().emptyBundle();
+    startProcess(1);
+  }
+
   private void startProcess(int seconds) {
     client
         .post()
