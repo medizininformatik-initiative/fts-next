@@ -14,26 +14,25 @@ import reactor.test.StepVerifier;
 public class CohortSelectorIT extends TransferProcessControllerIT {
 
   @Test
-  void cohortSelectorTCADown() {
+  void tcaDown() {
     mockCohortSelector.isDown();
-
     startProcess(Duration.ofSeconds(1));
   }
 
   @Test
-  void cohortSelectorTimeoutConsentedPatientsRequest() {
+  void tcaTimeoutConsentedPatientsRequest() {
     mockCohortSelector.timeout();
     startProcess(Duration.ofSeconds(10));
   }
 
   @Test
-  void cohortSelectorSendsWrongContentType() throws IOException {
+  void tcaSendsWrongContentType() throws IOException {
     mockCohortSelector.wrongContentType();
     startProcess(Duration.ofMillis(200));
   }
 
   @Test
-  void cohortSelectorUnknownDomain() throws JsonProcessingException {
+  void unknownDomain() throws JsonProcessingException {
     mockCohortSelector.unknownDomain(om);
     startProcess(Duration.ofMillis(200));
   }
