@@ -10,27 +10,34 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class DataSelectorIT extends TransferProcessControllerIT {
+public class FhirResolveServiceIT extends TransferProcessControllerIT {
   private static final String patientId = "patientId";
 
   @Test
-  void fhirResolveServiceHdsDown() throws IOException {
+  void hdsDown() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
     mockDataSelector.getMockFhirResolveService().isDown();
     startProcess(1);
   }
 
   @Test
-  void fhirResolveServiceHdsTimeout() throws IOException {
+  void hdsTimeout() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
     mockDataSelector.getMockFhirResolveService().timeout();
     startProcess(11);
   }
 
   @Test
-  void fhirResolveServiceHdsReturnsWrongContentType() throws IOException {
+  void hdsReturnsWrongContentType() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
     mockDataSelector.getMockFhirResolveService().wrongContentType();
+    startProcess(1);
+  }
+
+  @Test
+  void hdsReturnsMoreThanOneResult() throws IOException {
+    mockCohortSelector.successOnePatient(patientId);
+    mockDataSelector.getMockFhirResolveService().moreThanOneResult();
     startProcess(1);
   }
 

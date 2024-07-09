@@ -17,78 +17,28 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   void cohortSelectorTCADown() {
     mockCohortSelector.isDown();
 
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofSeconds(1))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.ERROR);
-                        })
-                    .verifyComplete());
+    startProcess(Duration.ofSeconds(1));
   }
 
   @Test
   void cohortSelectorTimeoutConsentedPatientsRequest() {
     mockCohortSelector.timeout();
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofSeconds(10))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.ERROR);
-                        })
-                    .verifyComplete());
+    startProcess(Duration.ofSeconds(10));
   }
 
   @Test
   void cohortSelectorSendsWrongContentType() throws IOException {
     mockCohortSelector.wrongContentType();
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(Duration.ofMillis(200))
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> {
-                          assertThat(r.status()).isEqualTo(Status.ERROR);
-                        })
-                    .verifyComplete());
+    startProcess(Duration.ofMillis(200));
   }
 
   @Test
   void cohortSelectorUnknownDomain() throws JsonProcessingException {
     mockCohortSelector.unknownDomain(om);
+    startProcess(Duration.ofMillis(200));
+  }
+
+  private void startProcess(Duration duration) {
     client
         .post()
         .uri("/api/v2/process/test/start")
@@ -97,7 +47,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
         .mapNotNull(r -> r.getHeaders().get("Content-Location"))
         .flatMap(
             r ->
-                Mono.delay(Duration.ofMillis(200))
+                Mono.delay(duration)
                     .flatMap(
                         i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
         .as(

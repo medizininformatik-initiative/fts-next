@@ -38,14 +38,16 @@ import org.springframework.web.reactive.function.client.WebClient;
  *   - [x] TCA/gICS: unknown domain, this is the only setting that returns an error (bad request),
  * other settings may return an empty bundle
  * - [ ] DataSelector
- *   - [ ] HDS slow
- *   - [ ] HDS down
  *   - [ ] FhirResolveService
- *     - [ ] wrong content type
+ *     - [x] HDS slow
+ *     - [x] HDS down
+ *     - [x] wrong content type
  *     - [ ] may return error:
- *       - [ ] More than one result
+ *       - [x] More than one result
  *       - [ ] Unable to resolve patient id
  *   - [ ] everything
+ *     - [ ] HDS slow
+ *     - [ ] HDS down
  *     - [ ] wrong content type
  *     - [ ] paging - not implemented
  * - [ ] Deidentifhir

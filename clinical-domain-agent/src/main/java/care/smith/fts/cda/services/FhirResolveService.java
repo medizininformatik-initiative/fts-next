@@ -4,6 +4,7 @@ import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
+import care.smith.fts.util.error.TransferProcessException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -11,6 +12,7 @@ import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientException;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -39,7 +41,6 @@ public class FhirResolveService implements PatientIdResolver {
   private Mono<IBaseResource> resolveFromPatient(String patientId) {
     requireNonNull(emptyToNull(patientId), "patientId must not be null or empty");
     return fetchPatientBundle(patientId)
-        .doOnError(e -> log.error(e.getMessage()))
         .doOnNext(ps -> requireNonNull(ps, "Patient bundle must not be null"))
         .doOnNext(ps -> checkBundleNotEmpty(ps, patientId))
         .doOnNext(ps -> checkSinglePatient(ps, patientId))
@@ -56,7 +57,11 @@ public class FhirResolveService implements PatientIdResolver {
                     .build())
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
-        .bodyToMono(Bundle.class);
+        .bodyToMono(Bundle.class)
+        .doOnError(e -> log.error(e.getMessage()))
+        .onErrorResume(
+            WebClientException.class,
+            e -> Mono.error(new TransferProcessException("Cannot resolve patient id", e)));
   }
 
   private void checkSinglePatient(Bundle patients, String patientId) {

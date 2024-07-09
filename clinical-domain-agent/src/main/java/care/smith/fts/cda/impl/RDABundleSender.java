@@ -8,7 +8,6 @@ import static java.util.stream.Stream.of;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
-import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.MediaTypes;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -38,7 +37,6 @@ final class RDABundleSender implements BundleSender {
   }
 
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {
-    log.info(FhirUtils.fhirResourceToString(bundle));
     return client
         .post()
         .uri(uri -> uri.pathSegment("api", "v2", "{project}", "patient").build(config.project()))
