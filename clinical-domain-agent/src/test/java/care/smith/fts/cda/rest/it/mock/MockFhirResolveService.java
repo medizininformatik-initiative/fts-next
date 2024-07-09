@@ -44,16 +44,33 @@ public class MockFhirResolveService {
                         fhirResolveGen.generateBundle(1, 1).getEntryFirstRep().getResource())));
   }
 
-  public void isDown() {
-    hds.when(HttpRequest.request()).error(HttpError.error().withDropConnection(true));
+  public void isDown(String patientId, String identifierSystem) {
+    hds.when(
+            HttpRequest.request()
+                .withMethod("GET")
+                .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
+                .withPath("/Patient")
+                .withQueryStringParameter("identifier", identifierSystem + "|" + patientId))
+        .error(HttpError.error().withDropConnection(true));
   }
 
-  public void timeout() {
-    hds.when(request()).respond(request -> null, Delay.minutes(10));
+  public void timeout(String patientId, String identifierSystem) {
+    hds.when(
+            request()
+                .withMethod("GET")
+                .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
+                .withPath("/Patient")
+                .withQueryStringParameter("identifier", identifierSystem + "|" + patientId))
+        .respond(request -> null, Delay.minutes(10));
   }
 
-  public void wrongContentType() throws IOException {
-    hds.when(request().withMethod("GET"))
+  public void wrongContentType(String patientId, String identifierSystem) {
+    hds.when(
+            request()
+                .withMethod("GET")
+                .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
+                .withPath("/Patient")
+                .withQueryStringParameter("identifier", identifierSystem + "|" + patientId))
         .respond(
             response()
                 .withStatusCode(200)
@@ -61,12 +78,17 @@ public class MockFhirResolveService {
                 .withBody(FhirUtils.fhirResourceToString(new Bundle())));
   }
 
-  public void moreThanOneResult() throws IOException {
+  public void moreThanOneResult(String patientId, String identifierSystem) throws IOException {
     var fhirResolveGen = new FhirGenerator("FhirResolveSearchRequestTemplate.json");
     fhirResolveGen.replaceTemplateFieldWith("$PATIENT_ID", new Fixed("id1"));
     fhirResolveGen.replaceTemplateFieldWith("$HDS_ID", new UUID());
 
-    hds.when(request().withMethod("GET"))
+    hds.when(
+            request()
+                .withMethod("GET")
+                .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
+                .withPath("/Patient")
+                .withQueryStringParameter("identifier", identifierSystem + "|" + patientId))
         .respond(
             response()
                 .withStatusCode(200)
@@ -74,8 +96,13 @@ public class MockFhirResolveService {
                 .withBody(FhirUtils.fhirResourceToString(fhirResolveGen.generateBundle(2, 2))));
   }
 
-  public void emptyBundle() throws IOException {
-    hds.when(request().withMethod("GET"))
+  public void emptyBundle(String patientId, String identifierSystem) {
+    hds.when(
+            request()
+                .withMethod("GET")
+                .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
+                .withPath("/Patient")
+                .withQueryStringParameter("identifier", identifierSystem + "|" + patientId))
         .respond(
             response()
                 .withStatusCode(200)
