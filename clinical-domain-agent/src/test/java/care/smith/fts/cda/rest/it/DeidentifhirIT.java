@@ -1,32 +1,52 @@
 package care.smith.fts.cda.rest.it;
 
-import static java.util.UUID.randomUUID;
+import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.cda.TransferProcessRunner.State;
 import care.smith.fts.cda.TransferProcessRunner.Status;
-import care.smith.fts.test.TestPatientGenerator;
 import java.io.IOException;
 import java.time.Duration;
-import org.junit.jupiter.api.Disabled;
+import org.hl7.fhir.r4.model.Bundle;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class DeidentifhirIT extends TransferProcessControllerIT {
+  private static final String patientId = "patientId";
+  private static Bundle patient;
 
-  @Disabled
-  @Test
-  void deidentifhirUnknownDomain() throws IOException {
-    String patientId = randomUUID().toString();
-    var patient =
-        TestPatientGenerator.generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
+  public DeidentifhirIT() throws IOException {
+    patient = generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
+  }
+
+  @BeforeEach
+  void setUp() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
     mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
     mockDataSelector.getMockFetchData().success(patientId, patient);
+  }
 
-    mockDataSelector.getMockTransportIds().unknownDomain(om);
+  @Test
+  void tcaDown() {
+    mockDataSelector.getMockTransportIds().isDown();
+    runProcess(3);
+  }
 
+  @Test
+  void tcaTimeout() {
+    mockDataSelector.getMockTransportIds().timeout();
+    runProcess(11);
+  }
+
+  @Test
+  void unknownDomain() throws IOException {
+    mockDataSelector.getMockTransportIds().unknownDomain(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    runProcess(3);
+  }
+
+  private void runProcess(int seconds) {
     client
         .post()
         .uri("/api/v2/process/test/start")
@@ -35,7 +55,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
         .mapNotNull(r -> r.getHeaders().get("Content-Location"))
         .flatMap(
             r ->
-                Mono.delay(Duration.ofSeconds(3))
+                Mono.delay(Duration.ofSeconds(seconds))
                     .flatMap(
                         i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
         .as(

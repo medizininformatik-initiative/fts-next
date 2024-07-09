@@ -38,23 +38,25 @@ import org.springframework.web.reactive.function.client.WebClient;
  *   - [x] TCA/gICS: unknown domain, this is the only setting that returns an error (bad request),
  * other settings may return an empty bundle
  * - [ ] DataSelector
- *   - [ ] FhirResolveService
+ *   - [x] FhirResolveService
  *     - [x] HDS slow
  *     - [x] HDS down
  *     - [x] wrong content type
- *     - [ ] may return error:
+ *     - [x] may return error:
  *       - [x] More than one result
- *       - [ ] Unable to resolve patient id
+ *       - [x] Unable to resolve patient id
  *   - [ ] everything
- *     - [ ] HDS slow
- *     - [ ] HDS down
- *     - [ ] wrong content type
+ *     - [x] HDS slow
+ *     - [x] HDS down
+ *     - [x] wrong content type
  *     - [ ] paging - not implemented
- * - [ ] Deidentifhir
- *   - [ ] TCA slow or down
- *   - [ ] gPAS unknown domain -> bad request
+ * - [x] Deidentifhir
+ *   - [x] TCA slow
+ *   - [x] TCA down
+ *   - [x] gPAS unknown domain -> bad request
  * - [ ] BundleSender
- *   - [ ] RDA slow or down
+ *   - [ ] RDA slow
+ *   - [ ] RDA down
  */
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
