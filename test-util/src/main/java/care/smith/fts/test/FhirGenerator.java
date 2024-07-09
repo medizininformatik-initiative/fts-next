@@ -8,11 +8,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.CharBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.stream.Stream;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 
@@ -21,16 +24,20 @@ import org.hl7.fhir.r4.model.Bundle;
  * occurrences with a given Replacement e.g. an UUID
  */
 @Slf4j
+@Getter
 public class FhirGenerator {
   private final CharBuffer templateBuffer;
-  private final Map<String, Replacement> replacements = new HashMap<>();
+  private final Map<String, Replacement> inputReplacements = new HashMap<>();
+
+  // This Map holds the replacements of the last run
+  private final Map<String, List<String>> replacements = new HashMap<>();
 
   public FhirGenerator(String templateFile) throws IOException {
     templateBuffer = TemplateLoader.getCharBuffer(templateFile, this.getClass().getClassLoader());
   }
 
   public void replaceTemplateFieldWith(String field, Replacement replaceWith) {
-    replacements.put(field, replaceWith);
+    inputReplacements.put(field, replaceWith);
   }
 
   /**
@@ -42,7 +49,7 @@ public class FhirGenerator {
    * @return
    */
   public Bundle generateBundle(int totalEntries, int pageSize) {
-
+    replacements.clear();
     return Stream.generate(this::generateString)
         .limit(min(pageSize, totalEntries))
         .map(FhirUtils::stringToFhirBundle)
@@ -57,10 +64,18 @@ public class FhirGenerator {
    */
   public String generateString() {
     String s = templateBuffer.toString();
-    for (Map.Entry<String, Replacement> m : replacements.entrySet()) {
-      s = s.replace(m.getKey(), m.getValue().apply());
+    for (Map.Entry<String, Replacement> m : inputReplacements.entrySet()) {
+      var replacement = m.getValue().apply();
+      addToReplacementMap(m, replacement);
+      s = s.replace(m.getKey(), replacement);
     }
     return s;
+  }
+
+  private void addToReplacementMap(Entry<String, Replacement> m, String replacement) {
+    var n = replacements.getOrDefault(m.getKey(), new ArrayList<>());
+    n.add(replacement);
+    replacements.put(m.getKey(), n);
   }
 
   public InputStream generateInputStream() {

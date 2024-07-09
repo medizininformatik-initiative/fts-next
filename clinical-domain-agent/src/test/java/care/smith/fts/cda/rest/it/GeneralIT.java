@@ -1,31 +1,41 @@
 package care.smith.fts.cda.rest.it;
 
-import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hl7.fhir.r4.model.ResourceType.Bundle;
 
 import care.smith.fts.cda.TransferProcessRunner.State;
 import care.smith.fts.test.TestPatientGenerator;
 import java.io.IOException;
 import java.time.Duration;
+import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+@Slf4j
 public class GeneralIT extends TransferProcessControllerIT {
 
   @Test
   void successfulRequest() throws IOException {
 
-    String patientId = randomUUID().toString();
-    var patient =
-        TestPatientGenerator.generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
+    String patientId = "patientId";
+    var patientsAndIds =
+        TestPatientGenerator.generateNPatients(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
+    var patients = patientsAndIds.bundle();
+    var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.getMockTransportIds().success(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
-    mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
-    mockDataSelector.getMockFetchData().success(patientId, patient);
+    mockCohortSelector.successNPatients(patientId, 3);
+    for (var i = 0; i < patients.getTotal(); i++) {
+      var id = ids.get(i);
+      mockDataSelector.getMockTransportIds().success(om, id, DEFAULT_IDENTIFIER_SYSTEM);
+      mockDataSelector.getMockFhirResolveService().success(id, DEFAULT_IDENTIFIER_SYSTEM);
+      mockDataSelector
+          .getMockFetchData()
+          .success(id, new Bundle().addEntry(patients.getEntry().get(i)));
+    }
 
     mockBundleSender.success();
 
@@ -48,7 +58,7 @@ public class GeneralIT extends TransferProcessControllerIT {
                                         .uri(r.getFirst())
                                         .retrieve()
                                         .bodyToMono(State.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(1))
+        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(3))
         .verifyComplete();
   }
 
