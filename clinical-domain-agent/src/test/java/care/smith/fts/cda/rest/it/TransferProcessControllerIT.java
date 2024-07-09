@@ -54,9 +54,9 @@ import org.springframework.web.reactive.function.client.WebClient;
  *   - [x] TCA slow
  *   - [x] TCA down
  *   - [x] gPAS unknown domain -> bad request
- * - [ ] BundleSender
- *   - [ ] RDA slow
- *   - [ ] RDA down
+ * - [x] BundleSender
+ *   - [x] RDA slow
+ *   - [x] RDA down
  */
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)

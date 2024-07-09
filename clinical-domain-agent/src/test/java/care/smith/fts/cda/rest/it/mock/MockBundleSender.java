@@ -6,6 +6,8 @@ import static org.mockserver.model.JsonBody.json;
 
 import org.mockserver.client.MockServerClient;
 import org.mockserver.matchers.MatchType;
+import org.mockserver.model.Delay;
+import org.mockserver.model.HttpError;
 
 public class MockBundleSender {
 
@@ -25,5 +27,29 @@ public class MockBundleSender {
                         "{\"resourceType\":\"Bundle\",\"total\":2}",
                         MatchType.ONLY_MATCHING_FIELDS)))
         .respond(response());
+  }
+
+  public void isDown() {
+    rda.when(
+            request()
+                .withMethod("POST")
+                .withPath("/api/v2/test/patient")
+                .withBody(
+                    json(
+                        "{\"resourceType\":\"Bundle\",\"total\":2}",
+                        MatchType.ONLY_MATCHING_FIELDS)))
+        .error(HttpError.error().withDropConnection(true));
+  }
+
+  public void timeout() {
+    rda.when(
+            request()
+                .withMethod("POST")
+                .withPath("/api/v2/test/patient")
+                .withBody(
+                    json(
+                        "{\"resourceType\":\"Bundle\",\"total\":2}",
+                        MatchType.ONLY_MATCHING_FIELDS)))
+        .respond(request -> null, Delay.minutes(10));
   }
 }
