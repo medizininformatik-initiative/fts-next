@@ -13,7 +13,6 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
 import org.mockserver.model.HttpError;
-import org.mockserver.model.HttpRequest;
 import org.mockserver.model.MediaType;
 
 public class MockFhirResolveService {
@@ -46,7 +45,7 @@ public class MockFhirResolveService {
 
   public void isDown(String patientId, String identifierSystem) {
     hds.when(
-            HttpRequest.request()
+            request()
                 .withMethod("GET")
                 .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
                 .withPath("/Patient")

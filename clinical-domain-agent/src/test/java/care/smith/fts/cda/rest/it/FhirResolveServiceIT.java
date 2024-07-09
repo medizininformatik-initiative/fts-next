@@ -6,6 +6,7 @@ import care.smith.fts.cda.TransferProcessRunner.State;
 import care.smith.fts.cda.TransferProcessRunner.Status;
 import java.io.IOException;
 import java.time.Duration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -13,23 +14,25 @@ import reactor.test.StepVerifier;
 public class FhirResolveServiceIT extends TransferProcessControllerIT {
   private static final String patientId = "id1";
 
-  @Test
-  void hdsDown() throws IOException {
+  @BeforeEach
+  void setUp() throws IOException {
     mockCohortSelector.successOnePatient(patientId);
+  }
+
+  @Test
+  void hdsDown() {
     mockDataSelector.getMockFhirResolveService().isDown(patientId, DEFAULT_IDENTIFIER_SYSTEM);
     startProcess(1);
   }
 
   @Test
-  void hdsTimeout() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
+  void hdsTimeout() {
     mockDataSelector.getMockFhirResolveService().timeout(patientId, DEFAULT_IDENTIFIER_SYSTEM);
     startProcess(11);
   }
 
   @Test
-  void hdsReturnsWrongContentType() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
+  void hdsReturnsWrongContentType() {
     mockDataSelector
         .getMockFhirResolveService()
         .wrongContentType(patientId, DEFAULT_IDENTIFIER_SYSTEM);
@@ -38,7 +41,6 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
 
   @Test
   void hdsReturnsMoreThanOneResult() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
     mockDataSelector
         .getMockFhirResolveService()
         .moreThanOneResult(patientId, DEFAULT_IDENTIFIER_SYSTEM);
@@ -46,8 +48,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void hdsReturnsEmptyBundle() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
+  void hdsReturnsEmptyBundle() {
     mockDataSelector.getMockFhirResolveService().emptyBundle(patientId, DEFAULT_IDENTIFIER_SYSTEM);
     startProcess(1);
   }
