@@ -9,7 +9,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.DeidentificationProvider;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
-import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
 import java.util.Map;
@@ -80,8 +80,8 @@ class DeidentifhirStep implements DeidentificationProvider {
             r -> r.equals(HttpStatus.BAD_REQUEST),
             s ->
                 s.bodyToMono(ProblemDetail.class)
-                    .flatMap(b -> Mono.error(new UnknownDomainException(b.getDetail()))))
+                    .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
         .bodyToMono(PseudonymizeResponse.class)
-        .doOnError(e -> log.error(e.toString(), e));
+        .doOnError(e -> log.error(e.toString()));
   }
 }
