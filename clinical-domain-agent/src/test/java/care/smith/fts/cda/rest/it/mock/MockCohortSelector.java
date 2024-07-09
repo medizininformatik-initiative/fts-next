@@ -1,6 +1,7 @@
 package care.smith.fts.cda.rest.it.mock;
 
 import care.smith.fts.test.FhirGenerator;
+import care.smith.fts.test.FhirGenerator.Fixed;
 import care.smith.fts.test.FhirGenerator.Incrementing;
 import care.smith.fts.test.FhirGenerator.UUID;
 import care.smith.fts.util.FhirUtils;
@@ -29,18 +30,16 @@ public class MockCohortSelector {
   private Bundle validConsent(String patientId, int totalEntries, int pageSize) throws IOException {
     FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
     gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
-    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Incrementing(patientId));
+    if (totalEntries > 1) {
+      gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Incrementing(patientId));
+    } else {
+      gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Fixed(patientId));
+    }
     return gicsConsentGenerator.generateBundle(totalEntries, pageSize);
   }
 
   public void successOnePatient(String patientId) throws IOException {
-    var consent = validConsent(patientId, 1, 1);
-    tca.when(HttpRequest.request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
-        .respond(
-            HttpResponse.response()
-                .withStatusCode(200)
-                .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
-                .withBody(FhirUtils.fhirResourceToString(consent)));
+    successNPatients(patientId, 1);
   }
 
   public void successNPatients(String patientId, int n) throws IOException {
@@ -52,8 +51,6 @@ public class MockCohortSelector {
                 .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
                 .withBody(FhirUtils.fhirResourceToString(consent)));
   }
-
-
 
   public void isDown() {
     tca.when(HttpRequest.request()).error(HttpError.error().withDropConnection(true));
