@@ -31,22 +31,22 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
   @Test
   void tcaDown() {
     mockDataSelector.getMockTransportIds().isDown();
-    runProcess(3);
+    startProcess(3);
   }
 
   @Test
   void tcaTimeout() {
     mockDataSelector.getMockTransportIds().timeout();
-    runProcess(11);
+    startProcess(11);
   }
 
   @Test
   void unknownDomain() throws IOException {
     mockDataSelector.getMockTransportIds().unknownDomain(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
-    runProcess(3);
+    startProcess(3);
   }
 
-  private void runProcess(int seconds) {
+  private void startProcess(int seconds) {
     client
         .post()
         .uri("/api/v2/process/test/start")
