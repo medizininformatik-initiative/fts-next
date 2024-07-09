@@ -36,16 +36,21 @@ public class MockFetchData {
                 .withBody(FhirUtils.fhirResourceToString(patient)));
   }
 
-  public void isDown() {
-    hds.when(HttpRequest.request()).error(HttpError.error().withDropConnection(true));
+  public void isDown(String patientId) {
+    hds.when(
+            HttpRequest.request()
+                .withMethod("GET")
+                .withPath("/Patient/%s/$everything".formatted(patientId)))
+        .error(HttpError.error().withDropConnection(true));
   }
 
-  public void timeout() {
-    hds.when(request()).respond(request -> null, Delay.minutes(10));
+  public void timeout(String patientId) {
+    hds.when(request().withPath("/Patient/%s/$everything".formatted(patientId)))
+        .respond(request -> null, Delay.minutes(10));
   }
 
-  public void wrongContentType() throws IOException {
-    hds.when(request().withMethod("GET"))
+  public void wrongContentType(String patientId) throws IOException {
+    hds.when(request().withMethod("GET").withPath("/Patient/%s/$everything".formatted(patientId)))
         .respond(
             response()
                 .withStatusCode(200)
@@ -53,8 +58,8 @@ public class MockFetchData {
                 .withBody(FhirUtils.fhirResourceToString(new Bundle())));
   }
 
-  public void emptyBundle() throws IOException {
-    hds.when(request().withMethod("GET"))
+  public void emptyBundle(String patientId) {
+    hds.when(request().withMethod("GET").withPath("/Patient/%s/$everything".formatted(patientId)))
         .respond(
             response()
                 .withStatusCode(200)
