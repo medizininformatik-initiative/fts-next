@@ -7,8 +7,13 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN
+
 jobs:
   analyze:
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
     permissions:
       security-events: write
     runs-on: ubuntu-24.04
@@ -29,9 +34,39 @@ jobs:
         queries: security-and-quality
 
     - name: Build
-      run: mvn -B compile
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
+      run: make build
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+
+  build:
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 21
+        cache: 'maven'
+
+    - name: Build Dependencies
+      run: make install-dependencies
+
+    - name: Unit Tests
+      run: mvn ${MAVEN_ARGS} test --projects ${{ matrix.agent }}
+
+    - name: Integration Tests
+      run: mvn ${MAVEN_ARGS} verify --projects ${{ matrix.agent }} -DskipTests
+
+    - name: Build Agent
+      run: mvn ${MAVEN_ARGS} install --projects ${{ matrix.agent }} -DskipTests -DskipITs
