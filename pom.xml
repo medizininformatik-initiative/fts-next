@@ -32,8 +32,8 @@
 
   <repositories>
     <repository>
-      <id>git.smith.care</id>
-      <url>https://git.smith.care/api/v4/projects/135/packages/maven</url>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/UMEssen/DeidentiFHIR</url>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
@@ -143,6 +143,11 @@
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>flatten-maven-plugin</artifactId>
