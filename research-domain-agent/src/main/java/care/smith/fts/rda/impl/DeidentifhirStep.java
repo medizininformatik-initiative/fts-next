@@ -4,8 +4,7 @@ import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.generate
 import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.replaceIDs;
 
 import care.smith.fts.api.TransportBundle;
-import care.smith.fts.api.rda.DeidentificationProvider;
-import care.smith.fts.util.tca.*;
+import care.smith.fts.api.rda.Deidentificator;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-class DeidentifhirStep implements DeidentificationProvider {
+class DeidentifhirStep implements Deidentificator {
   private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift; // TODO check if we have to do a second date shift in RDA

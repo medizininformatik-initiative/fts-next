@@ -5,7 +5,7 @@ import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
-import care.smith.fts.api.cda.DeidentificationProvider;
+import care.smith.fts.api.cda.Deidentificator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -45,7 +45,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private final CohortSelector cohortSelector;
     private final DataSelector dataSelector;
-    private final DeidentificationProvider deidentificationProvider;
+    private final Deidentificator deidentificator;
     private final AtomicLong skippedPatients;
     private final BundleSender bundleSender;
     private final AtomicLong sentBundles;
@@ -54,7 +54,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     public Run(TransferProcess process) {
       cohortSelector = process.cohortSelector();
       dataSelector = process.dataSelector();
-      deidentificationProvider = process.deidentificationProvider();
+      deidentificator = process.deidentificator();
       bundleSender = process.bundleSender();
 
       skippedPatients = new AtomicLong();
@@ -78,7 +78,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return dataSelector
           .select(patient)
           .map(b -> new ConsentedPatientBundle(b, patient))
-          .transform(deidentificationProvider::deidentify)
+          .transform(deidentificator::deidentify)
           .as(bundleSender::send)
           .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()))
           .doOnError(e -> skippedPatients.incrementAndGet())

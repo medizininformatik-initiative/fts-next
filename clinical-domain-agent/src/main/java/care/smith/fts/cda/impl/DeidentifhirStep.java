@@ -6,7 +6,7 @@ import static java.util.Set.copyOf;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
-import care.smith.fts.api.cda.DeidentificationProvider;
+import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.error.TransferProcessException;
@@ -23,7 +23,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-class DeidentifhirStep implements DeidentificationProvider {
+class DeidentifhirStep implements Deidentificator {
   private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift;

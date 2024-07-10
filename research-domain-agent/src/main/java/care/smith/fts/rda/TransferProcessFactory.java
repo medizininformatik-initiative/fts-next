@@ -4,7 +4,7 @@ import static java.util.Arrays.stream;
 
 import care.smith.fts.api.*;
 import care.smith.fts.api.rda.BundleSender;
-import care.smith.fts.api.rda.DeidentificationProvider;
+import care.smith.fts.api.rda.Deidentificator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
 import jakarta.validation.constraints.NotNull;
@@ -38,19 +38,19 @@ public class TransferProcessFactory {
   @SuppressWarnings("unchecked")
   public TransferProcess create(TransferProcessConfig processDefinition, String project) {
     log.debug("Create TransferProcess from definition: {}", processDefinition);
-    DeidentificationProvider deidentificationProvider =
+    Deidentificator deidentificator =
         instantiateImpl(
-            DeidentificationProvider.class,
-            DeidentificationProvider.Factory.class,
-            DeidentificationProvider.Config.class,
-            processDefinition.deidentificationProvider());
+            Deidentificator.class,
+            Deidentificator.Factory.class,
+            Deidentificator.Config.class,
+            processDefinition.deidentificator());
     BundleSender bundleSender =
         instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
             processDefinition.bundleSender());
-    return new TransferProcess(project, deidentificationProvider, bundleSender);
+    return new TransferProcess(project, deidentificator, bundleSender);
   }
 
   private <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>

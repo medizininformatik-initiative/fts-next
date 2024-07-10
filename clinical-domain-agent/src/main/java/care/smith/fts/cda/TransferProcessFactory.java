@@ -6,7 +6,7 @@ import care.smith.fts.api.*;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
-import care.smith.fts.api.cda.DeidentificationProvider;
+import care.smith.fts.api.cda.Deidentificator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
 import jakarta.validation.constraints.NotNull;
@@ -52,12 +52,12 @@ public class TransferProcessFactory {
             DataSelector.Factory.class,
             DataSelector.Config.class,
             processDefinition.dataSelector());
-    DeidentificationProvider deidentificationProvider =
+    Deidentificator deidentificator =
         instantiateImpl(
-            DeidentificationProvider.class,
-            DeidentificationProvider.Factory.class,
-            DeidentificationProvider.Config.class,
-            processDefinition.deidentificationProvider());
+            Deidentificator.class,
+            Deidentificator.Factory.class,
+            Deidentificator.Config.class,
+            processDefinition.deidentificator());
     BundleSender bundleSender =
         instantiateImpl(
             BundleSender.class,
@@ -65,7 +65,7 @@ public class TransferProcessFactory {
             BundleSender.Config.class,
             processDefinition.bundleSender());
     return new TransferProcess(
-        project, cohortSelector, dataSelector, deidentificationProvider, bundleSender);
+        project, cohortSelector, dataSelector, deidentificator, bundleSender);
   }
 
   private <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>

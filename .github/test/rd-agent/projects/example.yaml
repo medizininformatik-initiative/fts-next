@@ -1,4 +1,4 @@
-deidentificationProvider:
+deidentificator:
   deidentifhir:
     tca:
       server:

@@ -6,11 +6,11 @@ import care.smith.fts.api.TransferProcessStepFactory;
 import care.smith.fts.api.TransportBundle;
 import reactor.core.publisher.Flux;
 
-public interface DeidentificationProvider extends TransferProcessStep {
+public interface Deidentificator extends TransferProcessStep {
 
   Flux<TransportBundle> deidentify(Flux<ConsentedPatientBundle> inFlux);
 
-  interface Factory<C> extends TransferProcessStepFactory<DeidentificationProvider, Config, C> {}
+  interface Factory<C> extends TransferProcessStepFactory<Deidentificator, Config, C> {}
 
   record Config() {}
 }

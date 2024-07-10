@@ -6,16 +6,16 @@ import java.util.Map;
 public record TransferProcessConfig(
     @NotNull Map<String, ?> cohortSelector,
     @NotNull Map<String, ?> dataSelector,
-    @NotNull Map<String, ?> deidentificationProvider,
+    @NotNull Map<String, ?> deidentificator,
     @NotNull Map<String, ?> bundleSender) {
 
   @Override
   public String toString() {
-    return "TransferProcessConfig{cohortSelector=%s, dataSelector=%s, deidentificationProvider=%s, bundleSender=%s}"
+    return "TransferProcessConfig{cohortSelector=%s, dataSelector=%s, deidentificator=%s, bundleSender=%s}"
         .formatted(
             printEntry(cohortSelector),
             printEntry(dataSelector),
-            printEntry(deidentificationProvider),
+            printEntry(deidentificator),
             printEntry(bundleSender));
   }
 

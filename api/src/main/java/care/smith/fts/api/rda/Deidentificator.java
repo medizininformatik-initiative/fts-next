@@ -6,11 +6,11 @@ import care.smith.fts.api.TransportBundle;
 import org.hl7.fhir.r4.model.Bundle;
 import reactor.core.publisher.Mono;
 
-public interface DeidentificationProvider extends TransferProcessStep {
+public interface Deidentificator extends TransferProcessStep {
 
   Mono<Bundle> replaceIds(TransportBundle bundle);
 
-  interface Factory<C> extends TransferProcessStepFactory<DeidentificationProvider, Config, C> {}
+  interface Factory<C> extends TransferProcessStepFactory<Deidentificator, Config, C> {}
 
   record Config() {}
 }
