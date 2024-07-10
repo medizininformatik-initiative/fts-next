@@ -3,7 +3,7 @@ package care.smith.fts.cda;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.util.FileSystemUtils.deleteRecursively;
 
-import care.smith.fts.cda.rest.it.TransferProcessControllerIT;
+import care.smith.fts.cda.rest.it.TransferProcessDefinitionControllerIT;
 import care.smith.fts.test.MockServerUtil;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,7 +51,8 @@ public abstract class BaseIT {
   private static void createProject() throws IOException {
     var projectFile = Files.createFile(tempDir.resolve("test.yaml"));
     try (var inStream =
-            TransferProcessControllerIT.class.getResourceAsStream("project-template.yaml");
+            TransferProcessDefinitionControllerIT.class.getResourceAsStream(
+                "project-template.yaml");
         var outStream = Files.newOutputStream(projectFile)) {
       var config =
           new String(inStream.readAllBytes(), UTF_8)

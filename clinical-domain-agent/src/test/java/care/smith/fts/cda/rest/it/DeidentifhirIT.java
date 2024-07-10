@@ -3,7 +3,7 @@ package care.smith.fts.cda.rest.it;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.Status;
+import care.smith.fts.cda.TransferProcessRunner.Phase;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.time.Duration;
@@ -11,7 +11,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class DeidentifhirIT extends TransferProcessControllerIT {
+public class DeidentifhirIT extends TransferProcessDefinitionControllerIT {
   private static final String patientId = "patientId";
   private static Bundle patient;
 
@@ -32,7 +32,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(3),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.bundlesSentCount()).isEqualTo(0);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });
@@ -44,7 +44,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(11),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.bundlesSentCount()).isEqualTo(0);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });
@@ -58,7 +58,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(3),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.bundlesSentCount()).isEqualTo(0);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });

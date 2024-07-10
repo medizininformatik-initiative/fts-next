@@ -15,11 +15,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class TransferProcessTest {
+class TransferProcessDefinitionTest {
   @Test
   void toStringContainsImplementationNames() {
-    TransferProcess process =
-        new TransferProcess(
+    TransferProcessDefinition process =
+        new TransferProcessDefinition(
             "test",
             new MockCohortSelector()
                 .create(new CohortSelector.Config(), new MockCohortSelector.Config("some")),

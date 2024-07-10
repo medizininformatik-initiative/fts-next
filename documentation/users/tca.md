@@ -55,7 +55,7 @@ server:
   ssl:
 	key-store: #path to keystore.jks file
 	key-store-password: #password to unlock the keystore
-	key-alias: #the value you set when generating the keystore (the -alias option) if unsure run this command on your keystore and check the output: keytool -v -list -keystore keystore.jks | grep -i alias
+	key-alias: #the value you set when generating the keystore (the -alias option) if unsure transferProcessInstance this command on your keystore and check the output: keytool -v -list -keystore keystore.jks | grep -i alias
 	trust-store: #path to truststore.jks file
 	trust-store-password:# password to unlock truststore
 	client-auth: #'need' in order to enforce x509 cert auth, 'want' to keep ssl using this cert, but you will need a different authentication mechanism

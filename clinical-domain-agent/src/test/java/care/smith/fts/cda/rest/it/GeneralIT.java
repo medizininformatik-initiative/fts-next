@@ -3,7 +3,7 @@ package care.smith.fts.cda.rest.it;
 import static care.smith.fts.test.TestPatientGenerator.generateNPatients;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.State;
+import care.smith.fts.cda.TransferProcessRunner.Status;
 import java.io.IOException;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @Slf4j
-public class GeneralIT extends TransferProcessControllerIT {
+public class GeneralIT extends TransferProcessDefinitionControllerIT {
 
   @Test
   void successfulRequest() throws IOException {
@@ -55,7 +55,7 @@ public class GeneralIT extends TransferProcessControllerIT {
                                         .get()
                                         .uri(r.getFirst())
                                         .retrieve()
-                                        .bodyToMono(State.class))))
+                                        .bodyToMono(Status.class))))
         .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(3))
         .verifyComplete();
   }

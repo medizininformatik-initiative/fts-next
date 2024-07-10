@@ -12,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
-class DefaultTransferProcessRunnerTest {
+class DefaultTransferProcessDefinitionRunnerTest {
 
   private DefaultTransferProcessRunner runner;
 
@@ -24,8 +24,8 @@ class DefaultTransferProcessRunnerTest {
   @Test
   void runMockTestSuccessfully() {
     BundleSender.Result result = new Result();
-    TransferProcess process =
-        new TransferProcess("test", (b) -> Mono.just(new Bundle()), (b) -> just(result));
+    TransferProcessDefinition process =
+        new TransferProcessDefinition("test", (b) -> Mono.just(new Bundle()), (b) -> just(result));
 
     create(runner.run(process, Mono.just(new TransportBundle(new Bundle(), Set.of()))))
         .expectNext(new TransferProcessRunner.Result(0, 0))

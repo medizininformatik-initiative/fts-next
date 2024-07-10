@@ -19,29 +19,29 @@ import reactor.core.publisher.Mono;
 @Component
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
-  private final Map<String, Run> runs = new HashMap<>();
+  private final Map<String, TransferProcessInstance> instances = new HashMap<>();
 
   @Override
-  public String run(TransferProcess process) {
+  public String start(TransferProcessDefinition process) {
     var processId = UUID.randomUUID().toString();
     log.info("Run process with processId: {}", processId);
-    Run run = new Run(process);
-    run.execute();
-    runs.put(processId, run);
+    TransferProcessInstance transferProcessInstance = new TransferProcessInstance(process);
+    transferProcessInstance.execute();
+    instances.put(processId, transferProcessInstance);
     return processId;
   }
 
   @Override
-  public Mono<State> state(String processId) {
-    Run run = runs.get(processId);
-    if (run != null) {
-      return Mono.just(run.state(processId));
+  public Mono<Status> status(String processId) {
+    TransferProcessInstance transferProcessInstance = instances.get(processId);
+    if (transferProcessInstance != null) {
+      return Mono.just(transferProcessInstance.status(processId));
     } else {
       return Mono.error(new IllegalArgumentException());
     }
   }
 
-  public static class Run {
+  public static class TransferProcessInstance {
 
     private final CohortSelector cohortSelector;
     private final DataSelector dataSelector;
@@ -49,9 +49,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private final AtomicLong skippedPatients;
     private final BundleSender bundleSender;
     private final AtomicLong sentBundles;
-    private final AtomicReference<Status> status;
+    private final AtomicReference<Phase> status;
 
-    public Run(TransferProcess process) {
+    public TransferProcessInstance(TransferProcessDefinition process) {
       cohortSelector = process.cohortSelector();
       dataSelector = process.dataSelector();
       deidentificator = process.deidentificator();
@@ -59,17 +59,17 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
       skippedPatients = new AtomicLong();
       sentBundles = new AtomicLong();
-      status = new AtomicReference<>(Status.QUEUED);
+      status = new AtomicReference<>(Phase.QUEUED);
     }
 
     public void execute() {
-      status.set(Status.RUNNING);
+      status.set(Phase.RUNNING);
       cohortSelector
           .selectCohort()
           .doOnError(e -> log.error(e.getMessage()))
-          .doOnError(e -> status.set(Status.ERROR))
+          .doOnError(e -> status.set(Phase.ERROR))
           .flatMap(this::executePatient)
-          .doOnComplete(() -> status.set(Status.COMPLETED))
+          .doOnComplete(() -> status.set(Phase.COMPLETED))
           .onErrorComplete()
           .subscribe();
     }
@@ -86,8 +86,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .onErrorResume(e -> Mono.just(new Result(0)));
     }
 
-    public State state(String processId) {
-      return new State(processId, status.get(), sentBundles.get(), skippedPatients.get());
+    public Status status(String processId) {
+      return new Status(processId, status.get(), sentBundles.get(), skippedPatients.get());
     }
   }
 }

@@ -2,13 +2,13 @@ package care.smith.fts.cda.rest.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.Status;
+import care.smith.fts.cda.TransferProcessRunner.Phase;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
-public class CohortSelectorIT extends TransferProcessControllerIT {
+public class CohortSelectorIT extends TransferProcessDefinitionControllerIT {
 
   @Test
   void tcaDown() {
@@ -16,7 +16,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(1),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.ERROR);
+          assertThat(r.phase()).isEqualTo(Phase.ERROR);
         });
   }
 
@@ -26,7 +26,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(10),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.ERROR);
+          assertThat(r.phase()).isEqualTo(Phase.ERROR);
         });
   }
 
@@ -36,7 +36,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofMillis(200),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.ERROR);
+          assertThat(r.phase()).isEqualTo(Phase.ERROR);
         });
   }
 
@@ -46,7 +46,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofMillis(200),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.ERROR);
+          assertThat(r.phase()).isEqualTo(Phase.ERROR);
         });
   }
 }

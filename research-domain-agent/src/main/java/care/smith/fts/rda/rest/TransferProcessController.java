@@ -7,7 +7,7 @@ import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Mono.error;
 
 import care.smith.fts.api.TransportBundle;
-import care.smith.fts.rda.TransferProcess;
+import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
 import care.smith.fts.rda.TransferProcessRunner.Result;
 import care.smith.fts.util.error.ErrorResponseUtil;
@@ -30,9 +30,10 @@ import reactor.core.publisher.Mono;
 public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
-  private final List<TransferProcess> processes;
+  private final List<TransferProcessDefinition> processes;
 
-  public TransferProcessController(TransferProcessRunner runner, List<TransferProcess> processes) {
+  public TransferProcessController(
+      TransferProcessRunner runner, List<TransferProcessDefinition> processes) {
     this.processRunner = runner;
     this.processes = processes;
   }
@@ -83,7 +84,7 @@ public class TransferProcessController {
         .collect(Collectors.toSet());
   }
 
-  private Optional<TransferProcess> findProcess(String project) {
+  private Optional<TransferProcessDefinition> findProcess(String project) {
     return processes.stream().filter(p -> p.project().equalsIgnoreCase(project)).findFirst();
   }
 }

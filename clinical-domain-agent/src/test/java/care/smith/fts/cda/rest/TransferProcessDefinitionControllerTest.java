@@ -3,9 +3,9 @@ package care.smith.fts.cda.rest;
 import static java.util.List.of;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.cda.TransferProcess;
+import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
-import care.smith.fts.cda.TransferProcessRunner.State;
+import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessRunner.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,10 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
-class TransferProcessControllerTest {
+class TransferProcessDefinitionControllerTest {
 
   private static final String processId = "processId";
-  private static final State PATIENT_SUMMARY_RESULT = new State(processId, Status.RUNNING, 0, 0);
+  private static final Status PATIENT_SUMMARY_RESULT = new Status(processId, Phase.RUNNING, 0, 0);
   private TransferProcessController api;
 
   @BeforeEach
@@ -27,12 +27,12 @@ class TransferProcessControllerTest {
         new TransferProcessController(
             new TransferProcessRunner() {
               @Override
-              public String run(TransferProcess process) {
+              public String start(TransferProcessDefinition process) {
                 return "processId";
               }
 
               @Override
-              public Mono<State> state(String processId) {
+              public Mono<Status> status(String processId) {
                 return Mono.just(PATIENT_SUMMARY_RESULT);
               }
             },
@@ -51,7 +51,7 @@ class TransferProcessControllerTest {
         .expectNext(
             ResponseEntity.accepted()
                 .headers(h -> h.add("Content-Location", uri.toString()))
-                .build()) // body(new State("processId", Status.RUNNING, 0, 0)))
+                .build())
         .verifyComplete();
   }
 
@@ -69,8 +69,8 @@ class TransferProcessControllerTest {
         .verifyComplete();
   }
 
-  private static TransferProcess mockTransferProcess() {
-    return new TransferProcess(
+  private static TransferProcessDefinition mockTransferProcess() {
+    return new TransferProcessDefinition(
         "example",
         () -> null,
         consentedPatient -> null,

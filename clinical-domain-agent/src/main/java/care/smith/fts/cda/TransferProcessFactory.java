@@ -38,7 +38,7 @@ public class TransferProcessFactory {
   }
 
   @SuppressWarnings("unchecked")
-  public TransferProcess create(TransferProcessConfig processDefinition, String project) {
+  public TransferProcessDefinition create(TransferProcessConfig processDefinition, String project) {
     log.debug("Create TransferProcess from definition: {}", processDefinition);
     CohortSelector cohortSelector =
         instantiateImpl(
@@ -64,7 +64,7 @@ public class TransferProcessFactory {
             BundleSender.Factory.class,
             BundleSender.Config.class,
             processDefinition.bundleSender());
-    return new TransferProcess(
+    return new TransferProcessDefinition(
         project, cohortSelector, dataSelector, deidentificator, bundleSender);
   }
 

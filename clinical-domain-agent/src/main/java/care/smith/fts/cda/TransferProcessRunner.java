@@ -3,13 +3,13 @@ package care.smith.fts.cda;
 import reactor.core.publisher.Mono;
 
 public interface TransferProcessRunner {
-  String run(TransferProcess process);
+  String start(TransferProcessDefinition process);
 
-  Mono<State> state(String processId);
+  Mono<Status> status(String processId);
 
-  record State(String processId, Status status, long bundlesSentCount, long patientsSkippedCount) {}
+  record Status(String processId, Phase phase, long bundlesSentCount, long patientsSkippedCount) {}
 
-  enum Status {
+  enum Phase {
     QUEUED,
     RUNNING,
     COMPLETED,

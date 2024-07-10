@@ -22,7 +22,7 @@ The project follows a structured organization to enhance readability and maintai
 
 - `end-to-end-tests/`
   End-to-end (e2e) compose configuration for end-to-end tests. Contains end-to-end tests
-  using [Test Containers][testcontainers] to run tests executed by Maven.
+  using [Test Containers][testcontainers] to transferProcessInstance tests executed by Maven.
 
 - `.gitlab/`  
   Contains GitLab CI (Continuous Integration) process helper files, see also the
@@ -48,7 +48,7 @@ $ ./build.sh
 
 ### Run
 
-There are three ways to run the agents:
+There are three ways to transferProcessInstance the agents:
 
 - with plain java `jars`
 - with docker-compose
@@ -77,7 +77,7 @@ docker-compose up
 ```
 
 in the `end-to-end-tests` folder.  
-This will run an entire environment with
+This will transferProcessInstance an entire environment with
 
 - `clinical-domain-agent`
 - `research-domain-agent`

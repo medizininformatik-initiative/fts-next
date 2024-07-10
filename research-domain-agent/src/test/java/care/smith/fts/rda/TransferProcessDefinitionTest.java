@@ -9,12 +9,12 @@ import care.smith.fts.rda.test.MockDeidentificator;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class TransferProcessTest {
+class TransferProcessDefinitionTest {
 
   @Test
   void toStringContainsImplementationNames() {
-    TransferProcess process =
-        new TransferProcess(
+    TransferProcessDefinition process =
+        new TransferProcessDefinition(
             "test",
             new MockDeidentificator()
                 .create(new Deidentificator.Config(), new MockDeidentificator.Config(false)),

@@ -38,7 +38,7 @@ public class ProjectReader {
   }
 
   @Bean
-  public List<TransferProcess> createTransferProcesses() throws IOException {
+  public List<TransferProcessDefinition> createTransferProcesses() throws IOException {
     log.trace("Reading project files from {}", projectsDir);
     try (var files = Files.list(projectsDir)) {
       return files
@@ -60,7 +60,7 @@ public class ProjectReader {
     };
   }
 
-  private Optional<TransferProcess> createConfigAndProcess(Path projectFile) {
+  private Optional<TransferProcessDefinition> createConfigAndProcess(Path projectFile) {
     var matcher = FILE_NAME_PATTERN.matcher(projectFile.getFileName().toString());
     if (matcher.find()) {
       return openConfigAndParse(projectFile, matcher.group("name"));
@@ -70,7 +70,7 @@ public class ProjectReader {
     }
   }
 
-  private Optional<TransferProcess> openConfigAndParse(Path projectFile, String name) {
+  private Optional<TransferProcessDefinition> openConfigAndParse(Path projectFile, String name) {
     try (var inStream = newInputStream(projectFile)) {
       return parseConfig(inStream, name).flatMap(config -> createProcess(config, name));
     } catch (IOException e) {
@@ -79,7 +79,8 @@ public class ProjectReader {
     }
   }
 
-  private Optional<TransferProcess> createProcess(TransferProcessConfig config, String name) {
+  private Optional<TransferProcessDefinition> createProcess(
+      TransferProcessConfig config, String name) {
     try {
       log.info("Project '{}' created: {}", name, config);
       return ofNullable(processFactory.create(config, name));

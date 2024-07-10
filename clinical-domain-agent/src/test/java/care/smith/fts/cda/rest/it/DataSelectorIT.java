@@ -2,13 +2,13 @@ package care.smith.fts.cda.rest.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.Status;
+import care.smith.fts.cda.TransferProcessRunner.Phase;
 import java.io.IOException;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class DataSelectorIT extends TransferProcessControllerIT {
+public class DataSelectorIT extends TransferProcessDefinitionControllerIT {
   private static final String patientId = "patientId";
 
   @BeforeEach
@@ -23,7 +23,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(1),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });
   }
@@ -34,7 +34,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(11),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });
   }
@@ -45,7 +45,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(1),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });
   }
@@ -56,7 +56,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
     startProcess(
         Duration.ofSeconds(1),
         r -> {
-          assertThat(r.status()).isEqualTo(Status.COMPLETED);
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });
   }

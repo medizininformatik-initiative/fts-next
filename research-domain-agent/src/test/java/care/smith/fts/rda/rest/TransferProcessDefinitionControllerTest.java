@@ -8,7 +8,7 @@ import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
-import care.smith.fts.rda.TransferProcess;
+import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner.Result;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 
-class TransferProcessControllerTest {
+class TransferProcessDefinitionControllerTest {
 
   private TransferProcessController api;
 
@@ -99,7 +99,8 @@ class TransferProcessControllerTest {
     assertThat(transportBundle.bundle().getEntry()).hasSize(1);
   }
 
-  private static TransferProcess mockTransferProcess() {
-    return new TransferProcess("example", (transportBundle) -> null, (patientBundle) -> null);
+  private static TransferProcessDefinition mockTransferProcess() {
+    return new TransferProcessDefinition(
+        "example", (transportBundle) -> null, (patientBundle) -> null);
   }
 }

@@ -15,7 +15,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DefaultTransferProcessRunnerTest {
+class DefaultTransferProcessDefinitionRunnerTest {
 
   private static final String PATIENT_ID = "patient-150622";
   private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);
@@ -30,17 +30,17 @@ class DefaultTransferProcessRunnerTest {
   @Test
   void runMockTestSuccessfully() throws InterruptedException {
     BundleSender.Result result = new BundleSender.Result(1);
-    TransferProcess process =
-        new TransferProcess(
+    TransferProcessDefinition process =
+        new TransferProcessDefinition(
             "test",
             () -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new Bundle())),
             (b) -> fromIterable(List.of(new TransportBundle(new Bundle(), Set.of()))),
             (b) -> just(result));
 
-    String processId = runner.run(process);
+    String processId = runner.start(process);
     sleep(500L);
-    create(runner.state(processId))
+    create(runner.status(processId))
         .assertNext(
             r -> {
               assertThat(r.bundlesSentCount()).isEqualTo(1);

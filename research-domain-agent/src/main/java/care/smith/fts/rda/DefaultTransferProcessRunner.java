@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 @Component
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
-  public Mono<Result> run(TransferProcess process, Mono<TransportBundle> data) {
+  public Mono<Result> run(TransferProcessDefinition process, Mono<TransportBundle> data) {
     return runProcess(data, process.bundleSender(), process.deidentificator());
   }
 

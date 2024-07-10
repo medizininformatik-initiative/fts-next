@@ -4,7 +4,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 
 import care.smith.fts.cda.BaseIT;
 import care.smith.fts.cda.ClinicalDomainAgent;
-import care.smith.fts.cda.TransferProcessRunner.State;
+import care.smith.fts.cda.TransferProcessRunner.Status;
 import care.smith.fts.cda.rest.it.mock.MockBundleSender;
 import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
 import care.smith.fts.cda.rest.it.mock.MockDataSelector;
@@ -65,7 +65,7 @@ import reactor.test.StepVerifier;
  */
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
-public class TransferProcessControllerIT extends BaseIT {
+public class TransferProcessDefinitionControllerIT extends BaseIT {
   protected WebClient client;
 
   protected final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
@@ -86,7 +86,7 @@ public class TransferProcessControllerIT extends BaseIT {
     resetAll();
   }
 
-  protected void startProcess(Duration duration, Consumer<State> assertionConsumer) {
+  protected void startProcess(Duration duration, Consumer<Status> assertionConsumer) {
     client
         .post()
         .uri("/api/v2/process/test/start")
@@ -97,7 +97,7 @@ public class TransferProcessControllerIT extends BaseIT {
             r ->
                 Mono.delay(duration)
                     .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
+                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class)))
         .as(
             response ->
                 StepVerifier.create(response).assertNext(assertionConsumer).verifyComplete());
