@@ -4,17 +4,22 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 
 import care.smith.fts.cda.BaseIT;
 import care.smith.fts.cda.ClinicalDomainAgent;
+import care.smith.fts.cda.TransferProcessRunner.State;
 import care.smith.fts.cda.rest.it.mock.MockBundleSender;
 import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
 import care.smith.fts.cda.rest.it.mock.MockDataSelector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.time.Duration;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 /*
  * CDA has two endpoints to test: `/{project}/start` and `/status/{projectId}`.
@@ -79,6 +84,23 @@ public class TransferProcessControllerIT extends BaseIT {
   @AfterEach
   void tearDown() {
     resetAll();
+  }
+
+  protected void startProcess(Duration duration, Consumer<State> assertionConsumer) {
+    client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .flatMap(
+            r ->
+                Mono.delay(duration)
+                    .flatMap(
+                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(State.class)))
+        .as(
+            response ->
+                StepVerifier.create(response).assertNext(assertionConsumer).verifyComplete());
   }
 }
 
