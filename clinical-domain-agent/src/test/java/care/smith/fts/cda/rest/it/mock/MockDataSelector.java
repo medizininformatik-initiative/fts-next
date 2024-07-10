@@ -15,14 +15,11 @@ import org.mockserver.client.MockServerClient;
 public class MockDataSelector {
 
   private final ObjectMapper om;
-  private final MockFhirResolveService mockFhirResolveService;
-
   private final MockServerClient hds;
   private final MockServerClient tca;
 
   public MockDataSelector(ObjectMapper om, MockServerClient tca, MockServerClient hds) {
     this.om = om;
-    this.mockFhirResolveService = new MockFhirResolveService(hds);
     this.tca = tca;
     this.hds = hds;
   }
@@ -40,8 +37,16 @@ public class MockDataSelector {
         .build();
   }
 
-  public MockFhirResolveService getMockFhirResolveService() {
-    return this.mockFhirResolveService;
+  public MockFhirResolveService whenResolvePatient(String patientId, String identifierSystem) {
+    return MockFhirResolveService.builder()
+        .hds(hds)
+        .mockRequestSpec(
+            request()
+                .withMethod("GET")
+                .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
+                .withPath("/Patient")
+                .withQueryStringParameter("identifier", identifierSystem + "|" + patientId))
+        .build();
   }
 
   public MockTransportIds whenTransportIds(String patientId, String identifierSystem)

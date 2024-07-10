@@ -18,7 +18,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
 
   @Test
   void hdsDown() {
-    mockDataSelector.getMockFhirResolveService().isDown(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
     startProcess(
         Duration.ofSeconds(1),
         r -> {
@@ -29,7 +29,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
 
   @Test
   void hdsTimeout() {
-    mockDataSelector.getMockFhirResolveService().timeout(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
     startProcess(
         Duration.ofSeconds(11),
         r -> {
@@ -40,9 +40,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
 
   @Test
   void hdsReturnsWrongContentType() {
-    mockDataSelector
-        .getMockFhirResolveService()
-        .wrongContentType(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).wrongContentType();
     startProcess(
         Duration.ofSeconds(1),
         r -> {
@@ -53,9 +51,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
 
   @Test
   void hdsReturnsMoreThanOneResult() throws IOException {
-    mockDataSelector
-        .getMockFhirResolveService()
-        .moreThanOneResult(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).moreThanOneResult();
     startProcess(
         Duration.ofSeconds(1),
         r -> {
@@ -66,7 +62,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
 
   @Test
   void hdsReturnsEmptyBundle() {
-    mockDataSelector.getMockFhirResolveService().emptyBundle(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).emptyBundle();
     startProcess(
         Duration.ofSeconds(1),
         r -> {

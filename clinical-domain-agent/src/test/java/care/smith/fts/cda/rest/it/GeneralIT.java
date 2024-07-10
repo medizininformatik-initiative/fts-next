@@ -29,7 +29,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
+      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
