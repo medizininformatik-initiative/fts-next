@@ -28,7 +28,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockCohortSelector.successNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
-      mockDataSelector.getMockTransportIds().success(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
+      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
       mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
       mockDataSelector
           .whenFetchData(patientId)

@@ -4,6 +4,7 @@ import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.cda.TransferProcessRunner.Status;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.time.Duration;
 import org.hl7.fhir.r4.model.Bundle;
@@ -26,8 +27,8 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void tcaDown() {
-    mockDataSelector.getMockTransportIds().isDown();
+  void tcaDown() throws JsonProcessingException {
+    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
     startProcess(
         Duration.ofSeconds(3),
         r -> {
@@ -38,8 +39,8 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void tcaTimeout() {
-    mockDataSelector.getMockTransportIds().timeout();
+  void tcaTimeout() throws JsonProcessingException {
+    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
     startProcess(
         Duration.ofSeconds(11),
         r -> {
@@ -51,7 +52,9 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
 
   @Test
   void unknownDomain() throws IOException {
-    mockDataSelector.getMockTransportIds().unknownDomain(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector
+        .whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+        .unknownDomain(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
     startProcess(
         Duration.ofSeconds(3),
         r -> {

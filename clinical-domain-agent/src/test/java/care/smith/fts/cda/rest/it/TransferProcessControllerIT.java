@@ -71,7 +71,7 @@ public class TransferProcessControllerIT extends BaseIT {
   protected final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
   protected final MockCohortSelector mockCohortSelector = new MockCohortSelector(tca);
-  protected final MockDataSelector mockDataSelector = new MockDataSelector(tca, hds);
+  protected final MockDataSelector mockDataSelector = new MockDataSelector(om, tca, hds);
   protected final MockBundleSender mockBundleSender = new MockBundleSender(rda);
 
   protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";

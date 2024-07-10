@@ -23,7 +23,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
     mockCohortSelector.successOnePatient(patientId);
     mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
     mockDataSelector.whenFetchData(patientId).respondWith(patient);
-    mockDataSelector.getMockTransportIds().success(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
   }
 
   @Test
