@@ -70,3 +70,10 @@ jobs:
 
     - name: Build Agent
       run: mvn ${MAVEN_ARGS} install --projects ${{ matrix.agent }} -DskipTests
+
+    - name: Upload Jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.agent }}
+        path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
+        if-no-files-found: error
