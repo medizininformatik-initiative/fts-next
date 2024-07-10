@@ -12,9 +12,6 @@ import org.junit.jupiter.api.Test;
 class TransferProcessTest {
 
   @Test
-  void project() {}
-
-  @Test
   void toStringContainsImplementationNames() {
     TransferProcess process =
         new TransferProcess(
