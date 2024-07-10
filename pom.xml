@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
 
@@ -28,6 +29,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>3.2.5</spring-boot.version>
     <junit-jupiter.version>5.10.2</junit-jupiter.version>
+    <skipUnitTests>false</skipUnitTests>
   </properties>
 
   <repositories>
@@ -112,6 +114,9 @@
               <version>${junit-jupiter.version}</version>
             </dependency>
           </dependencies>
+          <configuration>
+            <skip>${skipUnitTests}</skip>
+          </configuration>
         </plugin>
 
         <plugin>
