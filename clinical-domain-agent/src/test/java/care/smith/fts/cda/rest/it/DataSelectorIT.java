@@ -22,25 +22,25 @@ public class DataSelectorIT extends TransferProcessControllerIT {
 
   @Test
   void hdsDown() {
-    mockDataSelector.getMockFetchData().isDown(patientId);
+    mockDataSelector.whenFetchData(patientId).dropConnection();
     startProcess(1);
   }
 
   @Test
   void hdsTimeout() {
-    mockDataSelector.getMockFetchData().timeout(patientId);
+    mockDataSelector.whenFetchData(patientId).timeout();
     startProcess(11);
   }
 
   @Test
-  void hdsReturnsWrongContentType() throws IOException {
-    mockDataSelector.getMockFetchData().wrongContentType(patientId);
+  void hdsReturnsWrongContentType() {
+    mockDataSelector.whenFetchData(patientId).respondWithWrongContentType();
     startProcess(1);
   }
 
   @Test
   void hdsReturnsEmptyBundle() {
-    mockDataSelector.getMockFetchData().emptyBundle(patientId);
+    mockDataSelector.whenFetchData(patientId).respondWithEmptyBundle();
     startProcess(1);
   }
 

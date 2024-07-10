@@ -63,11 +63,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class TransferProcessControllerIT extends BaseIT {
   protected WebClient client;
 
-  ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
+  protected final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
-  MockCohortSelector mockCohortSelector = new MockCohortSelector(tca);
-  MockDataSelector mockDataSelector = new MockDataSelector(tca, hds);
-  MockBundleSender mockBundleSender = new MockBundleSender(rda);
+  protected final MockCohortSelector mockCohortSelector = new MockCohortSelector(tca);
+  protected final MockDataSelector mockDataSelector = new MockDataSelector(tca, hds);
+  protected final MockBundleSender mockBundleSender = new MockBundleSender(rda);
 
   protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 

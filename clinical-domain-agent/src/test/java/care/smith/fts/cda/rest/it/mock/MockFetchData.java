@@ -1,11 +1,10 @@
 package care.smith.fts.cda.rest.it.mock;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
-import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import care.smith.fts.util.FhirUtils;
-import java.io.IOException;
+import lombok.Builder;
 import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
@@ -13,22 +12,19 @@ import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.MediaType;
 
+@Builder
 public class MockFetchData {
 
   private final MockServerClient hds;
+  private final HttpRequest mockRequestSpec;
 
-  public MockFetchData(MockServerClient hds) {
+  public MockFetchData(MockServerClient hds, HttpRequest mockRequestSpec) {
     this.hds = hds;
+    this.mockRequestSpec = mockRequestSpec;
   }
 
-  public void success(String patientId, Bundle patient) {
-    hds.when(
-            request()
-                .withMethod("GET")
-                .withHeader("accept", APPLICATION_FHIR_JSON_VALUE)
-                .withPath("/Patient/%s/$everything".formatted(patientId))
-                .withQueryStringParameter("start", "2023-07-29")
-                .withQueryStringParameter("end", "2028-07-29"))
+  public void respondWith(Bundle patient) {
+    hds.when(mockRequestSpec)
         .respond(
             response()
                 .withStatusCode(200)
@@ -36,21 +32,16 @@ public class MockFetchData {
                 .withBody(FhirUtils.fhirResourceToString(patient)));
   }
 
-  public void isDown(String patientId) {
-    hds.when(
-            HttpRequest.request()
-                .withMethod("GET")
-                .withPath("/Patient/%s/$everything".formatted(patientId)))
-        .error(HttpError.error().withDropConnection(true));
+  public void dropConnection() {
+    hds.when(mockRequestSpec).error(HttpError.error().withDropConnection(true));
   }
 
-  public void timeout(String patientId) {
-    hds.when(request().withPath("/Patient/%s/$everything".formatted(patientId)))
-        .respond(request -> null, Delay.minutes(10));
+  public void timeout() {
+    hds.when(mockRequestSpec).respond(request -> null, Delay.minutes(10));
   }
 
-  public void wrongContentType(String patientId) throws IOException {
-    hds.when(request().withMethod("GET").withPath("/Patient/%s/$everything".formatted(patientId)))
+  public void respondWithWrongContentType() {
+    hds.when(mockRequestSpec)
         .respond(
             response()
                 .withStatusCode(200)
@@ -58,8 +49,8 @@ public class MockFetchData {
                 .withBody(FhirUtils.fhirResourceToString(new Bundle())));
   }
 
-  public void emptyBundle(String patientId) {
-    hds.when(request().withMethod("GET").withPath("/Patient/%s/$everything".formatted(patientId)))
+  public void respondWithEmptyBundle() {
+    hds.when(mockRequestSpec)
         .respond(
             response()
                 .withStatusCode(200)

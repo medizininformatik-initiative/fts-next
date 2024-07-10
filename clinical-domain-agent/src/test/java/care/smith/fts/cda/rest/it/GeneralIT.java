@@ -20,19 +20,19 @@ public class GeneralIT extends TransferProcessControllerIT {
   @Test
   void successfulRequest() throws IOException {
 
-    String patientId = "patientId";
-    var patientsAndIds = generateNPatients(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
+    var idPrefix = "patientId";
+    var patientsAndIds = generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(patientId, 3);
+    mockCohortSelector.successNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
-      var id = ids.get(i);
-      mockDataSelector.getMockTransportIds().success(om, id, DEFAULT_IDENTIFIER_SYSTEM);
-      mockDataSelector.getMockFhirResolveService().success(id, DEFAULT_IDENTIFIER_SYSTEM);
+      var patientId = ids.get(i);
+      mockDataSelector.getMockTransportIds().success(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
+      mockDataSelector.getMockFhirResolveService().success(patientId, DEFAULT_IDENTIFIER_SYSTEM);
       mockDataSelector
-          .getMockFetchData()
-          .success(id, new Bundle().addEntry(patients.getEntry().get(i)));
+          .whenFetchData(patientId)
+          .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
     }
 
     mockBundleSender.success();
