@@ -64,7 +64,7 @@ class TransferProcessDefinitionControllerTest {
             ResponseEntity.of(
                     ProblemDetail.forStatusAndDetail(
                         HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Project non-existent could not be found"))
+                        "Project 'non-existent' could not be found"))
                 .build())
         .verifyComplete();
   }

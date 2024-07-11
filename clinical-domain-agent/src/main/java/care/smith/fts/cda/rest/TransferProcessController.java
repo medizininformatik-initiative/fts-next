@@ -30,7 +30,7 @@ public class TransferProcessController {
     this.processes = processes;
   }
 
-  @PostMapping(value = "/{project:\\w+}/start")
+  @PostMapping(value = "/{project:[\\w-]+}/start")
   Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project, UriComponentsBuilder uriBuilder) {
     var process = findProcess(project);
@@ -48,7 +48,7 @@ public class TransferProcessController {
     } else {
       log.warn("Project '{}' not found", project);
       return internalServerError(
-          new IllegalStateException("Project %s could not be found".formatted(project)));
+          new IllegalStateException("Project '%s' could not be found".formatted(project)));
     }
   }
 

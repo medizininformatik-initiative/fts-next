@@ -73,7 +73,7 @@ public class GeneralIT extends TransferProcessDefinitionControllerIT {
                         c.bodyToMono(ProblemDetail.class)
                             .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))
                 .toBodilessEntity())
-        .expectErrorMessage("Project non-existent could not be found")
+        .expectErrorMessage("Project 'non-existent' could not be found")
         .verifyThenAssertThat()
         .hasOperatorErrors();
   }
