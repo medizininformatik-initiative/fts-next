@@ -24,4 +24,9 @@ deIdentification:
 
 logging:
   level:
-    care.smith.fts: trace
+    org.mockserver.log: WARN
+    care.smith.fts.tca: TRACE
+
+spring:
+  main:
+    allow-bean-definition-overriding: true

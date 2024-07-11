@@ -1,6 +1,6 @@
 package care.smith.fts.tca.deidentification;
 
-import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.error.UnknownDomainException;
@@ -57,6 +57,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
     return fetchOrCreatePseudonyms(domain, ids)
         .map(
             idPseudonyms -> {
+              log.trace("Storing pseudonyms {} for {}", idPseudonyms, ids);
               try (Jedis jedis = jedisPool.getResource()) {
                 ids.forEach(
                     id -> {
@@ -99,19 +100,20 @@ public class FhirPseudonymProvider implements PseudonymProvider {
             ids.stream().map(id -> Map.of("name", "original", "valueString", id)));
     var params = Map.of("resourceType", "Parameters", "parameter", idParams.toList());
 
-    log.info(
+    log.trace(
         "fetchOrCreatePseudonyms for domain: %s and ids: %s".formatted(domain, ids.toString()));
 
     return httpClient
         .post()
         .uri("/$pseudonymizeAllowCreate")
-        .headers(h -> h.setContentType(APPLICATION_JSON))
+        .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
         .bodyValue(params)
-        .headers(h -> h.setAccept(List.of(APPLICATION_JSON)))
+        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .onStatus(
             r -> r.equals(HttpStatus.BAD_REQUEST), FhirPseudonymProvider::handleGpasBadRequest)
         .bodyToMono(GpasParameterResponse.class)
+        .doOnNext(r -> log.trace("$pseudonymize response: {}", r))
         .map(GpasParameterResponse::getMappedID);
   }
 

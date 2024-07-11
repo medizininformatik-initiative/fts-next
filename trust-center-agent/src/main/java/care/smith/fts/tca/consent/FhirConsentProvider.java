@@ -165,11 +165,13 @@ public class FhirConsentProvider implements ConsentProvider {
         .post()
         .uri(formatted)
         .bodyValue(body)
-        .headers(h -> h.setContentType(APPLICATION_JSON))
+        .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentProvider::handleGicsNotFound)
-        .bodyToMono(Bundle.class);
+        .bodyToMono(Bundle.class)
+        .doOnNext(b -> log.trace("Consent fetched, {} bundle entries", b.getEntry().size()))
+        .doOnError(b -> log.error("Error fetching consent", b));
   }
 
   private static Mono<Throwable> handleGicsNotFound(ClientResponse r) {

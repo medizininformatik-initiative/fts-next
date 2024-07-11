@@ -58,6 +58,7 @@ public class DeIdentificationController {
               if (e instanceof UnknownDomainException) {
                 return ErrorResponseUtil.badRequest(e);
               } else {
+                log.error("Unexpected error", e);
                 return ErrorResponseUtil.internalServerError(e);
               }
             });
