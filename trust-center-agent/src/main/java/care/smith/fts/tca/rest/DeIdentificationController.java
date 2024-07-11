@@ -71,7 +71,7 @@ public class DeIdentificationController {
   public Mono<ResponseEntity<Map<String, String>>> fetchPseudonymizedIds(
       @RequestBody Mono<Set<String>> ids) {
     var pseudonymizedIDs =
-        ids.doOnNext(b -> log.info("ids: {}", ids))
+        ids.doOnNext(b -> log.info("Resolve pseudonyms for: {}", b))
             .flatMap(pseudonymProvider::fetchPseudonymizedIds);
     return pseudonymizedIDs.map(ResponseEntity::ok);
   }
