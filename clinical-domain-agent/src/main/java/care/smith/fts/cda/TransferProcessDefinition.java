@@ -6,20 +6,20 @@ import static java.util.Objects.requireNonNull;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
-import care.smith.fts.api.cda.DeidentificationProvider;
+import care.smith.fts.api.cda.Deidentificator;
 
-public record TransferProcess(
+public record TransferProcessDefinition(
     String project,
     CohortSelector cohortSelector,
     DataSelector dataSelector,
-    DeidentificationProvider deidentificationProvider,
+    Deidentificator deidentificator,
     BundleSender bundleSender) {
 
-  public TransferProcess {
+  public TransferProcessDefinition {
     requireNonNull(emptyToNull(project));
     requireNonNull(cohortSelector);
     requireNonNull(dataSelector);
-    requireNonNull(deidentificationProvider);
+    requireNonNull(deidentificator);
     requireNonNull(bundleSender);
   }
 }

@@ -14,7 +14,7 @@ dataSelector:
     resolve:
       patientIdentifierSystem: http://fts.smith.care
 
-deidentificationProvider:
+deidentificator:
   deidentifhir:
     tca:
       server:

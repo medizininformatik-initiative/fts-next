@@ -6,7 +6,7 @@ import care.smith.fts.api.*;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
-import care.smith.fts.api.cda.DeidentificationProvider;
+import care.smith.fts.api.cda.Deidentificator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
 import jakarta.validation.constraints.NotNull;
@@ -38,7 +38,7 @@ public class TransferProcessFactory {
   }
 
   @SuppressWarnings("unchecked")
-  public TransferProcess create(TransferProcessConfig processDefinition, String project) {
+  public TransferProcessDefinition create(TransferProcessConfig processDefinition, String project) {
     log.debug("Create TransferProcess from definition: {}", processDefinition);
     CohortSelector cohortSelector =
         instantiateImpl(
@@ -52,37 +52,39 @@ public class TransferProcessFactory {
             DataSelector.Factory.class,
             DataSelector.Config.class,
             processDefinition.dataSelector());
-    DeidentificationProvider deidentificationProvider =
+    Deidentificator deidentificator =
         instantiateImpl(
-            DeidentificationProvider.class,
-            DeidentificationProvider.Factory.class,
-            DeidentificationProvider.Config.class,
-            processDefinition.deidentificationProvider());
+            Deidentificator.class,
+            Deidentificator.Factory.class,
+            Deidentificator.Config.class,
+            processDefinition.deidentificator());
     BundleSender bundleSender =
         instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
             processDefinition.bundleSender());
-    return new TransferProcess(
-        project, cohortSelector, dataSelector, deidentificationProvider, bundleSender);
+    return new TransferProcessDefinition(
+        project, cohortSelector, dataSelector, deidentificator, bundleSender);
   }
 
-  private <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> TYPE instantiateImpl(
-      Class<TYPE> stepClass,
-      Class<FACTORY> factoryClass,
-      Class<CC> commonConfigClass,
-      @NotNull Map<String, ?> config) {
+  private <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>
+      TYPE instantiateImpl(
+          Class<TYPE> stepClass,
+          Class<FACTORY> factoryClass,
+          Class<CC> commonConfigClass,
+          @NotNull Map<String, ?> config) {
 
     var impl = findImpl(stepClass, factoryClass, commonConfigClass, config);
     return instantiate(stepClass, factoryClass, commonConfigClass, impl);
   }
 
-  private <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>> Entry<String, ?> findImpl(
-      Class<TYPE> stepClass,
-      Class<FACTORY> factoryClass,
-      Class<CC> commonConfigClass,
-      Map<String, ?> config) {
+  private <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>
+      Entry<String, ?> findImpl(
+          Class<TYPE> stepClass,
+          Class<FACTORY> factoryClass,
+          Class<CC> commonConfigClass,
+          Map<String, ?> config) {
     var commonConfigEntries = commonConfigEntries(commonConfigClass);
     var configEntries = config.entrySet();
     var implementations =
@@ -103,7 +105,7 @@ public class TransferProcessFactory {
     }
   }
 
-  private static <TYPE, CC, IC, FACTORY extends StepFactory<TYPE, CC, IC>>
+  private static <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>
       void checkImplementationFound(
           Class<FACTORY> factoryClass, List<? extends Entry<String, ?>> implementations) {
     if (implementations.isEmpty()) {
@@ -119,11 +121,12 @@ public class TransferProcessFactory {
     return Streams.concat(fields, components).collect(Collectors.toSet());
   }
 
-  private <STEPTYPE, CC, IC, FACTORY extends StepFactory<STEPTYPE, CC, IC>> STEPTYPE instantiate(
-      Class<STEPTYPE> stepClass,
-      Class<FACTORY> factoryClass,
-      Class<CC> commonConfigClass,
-      Entry<String, ?> config) {
+  private <STEPTYPE, CC, IC, FACTORY extends TransferProcessStepFactory<STEPTYPE, CC, IC>>
+      STEPTYPE instantiate(
+          Class<STEPTYPE> stepClass,
+          Class<FACTORY> factoryClass,
+          Class<CC> commonConfigClass,
+          Entry<String, ?> config) {
     String implName = config.getKey();
     try {
       FACTORY factoryImpl = context.getBean(implName + stepClass.getSimpleName(), factoryClass);

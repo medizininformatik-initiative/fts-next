@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 
-class DeidentificationProviderTest {
+class DeidentificatorTest {
 
   @Test
   void deserialization() throws JsonProcessingException {
@@ -17,11 +17,11 @@ class DeidentificationProviderTest {
         """
       ---
       """,
-        DeidentificationProvider.Config.class);
+        Deidentificator.Config.class);
   }
 
   @Test
   void testInstantiateConfig() {
-    assertThat(new DeidentificationProvider.Config()).isNotNull();
+    assertThat(new Deidentificator.Config()).isNotNull();
   }
 }

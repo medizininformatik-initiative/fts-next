@@ -12,6 +12,6 @@ projectConfigurations:
       # make sure that you adapt these example profiles to your needs. otherwise sensitive data might be leaking!
       scraperConfigFile: ./conf/deidentiFHIR/smith-rd/kds/profiles/IDScraper.profile
       pseudonymizationConfigFile: ./conf/deidentiFHIR/smith-rd/kds/profiles/CDtoTransport.profile
-    # The key of the process that will be triggered at the end of the CDA's run.
+    # The key of the process that will be triggered at the end of the CDA's transferProcessInstance.
     followingProcessKey: research-domain-agent-process
 ```

@@ -5,7 +5,7 @@ cohortSelector:
 dataSelector:
   mock: { }
 
-deidentificationProvider:
+deidentificator:
   mock:
     deidentify: false
 

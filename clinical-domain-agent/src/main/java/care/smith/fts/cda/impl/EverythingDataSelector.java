@@ -9,12 +9,14 @@ import care.smith.fts.cda.services.PatientIdResolver;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 
+@Slf4j
 public class EverythingDataSelector implements DataSelector {
   private final Config common;
   private final WebClient client;
@@ -41,6 +43,7 @@ public class EverythingDataSelector implements DataSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
+        .doOnError(e -> log.error("", e))
         // TODO Paging using .expand()? see Flare
         .flux();
   }

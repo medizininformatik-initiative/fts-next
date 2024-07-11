@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class ProjectsFactory {
+public class ProjectReader {
 
   private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(?<name>.*)[.](?:ya?ml|json)$");
 
@@ -28,7 +28,7 @@ public class ProjectsFactory {
   private final ObjectMapper objectMapper;
   private final Path projectsDir;
 
-  public ProjectsFactory(
+  public ProjectReader(
       TransferProcessFactory processFactory,
       @Qualifier("transferProcessObjectMapper") ObjectMapper objectMapper,
       Path projectsDir) {
@@ -38,7 +38,8 @@ public class ProjectsFactory {
   }
 
   @Bean
-  public List<TransferProcess> createTransferProcesses() throws IOException {
+  public List<TransferProcessDefinition> createTransferProcesses() throws IOException {
+    log.trace("Reading project files from {}", projectsDir);
     try (var files = Files.list(projectsDir)) {
       return files
           .filter(this::matchesFilePattern)
@@ -59,7 +60,7 @@ public class ProjectsFactory {
     };
   }
 
-  private Optional<TransferProcess> createConfigAndProcess(Path projectFile) {
+  private Optional<TransferProcessDefinition> createConfigAndProcess(Path projectFile) {
     var matcher = FILE_NAME_PATTERN.matcher(projectFile.getFileName().toString());
     if (matcher.find()) {
       return openConfigAndParse(projectFile, matcher.group("name"));
@@ -69,7 +70,7 @@ public class ProjectsFactory {
     }
   }
 
-  private Optional<TransferProcess> openConfigAndParse(Path projectFile, String name) {
+  private Optional<TransferProcessDefinition> openConfigAndParse(Path projectFile, String name) {
     try (var inStream = newInputStream(projectFile)) {
       return parseConfig(inStream, name).flatMap(config -> createProcess(config, name));
     } catch (IOException e) {
@@ -78,7 +79,8 @@ public class ProjectsFactory {
     }
   }
 
-  private Optional<TransferProcess> createProcess(TransferProcessConfig config, String name) {
+  private Optional<TransferProcessDefinition> createProcess(
+      TransferProcessConfig config, String name) {
     try {
       log.info("Project '{}' created: {}", name, config);
       return ofNullable(processFactory.create(config, name));

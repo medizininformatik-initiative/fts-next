@@ -6,10 +6,10 @@ import static java.util.Set.copyOf;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
-import care.smith.fts.api.cda.DeidentificationProvider;
+import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
-import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
 import java.util.Map;
@@ -23,7 +23,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-class DeidentifhirStep implements DeidentificationProvider {
+class DeidentifhirStep implements Deidentificator {
   private final WebClient httpClient;
   private final String domain;
   private final Duration dateShift;
@@ -80,7 +80,8 @@ class DeidentifhirStep implements DeidentificationProvider {
             r -> r.equals(HttpStatus.BAD_REQUEST),
             s ->
                 s.bodyToMono(ProblemDetail.class)
-                    .flatMap(b -> Mono.error(new UnknownDomainException(b.getDetail()))))
-        .bodyToMono(PseudonymizeResponse.class);
+                    .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
+        .bodyToMono(PseudonymizeResponse.class)
+        .doOnError(e -> log.error(e.toString()));
   }
 }

@@ -9,6 +9,7 @@ import static java.util.stream.Stream.of;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.util.MediaTypes;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 final class RDABundleSender implements BundleSender {
   private final RDABundleSenderConfig config;
   private final WebClient client;
