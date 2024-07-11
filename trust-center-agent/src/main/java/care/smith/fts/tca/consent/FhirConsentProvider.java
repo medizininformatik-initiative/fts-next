@@ -75,28 +75,34 @@ public class FhirConsentProvider implements ConsentProvider {
       UriComponentsBuilder requestUrl,
       int from,
       int count) {
+
     Set<String> policiesToCheck = policyHandler.getPoliciesToCheck(policies);
     if (policiesToCheck.isEmpty()) {
       return Mono.just(new Bundle());
     }
-    log.trace("Fetching consent from gics");
-    return fetchConsentedPatientsFromGics(policySystem, policiesToCheck, domain, from, count)
-        .map(bundle -> addNextLink(bundle, requestUrl, from, count));
+
+    return Mono.fromCallable(() -> new PagingParams(from, count))
+        .doOnNext(b -> log.trace("Fetching consent from gics with PagingParams {}", b))
+        .flatMap(
+            p ->
+                fetchConsentedPatientsFromGics(policySystem, policiesToCheck, domain, p)
+                    .map(bundle -> addNextLink(bundle, requestUrl, p)));
   }
 
-  private Bundle addNextLink(Bundle bundle, UriComponentsBuilder requestUrl, int from, int count) {
-    if (bundle.getTotal() > from + count) {
-      bundle.addLink(nextLink(requestUrl, from, count));
+  private Bundle addNextLink(
+      Bundle bundle, UriComponentsBuilder requestUrl, PagingParams pagingParams) {
+    if (pagingParams.sum() < bundle.getTotal()) {
+      bundle.addLink(nextLink(requestUrl, pagingParams));
     }
     return bundle;
   }
 
   private static Bundle.BundleLinkComponent nextLink(
-      UriComponentsBuilder requestUrl, int from, int count) {
+      UriComponentsBuilder requestUrl, PagingParams pagingParams) {
     var uri =
         requestUrl
-            .replaceQueryParam("from", from + count)
-            .replaceQueryParam("count", count)
+            .replaceQueryParam("from", pagingParams.sum())
+            .replaceQueryParam("count", pagingParams.count())
             .toUriString();
     return new Bundle.BundleLinkComponent(new StringType("next"), new UriType(uri));
   }
@@ -105,13 +111,12 @@ public class FhirConsentProvider implements ConsentProvider {
    * Fetches a page of consented patients from the GICS system, filtered by policies.
    *
    * @param policiesToCheck the set of policies to check
-   * @param from the starting index for pagination
-   * @param count the number of patients to retrieve
+   * @param pagingParams the PagingParams
    * @return a Mono emitting a filtered Bundle of consented patients
    */
   private Mono<Bundle> fetchConsentedPatientsFromGics(
-      String policySystem, Set<String> policiesToCheck, String domain, int from, int count) {
-    return fetchConsentPageFromGics(domain, from, count)
+      String policySystem, Set<String> policiesToCheck, String domain, PagingParams pagingParams) {
+    return fetchConsentPageFromGics(domain, pagingParams)
         .map(outerBundle -> filterOuterBundle(policySystem, policiesToCheck, outerBundle));
   }
 
@@ -148,19 +153,19 @@ public class FhirConsentProvider implements ConsentProvider {
   /**
    * Fetches a page of consents from the GICS system.
    *
-   * @param from the starting index for pagination
-   * @param count the number of consents to retrieve
+   * @param pagingParams the PagingParams
    * @return a Mono emitting a Bundle of consents
    */
-  private Mono<Bundle> fetchConsentPageFromGics(String domain, int from, int count) {
-    int to = from + count;
+  private Mono<Bundle> fetchConsentPageFromGics(String domain, PagingParams pagingParams) {
+    int to = pagingParams.sum();
     var body =
         Map.of(
             "resourceType",
             "Parameters",
             "parameter",
             List.of(Map.of("name", "domain", "valueString", domain)));
-    String formatted = "/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, from);
+    String formatted =
+        "/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, pagingParams.from());
     return httpClient
         .post()
         .uri(formatted)
@@ -186,5 +191,21 @@ public class FhirConsentProvider implements ConsentProvider {
                 return Mono.error(new UnknownError());
               }
             });
+  }
+
+  record PagingParams(int from, int count) {
+
+    PagingParams {
+      if (from < 0 || count < 0) {
+        throw new IllegalArgumentException("from and count must be non-negative");
+      } else if (Integer.MAX_VALUE - count < from) {
+        throw new IllegalArgumentException(
+            "from + count must be smaller than %s".formatted(Integer.MAX_VALUE));
+      }
+    }
+
+    int sum() {
+      return from + count;
+    }
   }
 }
