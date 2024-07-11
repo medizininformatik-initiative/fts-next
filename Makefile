@@ -4,19 +4,19 @@ $(AGENTS):
 	$(MAKE) -C $@ $(MAKECMDGOALS)
 
 clean:
-	mvn clean
+	mvn ${MAVEN_ARGS} clean
 
 build:
-	mvn install -T1C -Dmockserver.logLevel=WARN
+	mvn ${MAVEN_ARGS} compile -T1C
 
-build-cda:
-	mvn install -T1C -Dmockserver.logLevel=WARN --projects clinical-domain-agent
+test:
+	mvn ${MAVEN_ARGS} verify
 
-build-rda:
-	mvn install -T1C -Dmockserver.logLevel=WARN --projects research-domain-agent
+install:
+	mvn ${MAVEN_ARGS} install
 
-build-tca:
-	mvn install -T1C -Dmockserver.logLevel=WARN --projects trust-center-agent
+install-dependencies:
+	mvn ${MAVEN_ARGS} install --projects .,api,util,test-util,monitoring-util
 
 images:
 	@for agent in $(AGENTS); do \

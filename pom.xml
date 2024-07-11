@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
 
@@ -28,12 +29,13 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>3.2.5</spring-boot.version>
     <junit-jupiter.version>5.10.2</junit-jupiter.version>
+    <skipUnitTests>false</skipUnitTests>
   </properties>
 
   <repositories>
     <repository>
-      <id>git.smith.care</id>
-      <url>https://git.smith.care/api/v4/projects/135/packages/maven</url>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/UMEssen/DeidentiFHIR</url>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
@@ -112,6 +114,9 @@
               <version>${junit-jupiter.version}</version>
             </dependency>
           </dependencies>
+          <configuration>
+            <skip>${skipUnitTests}</skip>
+          </configuration>
         </plugin>
 
         <plugin>
@@ -143,6 +148,11 @@
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>flatten-maven-plugin</artifactId>
