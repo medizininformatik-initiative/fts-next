@@ -204,29 +204,11 @@
           </execution>
 
           <execution>
-            <id>merge-all</id>
-            <goals>
-              <goal>merge</goal>
-            </goals>
-            <phase>none</phase>
-            <configuration>
-              <fileSets>
-                <fileSet>
-                  <directory>${project.basedir}</directory>
-                  <includes>
-                    <include>*/target/*.exec</include>
-                  </includes>
-                </fileSet>
-              </fileSets>
-            </configuration>
-          </execution>
-
-          <execution>
-            <id>report-all</id>
+            <id>report</id>
             <goals>
               <goal>report</goal>
             </goals>
-            <phase>none</phase>
+            <phase>post-integration-test</phase>
             <configuration>
               <outputDirectory>${project.build.directory}/coverage</outputDirectory>
               <includes>
