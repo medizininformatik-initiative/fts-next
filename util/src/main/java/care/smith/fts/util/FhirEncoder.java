@@ -45,8 +45,8 @@ public class FhirEncoder extends AbstractEncoder<IBaseResource> {
       MimeType mimeType,
       Map<String, Object> hints) {
     DataBuffer dataBuffer = bufferFactory.allocateBuffer(128);
-    OutputStreamWriter w = new OutputStreamWriter(dataBuffer.asOutputStream());
-    try {
+
+    try (OutputStreamWriter w = new OutputStreamWriter(dataBuffer.asOutputStream())) {
       log.trace("encode {} to {}", valueType, mimeType);
       fhir.newJsonParser().encodeToWriter(value, w);
     } catch (IOException e) {
