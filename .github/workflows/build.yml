@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     tags: [ "v*.*.*" ]
+    branches: [ "main", "incubate" ]
   pull_request:
     branches: [ "main", "incubate" ]
 
