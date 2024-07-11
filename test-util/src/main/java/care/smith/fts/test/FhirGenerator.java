@@ -87,6 +87,7 @@ public class FhirGenerator {
   }
 
   public static class UUID implements Replacement {
+    @Override
     public String apply() {
       return java.util.UUID.randomUUID().toString();
     }
@@ -99,6 +100,7 @@ public class FhirGenerator {
       this.value = value;
     }
 
+    @Override
     public String apply() {
       return value;
     }
@@ -117,6 +119,7 @@ public class FhirGenerator {
       random.setSeed(seed);
     }
 
+    @Override
     public String apply() {
       int nextInt = random.nextInt(values.size());
       return values.get(nextInt);
@@ -136,6 +139,7 @@ public class FhirGenerator {
       this(prefix, 0);
     }
 
+    @Override
     public String apply() {
       String s = prefix + index;
       index += 1;

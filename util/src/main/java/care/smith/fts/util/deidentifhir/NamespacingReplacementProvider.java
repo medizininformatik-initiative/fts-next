@@ -67,20 +67,24 @@ public class NamespacingReplacementProvider
       this.prefix = prefix;
     }
 
+    @Override
     public String getKeyForResourceTypeAndID(@NotNull String resourceType, @NotBlank String id) {
       return prefix + ".id." + resourceType + ":" + id;
     }
 
+    @Override
     public String getKeyForSystemAndValue(@NotBlank String system, @NotBlank String value) {
       return prefix + ".identifier." + system + ":" + value;
     }
   }
 
   static class NamespacingDisabled implements KeyCreator {
+    @Override
     public String getKeyForResourceTypeAndID(@NotNull String resourceType, @NotBlank String id) {
       return id;
     }
 
+    @Override
     public String getKeyForSystemAndValue(@NotBlank String system, @NotBlank String value) {
       return value;
     }
