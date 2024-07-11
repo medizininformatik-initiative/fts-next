@@ -39,7 +39,7 @@ jobs:
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
 
-  build:
+  build-jar:
     env:
       GITHUB_TOKEN: ${{ github.token }}
     runs-on: ubuntu-24.04
@@ -83,3 +83,42 @@ jobs:
         name: ${{ matrix.agent }}
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
         if-no-files-found: error
+
+  build-container:
+    needs: [ build-jar ]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download Agent Jar
+      if: ${{ matrix.agent }}
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.agent }}
+        path: ./target
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and Save Container Image
+      uses: docker/build-push-action@v6
+      with:
+        context: ${{ matrix.agent }}
+        platforms: linux/amd64,linux/arm64
+        tags: ${{ matrix.agent }}:latest
+        outputs: type=docker,dest=/tmp/${{ matrix.agent }}.tar
+
+    - name: Upload Container Image
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.agent }}-image
+        path: /tmp/${{ matrix.agent }}.tar
