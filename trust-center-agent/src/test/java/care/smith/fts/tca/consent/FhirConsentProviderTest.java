@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Slf4j
 @SpringBootTest
@@ -198,5 +199,44 @@ class FhirConsentProviderTest {
               assertThat(consentBundle.getLink("next")).isNull();
             })
         .verifyComplete();
+  }
+
+  @Test
+  void negativePagingArgumentsThrowException() {
+    fhirConsentProvider =
+        new FhirConsentProvider(httpClientBuilder.baseUrl(address).build(), policyHandler, 1);
+
+    assertErrorWithInvalidPagingArgs(-1, -1);
+    assertErrorWithInvalidPagingArgs(-1, 0);
+    assertErrorWithInvalidPagingArgs(0, -1);
+  }
+
+  private void assertErrorWithInvalidPagingArgs(int from, int count) {
+    create(
+            fhirConsentProvider.consentedPatientsPage(
+                "domain",
+                "policySystem",
+                Set.of("Policy A"),
+                UriComponentsBuilder.newInstance(),
+                from,
+                count))
+        .expectErrorMessage("from and count must be non-negative")
+        .verify();
+  }
+
+  @Test
+  void tooLargePagingArgumentsThrowException() {
+    fhirConsentProvider =
+        new FhirConsentProvider(httpClientBuilder.baseUrl(address).build(), policyHandler, 1);
+    create(
+            fhirConsentProvider.consentedPatientsPage(
+                "domain",
+                "policySystem",
+                Set.of("Policy A"),
+                UriComponentsBuilder.newInstance(),
+                Integer.MAX_VALUE - 10,
+                20))
+        .expectErrorMessage("from + count must be smaller than 2147483647")
+        .verify();
   }
 }

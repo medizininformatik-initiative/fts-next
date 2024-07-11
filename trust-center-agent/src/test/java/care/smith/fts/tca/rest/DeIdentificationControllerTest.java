@@ -92,11 +92,11 @@ class DeIdentificationControllerTest {
 
   @Test
   void fetchPseudonymizedIds() {
-    var ids = Set.of("tid1", "tid2");
+    var ids = Set.of("tid-1", "tid2");
     given(pseudonymProvider.fetchPseudonymizedIds(ids))
-        .willReturn(Mono.just(Map.of("tid1", "pid1", "tid2", "pid2")));
+        .willReturn(Mono.just(Map.of("tid-1", "pid1", "tid2", "pid2")));
 
-    var expectedResponse = "{\"tid1\":\"pid1\",\"tid2\":\"pid2\"}";
+    var expectedResponse = "{\"tid-1\":\"pid1\",\"tid2\":\"pid2\"}";
     webClient
         .post()
         .uri("/api/v2/rd/resolve-pseudonyms")
@@ -126,6 +126,19 @@ class DeIdentificationControllerTest {
         .isOk()
         .expectBody()
         .isEmpty();
+  }
+
+  @Test
+  void rejectInvalidIds() {
+    webClient
+        .post()
+        .uri("/api/v2/rd/resolve-pseudonyms")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(fromValue(Set.of("username=Guest'%0AUser:'Admin")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is5xxServerError();
   }
 
   @Disabled

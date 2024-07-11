@@ -5,6 +5,9 @@ import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +22,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @RestController
 @RequestMapping(value = "api/v2")
+@Validated
 public class DeIdentificationController {
   private final PseudonymProvider pseudonymProvider;
   private final ShiftedDatesProvider shiftedDatesProvider;
@@ -36,7 +40,7 @@ public class DeIdentificationController {
       produces = MediaType.APPLICATION_JSON_VALUE)
   @ExceptionHandler(UnknownDomainException.class)
   public Mono<ResponseEntity<PseudonymizeResponse>> getTransportIdsAndDateShiftingValues(
-      @Validated(PseudonymizeRequest.class) @RequestBody Mono<PseudonymizeRequest> requestData) {
+      @Valid @RequestBody Mono<PseudonymizeRequest> requestData) {
     var response =
         requestData.flatMap(
             r -> {
@@ -69,9 +73,10 @@ public class DeIdentificationController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<Map<String, String>>> fetchPseudonymizedIds(
-      @RequestBody Mono<Set<String>> ids) {
+      @RequestBody @NotNull Set<@Pattern(regexp = "^[\\w-]+$") String> ids) {
     var pseudonymizedIDs =
-        ids.doOnNext(b -> log.info("ids: {}", ids))
+        Mono.just(ids)
+            .doOnNext(b -> log.info("Resolve pseudonyms for: {}", b))
             .flatMap(pseudonymProvider::fetchPseudonymizedIds);
     return pseudonymizedIDs.map(ResponseEntity::ok);
   }
@@ -80,8 +85,9 @@ public class DeIdentificationController {
       value = "/rd/delete-transport-ids",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<Long>> deleteTransportIds(@RequestBody Mono<Set<String>> ids) {
-    var response = ids.flatMap(pseudonymProvider::deleteTransportIds);
+  public Mono<ResponseEntity<Long>> deleteTransportIds(
+      @RequestBody @NotNull Set<@Pattern(regexp = "^[\\w-]+$") String> ids) {
+    var response = Mono.just(ids).flatMap(pseudonymProvider::deleteTransportIds);
     return response.map(ResponseEntity::ok);
   }
 }

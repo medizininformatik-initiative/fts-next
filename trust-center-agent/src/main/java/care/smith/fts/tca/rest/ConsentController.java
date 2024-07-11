@@ -5,6 +5,7 @@ import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentRequest;
+import jakarta.validation.Valid;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -20,6 +21,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @RestController
 @RequestMapping(value = "api/v2")
+@Validated
 public class ConsentController {
   private final ConsentProvider consentProvider;
   private final int defaultPageSize;
@@ -36,7 +38,7 @@ public class ConsentController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
   public Mono<ResponseEntity<Bundle>> consentedPatients(
-      @Validated(ConsentRequest.class) @RequestBody Mono<ConsentRequest> request,
+      @RequestBody @Valid Mono<ConsentRequest> request,
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {
