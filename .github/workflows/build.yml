@@ -119,3 +119,36 @@ jobs:
         name: ${{ matrix.agent }}-image
         path: /tmp/${{ matrix.agent }}.tar
         if-no-files-found: error
+
+  scan-image:
+    needs: [ build-image ]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+    steps:
+    - name: Download Container Image
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.agent }}-image
+        path: /tmp
+
+    - name: Load Container Image
+      run: docker load --input /tmp/${{ matrix.agent }}.tar
+
+    - name: Run Trivy Vulnerability Scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ matrix.agent }}:latest
+        format: sarif
+        output: trivy-results.sarif
+        severity: 'CRITICAL,HIGH'
+        timeout: '15m0s'
+
+    - name: Upload Trivy Scan Results to GitHub Security Tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: trivy-results.sarif
