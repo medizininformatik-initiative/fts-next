@@ -2,43 +2,87 @@ package care.smith.fts.rda.rest;
 
 import static care.smith.fts.rda.rest.TransferProcessController.fromPlainBundle;
 import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.HeaderTypes.X_PROGRESS_HEADER;
 import static java.util.List.of;
 import static org.assertj.core.api.Assertions.assertThat;
-import static reactor.core.publisher.Mono.just;
+import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.TransferProcessDefinition;
-import care.smith.fts.rda.TransferProcessRunner.Result;
+import care.smith.fts.rda.TransferProcessRunner;
+import care.smith.fts.rda.TransferProcessRunner.Phase;
+import care.smith.fts.rda.TransferProcessRunner.Status;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
-class TransferProcessDefinitionControllerTest {
+class TransferProcessControllerTest {
 
   private TransferProcessController api;
 
   @BeforeEach
   void setUp() {
     api =
-        new TransferProcessController((r, p) -> just(new Result(0, 0)), of(mockTransferProcess()));
+        new TransferProcessController(
+            new TransferProcessRunner() {
+              @Override
+              public String start(TransferProcessDefinition process, Mono<TransportBundle> data) {
+                return "processId";
+              }
+
+              @Override
+              public Mono<Status> status(String processId) {
+                if ("processId".equals(processId)) {
+                  return Mono.just(new Status("processId", Phase.RUNNING, 0, 0));
+                } else {
+                  return Mono.error(new RuntimeException("error"));
+                }
+              }
+            },
+            of(mockTransferProcess()));
   }
 
   @Test
   void startExistingProjectSucceeds() {
-    create(api.start("example", Mono.just(new Bundle())))
-        .expectNext(ResponseEntity.ok(new Result(0, 0)))
+    var start =
+        api.start(
+            "example",
+            Mono.just(new Bundle()),
+            UriComponentsBuilder.fromUriString("http://localhost:1234"));
+    var uri =
+        UriComponentsBuilder.fromUriString("http://localhost:1234")
+            .path("api/v2/process/status/processId")
+            .build()
+            .toUri();
+    create(start)
+        .expectNext(
+            ResponseEntity.accepted()
+                .headers(h -> h.add("Content-Location", uri.toString()))
+                .build())
         .verifyComplete();
   }
 
   @Test
   void startNonExistingProjectErrors() {
-    create(api.start("non-existent", Mono.just(new Bundle())))
-        .expectError(IllegalStateException.class)
-        .verify();
+    create(
+            api.start(
+                "non-existent",
+                Mono.just(new Bundle()),
+                UriComponentsBuilder.fromUriString("http://localhost:1234")))
+        .expectNext(
+            ResponseEntity.of(
+                    ProblemDetail.forStatusAndDetail(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Project 'non-existent' could not be found"))
+                .build())
+        .verifyComplete();
   }
 
   @Test
@@ -102,5 +146,19 @@ class TransferProcessDefinitionControllerTest {
   private static TransferProcessDefinition mockTransferProcess() {
     return new TransferProcessDefinition(
         "example", (transportBundle) -> null, (patientBundle) -> null);
+  }
+
+  @Test
+  void statusIsRunning() {
+    var status = api.status("processId");
+    create(status)
+        .expectNext(
+            ResponseEntity.accepted()
+                .headers(h -> {
+                  h.add(X_PROGRESS_HEADER, "Running");
+                  h.add(RETRY_AFTER, "1");
+                })
+                .body(new Status("processId", Phase.RUNNING, 0, 0)))
+        .verifyComplete();
   }
 }

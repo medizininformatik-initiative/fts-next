@@ -65,4 +65,15 @@ public class WebClientTestUtil {
       return mock;
     }
   }
+
+  public static ExchangeFunction requestsInOrder(MockExchangeFunction... mockExchangeFunction) {
+    return new ExchangeFunction() {
+      private int i = 0;
+
+      @Override
+      public Mono<ClientResponse> exchange(ClientRequest request) {
+        return mockExchangeFunction[i++].exchange(request);
+      }
+    };
+  }
 }

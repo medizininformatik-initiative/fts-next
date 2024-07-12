@@ -1,5 +1,6 @@
 package care.smith.fts.cda.rest;
 
+import static care.smith.fts.util.HeaderTypes.X_PROGRESS_HEADER;
 import static care.smith.fts.util.error.ErrorResponseUtil.internalServerError;
 
 import care.smith.fts.cda.TransferProcessDefinition;
@@ -19,7 +20,6 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/v2/process")
 public class TransferProcessController {
-  private static final String X_PROGRESS_HEADER = "X-Progress";
 
   private final TransferProcessRunner processRunner;
   private final List<TransferProcessDefinition> processes;
