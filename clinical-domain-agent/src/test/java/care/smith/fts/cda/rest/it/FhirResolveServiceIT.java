@@ -8,7 +8,7 @@ import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class FhirResolveServiceIT extends TransferProcessDefinitionControllerIT {
+public class FhirResolveServiceIT extends TransferProcessControllerIT {
   private static final String patientId = "id1";
 
   @BeforeEach

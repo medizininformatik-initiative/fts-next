@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @Slf4j
-public class GeneralIT extends TransferProcessDefinitionControllerIT {
+public class GeneralIT extends TransferProcessControllerIT {
 
   @Test
   void successfulRequest() throws IOException {

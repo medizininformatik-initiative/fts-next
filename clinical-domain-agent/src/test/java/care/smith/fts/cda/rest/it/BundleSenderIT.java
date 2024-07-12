@@ -10,7 +10,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class BundleSenderIT extends TransferProcessDefinitionControllerIT {
+public class BundleSenderIT extends TransferProcessControllerIT {
   private static final String patientId = "patientId";
   private static Bundle patient;
 
