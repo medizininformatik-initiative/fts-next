@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/bin/bash
+set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -16,6 +17,7 @@ PATIENT_ID="${1}" \
 QUESTIONNAIRE_RESPONSE_UUID="$(uuidgen)" \
 RESEARCH_STUDY_UUID="$(uuidgen)" \
 AUTHORED="$(date +"%Y-%m-%dT%H:%M:%S%:z")" \
-envsubst '$PATIENT_ID $QUESTIONNAIRE_RESPONSE_UUID $RESEARCH_STUDY_UUID $AUTHORED' \
+envsubst "\$PATIENT_ID \$QUESTIONNAIRE_RESPONSE_UUID \$RESEARCH_STUDY_UUID \$AUTHORED" \
   <"${SCRIPT_DIR}/consent.tmpl.json" \
-  | curl -v --data-binary @- -H "Content-Type: application/fhir+json" "${gics_base_url}/\$addConsent"
+  | curl -sf --data-binary @- -H "Content-Type: application/fhir+json" "${gics_base_url}/\$addConsent" \
+  >/dev/null

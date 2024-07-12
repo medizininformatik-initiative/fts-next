@@ -152,3 +152,61 @@ jobs:
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: trivy-results.sarif
+
+  e2e-tests:
+    needs: [ build-image ]
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download Agent Images
+      uses: actions/download-artifact@v4
+      with:
+        pattern: '*-image'
+        merge-multiple: true
+        path: /tmp
+
+    - name: Login to SMITH Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: creg.smith.care
+        username: ${{ secrets.smith_creg_username }}
+        password: ${{ secrets.smith_creg_password }}
+
+    - name: Load Agent Images
+      run: |
+        echo -n "clinical-domain-agent trust-center-agent research-domain-agent" \
+        | xargs -d' ' -I{} docker load --input /tmp/{}.tar
+
+    - name: Pull Container Images
+      working-directory: .github/test
+      run: docker compose pull -q --ignore-pull-failures
+
+    - name: Start Test Environment
+      working-directory: .github/test
+      run: docker compose up --wait
+
+    - name: Configure PATH
+      run: echo "${GITHUB_WORKSPACE}/.github/scripts" >> ${GITHUB_PATH}
+
+    - name: Upload Test Data
+      working-directory: .github/test
+      run: |
+        upload-consent.sh patient-1
+        upload-patient.sh patient-1
+
+    - name: Start Transfer
+      working-directory: .github/test
+      run: start-transfer.sh example >process.url
+
+    - name: Wait for Transfer to Finish
+      working-directory: .github/test
+      run: await-transfer.sh "$(cat process.url)"
+
+    - name: Check Status
+      working-directory: .github/test
+      run: check-status.sh "$(cat process.url)"
+
+    - name: Check Transferred Resources
+      working-directory: .github/test
+      run: check-transferred.sh

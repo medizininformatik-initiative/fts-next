@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/bin/bash
+set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -15,6 +16,7 @@ fi
 PATIENT_ID="${1}" \
 IDENTIFIER_SYSTEM="http://fts.smith.care" \
 YEAR="$(date +"%Y")" \
-envsubst '$PATIENT_ID $IDENTIFIER_SYSTEM $YEAR' \
+envsubst "\$PATIENT_ID \$IDENTIFIER_SYSTEM \$YEAR" \
   <"${SCRIPT_DIR}/patient.tmpl.json" \
-  | curl -v --data-binary @- -H "Content-Type: application/fhir+json" "${cd_hds_base_url}"
+  | curl -sf --data-binary @- -H "Content-Type: application/fhir+json" "${cd_hds_base_url}" \
+  >/dev/null
