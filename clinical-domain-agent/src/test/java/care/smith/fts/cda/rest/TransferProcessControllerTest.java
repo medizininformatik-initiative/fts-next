@@ -15,7 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
-class TransferProcessDefinitionControllerTest {
+class TransferProcessControllerTest {
 
   private static final String processId = "processId";
   private static final Status PATIENT_SUMMARY_RESULT = new Status(processId, Phase.RUNNING, 0, 0);

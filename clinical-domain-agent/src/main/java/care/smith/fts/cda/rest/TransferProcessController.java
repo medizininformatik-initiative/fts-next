@@ -36,7 +36,7 @@ public class TransferProcessController {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
-      String id = processRunner.start(process.get());
+      var id = processRunner.start(process.get());
       var jobUri = generateJobUri(uriBuilder, id);
       return processRunner
           .status(id)
@@ -56,7 +56,7 @@ public class TransferProcessController {
     return uriBuilder.replacePath("api/v2/process/status/{id}").build(id);
   }
 
-  @GetMapping("/status/{processId}")
+  @GetMapping("/status/{processId:[\\w-]+}")
   Mono<ResponseEntity<Status>> status(@PathVariable("processId") String processId) {
     return processRunner.status(processId).map(s -> responseForStatus(s).body(s));
   }

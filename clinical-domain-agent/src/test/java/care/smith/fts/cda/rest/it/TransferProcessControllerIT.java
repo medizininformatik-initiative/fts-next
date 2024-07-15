@@ -65,7 +65,7 @@ import reactor.test.StepVerifier;
  */
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
-public class TransferProcessDefinitionControllerIT extends BaseIT {
+public class TransferProcessControllerIT extends BaseIT {
   protected WebClient client;
 
   protected final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());

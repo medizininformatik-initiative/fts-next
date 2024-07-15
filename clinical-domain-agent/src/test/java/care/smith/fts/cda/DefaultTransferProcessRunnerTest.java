@@ -15,7 +15,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DefaultTransferProcessDefinitionRunnerTest {
+class DefaultTransferProcessRunnerTest {
 
   private static final String PATIENT_ID = "patient-150622";
   private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);

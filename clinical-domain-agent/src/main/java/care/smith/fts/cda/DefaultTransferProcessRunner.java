@@ -49,7 +49,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private final AtomicLong skippedPatients;
     private final BundleSender bundleSender;
     private final AtomicLong sentBundles;
-    private final AtomicReference<Phase> status;
+    private final AtomicReference<Phase> phase;
 
     public TransferProcessInstance(TransferProcessDefinition process) {
       cohortSelector = process.cohortSelector();
@@ -59,17 +59,17 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
       skippedPatients = new AtomicLong();
       sentBundles = new AtomicLong();
-      status = new AtomicReference<>(Phase.QUEUED);
+      phase = new AtomicReference<>(Phase.QUEUED);
     }
 
     public void execute() {
-      status.set(Phase.RUNNING);
+      phase.set(Phase.RUNNING);
       cohortSelector
           .selectCohort()
           .doOnError(e -> log.error(e.getMessage()))
-          .doOnError(e -> status.set(Phase.ERROR))
+          .doOnError(e -> phase.set(Phase.ERROR))
           .flatMap(this::executePatient)
-          .doOnComplete(() -> status.set(Phase.COMPLETED))
+          .doOnComplete(() -> phase.set(Phase.COMPLETED))
           .onErrorComplete()
           .subscribe();
     }
@@ -87,7 +87,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     }
 
     public Status status(String processId) {
-      return new Status(processId, status.get(), sentBundles.get(), skippedPatients.get());
+      return new Status(processId, phase.get(), sentBundles.get(), skippedPatients.get());
     }
   }
 }

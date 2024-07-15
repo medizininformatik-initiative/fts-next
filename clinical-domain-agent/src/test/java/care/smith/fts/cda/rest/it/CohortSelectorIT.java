@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
-public class CohortSelectorIT extends TransferProcessDefinitionControllerIT {
+public class CohortSelectorIT extends TransferProcessControllerIT {
 
   @Test
   void tcaDown() {
