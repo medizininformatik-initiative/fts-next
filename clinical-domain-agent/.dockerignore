@@ -1,0 +1,3 @@
+*
+!target/clinical-domain-agent.jar
+!application.yaml

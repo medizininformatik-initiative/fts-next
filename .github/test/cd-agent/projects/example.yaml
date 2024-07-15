@@ -1,0 +1,31 @@
+cohortSelector:
+  trustCenterAgent:
+    server:
+      baseUrl: http://tc-agent:8080
+    domain: MII
+    patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
+    policySystem: "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy"
+    policies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
+
+dataSelector:
+  everything:
+    fhirServer:
+      baseUrl: http://cd-hds:8080/fhir
+    resolve:
+      patientIdentifierSystem: http://fts.smith.care
+
+deidentificator:
+  deidentifhir:
+    tca:
+      server:
+        baseUrl: http://tc-agent:8080
+      domain: MII
+    dateShift: P14D
+    deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
+    scraperConfig: /app/config/deidentifhir/IDScraper.profile
+
+bundleSender:
+  researchDomainAgent:
+    server:
+      baseUrl: http://rd-agent:8080
+    project: example

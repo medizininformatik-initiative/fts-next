@@ -1,0 +1,3 @@
+*
+!target/trust-center-agent.jar
+!application.yaml

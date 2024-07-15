@@ -1,0 +1,1861 @@
+{
+  "id": "DD7M5LJHYQLF5KA6",
+  "type": "searchset",
+  "entry": [
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Patient/patient-112348",
+      "resource": {
+        "address": [
+          {
+            "type": "both",
+            "line": [
+              "Musterstraße 1"
+            ],
+            "city": "Bonn",
+            "postalCode": "53121",
+            "country": "DE"
+          }
+        ],
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient"
+          ]
+        },
+        "name": [
+          {
+            "use": "official",
+            "family": "Mustermann",
+            "given": [
+              "Henry_01_WP1.4"
+            ]
+          }
+        ],
+        "birthDate": "1950-01-01",
+        "resourceType": "Patient",
+        "id": "patient-112348",
+        "identifier": [
+          {
+            "use": "usual",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MR"
+                }
+              ]
+            },
+            "system": "https://POLARWPMIX.de/pid",
+            "value": "patient-112348"
+          }
+        ],
+        "generalPractitioner": [
+          {
+            "display": "AOK"
+          }
+        ],
+        "gender": "male"
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Condition/patient-112348-E-1-D-1",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-diagnose/StructureDefinition/Diagnose"
+          ]
+        },
+        "resourceType": "Condition",
+        "recordedDate": "2019-01-01T00:00:00+01:00",
+        "id": "patient-112348-E-1-D-1",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+              "version": "2020",
+              "code": "M80.00"
+            }
+          ],
+          "text": "Osteroporose"
+        },
+        "identifier": [
+          {
+            "value": "patient-112348-E-1-D-1"
+          }
+        ],
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Condition/patient-112348-E-1-D-2",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-diagnose/StructureDefinition/Diagnose"
+          ]
+        },
+        "resourceType": "Condition",
+        "recordedDate": "2019-01-01T00:00:00+01:00",
+        "id": "patient-112348-E-1-D-2",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+              "version": "2020",
+              "code": "S02.0"
+            }
+          ],
+          "text": "Sturz"
+        },
+        "identifier": [
+          {
+            "value": "patient-112348-E-1-D-2"
+          }
+        ],
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Condition/patient-112348-E-2-D-3",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-diagnose/StructureDefinition/Diagnose"
+          ]
+        },
+        "resourceType": "Condition",
+        "recordedDate": "2019-03-24T00:00:00+01:00",
+        "id": "patient-112348-E-2-D-3",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+              "version": "2020",
+              "code": "K35.2"
+            }
+          ],
+          "text": "Akute Appendizitis mit generalisierter Peritonitis"
+        },
+        "identifier": [
+          {
+            "value": "patient-112348-E-2-D-3"
+          }
+        ],
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Encounter/patient-112348-E-1",
+      "resource": {
+        "diagnosis": [
+          {
+            "use": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/diagnosis-role",
+                  "code": "CM",
+                  "display": "Comorbidity diagnosis"
+                }
+              ]
+            },
+            "condition": {
+              "reference": "Condition/patient-112348-E-1-D-1"
+            }
+          },
+          {
+            "use": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/diagnosis-role",
+                  "code": "CC",
+                  "display": "Chief complaint"
+                }
+              ]
+            },
+            "condition": {
+              "reference": "Condition/patient-112348-E-1-D-2"
+            }
+          }
+        ],
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung"
+          ]
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "code": "einrichtungskontakt",
+                "display": "Einrichtungskontakt"
+              }
+            ]
+          }
+        ],
+        "resourceType": "Encounter",
+        "status": "finished",
+        "id": "patient-112348-E-1",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "IMP",
+          "display": "inpatient encounter"
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "VN"
+                }
+              ]
+            },
+            "_system": {
+              "extension": [
+                {
+                  "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                  "valueCode": "unknown"
+                }
+              ]
+            },
+            "value": "patient-112348-E-1",
+            "assigner": {
+              "identifier": {
+                "system": "https://www.medizininformatik-initiative.de/fhir/core/NamingSystem/org-identifier",
+                "value": "POLARWPMIX"
+              }
+            }
+          }
+        ],
+        "period": {
+          "start": "2020-05-05T00:00:00+02:00",
+          "end": "2020-05-07T00:00:00+02:00"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Encounter/patient-112348-E-1-A-1",
+      "resource": {
+        "diagnosis": [
+          {
+            "condition": {
+              "_reference": {
+                "extension": [
+                  {
+                    "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                    "valueCode": "unknown"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung"
+          ]
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "code": "abteilungskontakt",
+                "display": "Abteilungskontakt"
+              }
+            ]
+          }
+        ],
+        "resourceType": "Encounter",
+        "serviceType": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/dkgev/Fachabteilungsschluessel",
+              "code": "1600",
+              "display": "Unfallchirurgie"
+            }
+          ]
+        },
+        "status": "finished",
+        "id": "patient-112348-E-1-A-1",
+        "class": {
+          "extension": [
+            {
+              "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "period": {
+          "start": "2020-05-05T00:00:00+02:00",
+          "end": "2020-05-07T00:00:00+02:00"
+        },
+        "partOf": {
+          "reference": "Encounter/patient-112348-E-1"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Encounter/patient-112348-E-2",
+      "resource": {
+        "diagnosis": [
+          {
+            "use": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/diagnosis-role",
+                  "code": "CC",
+                  "display": "Chief complaint"
+                }
+              ]
+            },
+            "condition": {
+              "reference": "Condition/patient-112348-E-2-D-3"
+            }
+          }
+        ],
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung"
+          ]
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "code": "einrichtungskontakt",
+                "display": "Einrichtungskontakt"
+              }
+            ]
+          }
+        ],
+        "resourceType": "Encounter",
+        "status": "finished",
+        "id": "patient-112348-E-2",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "IMP",
+          "display": "inpatient encounter"
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "VN"
+                }
+              ]
+            },
+            "_system": {
+              "extension": [
+                {
+                  "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                  "valueCode": "unknown"
+                }
+              ]
+            },
+            "value": "patient-112348-E-2",
+            "assigner": {
+              "identifier": {
+                "system": "https://www.medizininformatik-initiative.de/fhir/core/NamingSystem/org-identifier",
+                "value": "POLARWPMIX"
+              }
+            }
+          }
+        ],
+        "period": {
+          "start": "2020-05-10T00:00:00+02:00",
+          "end": "2020-05-20T00:00:00+02:00"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Encounter/patient-112348-E-2-A-2",
+      "resource": {
+        "diagnosis": [
+          {
+            "condition": {
+              "_reference": {
+                "extension": [
+                  {
+                    "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                    "valueCode": "unknown"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung"
+          ]
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "code": "abteilungskontakt",
+                "display": "Abteilungskontakt"
+              }
+            ]
+          }
+        ],
+        "resourceType": "Encounter",
+        "serviceType": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/dkgev/Fachabteilungsschluessel",
+              "code": "1600",
+              "display": "Unfallchirurgie"
+            }
+          ]
+        },
+        "status": "finished",
+        "id": "patient-112348-E-2-A-2",
+        "class": {
+          "extension": [
+            {
+              "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "period": {
+          "start": "2020-05-10T00:00:00+02:00",
+          "end": "2020-05-20T00:00:00+02:00"
+        },
+        "partOf": {
+          "reference": "Encounter/patient-112348-E-2"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-1",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-03T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-1",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931880189"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1931880189",
+      "resource": {
+        "meta": {
+          "versionId": "16981",
+          "lastUpdated": "2023-09-26T15:23:33.745Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 25,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Tabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1931880189",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/ifa/pzn",
+              "code": "04329613"
+            },
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "N06AA09",
+              "userSelected": true
+            }
+          ],
+          "text": "Amitriptylin"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1931880189"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-10",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-22T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-10",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication--17271717",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 18,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Filmtabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication--17271717",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/ifa/pzn",
+              "code": "04748391",
+              "userSelected": true
+            }
+          ],
+          "text": "PZN_NIFEDIPIN"
+        },
+        "identifier": [
+          {
+            "value": "Medication--17271717"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-11",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-03T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-11",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-12",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-03T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-12",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-13",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-04T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-13",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-14",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-06T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-14",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-15",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-07T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-15",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-16",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-07T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-16",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-17",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-07T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-17",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931880189"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-18",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-13T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-18",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931880247"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1931880247",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 11,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Filmtabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1931880247",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "N06AA25",
+              "userSelected": true
+            }
+          ],
+          "text": "ATC_AMITRYPTILIN"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1931880247"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-19",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-12T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-19",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931939763"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1931939763",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 12,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Filmtabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1931939763",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "N06CA01",
+              "userSelected": true
+            }
+          ],
+          "text": "ATC_AMITRYPTILIN"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1931939763"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-2",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-03T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-2",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931880247"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-20",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-22T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-20",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931021048"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1931021048",
+      "resource": {
+        "meta": {
+          "versionId": "16983",
+          "lastUpdated": "2023-09-26T15:23:33.852Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 10,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Tabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1931021048",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/ifa/pzn",
+              "code": "06099471"
+            },
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "N05CF02",
+              "userSelected": true
+            }
+          ],
+          "text": "Zolpidem"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1931021048"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-3",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-04T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-3",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931939763"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-4",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-06T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-4",
+        "medicationReference": {
+          "reference": "Medication/Medication-1931021048"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-5",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-07T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-5",
+        "medicationReference": {
+          "reference": "Medication/Medication-1043482770"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1043482770",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 14,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Filmtabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1043482770",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "M05BA01",
+              "userSelected": true
+            }
+          ],
+          "text": "ATC_BISPHOSPHONATE"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1043482770"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-6",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-07T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-6",
+        "medicationReference": {
+          "reference": "Medication/Medication-1043482773"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1043482773",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 15,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Filmtabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1043482773",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "M05BA04",
+              "userSelected": true
+            }
+          ],
+          "text": "ATC_BISPHOSPHONATE"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1043482773"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-7",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-07T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-7",
+        "medicationReference": {
+          "reference": "Medication/Medication-1043482771"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1043482771",
+      "resource": {
+        "meta": {
+          "versionId": "16904",
+          "lastUpdated": "2023-09-26T15:23:27.939Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 2,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Filmtabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1043482771",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "M05BA02",
+              "userSelected": true
+            }
+          ],
+          "text": "ATC_BISPHOSPHONATE"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1043482771"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-8",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-13T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-8",
+        "medicationReference": {
+          "reference": "Medication/Medication-1043482776"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Medication/Medication-1043482776",
+      "resource": {
+        "meta": {
+          "versionId": "16930",
+          "lastUpdated": "2023-09-26T15:23:29.318Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication"
+          ]
+        },
+        "resourceType": "Medication",
+        "ingredient": [
+          {
+            "strength": {
+              "numerator": {
+                "value": 35,
+                "unit": "milligram",
+                "system": "http://unitsofmeasure.org",
+                "code": "mg"
+              },
+              "denominator": {
+                "value": 1,
+                "system": "http://XXX",
+                "code": "Filmtabletten"
+              }
+            },
+            "itemCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://fhir.de/CodeSystem/ask",
+                  "_code": {
+                    "extension": [
+                      {
+                        "url": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+                        "valueCode": "unknown"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "id": "Medication-1043482776",
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/ifa/pzn",
+              "code": "03390763"
+            },
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "M05BA07",
+              "userSelected": true
+            }
+          ],
+          "text": "Mononatriumrisedronat"
+        },
+        "identifier": [
+          {
+            "value": "Medication-1043482776"
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    },
+    {
+      "fullUrl": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/MedicationStatement/patient-112348-MS-9",
+      "resource": {
+        "meta": {
+          "versionId": "16901",
+          "lastUpdated": "2023-09-26T15:23:27.902Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationStatement"
+          ]
+        },
+        "dosage": [
+          {
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Filmtabletten",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ],
+        "resourceType": "MedicationStatement",
+        "effectiveDateTime": "2020-05-12T00:00:00+02:00",
+        "status": "active",
+        "id": "patient-112348-MS-9",
+        "medicationReference": {
+          "reference": "Medication/Medication--17271717"
+        },
+        "subject": {
+          "reference": "Patient/patient-112348"
+        }
+      },
+      "search": {
+        "mode": "match"
+      }
+    }
+  ],
+  "total": 37,
+  "resourceType": "Bundle"
+}

@@ -1,0 +1,20 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: "0.1"
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+    after_n_builds: 3
+
+ignore:
+- "./test-util"

@@ -1,0 +1,214 @@
+name: Build
+
+on:
+  push:
+    tags: [ "v*.*.*" ]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  merge_group:
+
+env:
+  MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN
+
+jobs:
+  analyze:
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    permissions:
+      security-events: write
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 21
+        cache: 'maven'
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: java
+        queries: security-and-quality
+
+    - name: Build
+      run: make build
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  build-jar:
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 21
+        cache: 'maven'
+
+    - name: Build Dependencies
+      run: make install-dependencies
+
+    - name: Unit Tests
+      run: mvn ${MAVEN_ARGS} test --projects ${{ matrix.agent }}
+
+    - name: Integration Tests
+      run: mvn ${MAVEN_ARGS} verify --projects ${{ matrix.agent }} -DskipUnitTests
+
+    - name: Build Agent
+      run: mvn ${MAVEN_ARGS} install --projects ${{ matrix.agent }} -DskipTests
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
+        use_legacy_upload_endpoint: true
+
+    - name: Upload Jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.agent }}
+        path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
+        if-no-files-found: error
+
+  build-image:
+    needs: [ build-jar ]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download Agent Jar
+      if: ${{ matrix.agent }}
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.agent }}
+        path: ${{ matrix.agent }}/target
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and Save Container Image
+      uses: docker/build-push-action@v6
+      with:
+        context: ${{ matrix.agent }}
+        tags: ${{ matrix.agent }}:latest
+        outputs: type=docker,dest=/tmp/${{ matrix.agent }}.tar
+
+    - name: Upload Container Image
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.agent }}-image
+        path: /tmp/${{ matrix.agent }}.tar
+        if-no-files-found: error
+
+  scan-image:
+    needs: [ build-image ]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+    steps:
+    - name: Download Container Image
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.agent }}-image
+        path: /tmp
+
+    - name: Load Container Image
+      run: docker load --input /tmp/${{ matrix.agent }}.tar
+
+    - name: Run Trivy Vulnerability Scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ matrix.agent }}:latest
+        format: sarif
+        output: trivy-results.sarif
+        severity: 'CRITICAL,HIGH'
+        timeout: '15m0s'
+
+    - name: Upload Trivy Scan Results to GitHub Security Tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: trivy-results.sarif
+
+  e2e-tests:
+    needs: [ build-image ]
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download Agent Images
+      uses: actions/download-artifact@v4
+      with:
+        pattern: '*-image'
+        merge-multiple: true
+        path: /tmp
+
+    - name: Login to SMITH Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: creg.smith.care
+        username: ${{ secrets.smith_creg_username }}
+        password: ${{ secrets.smith_creg_password }}
+
+    - name: Load Agent Images
+      run: |
+        echo -n "clinical-domain-agent trust-center-agent research-domain-agent" \
+        | xargs -d' ' -I{} docker load --input /tmp/{}.tar
+
+    - name: Pull Container Images
+      working-directory: .github/test
+      run: docker compose pull -q --ignore-pull-failures
+
+    - name: Start Test Environment
+      working-directory: .github/test
+      run: docker compose up --wait
+
+    - name: Configure PATH
+      run: echo "${GITHUB_WORKSPACE}/.github/scripts" >> ${GITHUB_PATH}
+
+    - name: Upload Test Data
+      working-directory: .github/test
+      run: |
+        upload-consent.sh patient-1
+        upload-patient.sh patient-1
+
+    - name: Start Transfer
+      working-directory: .github/test
+      run: start-transfer.sh example >process.url
+
+    - name: Wait for Transfer to Finish
+      working-directory: .github/test
+      run: await-transfer.sh "$(cat process.url)"
+
+    - name: Check Status
+      working-directory: .github/test
+      run: check-status.sh "$(cat process.url)"
+
+    - name: Check Transferred Resources
+      working-directory: .github/test
+      run: check-transferred.sh
