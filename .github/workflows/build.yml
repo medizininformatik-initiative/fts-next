@@ -3,9 +3,9 @@ name: Build
 on:
   push:
     tags: [ "v*.*.*" ]
-    branches: [ "main", "incubate" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "incubate" ]
+    branches: [ "main" ]
 
 env:
   MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN
