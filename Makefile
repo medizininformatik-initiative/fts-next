@@ -1,21 +1,18 @@
 AGENTS := $(wildcard *-agent)
 
-$(AGENTS):
-	$(MAKE) -C $@ $(MAKECMDGOALS)
-
 clean:
 	mvn ${MAVEN_ARGS} clean
 
-build:
-	mvn ${MAVEN_ARGS} compile -T1C
+compile:
+	mvn ${MAVEN_ARGS} compile
 
 test:
 	mvn ${MAVEN_ARGS} verify
 
-install:
-	mvn ${MAVEN_ARGS} install
+build:
+	mvn ${MAVEN_ARGS} package
 
-install-dependencies:
+build/utils:
 	mvn ${MAVEN_ARGS} install --projects .,api,util,test-util,monitoring-util
 
 images:
@@ -23,5 +20,7 @@ images:
     	$(MAKE) -C $$agent image; \
     done
 
-.PHONY:
-	$(AGENTS) clean build image
+e2e:
+	$(MAKE) -C .github/test all
+
+.PHONY:	clean test build build/utils images e2e
