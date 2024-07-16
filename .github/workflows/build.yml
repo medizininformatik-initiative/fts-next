@@ -35,7 +35,7 @@ jobs:
         queries: security-and-quality
 
     - name: Build
-      run: make build
+      run: make compile
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
@@ -61,16 +61,16 @@ jobs:
         cache: 'maven'
 
     - name: Build Dependencies
-      run: make install-dependencies
+      run: make build/utils
 
     - name: Unit Tests
-      run: mvn ${MAVEN_ARGS} test --projects ${{ matrix.agent }}
+      run: make -C ${{ matrix.agent }} test/unit
 
     - name: Integration Tests
-      run: mvn ${MAVEN_ARGS} verify --projects ${{ matrix.agent }} -DskipUnitTests
+      run: make -C ${{ matrix.agent }} test/integration
 
     - name: Build Agent
-      run: mvn ${MAVEN_ARGS} install --projects ${{ matrix.agent }} -DskipTests
+      run: make -C ${{ matrix.agent }} build
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -182,33 +182,31 @@ jobs:
 
     - name: Pull Container Images
       working-directory: .github/test
-      run: docker compose pull -q --ignore-pull-failures
+      run: make pull
 
     - name: Start Test Environment
       working-directory: .github/test
-      run: docker compose up --wait
+      run: make start
 
     - name: Configure PATH
       run: echo "${GITHUB_WORKSPACE}/.github/scripts" >> ${GITHUB_PATH}
 
     - name: Upload Test Data
       working-directory: .github/test
-      run: |
-        upload-consent.sh patient-1
-        upload-patient.sh patient-1
+      run: make upload
 
     - name: Start Transfer
       working-directory: .github/test
-      run: start-transfer.sh example >process.url
+      run: make transfer
 
     - name: Wait for Transfer to Finish
       working-directory: .github/test
-      run: await-transfer.sh "$(cat process.url)"
+      run: make wait
 
     - name: Check Status
       working-directory: .github/test
-      run: check-status.sh "$(cat process.url)"
+      run: make check-status
 
     - name: Check Transferred Resources
       working-directory: .github/test
-      run: check-transferred.sh
+      run: make check-resources
