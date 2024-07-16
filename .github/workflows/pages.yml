@@ -1,0 +1,52 @@
+name: Pages
+
+on:
+  push:
+    tags: [ "v*.*.*" ]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  merge_group:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Check out Git repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 21
+        cache: npm
+        cache-dependency-path: 'docs/package-lock.json'
+
+    - name: Build
+      working-directory: docs
+      env:
+        DOCS_BASE: "/${{ github.event.repository.name }}/"
+      run: make build
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs/.vitepress/dist
+
+  deploy:
+    #if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    needs: [ build ]
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
