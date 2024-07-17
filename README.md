@@ -38,6 +38,11 @@ facilitating its integration into research FHIR servers. By ensuring compliance 
 architecture, RDA supports the interoperability of research data while preserving patient
 confidentiality.
 
+## Documentation
+
+Please see the [official docs](https://life-research.github.io/fts-next) page for complete
+documentation.
+
 [fhir]: https://fhir.org/
 
 [smith]: https://www.smith.care
