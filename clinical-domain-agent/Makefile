@@ -4,7 +4,7 @@ test/unit:
 test/integration:
 	mvn ${MAVEN_ARGS} verify -DskipUnitTests
 
-build: test/unit test/integration
+build:
 	mvn ${MAVEN_ARGS} -DskipTests package
 
 image: Dockerfile .dockerignore application.yaml target
