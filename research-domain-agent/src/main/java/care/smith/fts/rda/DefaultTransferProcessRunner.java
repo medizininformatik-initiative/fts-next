@@ -65,6 +65,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .doOnNext(b -> sentResources.getAndAdd(b.getEntry().size()))
           .flatMap(bundleSender::send)
           .doOnError(err -> log.info("Could not process patient: {}", err.getMessage()))
+          .doOnError(err -> log.trace("The exception:", err))
           .doOnError(err -> phase.set(Phase.ERROR))
           .map(r -> new Result(receivedResources.get(), sentResources.get()))
           .doOnNext(b -> phase.set(Phase.COMPLETED))

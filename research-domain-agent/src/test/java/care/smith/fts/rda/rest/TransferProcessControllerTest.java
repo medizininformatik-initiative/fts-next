@@ -154,10 +154,11 @@ class TransferProcessControllerTest {
     create(status)
         .expectNext(
             ResponseEntity.accepted()
-                .headers(h -> {
-                  h.add(X_PROGRESS_HEADER, "Running");
-                  h.add(RETRY_AFTER, "1");
-                })
+                .headers(
+                    h -> {
+                      h.add(X_PROGRESS_HEADER, "Running");
+                      h.add(RETRY_AFTER, "1");
+                    })
                 .body(new Status("processId", Phase.RUNNING, 0, 0)))
         .verifyComplete();
   }

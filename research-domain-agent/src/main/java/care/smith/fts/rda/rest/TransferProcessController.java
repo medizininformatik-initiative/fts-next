@@ -3,6 +3,7 @@ package care.smith.fts.rda.rest;
 import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS_HEADER;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static care.smith.fts.util.error.ErrorResponseUtil.internalServerError;
 import static com.google.common.base.Predicates.and;
 import static java.util.function.Predicate.not;
@@ -12,8 +13,9 @@ import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
-import care.smith.fts.rda.TransferProcessRunner.Result;
 import care.smith.fts.rda.TransferProcessRunner.Status;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -26,13 +28,15 @@ import org.hl7.fhir.r4.model.PrimitiveType;
 import org.hl7.fhir.r4.model.StringType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseEntity.BodyBuilder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v2")
+@RequestMapping("/api/v2/process")
+@Validated
 public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
@@ -44,30 +48,40 @@ public class TransferProcessController {
     this.processes = processes;
   }
 
-  @PostMapping(value = "/{project:[\\w-]+}/patient", consumes = "application/fhir+json")
-  Mono<ResponseEntity<Result>> start(
+  @PostMapping(
+      value = "/{project:[\\w-]+}/patient",
+      consumes = APPLICATION_FHIR_JSON_VALUE,
+      produces = APPLICATION_FHIR_JSON_VALUE)
+  Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project,
-      @RequestBody Mono<Bundle> data,
+      @Valid @NotNull @RequestBody Mono<Bundle> data,
       UriComponentsBuilder uriBuilder) {
+
     var process = findProcess(project);
-    if (process.isPresent()) {
-      log.debug("Running process: {}", process.get());
-      var id =
-          processRunner.start(process.get(), data.map(TransferProcessController::fromPlainBundle));
+    return process
+        .map(transferProcessDefinition -> startProcess(data, uriBuilder, transferProcessDefinition))
+        .orElseGet(
+            () ->
+                internalServerError(
+                    new IllegalStateException(
+                        "Project '%s' could not be found".formatted(project))));
+  }
 
-      var jobUri = generateJobUri(uriBuilder, id);
-      return processRunner
-          .status(id)
-          .map(
-              s ->
-                  ResponseEntity.accepted()
-                      .headers(h -> h.add(CONTENT_LOCATION, jobUri.toString()))
-                      .build());
-
-    } else {
-      return internalServerError(
-          new IllegalStateException("Project '%s' could not be found".formatted(project)));
-    }
+  private Mono<ResponseEntity<Object>> startProcess(
+      Mono<Bundle> data,
+      UriComponentsBuilder uriBuilder,
+      TransferProcessDefinition transferProcessDefinition) {
+    return data.map(TransferProcessController::fromPlainBundle)
+        .doOnNext(b -> log.debug("Running process: {}", transferProcessDefinition))
+        .map(tb -> processRunner.start(transferProcessDefinition, Mono.just(tb)))
+        .doOnNext(id -> log.trace("projectId {}", id))
+        .map(id -> generateJobUri(uriBuilder, id))
+        .doOnNext(jobUri -> log.trace("jobUri {}", jobUri))
+        .map(
+            jobUri ->
+                ResponseEntity.accepted()
+                    .headers(h -> h.add(CONTENT_LOCATION, jobUri.toString()))
+                    .build());
   }
 
   static TransportBundle fromPlainBundle(Bundle bundle) {
@@ -106,6 +120,7 @@ public class TransferProcessController {
 
   @GetMapping("/status/{processId:[\\w-]+}")
   Mono<ResponseEntity<Status>> status(@PathVariable("processId") String processId) {
+    log.trace("Process ID: {}", processId);
     return processRunner.status(processId).map(s -> responseForStatus(s).body(s));
   }
 

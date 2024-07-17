@@ -54,14 +54,19 @@ final class RDABundleSender implements BundleSender {
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {
     return client
         .post()
-        .uri(uri -> uri.pathSegment("api", "v2", "{project}", "patient").build(config.project()))
+        .uri(
+            uri ->
+                uri.pathSegment("api", "v2", "process", "{project}", "patient")
+                    .build(config.project()))
         .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))
         .bodyValue(requireNonNull(bundle))
         .exchangeToMono(this::waitForRDACompleted);
   }
 
   private Mono<ResponseEntity<Void>> waitForRDACompleted(ClientResponse clientResponse) {
+    log.trace("statusCode: {}", clientResponse.statusCode());
     var uri = clientResponse.headers().header(CONTENT_LOCATION);
+    log.trace("{}", uri);
     if (uri.isEmpty()) {
       return Mono.error(new TransferProcessException("Missing Content-Location"));
     }
