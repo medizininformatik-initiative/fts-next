@@ -7,6 +7,8 @@ import static org.mockserver.model.JsonBody.json;
 
 import org.mockserver.client.MockServerClient;
 import org.mockserver.matchers.MatchType;
+import org.mockserver.model.Delay;
+import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.MediaType;
 
@@ -25,5 +27,13 @@ public class MockBundleSender {
 
   public void success() {
     hds.when(request).respond(response().withStatusCode(200));
+  }
+
+  public void isDown() {
+    hds.when(request()).error(HttpError.error().withDropConnection(true));
+  }
+
+  public void hasTimeout() {
+    hds.when(request()).respond(request -> null, Delay.minutes(10));
   }
 }
