@@ -36,6 +36,7 @@
       <groupId>care.smith.fts</groupId>
       <artifactId>monitoring-util</artifactId>
       <version>${project.version}</version>
+      <type>pom</type>
     </dependency>
 
     <dependency>
