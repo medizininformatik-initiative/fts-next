@@ -14,6 +14,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
 import care.smith.fts.rda.TransferProcessRunner.Status;
+import care.smith.fts.util.error.ErrorResponseUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
@@ -121,7 +122,10 @@ public class TransferProcessController {
   @GetMapping("/status/{processId:[\\w-]+}")
   Mono<ResponseEntity<Status>> status(@PathVariable("processId") String processId) {
     log.trace("Process ID: {}", processId);
-    return processRunner.status(processId).map(s -> responseForStatus(s).body(s));
+    return processRunner
+        .status(processId)
+        .map(s -> responseForStatus(s).body(s))
+        .onErrorResume(ErrorResponseUtil::notFound);
   }
 
   private static BodyBuilder responseForStatus(Status s) {

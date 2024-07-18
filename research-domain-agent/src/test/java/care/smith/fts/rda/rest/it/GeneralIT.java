@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.reactive.function.client.WebClientResponseException.InternalServerError;
+import org.springframework.web.reactive.function.client.WebClientResponseException.NotFound;
 import org.springframework.web.reactive.function.client.WebClientResponseException.UnsupportedMediaType;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -95,7 +95,7 @@ public class GeneralIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void statusWithWrongProcessIdThrows() throws IOException {
+  void callingStatusWithWrongProcessIdReturns404() throws IOException {
     mockDeidentifier.success();
     mockBundleSender.success();
 
@@ -122,7 +122,7 @@ public class GeneralIT extends TransferProcessControllerIT {
         .as(
             response ->
                 StepVerifier.create(response)
-                    .expectError(InternalServerError.class)
+                    .expectError(NotFound.class)
                     .verifyThenAssertThat()
                     .hasOperatorErrors());
   }
