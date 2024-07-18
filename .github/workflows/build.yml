@@ -39,15 +39,15 @@ jobs:
     - name: Integration Tests
       run: make -C ${{ matrix.agent }} test/integration
 
-    - name: Build Agent
-      run: make -C ${{ matrix.agent }} build
-
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         use_legacy_upload_endpoint: true
+
+    - name: Build Agent
+      run: make -C ${{ matrix.agent }} build
 
     - name: Upload Jar
       uses: actions/upload-artifact@v4
