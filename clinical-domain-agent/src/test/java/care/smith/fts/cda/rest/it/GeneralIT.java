@@ -111,7 +111,7 @@ public class GeneralIT extends TransferProcessControllerIT {
                 .uri("/api/v2/process/non-existent/start")
                 .retrieve()
                 .onStatus(
-                    r -> r.equals(HttpStatus.resolve(500)),
+                    r -> r.equals(HttpStatus.resolve(404)),
                     (c) ->
                         c.bodyToMono(ProblemDetail.class)
                             .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))

@@ -1,7 +1,7 @@
 package care.smith.fts.cda.rest;
 
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
-import static care.smith.fts.util.error.ErrorResponseUtil.internalServerError;
+import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
 
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
@@ -47,8 +47,8 @@ public class TransferProcessController {
                       .build());
     } else {
       log.warn("Project '{}' not found", project);
-      return internalServerError(
-          new IllegalStateException("Project '%s' could not be found".formatted(project)));
+      return notFound(
+          new IllegalArgumentException("Project '%s' could not be found".formatted(project)));
     }
   }
 

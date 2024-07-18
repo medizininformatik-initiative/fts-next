@@ -16,6 +16,10 @@ public class ErrorResponseUtil {
     return onError(e, HttpStatus.BAD_REQUEST);
   }
 
+  public static <T> Mono<ResponseEntity<T>> notFound(Throwable e) {
+    return onError(e, HttpStatus.NOT_FOUND);
+  }
+
   public static <T> Mono<ResponseEntity<T>> internalServerError(Throwable e) {
     return onError(e, HttpStatus.INTERNAL_SERVER_ERROR);
   }

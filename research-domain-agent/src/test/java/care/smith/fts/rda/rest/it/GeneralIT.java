@@ -55,7 +55,7 @@ public class GeneralIT extends TransferProcessControllerIT {
                 .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
                 .retrieve()
                 .onStatus(
-                    r -> r.equals(HttpStatus.resolve(500)),
+                    r -> r.equals(HttpStatus.resolve(404)),
                     (c) ->
                         c.bodyToMono(ProblemDetail.class)
                             .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))
