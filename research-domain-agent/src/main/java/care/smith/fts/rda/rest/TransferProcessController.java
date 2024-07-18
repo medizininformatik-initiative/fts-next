@@ -2,7 +2,7 @@ package care.smith.fts.rda.rest;
 
 import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.HeaderTypes.X_PROGRESS_HEADER;
+import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static care.smith.fts.util.error.ErrorResponseUtil.internalServerError;
 import static com.google.common.base.Predicates.and;
@@ -126,12 +126,12 @@ public class TransferProcessController {
 
   private static BodyBuilder responseForStatus(Status s) {
     return switch (s.phase()) {
-      case QUEUED -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS_HEADER, "Queued"));
+      case QUEUED -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS, "Queued"));
       case RUNNING ->
           ResponseEntity.accepted()
               .headers(
                   h -> {
-                    h.add(X_PROGRESS_HEADER, "Running");
+                    h.add(X_PROGRESS, "Running");
                     h.add(RETRY_AFTER, "1");
                   });
       case COMPLETED, ERROR -> ResponseEntity.ok();

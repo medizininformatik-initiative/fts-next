@@ -2,7 +2,7 @@ package care.smith.fts.rda.rest;
 
 import static care.smith.fts.rda.rest.TransferProcessController.fromPlainBundle;
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.HeaderTypes.X_PROGRESS_HEADER;
+import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static java.util.List.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
@@ -156,7 +156,7 @@ class TransferProcessControllerTest {
             ResponseEntity.accepted()
                 .headers(
                     h -> {
-                      h.add(X_PROGRESS_HEADER, "Running");
+                      h.add(X_PROGRESS, "Running");
                       h.add(RETRY_AFTER, "1");
                     })
                 .body(new Status("processId", Phase.RUNNING, 0, 0)))
