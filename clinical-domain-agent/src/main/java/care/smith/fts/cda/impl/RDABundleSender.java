@@ -85,27 +85,28 @@ final class RDABundleSender implements BundleSender {
   private static Long getRetryAfter(ClientResponse c) {
     return c.headers().header(RETRY_AFTER).stream()
         .findFirst()
-        .map(
-            s -> {
-              try {
-                return Long.parseLong(s);
-              } catch (NumberFormatException e) {
-                log.warn("Failed to parse Retry-After header: {}", s);
-                return 1L;
-              }
-            })
+        .map(RDABundleSender::parseRetryAfter)
         .orElse(1L);
+  }
+
+  private static long parseRetryAfter(String s) {
+    try {
+      return Long.parseLong(s);
+    } catch (NumberFormatException e) {
+      log.warn("Failed to parse Retry-After header: {}", s);
+      return 1L;
+    }
   }
 
   private Retry retrySpec() {
     return Retry.max(10)
         .filter(t -> t instanceof RetryAfterException)
-        .doBeforeRetryAsync(signal -> Mono.delay(calculateDelay(signal.failure())).then())
+        .doBeforeRetryAsync(signal -> Mono.delay(retryAfterDuration(signal.failure())).then())
         .onRetryExhaustedThrow(
             (spec, signal) -> new TransferProcessException("RDABundleSender retry exhausted"));
   }
 
-  private static Duration calculateDelay(Throwable failure) {
+  private static Duration retryAfterDuration(Throwable failure) {
     if (failure instanceof RetryAfterException) {
       return Duration.ofSeconds(((RetryAfterException) failure).getRetryAfter());
     } else {
