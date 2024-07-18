@@ -61,10 +61,6 @@ public abstract class BaseIT {
     return MockServerUtil.onRandomPort();
   }
 
-  private static MockServerClient rdaMockServer() throws IOException {
-    return MockServerUtil.onRandomPort();
-  }
-
   private static MockServerClient hdsMockServer() throws IOException {
     return MockServerUtil.onRandomPort();
   }

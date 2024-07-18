@@ -1,0 +1,13 @@
+deidentificator:
+  deidentifhir:
+    tca:
+      server:
+        baseUrl: <tc-agent>
+      domain: MII
+    dateShift: P14D
+    deidentifhirConfig: src/test/resources/care/smith/fts/rda/services/deidentifhir/TransportToRD.profile
+
+bundleSender:
+  fhirStore:
+    server:
+      baseUrl: <hds>
