@@ -194,6 +194,9 @@
             <goals>
               <goal>prepare-agent</goal>
             </goals>
+            <configuration>
+              <destFile>${project.build.directory}/jacoco-unit.exec</destFile>
+            </configuration>
           </execution>
 
           <execution>
@@ -201,6 +204,24 @@
             <goals>
               <goal>prepare-agent-integration</goal>
             </goals>
+          </execution>
+
+          <execution>
+            <id>merge</id>
+            <goals>
+              <goal>merge</goal>
+            </goals>
+            <phase>post-integration-test</phase>
+            <configuration>
+              <fileSets>
+                <fileSet>
+                  <directory>${project.build.directory}</directory>
+                  <includes>
+                    <include>*.exec</include>
+                  </includes>
+                </fileSet>
+              </fileSets>
+            </configuration>
           </execution>
 
           <execution>
