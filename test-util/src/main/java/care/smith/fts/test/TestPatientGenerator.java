@@ -3,6 +3,8 @@ package care.smith.fts.test;
 import care.smith.fts.test.FhirGenerator.Incrementing;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 
 public class TestPatientGenerator {
@@ -14,13 +16,22 @@ public class TestPatientGenerator {
 
   public static BundleAndIds generateNPatients(
       String idPrefix, String year, String identifierSystem, int n) throws IOException {
-    var gen =
-        FhirGenerator.patient(
-            Incrementing.withPrefix(idPrefix), () -> identifierSystem, () -> year);
+    List<String> ids = Stream.generate(Incrementing.withPrefix(idPrefix)).limit(n).toList();
+    var gen = FhirGenerator.patient(fromList(ids), () -> identifierSystem, () -> year);
     Bundle bundle = gen.generateBundle(n, n);
-    List<String> ids = gen.getReplacements().get("$PATIENT_ID");
     return new BundleAndIds(bundle, ids);
   }
 
   public record BundleAndIds(Bundle bundle, List<String> ids) {}
+
+  static <T> Supplier<T> fromList(List<T> list) {
+    return new Supplier<>() {
+      int i = 0;
+
+      @Override
+      public T get() {
+        return list.get(i++);
+      }
+    };
+  }
 }
