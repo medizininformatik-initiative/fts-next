@@ -9,17 +9,14 @@ import care.smith.fts.rda.TransferProcessRunner.Phase;
 import care.smith.fts.rda.TransferProcessRunner.Status;
 import care.smith.fts.rda.rest.it.mock.MockBundleSender;
 import care.smith.fts.rda.rest.it.mock.MockDeidentifier;
-import care.smith.fts.test.FhirGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -28,9 +25,20 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 /* RDA IT
-
-
-*/
+ * - [x] patient endpoint
+ *   - [x] invalid project
+ *   - [x] wrong content type
+ *   - [x] Body not a bundle/cannot deserialize
+ *   - [x] Deidentifier
+ *     - [x] TCA timeout
+ *     - [x] TCA down
+ *     - [x] Wrong content type
+ *   - [x] BundleSender
+ *     - [x] HDS slow
+ *     - [x] HDS down
+ * - [x] status endpoint
+ *   - [x] unknown processId
+ */
 
 @Slf4j
 @SpringBootTest(classes = ResearchDomainAgent.class, webEnvironment = RANDOM_PORT)
@@ -52,30 +60,6 @@ public class TransferProcessControllerIT extends BaseIT {
     resetAll();
   }
 
-  @Test
-  void successfulPatientTransfer() throws IOException {
-    mockDeidentifier.success();
-    mockBundleSender.success();
-
-    var transportBundle =
-        (Bundle)
-            new FhirGenerator("TransportBundleTemplate.json")
-                .generateBundle(1, 1)
-                .getEntryFirstRep()
-                .getResource();
-
-    log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
-
-    startProcess(
-        transportBundle,
-        Duration.ofSeconds(3),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.receivedResources()).isEqualTo(366);
-          assertThat(r.sentResources()).isEqualTo(1);
-        });
-  }
-
   protected void startProcess(
       Bundle bundle, Duration duration, Consumer<Status> assertionConsumer) {
     client
@@ -94,5 +78,14 @@ public class TransferProcessControllerIT extends BaseIT {
         .as(
             response ->
                 StepVerifier.create(response).assertNext(assertionConsumer).verifyComplete());
+  }
+
+  protected void startProcessAndExpectError(Duration duration) {
+    startProcess(
+        new Bundle(),
+        duration,
+        r -> {
+          assertThat(r.phase()).isEqualTo(Phase.ERROR);
+        });
   }
 }

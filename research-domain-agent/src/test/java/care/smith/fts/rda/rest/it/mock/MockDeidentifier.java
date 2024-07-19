@@ -9,26 +9,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.function.Function;
 import org.mockserver.client.MockServerClient;
-import org.mockserver.model.HttpRequest;
+import org.mockserver.model.Delay;
+import org.mockserver.model.HttpError;
+import org.mockserver.model.HttpResponse;
+import org.mockserver.model.MediaType;
 
 public class MockDeidentifier {
 
   private final ObjectMapper om;
   private final MockServerClient tca;
-  private final HttpRequest request;
 
   public MockDeidentifier(ObjectMapper om, MockServerClient tca) {
     this.om = om;
     this.tca = tca;
-    request =
-        request()
-            .withMethod("POST")
-            .withPath("/api/v2/rd/resolve-pseudonyms")
-            .withContentType(APPLICATION_JSON);
   }
 
   public void success() {
-    tca.when(request)
+    tca.when(
+            request()
+                .withMethod("POST")
+                .withPath("/api/v2/rd/resolve-pseudonyms")
+                .withContentType(APPLICATION_JSON))
         .respond(
             request -> {
               String body = request.getBodyAsString();
@@ -42,5 +43,21 @@ public class MockDeidentifier {
                   .withContentType(APPLICATION_JSON)
                   .withBody(om.writeValueAsString(sidMap));
             });
+  }
+
+  public void isDown() {
+    tca.when(request()).error(HttpError.error().withDropConnection(true));
+  }
+
+  public void hasTimeout() {
+    tca.when(request()).respond(request -> null, Delay.minutes(10));
+  }
+
+  public void returnsWrongContentType() {
+    tca.when(request().withMethod("POST").withPath("/api/v2/rd/resolve-pseudonyms"))
+        .respond(
+            HttpResponse.response()
+                .withStatusCode(200)
+                .withContentType(MediaType.PLAIN_TEXT_UTF_8));
   }
 }
