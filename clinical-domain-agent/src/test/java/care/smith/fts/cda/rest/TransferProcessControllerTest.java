@@ -63,8 +63,7 @@ class TransferProcessControllerTest {
         .expectNext(
             ResponseEntity.of(
                     ProblemDetail.forStatusAndDetail(
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Project 'non-existent' could not be found"))
+                        HttpStatus.NOT_FOUND, "Project 'non-existent' could not be found"))
                 .build())
         .verifyComplete();
   }
