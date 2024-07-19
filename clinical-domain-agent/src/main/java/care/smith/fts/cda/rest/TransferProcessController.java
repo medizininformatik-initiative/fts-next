@@ -6,6 +6,7 @@ import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessRunner.Status;
+import care.smith.fts.util.error.ErrorResponseUtil;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -58,7 +59,10 @@ public class TransferProcessController {
 
   @GetMapping("/status/{processId:[\\w-]+}")
   Mono<ResponseEntity<Status>> status(@PathVariable("processId") String processId) {
-    return processRunner.status(processId).map(s -> responseForStatus(s).body(s));
+    return processRunner
+        .status(processId)
+        .map(s -> responseForStatus(s).body(s))
+        .onErrorResume(ErrorResponseUtil::notFound);
   }
 
   private static BodyBuilder responseForStatus(Status s) {
