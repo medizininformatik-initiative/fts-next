@@ -29,10 +29,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     var transportBundle =
         (Bundle)
-            new FhirGenerator("TransportBundleTemplate.json")
-                .generateBundle(1, 1)
-                .getEntryFirstRep()
-                .getResource();
+            FhirGenerator.transportBundle().generateBundle(1, 1).getEntryFirstRep().getResource();
 
     log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
 
@@ -101,10 +98,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     var transportBundle =
         (Bundle)
-            new FhirGenerator("TransportBundleTemplate.json")
-                .generateBundle(1, 1)
-                .getEntryFirstRep()
-                .getResource();
+            FhirGenerator.transportBundle().generateBundle(1, 1).getEntryFirstRep().getResource();
 
     client
         .post()

@@ -63,9 +63,7 @@ class FhirPseudonymProviderTest {
   @Test
   void retrieveTransportIds(MockServerClient mockServer) throws IOException {
     FhirGenerator fhirGenerator =
-        new FhirGenerator("deidentification/gpas-get-or-create-response.json");
-    fhirGenerator.replaceTemplateFieldWith("$ORIGINAL", new FhirGenerator.Fixed("id1"));
-    fhirGenerator.replaceTemplateFieldWith("$PSEUDONYM", new FhirGenerator.Fixed("469680023"));
+        FhirGenerator.gpasGetOrCreateResponse(() -> "id1", () -> "469680023");
 
     mockServer
         .when(

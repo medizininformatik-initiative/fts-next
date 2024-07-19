@@ -1,5 +1,6 @@
 package care.smith.fts.tca.consent;
 
+import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
@@ -10,7 +11,6 @@ import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.test.FhirGenerator.UUID;
 import care.smith.fts.util.FhirUtils;
 import java.io.IOException;
 import java.util.List;
@@ -61,9 +61,8 @@ class FhirConsentProviderTest {
   @BeforeAll
   static void setUp(MockServerClient mockServer) throws IOException {
     address = "http://localhost:%d".formatted(mockServer.getPort());
-    gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
-    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
-    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new UUID());
+    gicsConsentGenerator =
+        FhirGenerator.gicsResponse(() -> randomUUID().toString(), () -> randomUUID().toString());
 
     jsonBody =
         json(

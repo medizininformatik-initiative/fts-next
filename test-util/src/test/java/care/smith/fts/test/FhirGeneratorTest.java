@@ -1,5 +1,6 @@
 package care.smith.fts.test;
 
+import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.util.FhirUtils;
@@ -11,11 +12,8 @@ class FhirGeneratorTest {
 
   @Test
   void serializeAndDeserializeGenerateBundle() throws IOException {
-    FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
-    gicsConsentGenerator.replaceTemplateFieldWith(
-        "$QUESTIONNAIRE_RESPONSE_ID", new FhirGenerator.UUID());
-    gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new FhirGenerator.UUID());
-
+    FhirGenerator gicsConsentGenerator =
+        FhirGenerator.gicsResponse(() -> randomUUID().toString(), () -> randomUUID().toString());
     Bundle bundle = gicsConsentGenerator.generateBundle(1, 200);
 
     assertThat(bundle).isNotNull();
