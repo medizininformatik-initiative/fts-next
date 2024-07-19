@@ -1,9 +1,10 @@
 package care.smith.fts.cda.rest.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
-import care.smith.fts.cda.BaseIT;
 import care.smith.fts.cda.ClinicalDomainAgent;
+import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessRunner.Status;
 import care.smith.fts.cda.rest.it.mock.MockBundleSender;
 import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
@@ -102,16 +103,22 @@ public class TransferProcessControllerIT extends BaseIT {
             response ->
                 StepVerifier.create(response).assertNext(assertionConsumer).verifyComplete());
   }
-}
 
-// Wrong domain ret from gics
-// {
-//  "resourceType": "OperationOutcome",
-//  "issue": [
-//    {
-//      "severity": "error",
-//      "code": "processing",
-//      "diagnostics": "No consents found for domain  'MII333'."
-//    }
-//  ]
-// }
+  protected void startProcessExpectCompletedWithSkipped(Duration duration) {
+    startProcess(
+        duration,
+        r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+          assertThat(r.bundlesSentCount()).isEqualTo(0);
+          assertThat(r.patientsSkippedCount()).isEqualTo(1);
+        });
+  }
+
+  protected void startProcessExpectError(Duration duration) {
+    startProcess(
+        duration,
+        r -> {
+          assertThat(r.phase()).isEqualTo(Phase.ERROR);
+        });
+  }
+}

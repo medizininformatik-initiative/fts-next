@@ -1,9 +1,8 @@
-package care.smith.fts.cda;
+package care.smith.fts.cda.rest.it;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.util.FileSystemUtils.deleteRecursively;
 
-import care.smith.fts.cda.rest.it.TransferProcessControllerIT;
 import care.smith.fts.test.MockServerUtil;
 import java.io.IOException;
 import java.nio.file.Files;
