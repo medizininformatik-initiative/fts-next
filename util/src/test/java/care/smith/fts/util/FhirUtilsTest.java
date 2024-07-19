@@ -39,7 +39,14 @@ class FhirUtilsTest {
   }
 
   @Test
-  public void testEntryStream() {
+  void deserializeStringToFhirResource() {
+    var bundle = new Bundle();
+    var s = fhirResourceToString(bundle);
+    assertThat(stringToFhirResource(Bundle.class, s)).matches(b -> b.equalsDeep(bundle));
+  }
+
+  @Test
+  void testEntryStream() {
     var bundle = new Bundle();
     bundle.addEntry(new BundleEntryComponent());
     bundle.addEntry(new BundleEntryComponent());

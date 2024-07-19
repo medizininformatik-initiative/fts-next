@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 
 /**
@@ -84,6 +85,16 @@ public class FhirGenerator {
         .map(FhirUtils::stringToFhirBundle)
         .collect(toBundle())
         .setTotal(totalEntries);
+  }
+
+  /**
+   * Generates the fhir resource using the template and parses it to resource
+   *
+   * @param clazz the resource type for parsing
+   * @return
+   */
+  public <T extends IBaseResource> T generateResource(Class<T> clazz) {
+    return FhirUtils.stringToFhirResource(clazz, this.generateString());
   }
 
   /**

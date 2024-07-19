@@ -27,9 +27,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockDeidentifier.success();
     mockBundleSender.success();
 
-    var transportBundle =
-        (Bundle)
-            FhirGenerator.transportBundle().generateBundle(1, 1).getEntryFirstRep().getResource();
+    var transportBundle = FhirGenerator.transportBundle().generateResource(Bundle.class);
 
     log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
 
@@ -96,9 +94,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockDeidentifier.success();
     mockBundleSender.success();
 
-    var transportBundle =
-        (Bundle)
-            FhirGenerator.transportBundle().generateBundle(1, 1).getEntryFirstRep().getResource();
+    var transportBundle = FhirGenerator.transportBundle().generateResource(Bundle.class);
 
     client
         .post()

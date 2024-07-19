@@ -34,6 +34,14 @@ public class FhirUtils {
   }
 
   /**
+   * @param string the FHIR resource as a string
+   * @return the FHIR resource
+   */
+  public static <T extends IBaseResource> T stringToFhirResource(Class<T> clazz, String string) {
+    return fctx.newJsonParser().parseResource(clazz, string);
+  }
+
+  /**
    * @param clazz the class of the resource type
    * @param inputStream the FHIR bundle as a InputStream
    * @return the FHIR bundle

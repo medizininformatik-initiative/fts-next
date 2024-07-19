@@ -35,8 +35,7 @@ public class MockFhirResolveService {
                 .withStatusCode(200)
                 .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
                 .withBody(
-                    FhirUtils.fhirResourceToString(
-                        fhirResolveGen.generateBundle(1, 1).getEntryFirstRep().getResource())));
+                    FhirUtils.fhirResourceToString(fhirResolveGen.generateResource(Bundle.class))));
   }
 
   public void isDown() {
