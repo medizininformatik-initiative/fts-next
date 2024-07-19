@@ -1,9 +1,7 @@
 package care.smith.fts.cda.rest.it;
 
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
-import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.Phase;
 import java.io.IOException;
 import java.time.Duration;
 import org.hl7.fhir.r4.model.Bundle;
@@ -29,24 +27,12 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   @Test
   void hdsDown() {
     mockBundleSender.isDown();
-    startProcess(
-        Duration.ofSeconds(1),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.bundlesSentCount()).isEqualTo(0);
-          assertThat(r.patientsSkippedCount()).isEqualTo(1);
-        });
+    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(1));
   }
 
   @Test
   void hdsTimeout() {
     mockBundleSender.timeout();
-    startProcess(
-        Duration.ofSeconds(12),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.bundlesSentCount()).isEqualTo(0);
-          assertThat(r.patientsSkippedCount()).isEqualTo(1);
-        });
+    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(12));
   }
 }

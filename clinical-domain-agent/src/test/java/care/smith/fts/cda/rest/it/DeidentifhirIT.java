@@ -1,9 +1,7 @@
 package care.smith.fts.cda.rest.it;
 
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
-import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.Phase;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.time.Duration;
@@ -29,25 +27,13 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
   @Test
   void tcaDown() throws JsonProcessingException {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
-    startProcess(
-        Duration.ofSeconds(3),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.bundlesSentCount()).isEqualTo(0);
-          assertThat(r.patientsSkippedCount()).isEqualTo(1);
-        });
+    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(3));
   }
 
   @Test
   void tcaTimeout() throws JsonProcessingException {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
-    startProcess(
-        Duration.ofSeconds(11),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.bundlesSentCount()).isEqualTo(0);
-          assertThat(r.patientsSkippedCount()).isEqualTo(1);
-        });
+    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(11));
   }
 
   @Test
@@ -55,12 +41,6 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
     mockDataSelector
         .whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM)
         .unknownDomain(om, patientId, DEFAULT_IDENTIFIER_SYSTEM);
-    startProcess(
-        Duration.ofSeconds(3),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.bundlesSentCount()).isEqualTo(0);
-          assertThat(r.patientsSkippedCount()).isEqualTo(1);
-        });
+    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(3));
   }
 }
