@@ -12,6 +12,7 @@ import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.test.FhirGenerator;
+import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.FhirUtils;
 import java.io.IOException;
 import java.util.List;
@@ -64,7 +65,7 @@ class FhirConsentProviderTest {
   static void setUp(MockServerClient mockServer) throws IOException {
     address = "http://localhost:%d".formatted(mockServer.getPort());
     gicsConsentGenerator =
-        FhirGenerator.gicsResponse(() -> randomUUID().toString(), () -> randomUUID().toString());
+        FhirGenerators.gicsResponse(() -> randomUUID().toString(), () -> randomUUID().toString());
 
     jsonBody =
         json(

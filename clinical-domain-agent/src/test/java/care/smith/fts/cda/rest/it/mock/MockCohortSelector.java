@@ -5,6 +5,7 @@ import static java.util.UUID.randomUUID;
 
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerator.Incrementing;
+import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.MediaTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,7 +32,7 @@ public class MockCohortSelector {
   }
 
   private FhirGenerator<Bundle> validConsent(Supplier<String> patientId) throws IOException {
-    return FhirGenerator.gicsResponse(() -> randomUUID().toString(), patientId);
+    return FhirGenerators.gicsResponse(() -> randomUUID().toString(), patientId);
   }
 
   public void successOnePatient(String patientId) throws IOException {

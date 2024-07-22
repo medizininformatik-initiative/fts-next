@@ -15,7 +15,7 @@ class FhirGeneratorTest {
   @Test
   void serializeAndDeserializeGenerateBundle() throws IOException {
     var gicsConsentGenerator =
-        FhirGenerator.gicsResponse(() -> randomUUID().toString(), () -> randomUUID().toString());
+        FhirGenerators.gicsResponse(() -> randomUUID().toString(), () -> randomUUID().toString());
     Bundle bundle = Stream.of(gicsConsentGenerator.generateResource()).collect(toBundle());
 
     assertThat(bundle).isNotNull();

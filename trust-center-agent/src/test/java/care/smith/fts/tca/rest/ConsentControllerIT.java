@@ -11,7 +11,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
-import care.smith.fts.test.FhirGenerator;
+import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.MediaTypes;
 import java.io.IOException;
 import java.util.Map;
@@ -39,7 +39,7 @@ class ConsentControllerIT extends BaseIT {
   @Test
   void successfulRequest() throws IOException {
     var consentGenerator =
-        FhirGenerator.gicsResponse(() -> randomUUID().toString(), () -> "FTS001");
+        FhirGenerators.gicsResponse(() -> randomUUID().toString(), () -> "FTS001");
     gics.when(
             request()
                 .withMethod("POST")

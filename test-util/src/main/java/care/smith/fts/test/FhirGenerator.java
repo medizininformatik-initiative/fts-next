@@ -1,17 +1,17 @@
 package care.smith.fts.test;
 
+import static java.util.Objects.requireNonNull;
+
 import care.smith.fts.util.FhirUtils;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Resource;
 
 /**
@@ -22,53 +22,21 @@ import org.hl7.fhir.r4.model.Resource;
 public class FhirGenerator<T extends Resource> {
   private final Class<T> resourceType;
   private final CharBuffer templateBuffer;
-  private final Map<String, Supplier<String>> inputReplacements = new HashMap<>();
+  private final Map<String, Supplier<String>> inputReplacements;
 
-  private FhirGenerator(Class<T> resourceType, String templateFile) throws IOException {
-    templateBuffer = TemplateLoader.getCharBuffer(templateFile, this.getClass().getClassLoader());
-    this.resourceType = resourceType;
-  }
-
-  public static FhirGenerator<Bundle> patient(
-      Supplier<String> patientId, Supplier<String> identifierSystem, Supplier<String> year)
+  FhirGenerator(
+      Class<T> resourceType, String templateFile, Map<String, Supplier<String>> inputReplacements)
       throws IOException {
-    var generator = new FhirGenerator<>(Bundle.class, "PatientTemplate.json");
-    generator.replaceTemplateFieldWith("$PATIENT_ID", patientId);
-    generator.replaceTemplateFieldWith("$IDENTIFIER_SYSTEM", identifierSystem);
-    generator.replaceTemplateFieldWith("$YEAR", year);
-    return generator;
+    this.templateBuffer = readTemplate(templateFile);
+    this.resourceType = resourceType;
+    this.inputReplacements = inputReplacements;
   }
 
-  public static FhirGenerator<Bundle> gicsResponse(
-      Supplier<String> questionnaireResponseId, Supplier<String> patientId) throws IOException {
-    var generator = new FhirGenerator<>(Bundle.class, "GicsResponseTemplate.json");
-    generator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", questionnaireResponseId);
-    generator.replaceTemplateFieldWith("$PATIENT_ID", patientId);
-    return generator;
-  }
-
-  public static FhirGenerator<Bundle> resolveSearchResponse(
-      Supplier<String> patientId, Supplier<String> hdsId) throws IOException {
-    var generator = new FhirGenerator<>(Bundle.class, "FhirResolveSearchResponseTemplate.json");
-    generator.replaceTemplateFieldWith("$PATIENT_ID", patientId);
-    generator.replaceTemplateFieldWith("$HDS_ID", hdsId);
-    return generator;
-  }
-
-  public static FhirGenerator<Bundle> transportBundle() throws IOException {
-    return new FhirGenerator<>(Bundle.class, "TransportBundleTemplate.json");
-  }
-
-  public static FhirGenerator<Parameters> gpasGetOrCreateResponse(
-      Supplier<String> original, Supplier<String> pseudonym) throws IOException {
-    var generator = new FhirGenerator<>(Parameters.class, "gpas-get-or-create-response.json");
-    generator.replaceTemplateFieldWith("$ORIGINAL", original);
-    generator.replaceTemplateFieldWith("$PSEUDONYM", pseudonym);
-    return generator;
-  }
-
-  public void replaceTemplateFieldWith(String field, Supplier<String> replaceWith) {
-    inputReplacements.put(field, replaceWith);
+  private static CharBuffer readTemplate(String templateFile) throws IOException {
+    try (InputStream g = FhirGenerator.class.getResourceAsStream(templateFile)) {
+      requireNonNull(g, "Cannot find template '" + templateFile + "'");
+      return StandardCharsets.UTF_8.decode(ByteBuffer.wrap(g.readAllBytes()));
+    }
   }
 
   public Stream<T> generateResources() {
@@ -95,10 +63,6 @@ public class FhirGenerator<T extends Resource> {
       s = s.replace(m.getKey(), m.getValue().get());
     }
     return s;
-  }
-
-  public InputStream generateInputStream() {
-    return new ByteArrayInputStream(generateString().getBytes());
   }
 
   public static class Incrementing implements Supplier<String> {

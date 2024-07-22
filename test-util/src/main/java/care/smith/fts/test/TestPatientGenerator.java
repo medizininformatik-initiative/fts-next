@@ -1,6 +1,6 @@
 package care.smith.fts.test;
 
-import static care.smith.fts.test.FhirGenerator.patient;
+import static care.smith.fts.test.FhirGenerators.patient;
 import static care.smith.fts.util.FhirUtils.toBundle;
 
 import care.smith.fts.test.FhirGenerator.Incrementing;

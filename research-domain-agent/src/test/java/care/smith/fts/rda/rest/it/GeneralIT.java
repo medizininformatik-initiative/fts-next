@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.rda.TransferProcessRunner.Phase;
 import care.smith.fts.rda.TransferProcessRunner.Status;
-import care.smith.fts.test.FhirGenerator;
+import care.smith.fts.test.FhirGenerators;
 import java.io.IOException;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockDeidentifier.success();
     mockBundleSender.success();
 
-    var transportBundle = FhirGenerator.transportBundle().generateResource();
+    var transportBundle = FhirGenerators.transportBundle().generateResource();
 
     log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
 
@@ -93,7 +93,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockDeidentifier.success();
     mockBundleSender.success();
 
-    var transportBundle = FhirGenerator.transportBundle().generateResource();
+    var transportBundle = FhirGenerators.transportBundle().generateResource();
 
     client
         .post()

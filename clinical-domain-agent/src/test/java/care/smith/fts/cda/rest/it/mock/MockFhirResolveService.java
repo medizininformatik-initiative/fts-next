@@ -6,7 +6,7 @@ import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static java.util.UUID.randomUUID;
 import static org.mockserver.model.HttpResponse.response;
 
-import care.smith.fts.test.FhirGenerator;
+import care.smith.fts.test.FhirGenerators;
 import java.io.IOException;
 import lombok.Builder;
 import org.hl7.fhir.r4.model.Bundle;
@@ -29,7 +29,7 @@ public class MockFhirResolveService {
 
   public void success(String patientId) throws IOException {
     var fhirResolveGen =
-        FhirGenerator.resolveSearchResponse(() -> patientId, () -> randomUUID().toString());
+        FhirGenerators.resolveSearchResponse(() -> patientId, () -> randomUUID().toString());
     hds.when(mockRequestSpec)
         .respond(
             response()
@@ -57,7 +57,7 @@ public class MockFhirResolveService {
 
   public void moreThanOneResult() throws IOException {
     var fhirResolveGen =
-        FhirGenerator.resolveSearchResponse(() -> "id1", () -> randomUUID().toString());
+        FhirGenerators.resolveSearchResponse(() -> "id1", () -> randomUUID().toString());
 
     hds.when(mockRequestSpec)
         .respond(
