@@ -1,12 +1,12 @@
 package care.smith.fts.cda.rest.it.mock;
 
+import static care.smith.fts.test.FhirGenerators.randomUuid;
+import static care.smith.fts.util.FhirUtils.fhirResourceToString;
+import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static org.mockserver.model.HttpResponse.response;
 
-import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.test.FhirGenerator.Fixed;
-import care.smith.fts.test.FhirGenerator.UUID;
-import care.smith.fts.util.FhirUtils;
+import care.smith.fts.test.FhirGenerators;
 import java.io.IOException;
 import lombok.Builder;
 import org.hl7.fhir.r4.model.Bundle;
@@ -28,18 +28,13 @@ public class MockFhirResolveService {
   }
 
   public void success(String patientId) throws IOException {
-    var fhirResolveGen = new FhirGenerator("FhirResolveSearchRequestTemplate.json");
-    fhirResolveGen.replaceTemplateFieldWith("$PATIENT_ID", new Fixed(patientId));
-    fhirResolveGen.replaceTemplateFieldWith("$HDS_ID", new UUID());
-
+    var fhirResolveGen = FhirGenerators.resolveSearchResponse(() -> patientId, randomUuid());
     hds.when(mockRequestSpec)
         .respond(
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
-                .withBody(
-                    FhirUtils.fhirResourceToString(
-                        fhirResolveGen.generateBundle(1, 1).getEntryFirstRep().getResource())));
+                .withBody(fhirResourceToString(fhirResolveGen.generateResource())));
   }
 
   public void isDown() {
@@ -56,20 +51,20 @@ public class MockFhirResolveService {
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.PLAIN_TEXT_UTF_8)
-                .withBody(FhirUtils.fhirResourceToString(new Bundle())));
+                .withBody(fhirResourceToString(new Bundle())));
   }
 
   public void moreThanOneResult() throws IOException {
-    var fhirResolveGen = new FhirGenerator("FhirResolveSearchRequestTemplate.json");
-    fhirResolveGen.replaceTemplateFieldWith("$PATIENT_ID", new Fixed("id1"));
-    fhirResolveGen.replaceTemplateFieldWith("$HDS_ID", new UUID());
+    var fhirResolveGen = FhirGenerators.resolveSearchResponse(() -> "id1", randomUuid());
 
     hds.when(mockRequestSpec)
         .respond(
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
-                .withBody(FhirUtils.fhirResourceToString(fhirResolveGen.generateBundle(2, 2))));
+                .withBody(
+                    fhirResourceToString(
+                        fhirResolveGen.generateResources().limit(2).collect(toBundle()))));
   }
 
   public void emptyBundle() {
@@ -78,6 +73,6 @@ public class MockFhirResolveService {
             response()
                 .withStatusCode(200)
                 .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
-                .withBody(FhirUtils.fhirResourceToString(new Bundle())));
+                .withBody(fhirResourceToString(new Bundle())));
   }
 }

@@ -15,17 +15,17 @@ import org.mockserver.model.MediaType;
  * This class is mainly used for loading test resources from the underlying package (specifically
  * from other test packages) and may therefor be empty.
  */
-public class MockServerUtil {
-  public static HTTPClientConfig clientConfig(MockServerClient server) {
+public interface MockServerUtil {
+  static HTTPClientConfig clientConfig(MockServerClient server) {
     var address = "http://localhost:%d".formatted(server.getPort());
     return new HTTPClientConfig(address, NONE);
   }
 
-  public static InputStream getResourceAsStream(String resourceName) {
+  static InputStream getResourceAsStream(String resourceName) {
     return MockServerUtil.class.getResourceAsStream(resourceName);
   }
 
-  public static MockServerClient onRandomPort() {
+  static MockServerClient onRandomPort() {
     return startClientAndServer(findFreePort());
   }
 

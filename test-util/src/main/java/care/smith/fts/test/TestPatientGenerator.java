@@ -1,31 +1,42 @@
 package care.smith.fts.test;
 
-import care.smith.fts.test.FhirGenerator.Fixed;
-import care.smith.fts.test.FhirGenerator.Incrementing;
+import static care.smith.fts.test.FhirGenerators.patient;
+import static care.smith.fts.test.FhirGenerators.withPrefix;
+import static care.smith.fts.util.FhirUtils.toBundle;
+import static java.util.stream.Stream.generate;
+
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 
 public class TestPatientGenerator {
   public static Bundle generateOnePatient(String id, String year, String identifierSystem)
       throws IOException {
-    FhirGenerator fhirGenerator = new FhirGenerator("PatientTemplate.json");
-    fhirGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Fixed(id));
-    fhirGenerator.replaceTemplateFieldWith("$IDENTIFIER_SYSTEM", new Fixed(identifierSystem));
-    fhirGenerator.replaceTemplateFieldWith("$YEAR", new Fixed(year));
-    return fhirGenerator.generateBundle(1, 100);
+    return Stream.of(patient(() -> id, () -> identifierSystem, () -> year).generateResource())
+        .collect(toBundle())
+        .setTotal(1);
   }
 
   public static BundleAndIds generateNPatients(
-      String id, String year, String identifierSystem, int n) throws IOException {
-    FhirGenerator fhirGenerator = new FhirGenerator("PatientTemplate.json");
-    fhirGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Incrementing(id));
-    fhirGenerator.replaceTemplateFieldWith("$IDENTIFIER_SYSTEM", new Fixed(identifierSystem));
-    fhirGenerator.replaceTemplateFieldWith("$YEAR", new Fixed(year));
-    Bundle bundle = fhirGenerator.generateBundle(n, n);
-    List<String> ids = fhirGenerator.getReplacements().get("$PATIENT_ID");
+      String idPrefix, String year, String identifierSystem, int n) throws IOException {
+    List<String> ids = generate(withPrefix(idPrefix)).limit(n).toList();
+    var gen = patient(fromList(ids), () -> identifierSystem, () -> year);
+    Bundle bundle = gen.generateResources().limit(n).collect(toBundle());
     return new BundleAndIds(bundle, ids);
   }
 
   public record BundleAndIds(Bundle bundle, List<String> ids) {}
+
+  static <T> Supplier<T> fromList(List<T> list) {
+    return new Supplier<>() {
+      int i = 0;
+
+      @Override
+      public T get() {
+        return list.get(i++);
+      }
+    };
+  }
 }

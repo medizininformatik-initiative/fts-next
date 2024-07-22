@@ -10,9 +10,9 @@ import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 
 /** TransportID to Pseudonym */
-public class DeidentifhirUtil {
+public interface DeidentifhirUtil {
 
-  public static Registry generateRegistry(Map<String, String> transportIdToPseudonym) {
+  static Registry generateRegistry(Map<String, String> transportIdToPseudonym) {
     var keyCreator = NamespacingReplacementProvider.withoutNamespacing();
     var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIdToPseudonym);
     Registry registry = new Registry();
@@ -39,7 +39,7 @@ public class DeidentifhirUtil {
    * Replace all IDs contained in the provided bundle with the replacement stored in the provided
    * pseudonymMap.
    */
-  public static Bundle replaceIDs(Config config, Registry registry, Bundle bundle) {
+  static Bundle replaceIDs(Config config, Registry registry, Bundle bundle) {
     var deidentifhir = Deidentifhir.apply(config, registry);
     return (Bundle) deidentifhir.deidentify(bundle);
   }

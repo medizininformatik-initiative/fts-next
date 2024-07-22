@@ -1,14 +1,17 @@
 package care.smith.fts.cda.rest.it.mock;
 
+import static care.smith.fts.test.FhirGenerators.withPrefix;
+import static care.smith.fts.util.FhirUtils.toBundle;
+
 import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.test.FhirGenerator.Fixed;
-import care.smith.fts.test.FhirGenerator.Incrementing;
-import care.smith.fts.test.FhirGenerator.UUID;
+import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.MediaTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
@@ -27,23 +30,17 @@ public class MockCohortSelector {
     this.tca = tca;
   }
 
-  private Bundle validConsent(String patientId, int totalEntries, int pageSize) throws IOException {
-    FhirGenerator gicsConsentGenerator = new FhirGenerator("GicsResponseTemplate.json");
-    gicsConsentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
-    if (totalEntries > 1) {
-      gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Incrementing(patientId));
-    } else {
-      gicsConsentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Fixed(patientId));
-    }
-    return gicsConsentGenerator.generateBundle(totalEntries, pageSize);
+  private FhirGenerator<Bundle> validConsent(Supplier<String> patientId) throws IOException {
+    return FhirGenerators.gicsResponse(patientId);
   }
 
   public void successOnePatient(String patientId) throws IOException {
     successNPatients(patientId, 1);
   }
 
-  public void successNPatients(String patientId, int n) throws IOException {
-    var consent = validConsent(patientId, n, n);
+  public void successNPatients(String idPrefix, int n) throws IOException {
+    var consent =
+        validConsent(withPrefix(idPrefix)).generateResources().limit(n).collect(toBundle());
     tca.when(HttpRequest.request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(
             HttpResponse.response()
@@ -62,7 +59,7 @@ public class MockCohortSelector {
   }
 
   public void wrongContentType() throws IOException {
-    var consent = validConsent("id1", 1, 1);
+    var consent = Stream.of(validConsent(() -> "id1").generateResource()).collect(toBundle());
     tca.when(HttpRequest.request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(
             HttpResponse.response()

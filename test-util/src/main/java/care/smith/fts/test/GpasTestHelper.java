@@ -9,11 +9,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class GpasTestHelper {
+public interface GpasTestHelper {
 
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  ObjectMapper objectMapper = new ObjectMapper();
 
-  public static String pseudonymizeAllowCreate(String domain, Map<String, String> pseudonyms)
+  static String pseudonymizeAllowCreate(String domain, Map<String, String> pseudonyms)
       throws JsonProcessingException {
     var parameters = pseudonyms.entrySet().stream().map(e -> forPseudonym(domain, e)).toList();
     var response = ofEntries(entry("resourceType", "Parameters"), entry("parameter", parameters));

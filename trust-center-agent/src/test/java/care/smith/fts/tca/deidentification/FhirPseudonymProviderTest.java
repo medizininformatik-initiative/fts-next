@@ -10,7 +10,7 @@ import static org.mockserver.model.JsonBody.json;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
-import care.smith.fts.test.FhirGenerator;
+import care.smith.fts.test.FhirGenerators;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
@@ -62,10 +62,7 @@ class FhirPseudonymProviderTest {
 
   @Test
   void retrieveTransportIds(MockServerClient mockServer) throws IOException {
-    FhirGenerator fhirGenerator =
-        new FhirGenerator("deidentification/gpas-get-or-create-response.json");
-    fhirGenerator.replaceTemplateFieldWith("$ORIGINAL", new FhirGenerator.Fixed("id1"));
-    fhirGenerator.replaceTemplateFieldWith("$PSEUDONYM", new FhirGenerator.Fixed("469680023"));
+    var fhirGenerator = FhirGenerators.gpasGetOrCreateResponse(() -> "id1", () -> "469680023");
 
     mockServer
         .when(
@@ -82,8 +79,7 @@ class FhirPseudonymProviderTest {
         .respond(
             response()
                 .withBody(
-                    new String(fhirGenerator.generateInputStream().readAllBytes()),
-                    MediaType.create("application", "fhir+json")));
+                    fhirGenerator.generateString(), MediaType.create("application", "fhir+json")));
 
     given(jedis.set(anyString(), anyString(), any(SetParams.class))).willReturn("OK");
     // In retrieveTransportIds(), the first jedis.get() checks whether the ID exists

@@ -1,5 +1,6 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
@@ -10,9 +11,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
-import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.test.FhirGenerator.Fixed;
-import care.smith.fts.test.FhirGenerator.UUID;
+import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.MediaTypes;
 import java.io.IOException;
 import java.util.Map;
@@ -39,9 +38,7 @@ class ConsentControllerIT extends BaseIT {
 
   @Test
   void successfulRequest() throws IOException {
-    var consentGenerator = new FhirGenerator("GicsResponseTemplate.json");
-    consentGenerator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", new UUID());
-    consentGenerator.replaceTemplateFieldWith("$PATIENT_ID", new Fixed("FTS001"));
+    var consentGenerator = FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001");
     gics.when(
             request()
                 .withMethod("POST")

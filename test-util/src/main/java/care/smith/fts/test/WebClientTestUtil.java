@@ -9,13 +9,13 @@ import org.springframework.http.*;
 import org.springframework.web.reactive.function.client.*;
 import reactor.core.publisher.Mono;
 
-public class WebClientTestUtil {
-  public static MockExchangeFunction matchRequest(HttpMethod method) {
+public interface WebClientTestUtil {
+  static MockExchangeFunction matchRequest(HttpMethod method) {
     return new MockExchangeFunction(
         method, ClientResponse.create(OK).build(), new IllegalArgumentException(""));
   }
 
-  public static class MockExchangeFunction implements ExchangeFunction {
+  class MockExchangeFunction implements ExchangeFunction {
     private final HttpMethod method;
     private final ClientResponse resp;
     private final Throwable err;
@@ -45,11 +45,11 @@ public class WebClientTestUtil {
     }
   }
 
-  public static MockClientResponseBuilder mockResponse(HttpStatus status) {
+  static MockClientResponseBuilder mockResponse(HttpStatus status) {
     return new MockClientResponseBuilder(status);
   }
 
-  public static class MockClientResponseBuilder {
+  class MockClientResponseBuilder {
     private final ClientResponse mock;
 
     public MockClientResponseBuilder(HttpStatus status) {
@@ -66,7 +66,7 @@ public class WebClientTestUtil {
     }
   }
 
-  public static ExchangeFunction requestsInOrder(MockExchangeFunction... mockExchangeFunction) {
+  static ExchangeFunction requestsInOrder(MockExchangeFunction... mockExchangeFunction) {
     return new ExchangeFunction() {
       private int i = 0;
 

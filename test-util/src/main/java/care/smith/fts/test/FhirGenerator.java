@@ -1,60 +1,55 @@
 package care.smith.fts.test;
 
-import static care.smith.fts.util.FhirUtils.toBundle;
-import static java.lang.Math.min;
+import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.util.FhirUtils;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Resource;
 
 /**
  * The FhirGenerator reads a template file from disk and replaces given word e.g. $PATIENT_ID
  * occurrences with a given Replacement e.g. an UUID
  */
 @Slf4j
-@Getter
-public class FhirGenerator {
+public class FhirGenerator<T extends Resource> {
+  private final Class<T> resourceType;
   private final CharBuffer templateBuffer;
-  private final Map<String, Replacement> inputReplacements = new HashMap<>();
+  private final Map<String, Supplier<String>> inputReplacements;
 
-  // This Map holds the replacements of the last run
-  private final Map<String, List<String>> replacements = new HashMap<>();
-
-  public FhirGenerator(String templateFile) throws IOException {
-    templateBuffer = TemplateLoader.getCharBuffer(templateFile, this.getClass().getClassLoader());
+  FhirGenerator(
+      Class<T> resourceType, String templateFile, Map<String, Supplier<String>> inputReplacements)
+      throws IOException {
+    this.templateBuffer = readTemplate(templateFile);
+    this.resourceType = resourceType;
+    this.inputReplacements = inputReplacements;
   }
 
-  public void replaceTemplateFieldWith(String field, Replacement replaceWith) {
-    inputReplacements.put(field, replaceWith);
+  private static CharBuffer readTemplate(String templateFile) throws IOException {
+    try (InputStream g = FhirGenerator.class.getResourceAsStream(templateFile)) {
+      requireNonNull(g, "Cannot find template '" + templateFile + "'");
+      return StandardCharsets.UTF_8.decode(ByteBuffer.wrap(g.readAllBytes()));
+    }
+  }
+
+  public Stream<T> generateResources() {
+    return Stream.generate(this::generateResource);
   }
 
   /**
-   * If the template file is a valid JSON of a Fhir resource then generateBundle creates a
-   * Collection Bundle with multiple resource.
+   * Generates the fhir resource using the template and parses it to resource
    *
-   * @param totalEntries the total number of entries in the bundle
-   * @param pageSize the number of entries in this bundle page
    * @return
    */
-  public Bundle generateBundle(int totalEntries, int pageSize) {
-    replacements.clear();
-    return Stream.generate(this::generateString)
-        .limit(min(pageSize, totalEntries))
-        .map(FhirUtils::stringToFhirBundle)
-        .collect(toBundle())
-        .setTotal(totalEntries);
+  public T generateResource() {
+    return FhirUtils.stringToFhirResource(resourceType, this.generateString());
   }
 
   /**
@@ -64,86 +59,9 @@ public class FhirGenerator {
    */
   public String generateString() {
     String s = templateBuffer.toString();
-    for (Map.Entry<String, Replacement> m : inputReplacements.entrySet()) {
-      var replacement = m.getValue().apply();
-      addToReplacementMap(m, replacement);
-      s = s.replace(m.getKey(), replacement);
+    for (Map.Entry<String, Supplier<String>> m : inputReplacements.entrySet()) {
+      s = s.replace(m.getKey(), m.getValue().get());
     }
     return s;
-  }
-
-  private void addToReplacementMap(Entry<String, Replacement> m, String replacement) {
-    var n = replacements.getOrDefault(m.getKey(), new ArrayList<>());
-    n.add(replacement);
-    replacements.put(m.getKey(), n);
-  }
-
-  public InputStream generateInputStream() {
-    return new ByteArrayInputStream(generateString().getBytes());
-  }
-
-  public interface Replacement {
-    String apply();
-  }
-
-  public static class UUID implements Replacement {
-    @Override
-    public String apply() {
-      return java.util.UUID.randomUUID().toString();
-    }
-  }
-
-  public static class Fixed implements Replacement {
-    private final String value;
-
-    public Fixed(String value) {
-      this.value = value;
-    }
-
-    @Override
-    public String apply() {
-      return value;
-    }
-  }
-
-  public static class OneOfList implements Replacement {
-    private final List<String> values;
-    private final Random random = new Random();
-
-    public OneOfList(List<String> values) {
-      this.values = values;
-    }
-
-    public OneOfList(List<String> values, long seed) {
-      this.values = values;
-      random.setSeed(seed);
-    }
-
-    @Override
-    public String apply() {
-      int nextInt = random.nextInt(values.size());
-      return values.get(nextInt);
-    }
-  }
-
-  public static class Incrementing implements Replacement {
-    private final String prefix;
-    private long index;
-
-    public Incrementing(String prefix, long index) {
-      this.prefix = prefix;
-      this.index = index;
-    }
-
-    public Incrementing(String prefix) {
-      this(prefix, 0);
-    }
-
-    @Override
-    public String apply() {
-      String s = prefix + index;
-      index += 1;
-      return s;
-    }
   }
 }
