@@ -109,12 +109,6 @@ class FhirPseudonymProviderTest {
         .verifyComplete();
   }
 
-  @Test
-  void deleteTransportIds() {
-    given(jedis.del(new String[] {"tid:id1"})).willReturn(1L);
-    create(pseudonymProvider.deleteTransportIds(Set.of("id1"))).expectNext(1L).verifyComplete();
-  }
-
   @AfterEach
   void tearDown(MockServerClient mockServer) {
     mockServer.reset();

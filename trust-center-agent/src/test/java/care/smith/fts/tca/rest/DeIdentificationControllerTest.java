@@ -10,7 +10,6 @@ import care.smith.fts.util.tca.PseudonymizeRequest;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -139,25 +138,5 @@ class DeIdentificationControllerTest {
         .exchange()
         .expectStatus()
         .is5xxServerError();
-  }
-
-  @Disabled
-  @Test
-  void deleteTransportIds() {
-    var ids = Set.of("tid1", "tid2");
-    given(pseudonymProvider.deleteTransportIds(ids)).willReturn(Mono.just(2L));
-
-    var expectedResponse = "2";
-    webClient
-        .post()
-        .uri("/api/v2/rd/delete-transport-ids")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(ids))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .json(expectedResponse);
   }
 }

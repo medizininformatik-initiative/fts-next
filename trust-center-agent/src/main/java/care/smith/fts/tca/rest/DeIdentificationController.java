@@ -80,14 +80,4 @@ public class DeIdentificationController {
             .flatMap(pseudonymProvider::fetchPseudonymizedIds);
     return pseudonymizedIDs.map(ResponseEntity::ok);
   }
-
-  @PostMapping(
-      value = "/rd/delete-transport-ids",
-      consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<Long>> deleteTransportIds(
-      @RequestBody @NotNull Set<@Pattern(regexp = "^[\\w-]+$") String> ids) {
-    var response = Mono.just(ids).flatMap(pseudonymProvider::deleteTransportIds);
-    return response.map(ResponseEntity::ok);
-  }
 }

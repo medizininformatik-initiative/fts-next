@@ -147,12 +147,4 @@ public class FhirPseudonymProvider implements PseudonymProvider {
       return Mono.empty();
     }
   }
-
-  @Override
-  public Mono<Long> deleteTransportIds(Set<String> ids) {
-    var pids = ids.stream().map(id -> "tid:" + id);
-    try (Jedis jedis = jedisPool.getResource()) {
-      return Mono.just(jedis.del(pids.toArray(String[]::new)));
-    }
-  }
 }
