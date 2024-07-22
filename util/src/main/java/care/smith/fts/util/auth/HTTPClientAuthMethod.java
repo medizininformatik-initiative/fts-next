@@ -1,6 +1,5 @@
 package care.smith.fts.util.auth;
 
-import lombok.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
 public interface HTTPClientAuthMethod {

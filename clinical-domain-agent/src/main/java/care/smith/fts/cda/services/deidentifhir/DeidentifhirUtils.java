@@ -14,8 +14,8 @@ import scala.Function4;
 import scala.collection.immutable.Map;
 import scala.collection.immutable.Seq;
 
-public class DeidentifhirUtils {
-  public static Registry generateRegistry(
+public interface DeidentifhirUtils {
+  static Registry generateRegistry(
       String patientId, java.util.Map<String, String> transportIds, Duration dateShiftValue) {
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
     var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIds);
@@ -51,8 +51,7 @@ public class DeidentifhirUtils {
     return registry;
   }
 
-  public static Bundle deidentify(
-      Config config, Registry registry, Bundle bundle, String patientId) {
+  static Bundle deidentify(Config config, Registry registry, Bundle bundle, String patientId) {
     Map<String, String> staticContext = new Map.Map1<>(Handlers.patientIdentifierKey(), patientId);
     Deidentifhir deidentifhir = Deidentifhir.apply(config, registry);
     return (Bundle) deidentifhir.deidentify(bundle, staticContext);

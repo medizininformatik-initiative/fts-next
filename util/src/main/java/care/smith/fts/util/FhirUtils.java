@@ -8,20 +8,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
-import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 
-@Slf4j
-public class FhirUtils {
-  public static final FhirContext fctx = FhirContext.forR4();
+public interface FhirUtils {
+  FhirContext fctx = FhirContext.forR4();
 
   /**
    * @param resource the FHIR resource
    * @return bundle as JSON string - not pretty printed
    */
-  public static String fhirResourceToString(Resource resource) {
+  static String fhirResourceToString(Resource resource) {
     return fctx.newJsonParser().encodeResourceToString(resource);
   }
 
@@ -29,7 +27,7 @@ public class FhirUtils {
    * @param bundleString the FHIR bundle as a string
    * @return the FHIR bundle
    */
-  public static Bundle stringToFhirBundle(String bundleString) {
+  static Bundle stringToFhirBundle(String bundleString) {
     return fctx.newJsonParser().parseResource(Bundle.class, bundleString);
   }
 
@@ -38,7 +36,7 @@ public class FhirUtils {
    * @param string the FHIR resource as a string
    * @return the FHIR resource
    */
-  public static <T extends Resource> T stringToFhirResource(Class<T> clazz, String string) {
+  static <T extends Resource> T stringToFhirResource(Class<T> clazz, String string) {
     return fctx.newJsonParser().parseResource(clazz, string);
   }
 
@@ -47,24 +45,24 @@ public class FhirUtils {
    * @param inputStream the FHIR bundle as a InputStream
    * @return the FHIR bundle
    */
-  public static <T extends IBaseResource> T inputStreamToFhirResource(
+  static <T extends IBaseResource> T inputStreamToFhirResource(
       Class<T> clazz, InputStream inputStream) {
     return fctx.newJsonParser().parseResource(clazz, inputStream);
   }
 
-  public static Stream<Bundle.BundleEntryComponent> entryStream(Bundle bundle) {
+  static Stream<Bundle.BundleEntryComponent> entryStream(Bundle bundle) {
     return bundle.getEntry().stream();
   }
 
-  public static Stream<Resource> resourceStream(Bundle bundle) {
+  static Stream<Resource> resourceStream(Bundle bundle) {
     return entryStream(bundle).map(Bundle.BundleEntryComponent::getResource);
   }
 
-  public static <T> Stream<T> typedResourceStream(Bundle bundle, Class<T> type) {
+  static <T> Stream<T> typedResourceStream(Bundle bundle, Class<T> type) {
     return resourceStream(bundle).filter(type::isInstance).map(type::cast);
   }
 
-  public static Collector<? super Resource, List<Resource>, Bundle> toBundle() {
+  static Collector<? super Resource, List<Resource>, Bundle> toBundle() {
     return Collector.of(
         ArrayList::new,
         List::add,

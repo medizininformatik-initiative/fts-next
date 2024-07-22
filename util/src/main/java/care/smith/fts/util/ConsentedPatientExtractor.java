@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
 
 /** A utility class for extracting consented patients from FHIR bundles. */
-public class ConsentedPatientExtractor {
+public interface ConsentedPatientExtractor {
 
   /**
    * Extracts consented patients from the given outer bundle. It is assumed that the outer bundle is
@@ -23,7 +23,7 @@ public class ConsentedPatientExtractor {
    * @param policiesToCheck the set of policies to check for consent
    * @return a stream of consented patients
    */
-  public static Stream<ConsentedPatient> extractConsentedPatients(
+  static Stream<ConsentedPatient> extractConsentedPatients(
       String patientIdentifierSystem,
       String policySystem,
       Bundle outerBundle,
@@ -63,7 +63,7 @@ public class ConsentedPatientExtractor {
    * @return an {@link Optional} containing a {@link ConsentedPatient}, if all policiesToCheck are
    *     consented to
    */
-  public static Optional<ConsentedPatient> extractConsentedPatient(
+  static Optional<ConsentedPatient> extractConsentedPatient(
       String patientIdentifierSystem,
       String policySystem,
       Bundle bundle,
@@ -88,8 +88,7 @@ public class ConsentedPatientExtractor {
    * @param policiesToCheck the set of policies to check for consent
    * @return true if all policies are consented to, false otherwise
    */
-  public static boolean hasAllPolicies(
-      String policySystem, Bundle bundle, Set<String> policiesToCheck) {
+  static boolean hasAllPolicies(String policySystem, Bundle bundle, Set<String> policiesToCheck) {
     var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
     return consentedPolicies.hasAllPolicies(policiesToCheck);
   }
