@@ -20,12 +20,4 @@ public interface PseudonymProvider {
    * @return the mapped tid:sid
    */
   Mono<Map<String, String>> fetchPseudonymizedIds(Set<String> ids);
-
-  /**
-   * Removes the <code>transportId</code> to <code>secureId</code> matching from the matching table.
-   *
-   * @param ids the transport ids
-   * @return The number of deleted transport ids
-   */
-  Mono<Long> deleteTransportIds(Set<String> ids);
 }
