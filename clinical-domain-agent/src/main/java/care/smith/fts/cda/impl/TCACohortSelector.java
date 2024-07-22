@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static java.util.Map.entry;
+import static java.util.Optional.ofNullable;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -34,20 +36,32 @@ class TCACohortSelector implements CohortSelector {
 
   @Override
   public Flux<ConsentedPatient> selectCohort() {
+    return fetchBundle("/api/v2/cd/consented-patients")
+        .expand(this::fetchNextPage)
+        .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
+        .doOnError(e -> log.error(e.getMessage()))
+        .onErrorResume(WebClientException.class, TCACohortSelector::handleError)
+        .flatMap(this::extractConsentedPatients);
+  }
+
+  private Mono<Bundle> fetchBundle(String uri) {
     return client
         .post()
-        .uri("/api/v2/cd/consented-patients")
+        .uri(uri)
         .bodyValue(constructBody(config.policies(), config.policySystem(), config.domain()))
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), TCACohortSelector::handleBadRequest)
-        .bodyToMono(Bundle.class)
-        // TODO Paging using .expand()? see Flare
-        .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
-        .doOnError(e -> log.error(e.getMessage()))
-        .onErrorResume(WebClientException.class, TCACohortSelector::handleError)
-        .flatMapMany(this::extractConsentedPatients);
+        .bodyToMono(Bundle.class);
+  }
+
+  private Mono<Bundle> fetchNextPage(Bundle bundle) {
+    log.trace("fetchNextPage: {}", bundle.getLink("next"));
+    return ofNullable(bundle.getLink("next"))
+        .map(BundleLinkComponent::getUrl)
+        .map(this::fetchBundle)
+        .orElse(Mono.empty());
   }
 
   private Map<String, Object> constructBody(
