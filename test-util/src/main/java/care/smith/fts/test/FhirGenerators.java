@@ -1,6 +1,7 @@
 package care.smith.fts.test;
 
 import static java.util.Map.entry;
+import static java.util.UUID.randomUUID;
 
 import java.io.IOException;
 import java.util.Map;
@@ -20,6 +21,10 @@ public interface FhirGenerators {
             entry("$PATIENT_ID", patientId),
             entry("$IDENTIFIER_SYSTEM", identifierSystem),
             entry("$YEAR", year)));
+  }
+
+  static FhirGenerator<Bundle> gicsResponse(Supplier<String> patientId) throws IOException {
+    return gicsResponse(randomUuid(), patientId);
   }
 
   static FhirGenerator<Bundle> gicsResponse(
@@ -50,5 +55,24 @@ public interface FhirGenerators {
         Parameters.class,
         "gpas-get-or-create-response.json",
         Map.ofEntries(entry("$ORIGINAL", original), entry("$PSEUDONYM", pseudonym)));
+  }
+
+  static Supplier<String> randomUuid() {
+    return () -> randomUUID().toString();
+  }
+
+  static Supplier<String> withPrefix(String prefix, int start) {
+    return new Supplier<>() {
+      int i = start;
+
+      @Override
+      public String get() {
+        return prefix + i++;
+      }
+    };
+  }
+
+  static Supplier<String> withPrefix(String prefix) {
+    return withPrefix(prefix, 0);
   }
 }

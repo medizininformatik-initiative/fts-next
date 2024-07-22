@@ -1,9 +1,9 @@
 package care.smith.fts.cda.rest.it.mock;
 
+import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
-import static java.util.UUID.randomUUID;
 import static org.mockserver.model.HttpResponse.response;
 
 import care.smith.fts.test.FhirGenerators;
@@ -28,8 +28,7 @@ public class MockFhirResolveService {
   }
 
   public void success(String patientId) throws IOException {
-    var fhirResolveGen =
-        FhirGenerators.resolveSearchResponse(() -> patientId, () -> randomUUID().toString());
+    var fhirResolveGen = FhirGenerators.resolveSearchResponse(() -> patientId, randomUuid());
     hds.when(mockRequestSpec)
         .respond(
             response()
@@ -56,8 +55,7 @@ public class MockFhirResolveService {
   }
 
   public void moreThanOneResult() throws IOException {
-    var fhirResolveGen =
-        FhirGenerators.resolveSearchResponse(() -> "id1", () -> randomUUID().toString());
+    var fhirResolveGen = FhirGenerators.resolveSearchResponse(() -> "id1", randomUuid());
 
     hds.when(mockRequestSpec)
         .respond(

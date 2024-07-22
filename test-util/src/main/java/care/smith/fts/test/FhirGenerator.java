@@ -64,25 +64,4 @@ public class FhirGenerator<T extends Resource> {
     }
     return s;
   }
-
-  public static class Incrementing implements Supplier<String> {
-    private final String prefix;
-    private long index;
-
-    private Incrementing(String prefix, long index) {
-      this.prefix = prefix;
-      this.index = index;
-    }
-
-    public static Incrementing withPrefix(String prefix) {
-      return new Incrementing(prefix, 0);
-    }
-
-    @Override
-    public String get() {
-      String s = prefix + index;
-      index += 1;
-      return s;
-    }
-  }
 }

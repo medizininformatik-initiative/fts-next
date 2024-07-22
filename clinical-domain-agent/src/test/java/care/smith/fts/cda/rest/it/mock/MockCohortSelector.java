@@ -1,10 +1,9 @@
 package care.smith.fts.cda.rest.it.mock;
 
+import static care.smith.fts.test.FhirGenerators.withPrefix;
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static java.util.UUID.randomUUID;
 
 import care.smith.fts.test.FhirGenerator;
-import care.smith.fts.test.FhirGenerator.Incrementing;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.MediaTypes;
@@ -32,7 +31,7 @@ public class MockCohortSelector {
   }
 
   private FhirGenerator<Bundle> validConsent(Supplier<String> patientId) throws IOException {
-    return FhirGenerators.gicsResponse(() -> randomUUID().toString(), patientId);
+    return FhirGenerators.gicsResponse(patientId);
   }
 
   public void successOnePatient(String patientId) throws IOException {
@@ -41,10 +40,7 @@ public class MockCohortSelector {
 
   public void successNPatients(String idPrefix, int n) throws IOException {
     var consent =
-        validConsent(Incrementing.withPrefix(idPrefix))
-            .generateResources()
-            .limit(n)
-            .collect(toBundle());
+        validConsent(withPrefix(idPrefix)).generateResources().limit(n).collect(toBundle());
     tca.when(HttpRequest.request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(
             HttpResponse.response()

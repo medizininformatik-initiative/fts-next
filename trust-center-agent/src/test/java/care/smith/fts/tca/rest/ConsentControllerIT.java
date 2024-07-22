@@ -1,9 +1,9 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
-import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -38,8 +38,7 @@ class ConsentControllerIT extends BaseIT {
 
   @Test
   void successfulRequest() throws IOException {
-    var consentGenerator =
-        FhirGenerators.gicsResponse(() -> randomUUID().toString(), () -> "FTS001");
+    var consentGenerator = FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001");
     gics.when(
             request()
                 .withMethod("POST")

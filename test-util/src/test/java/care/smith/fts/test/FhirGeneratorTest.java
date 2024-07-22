@@ -1,7 +1,7 @@
 package care.smith.fts.test;
 
+import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.util.FhirUtils;
@@ -14,8 +14,7 @@ class FhirGeneratorTest {
 
   @Test
   void serializeAndDeserializeGenerateBundle() throws IOException {
-    var gicsConsentGenerator =
-        FhirGenerators.gicsResponse(() -> randomUUID().toString(), () -> randomUUID().toString());
+    var gicsConsentGenerator = FhirGenerators.gicsResponse(randomUuid(), randomUuid());
     Bundle bundle = Stream.of(gicsConsentGenerator.generateResource()).collect(toBundle());
 
     assertThat(bundle).isNotNull();
