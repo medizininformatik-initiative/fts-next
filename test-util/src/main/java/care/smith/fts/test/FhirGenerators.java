@@ -15,7 +15,7 @@ public interface FhirGenerators {
       throws IOException {
     return new FhirGenerator<>(
         Bundle.class,
-        "PatientTemplate.json",
+        "patient.json",
         Map.ofEntries(
             entry("$PATIENT_ID", patientId),
             entry("$IDENTIFIER_SYSTEM", identifierSystem),
@@ -26,7 +26,7 @@ public interface FhirGenerators {
       Supplier<String> questionnaireResponseId, Supplier<String> patientId) throws IOException {
     return new FhirGenerator<>(
         Bundle.class,
-        "GicsResponseTemplate.json",
+        "gics-consent-response.json",
         Map.ofEntries(
             entry("$QUESTIONNAIRE_RESPONSE_ID", questionnaireResponseId),
             entry("$PATIENT_ID", patientId)));
@@ -36,12 +36,12 @@ public interface FhirGenerators {
       Supplier<String> patientId, Supplier<String> hdsId) throws IOException {
     return new FhirGenerator<>(
         Bundle.class,
-        "FhirResolveSearchResponseTemplate.json",
+        "resolve-search-response.json",
         Map.ofEntries(entry("$PATIENT_ID", patientId), entry("$HDS_ID", hdsId)));
   }
 
   static FhirGenerator<Bundle> transportBundle() throws IOException {
-    return new FhirGenerator<>(Bundle.class, "TransportBundleTemplate.json", Map.of());
+    return new FhirGenerator<>(Bundle.class, "transport-bundle.json", Map.of());
   }
 
   static FhirGenerator<Parameters> gpasGetOrCreateResponse(
