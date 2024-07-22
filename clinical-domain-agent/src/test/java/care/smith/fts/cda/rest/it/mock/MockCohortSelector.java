@@ -1,5 +1,6 @@
 package care.smith.fts.cda.rest.it.mock;
 
+import static care.smith.fts.util.FhirUtils.toBundle;
 import static java.util.UUID.randomUUID;
 
 import care.smith.fts.test.FhirGenerator;
@@ -10,6 +11,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
+import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
 import org.mockserver.model.HttpError;
@@ -27,7 +30,7 @@ public class MockCohortSelector {
     this.tca = tca;
   }
 
-  private FhirGenerator validConsent(Supplier<String> patientId) throws IOException {
+  private FhirGenerator<Bundle> validConsent(Supplier<String> patientId) throws IOException {
     return FhirGenerator.gicsResponse(() -> randomUUID().toString(), patientId);
   }
 
@@ -36,7 +39,11 @@ public class MockCohortSelector {
   }
 
   public void successNPatients(String idPrefix, int n) throws IOException {
-    var consent = validConsent(Incrementing.withPrefix(idPrefix)).generateBundle(n, n);
+    var consent =
+        validConsent(Incrementing.withPrefix(idPrefix))
+            .generateResources()
+            .limit(n)
+            .collect(toBundle());
     tca.when(HttpRequest.request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(
             HttpResponse.response()
@@ -55,7 +62,7 @@ public class MockCohortSelector {
   }
 
   public void wrongContentType() throws IOException {
-    var consent = validConsent(() -> "id1").generateBundle(1, 1);
+    var consent = Stream.of(validConsent(() -> "id1").generateResource()).collect(toBundle());
     tca.when(HttpRequest.request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(
             HttpResponse.response()

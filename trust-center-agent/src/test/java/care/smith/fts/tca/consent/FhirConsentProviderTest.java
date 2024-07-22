@@ -1,5 +1,6 @@
 package care.smith.fts.tca.consent;
 
+import static care.smith.fts.util.FhirUtils.toBundle;
 import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
@@ -15,6 +16,7 @@ import care.smith.fts.util.FhirUtils;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
@@ -55,7 +57,7 @@ class FhirConsentProviderTest {
           "MDAT_erheben",
           "MDAT_speichern_verarbeiten");
   private static String address;
-  private static FhirGenerator gicsConsentGenerator;
+  private static FhirGenerator<Bundle> gicsConsentGenerator;
   private static JsonBody jsonBody;
 
   @BeforeAll
@@ -89,7 +91,12 @@ class FhirConsentProviderTest {
         new FhirConsentProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, defaultPageSize);
 
-    Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, defaultPageSize);
+    Bundle bundle =
+        gicsConsentGenerator
+            .generateResources()
+            .limit(defaultPageSize)
+            .collect(toBundle())
+            .setTotal(totalEntries);
 
     HttpRequest postRequest =
         request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
@@ -142,9 +149,13 @@ class FhirConsentProviderTest {
         new FhirConsentProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
 
-    Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, pageSize);
+    Bundle bundle =
+        Stream.generate(gicsConsentGenerator::generateString)
+            .limit(totalEntries)
+            .map(FhirUtils::stringToFhirBundle)
+            .collect(toBundle())
+            .setTotal(totalEntries);
 
-    ;
     HttpRequest postRequest =
         request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
     HttpResponse httpResponse =
@@ -175,7 +186,12 @@ class FhirConsentProviderTest {
     fhirConsentProvider =
         new FhirConsentProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
-    Bundle bundle = gicsConsentGenerator.generateBundle(totalEntries, pageSize);
+    Bundle bundle =
+        Stream.generate(gicsConsentGenerator::generateString)
+            .limit(totalEntries)
+            .map(FhirUtils::stringToFhirBundle)
+            .collect(toBundle())
+            .setTotal(totalEntries);
 
     HttpRequest postRequest =
         request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);

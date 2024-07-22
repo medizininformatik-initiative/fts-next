@@ -9,7 +9,6 @@ import care.smith.fts.test.FhirGenerator;
 import java.io.IOException;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.http.HttpStatus;
@@ -27,7 +26,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockDeidentifier.success();
     mockBundleSender.success();
 
-    var transportBundle = FhirGenerator.transportBundle().generateResource(Bundle.class);
+    var transportBundle = FhirGenerator.transportBundle().generateResource();
 
     log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
 
@@ -94,7 +93,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockDeidentifier.success();
     mockBundleSender.success();
 
-    var transportBundle = FhirGenerator.transportBundle().generateResource(Bundle.class);
+    var transportBundle = FhirGenerator.transportBundle().generateResource();
 
     client
         .post()

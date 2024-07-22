@@ -1,8 +1,5 @@
 package care.smith.fts.test;
 
-import static care.smith.fts.util.FhirUtils.toBundle;
-import static java.lang.Math.min;
-
 import care.smith.fts.util.FhirUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,55 +10,58 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Parameters;
+import org.hl7.fhir.r4.model.Resource;
 
 /**
  * The FhirGenerator reads a template file from disk and replaces given word e.g. $PATIENT_ID
  * occurrences with a given Replacement e.g. an UUID
  */
 @Slf4j
-public class FhirGenerator {
+public class FhirGenerator<T extends Resource> {
+  private final Class<T> resourceType;
   private final CharBuffer templateBuffer;
   private final Map<String, Supplier<String>> inputReplacements = new HashMap<>();
 
-  private FhirGenerator(String templateFile) throws IOException {
+  private FhirGenerator(Class<T> resourceType, String templateFile) throws IOException {
     templateBuffer = TemplateLoader.getCharBuffer(templateFile, this.getClass().getClassLoader());
+    this.resourceType = resourceType;
   }
 
-  public static FhirGenerator patient(
+  public static FhirGenerator<Bundle> patient(
       Supplier<String> patientId, Supplier<String> identifierSystem, Supplier<String> year)
       throws IOException {
-    var generator = new FhirGenerator("PatientTemplate.json");
+    var generator = new FhirGenerator<>(Bundle.class, "PatientTemplate.json");
     generator.replaceTemplateFieldWith("$PATIENT_ID", patientId);
     generator.replaceTemplateFieldWith("$IDENTIFIER_SYSTEM", identifierSystem);
     generator.replaceTemplateFieldWith("$YEAR", year);
     return generator;
   }
 
-  public static FhirGenerator gicsResponse(
+  public static FhirGenerator<Bundle> gicsResponse(
       Supplier<String> questionnaireResponseId, Supplier<String> patientId) throws IOException {
-    var generator = new FhirGenerator("GicsResponseTemplate.json");
+    var generator = new FhirGenerator<>(Bundle.class, "GicsResponseTemplate.json");
     generator.replaceTemplateFieldWith("$QUESTIONNAIRE_RESPONSE_ID", questionnaireResponseId);
     generator.replaceTemplateFieldWith("$PATIENT_ID", patientId);
     return generator;
   }
 
-  public static FhirGenerator resolveSearchResponse(
+  public static FhirGenerator<Bundle> resolveSearchResponse(
       Supplier<String> patientId, Supplier<String> hdsId) throws IOException {
-    var generator = new FhirGenerator("FhirResolveSearchResponseTemplate.json");
+    var generator = new FhirGenerator<>(Bundle.class, "FhirResolveSearchResponseTemplate.json");
     generator.replaceTemplateFieldWith("$PATIENT_ID", patientId);
     generator.replaceTemplateFieldWith("$HDS_ID", hdsId);
     return generator;
   }
 
-  public static FhirGenerator transportBundle() throws IOException {
-    return new FhirGenerator("TransportBundleTemplate.json");
+  public static FhirGenerator<Bundle> transportBundle() throws IOException {
+    return new FhirGenerator<>(Bundle.class, "TransportBundleTemplate.json");
   }
 
-  public static FhirGenerator gpasGetOrCreateResponse(
+  public static FhirGenerator<Parameters> gpasGetOrCreateResponse(
       Supplier<String> original, Supplier<String> pseudonym) throws IOException {
-    FhirGenerator generator = new FhirGenerator("gpas-get-or-create-response.json");
+    var generator = new FhirGenerator<>(Parameters.class, "gpas-get-or-create-response.json");
     generator.replaceTemplateFieldWith("$ORIGINAL", original);
     generator.replaceTemplateFieldWith("$PSEUDONYM", pseudonym);
     return generator;
@@ -71,30 +71,17 @@ public class FhirGenerator {
     inputReplacements.put(field, replaceWith);
   }
 
-  /**
-   * If the template file is a valid JSON of a Fhir resource then generateBundle creates a
-   * Collection Bundle with multiple resource.
-   *
-   * @param totalEntries the total number of entries in the bundle
-   * @param pageSize the number of entries in this bundle page
-   * @return
-   */
-  public Bundle generateBundle(int totalEntries, int pageSize) {
-    return Stream.generate(this::generateString)
-        .limit(min(pageSize, totalEntries))
-        .map(FhirUtils::stringToFhirBundle)
-        .collect(toBundle())
-        .setTotal(totalEntries);
+  public Stream<T> generateResources() {
+    return Stream.generate(this::generateResource);
   }
 
   /**
    * Generates the fhir resource using the template and parses it to resource
    *
-   * @param clazz the resource type for parsing
    * @return
    */
-  public <T extends IBaseResource> T generateResource(Class<T> clazz) {
-    return FhirUtils.stringToFhirResource(clazz, this.generateString());
+  public T generateResource() {
+    return FhirUtils.stringToFhirResource(resourceType, this.generateString());
   }
 
   /**
