@@ -62,14 +62,62 @@ public class GeneralIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void successfulRequestWithRetryAfter() throws IOException {
+  void successfulRequestWithPaging() throws IOException {
 
+    var totalPatients = 7;
+    var pageSize = 2;
     var idPrefix = "patientId";
-    var patientsAndIds = generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
+    var patientsAndIds =
+        generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, totalPatients);
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(idPrefix, 3);
+    mockCohortSelector.successNPatientsWithPaging(idPrefix, totalPatients, pageSize);
+    for (var i = 0; i < patients.getTotal(); i++) {
+      var patientId = ids.get(i);
+      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenFetchData(patientId)
+          .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
+    }
+
+    mockBundleSender.success();
+
+    StepVerifier.create(
+            client
+                .post()
+                .uri("/api/v2/process/test/start")
+                .retrieve()
+                .toBodilessEntity()
+                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+                .doOnNext(r -> assertThat(r).isNotEmpty())
+                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
+                .flatMap(
+                    r ->
+                        Mono.delay(Duration.ofSeconds(3))
+                            .flatMap(
+                                i ->
+                                    client
+                                        .get()
+                                        .uri(r.getFirst())
+                                        .retrieve()
+                                        .bodyToMono(Status.class))))
+        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(totalPatients))
+        .verifyComplete();
+  }
+
+  @Test
+  void successfulRequestWithRetryAfter() throws IOException {
+
+    var totalPatients = 3;
+    var idPrefix = "patientId";
+    var patientsAndIds =
+        generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, totalPatients);
+    var patients = patientsAndIds.bundle();
+    var ids = patientsAndIds.ids();
+
+    mockCohortSelector.successNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -100,7 +148,7 @@ public class GeneralIT extends TransferProcessControllerIT {
                                         .uri(r.getFirst())
                                         .retrieve()
                                         .bodyToMono(Status.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(3))
+        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(totalPatients))
         .verifyComplete();
   }
 
