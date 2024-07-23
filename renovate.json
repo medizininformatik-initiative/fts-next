@@ -45,5 +45,16 @@
       "username": "{{ secrets.SMITH_CREG_USERNAME }}",
       "password": "{{ secrets.SMITH_CREG_PASSWORD }}"
     }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        ".*\\.java"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*\"(?<currentValue>.+?)\";"
+      ]
+    }
   ]
 }

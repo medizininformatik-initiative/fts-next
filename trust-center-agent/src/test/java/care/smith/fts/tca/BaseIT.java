@@ -8,9 +8,13 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 public class BaseIT {
+  // renovate: datasource=github-releases depName=valkey-io/valkey
+  private static final String VALKEY_VERSION = "7.2.5";
+
   protected static final MockServerClient gics = onRandomPort();
   protected static final MockServerClient gpas = onRandomPort();
-  protected static final RedisContainer keystore = new RedisContainer("valkey/valkey:7.2.5-alpine");
+  protected static final RedisContainer keystore =
+      new RedisContainer("valkey/valkey:" + VALKEY_VERSION + "-alpine");
 
   static {
     keystore.start();
