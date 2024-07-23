@@ -16,6 +16,20 @@
         "ca.uhn.hapi.fhir"
       ],
       "groupName": "hapi"
+    },
+    {
+      "matchPackageNames": [
+        "de.ume:deidentifhir"
+      ],
+      "registryUrls": [
+        "https://maven.pkg.github.com/UMEssen/DeidentiFHIR"
+      ]
+    }
+  ],
+  "hostRules": [
+    {
+      "matchHost": "github.com",
+      "token": "{{ secrets.GITHUB_COM_TOKEN }}"
     }
   ]
 }
