@@ -1,6 +1,21 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:best-practices"
+  ],
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "com.fasterxml.jackson"
+      ],
+      "groupName": "jackson"
+    },
+    {
+      "matchPackagePatterns": [
+        "ca.uhn.hapi.fhir"
+      ],
+      "groupName": "hapi"
+    }
   ]
 }
