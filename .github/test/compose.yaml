@@ -20,9 +20,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 3
+      start_period: 60s
   cd-hds:
     image: samply/blaze:0.27.1
     ports: [ ":8080" ]
@@ -32,10 +33,10 @@ services:
       STORAGE: "in-memory"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 3
+      start_period: 90s
 
   # Research Domain
   rd-agent:
@@ -50,9 +51,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 3
+      start_period: 60s
   rd-hds:
     image: samply/blaze:0.27.1
     ports: [ ":8080" ]
@@ -63,10 +65,10 @@ services:
       ENFORCE_REFERENTIAL_INTEGRITY: "false"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 3
+      start_period: 90s
 
   # Trust Center
   tc-agent:
@@ -81,17 +83,19 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 3
+      start_period: 60s
   keystore:
     image: valkey/valkey:7.2.5-alpine
     networks: [ "trust-center" ]
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 3
+      start_period: 10s
   gics:
     image: creg.smith.care/fts/gics:2023.1.4@sha256:093f317ad936ff8595105bf21abccd4ad33ddd066d132e5ba34d5b37e5b8bd62
     ports: [ ":8080" ]
@@ -101,9 +105,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/gics/gicsService?wsdl" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 100
+      retries: 3
+      start_period: 120s
   gics-db:
     image: mysql:8.4.0@sha256:dab7049abafe3a0e12cbe5e49050cf149881c0cd9665c289e5808b9dad39c9e0
     volumes:
@@ -117,9 +122,10 @@ services:
     networks: [ "gics" ]
     healthcheck:
       test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugics_user", "-pgics_password" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 3
+      start_period: 120s
   gpas:
     image: creg.smith.care/fts/gpas:2023.1.2@sha256:6ccc25c108060fe7dce34a776c60b24139b655796c51256600a86ad3d71818f6
     ports: [ ":8080" ]
@@ -129,9 +135,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/gpas/gpasService?wsdl" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 3
+      start_period: 120s
   gpas-db:
     image: mysql:8.4.0@sha256:dab7049abafe3a0e12cbe5e49050cf149881c0cd9665c289e5808b9dad39c9e0
     volumes:
@@ -145,6 +152,7 @@ services:
     networks: [ "gpas" ]
     healthcheck:
       test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugpas_user", "-pgpas_password" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 3
+      start_period: 120s
