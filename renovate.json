@@ -1,7 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices"
+    ":dependencyDashboard",
+    ":semanticPrefixFixDepsChoreOthers",
+    "group:monorepos",
+    "group:recommended",
+    "replacements:all",
+    "workarounds:all",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":pinDevDependencies"
   ],
   "prConcurrentLimit": 3,
   "packageRules": [
@@ -30,6 +38,12 @@
     {
       "matchHost": "github.com",
       "token": "{{ secrets.GITHUB_COM_TOKEN }}"
+    },
+    {
+      "hostType": "docker",
+      "matchHost": "creg.smith.care",
+      "username": "{{ secrets.SMITH_CREG_USERNAME }}",
+      "password": "{{ secrets.SMITH_CREG_PASSWORD }}"
     }
   ]
 }
