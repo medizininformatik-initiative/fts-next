@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    ":dependencyDashboard",
+    ":semanticPrefixFixDepsChoreOthers",
+    "group:monorepos",
+    "group:recommended",
+    "replacements:all",
+    "workarounds:all",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":pinDevDependencies"
+  ],
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "com.fasterxml.jackson"
+      ],
+      "groupName": "jackson"
+    },
+    {
+      "matchPackagePatterns": [
+        "ca.uhn.hapi.fhir"
+      ],
+      "groupName": "hapi"
+    },
+    {
+      "matchPackageNames": [
+        "de.ume:deidentifhir"
+      ],
+      "registryUrls": [
+        "https://maven.pkg.github.com/UMEssen/DeidentiFHIR"
+      ]
+    }
+  ],
+  "hostRules": [
+    {
+      "matchHost": "github.com",
+      "token": "{{ secrets.GITHUB_COM_TOKEN }}"
+    },
+    {
+      "hostType": "docker",
+      "matchHost": "creg.smith.care",
+      "username": "{{ secrets.SMITH_CREG_USERNAME }}",
+      "password": "{{ secrets.SMITH_CREG_PASSWORD }}"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        ".*\\.java"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*\"(?<currentValue>.+?)\";"
+      ]
+    }
+  ]
+}
