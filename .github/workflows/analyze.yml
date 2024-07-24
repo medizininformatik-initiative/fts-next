@@ -17,17 +17,17 @@ jobs:
       security-events: write
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4
       with:
         distribution: 'temurin'
         java-version: 21
         cache: 'maven'
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@2d790406f505036ef40ecba973cc774a50395aac # v3
       with:
         languages: java
         queries: security-and-quality
@@ -36,4 +36,4 @@ jobs:
       run: make compile
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@2d790406f505036ef40ecba973cc774a50395aac # v3
