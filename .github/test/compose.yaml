@@ -25,7 +25,7 @@ services:
       retries: 3
       start_period: 60s
   cd-hds:
-    image: samply/blaze:0.27.1
+    image: samply/blaze:0.27.1@sha256:c18357612801a11076f34842cbb5548d9ee504dd4f9a341f7f924198125e207e
     ports: [ ":8080" ]
     networks: [ "clinical-domain" ]
     environment:
@@ -56,7 +56,7 @@ services:
       retries: 3
       start_period: 60s
   rd-hds:
-    image: samply/blaze:0.27.1
+    image: samply/blaze:0.27.1@sha256:c18357612801a11076f34842cbb5548d9ee504dd4f9a341f7f924198125e207e
     ports: [ ":8080" ]
     networks: [ "research-domain" ]
     environment:
@@ -88,7 +88,7 @@ services:
       retries: 3
       start_period: 60s
   keystore:
-    image: valkey/valkey:7.2.5-alpine
+    image: valkey/valkey:7.2.5-alpine@sha256:5c3c1ca0e5bb23e69dabc8b00f9890f5d823d7cceedd19cf5786ecbe6c50a800
     networks: [ "trust-center" ]
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
