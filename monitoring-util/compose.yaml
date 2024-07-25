@@ -2,7 +2,7 @@ name: fts-monitoring
 
 services:
   prometheus:
-    image: prom/prometheus:v2.52.0@sha256:5c435642ca4d8427ca26f4901c11114023004709037880cd7860d5b7176aa731
+    image: prom/prometheus:v2.53.1@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
     volumes:
     - ./prometheus.yml:/prometheus.yml
     command:
