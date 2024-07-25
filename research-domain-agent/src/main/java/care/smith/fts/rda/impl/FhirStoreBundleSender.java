@@ -2,6 +2,7 @@ package care.smith.fts.rda.impl;
 
 import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;
@@ -29,6 +30,7 @@ final class FhirStoreBundleSender implements BundleSender {
         .bodyValue(toTransactionBundle(bundle))
         .retrieve()
         .toBodilessEntity()
+        .retryWhen(defaultRetryStrategy())
         .doOnNext(res -> log.trace("Response received: {}", res))
         .doOnError(err -> log.debug("Error received", err))
         .map(b -> new Result());

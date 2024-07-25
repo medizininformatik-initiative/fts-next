@@ -5,6 +5,9 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.matchers.MatchType;
 import org.mockserver.model.Delay;
@@ -26,7 +29,17 @@ public class MockBundleSender {
   }
 
   public void success() {
-    hds.when(request).respond(response().withStatusCode(200));
+    success(List.of());
+  }
+
+  public void success(List<Integer> statusCodes) {
+    var rs = new LinkedList<>(statusCodes);
+    hds.when(request)
+        .respond(
+            request ->
+                Optional.ofNullable(rs.poll())
+                    .map(statusCode -> response().withStatusCode(statusCode))
+                    .orElseGet(() -> response().withStatusCode(200)));
   }
 
   public void isDown() {
