@@ -15,6 +15,9 @@ build:
 build/utils:
 	mvn ${MAVEN_ARGS} install --projects .,api,util,test-util,monitoring-util
 
+coverage:
+	mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
+
 images:
 	@for agent in $(AGENTS); do \
     	$(MAKE) -C $$agent image; \

@@ -227,11 +227,12 @@
           <execution>
             <id>report</id>
             <goals>
-              <goal>report</goal>
+              <goal>report-aggregate</goal>
             </goals>
-            <phase>post-integration-test</phase>
+            <phase>none</phase>
             <configuration>
               <outputDirectory>${project.build.directory}/coverage</outputDirectory>
+              <includeCurrentProject>true</includeCurrentProject>
               <includes>
                 <include>care/smith/fts/**</include>
               </includes>
