@@ -3,6 +3,7 @@ package care.smith.fts.tca.consent;
 import static care.smith.fts.util.ConsentedPatientExtractor.hasAllPolicies;
 import static care.smith.fts.util.FhirUtils.*;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.util.error.UnknownDomainException;
@@ -175,6 +176,7 @@ public class FhirConsentProvider implements ConsentProvider {
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentProvider::handleGicsNotFound)
         .bodyToMono(Bundle.class)
+        .retryWhen(defaultRetryStrategy())
         .doOnNext(b -> log.trace("Consent fetched, {} bundle entries", b.getEntry().size()))
         .doOnError(b -> log.error("Error fetching consent", b));
   }
