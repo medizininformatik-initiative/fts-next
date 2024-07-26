@@ -4,6 +4,7 @@ import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,8 @@ public class BundleSenderIT extends TransferProcessControllerIT {
 
   @BeforeEach
   void setUp() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
-    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+    mockCohortSelector.consentForOnePatient(patientId);
+    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector.whenFetchData(patientId).respondWith(patient);
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
   }
@@ -27,12 +28,32 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   @Test
   void hdsDown() {
     mockBundleSender.isDown();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(1));
+
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
   void hdsTimeout() {
     mockBundleSender.timeout();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(12));
+
+    startProcess(Duration.ofSeconds(12))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
+  }
+
+  @Test
+  void firstTryToSendBundleFails() throws IOException {
+    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+    mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
+    mockDataSelector
+        .whenFetchData(patientId)
+        .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()));
+    mockBundleSender.successWithStatusCode(List.of(500));
+
+    startProcess(Duration.ofSeconds(3))
+        .assertNext(r -> completedWithBundles(1, r))
+        .verifyComplete();
   }
 }

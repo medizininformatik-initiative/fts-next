@@ -1,6 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -44,6 +45,7 @@ public class EverythingDataSelector implements DataSelector {
         .retrieve()
         .bodyToMono(Bundle.class)
         .doOnError(e -> log.error("", e))
+        .retryWhen(defaultRetryStrategy())
         // TODO Paging using .expand()? see Flare
         .flux();
   }

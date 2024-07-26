@@ -1,6 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.error.UnknownDomainException;
@@ -113,6 +114,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .onStatus(
             r -> r.equals(HttpStatus.BAD_REQUEST), FhirPseudonymProvider::handleGpasBadRequest)
         .bodyToMono(GpasParameterResponse.class)
+        .retryWhen(defaultRetryStrategy())
         .doOnNext(r -> log.trace("$pseudonymize response: {}", r))
         .map(GpasParameterResponse::getMappedID);
   }

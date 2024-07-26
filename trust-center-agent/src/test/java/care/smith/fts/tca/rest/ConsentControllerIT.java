@@ -14,7 +14,10 @@ import care.smith.fts.tca.BaseIT;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.MediaTypes;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -74,6 +77,50 @@ class ConsentControllerIT extends BaseIT {
         .bodyValue(body)
         .retrieve()
         .bodyToMono(String.class);
+  }
+
+  @Test
+  void firstRequestToGicsFails() throws IOException {
+    var consentGenerator = FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001");
+    var statusCodes = new LinkedList<>(List.of(500));
+
+    gics.when(
+            request()
+                .withMethod("POST")
+                .withPath("/ttp-fhir/fhir/gics/$allConsentsForDomain")
+                .withContentType(APPLICATION_FHIR_JSON))
+        .respond(
+            request ->
+                Optional.ofNullable(statusCodes.poll())
+                    .map(
+                        statusCode ->
+                            statusCode < 400
+                                ? response()
+                                    .withStatusCode(statusCode)
+                                    .withContentType(APPLICATION_FHIR_JSON)
+                                    .withBody(consentGenerator.generateString())
+                                : response().withStatusCode(statusCode))
+                    .orElseGet(
+                        () ->
+                            response()
+                                .withStatusCode(200)
+                                .withContentType(APPLICATION_FHIR_JSON)
+                                .withBody(consentGenerator.generateString())));
+
+    var response =
+        doPost(
+            ofEntries(
+                entry("domain", "MII"),
+                entry("policies", Set.of("")),
+                entry("policySystem", "sys")));
+
+    create(response)
+        .assertNext(
+            val -> {
+              log.info("Response: {}", val);
+              assertThat(val).isNotBlank();
+            })
+        .verifyComplete();
   }
 
   @AfterEach

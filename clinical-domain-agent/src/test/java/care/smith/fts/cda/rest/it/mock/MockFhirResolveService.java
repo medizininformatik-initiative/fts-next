@@ -6,14 +6,19 @@ import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static org.mockserver.model.HttpResponse.response;
 
+import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import lombok.Builder;
 import org.hl7.fhir.r4.model.Bundle;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
 import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
+import org.mockserver.model.HttpResponse;
 import org.mockserver.model.MediaType;
 
 @Builder
@@ -27,14 +32,31 @@ public class MockFhirResolveService {
     this.mockRequestSpec = mockRequestSpec;
   }
 
-  public void success(String patientId) throws IOException {
+  public void resolveId(String patientId) throws IOException {
+    resolveId(patientId, List.of());
+  }
+
+  public void resolveId(String patientId, List<Integer> statusCodes) throws IOException {
     var fhirResolveGen = FhirGenerators.resolveSearchResponse(() -> patientId, randomUuid());
+    var rs = new LinkedList<>(statusCodes);
     hds.when(mockRequestSpec)
         .respond(
-            response()
-                .withStatusCode(200)
-                .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
-                .withBody(fhirResourceToString(fhirResolveGen.generateResource())));
+            request ->
+                Optional.ofNullable(rs.poll())
+                    .map(
+                        statusCode ->
+                            statusCode < 400
+                                ? successResponse(statusCode, fhirResolveGen)
+                                : response().withStatusCode(statusCode))
+                    .orElseGet(() -> successResponse(200, fhirResolveGen)));
+  }
+
+  private static HttpResponse successResponse(
+      Integer statusCode, FhirGenerator<Bundle> fhirResolveGen) {
+    return response()
+        .withStatusCode(statusCode)
+        .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
+        .withBody(fhirResourceToString(fhirResolveGen.generateResource()));
   }
 
   public void isDown() {

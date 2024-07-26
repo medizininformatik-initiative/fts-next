@@ -6,7 +6,9 @@ import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
@@ -25,6 +27,11 @@ public class MockDeidentifier {
   }
 
   public void success() {
+    success(List.of());
+  }
+
+  public void success(List<Integer> statusCodes) {
+    var rs = new LinkedList<>(statusCodes);
     tca.when(
             request()
                 .withMethod("POST")
@@ -36,13 +43,22 @@ public class MockDeidentifier {
 
               @SuppressWarnings("unchecked")
               List<String> tid = om.readValue(body, List.class);
-              var sidMap = tid.stream().collect(toMap(Function.identity(), Function.identity()));
+              var sidMap =
+                  om.writeValueAsString(
+                      tid.stream().collect(toMap(Function.identity(), Function.identity())));
 
-              return response()
-                  .withStatusCode(200)
-                  .withContentType(APPLICATION_JSON)
-                  .withBody(om.writeValueAsString(sidMap));
+              return Optional.ofNullable(rs.poll())
+                  .map(
+                      statusCode ->
+                          statusCode < 400
+                              ? successResponse(statusCode, sidMap)
+                              : response().withStatusCode(statusCode))
+                  .orElseGet(() -> successResponse(200, sidMap));
             });
+  }
+
+  private HttpResponse successResponse(int statusCode, String sidMap) {
+    return response().withStatusCode(statusCode).withContentType(APPLICATION_JSON).withBody(sidMap);
   }
 
   public void isDown() {

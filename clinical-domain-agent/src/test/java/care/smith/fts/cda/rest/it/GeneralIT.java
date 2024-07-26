@@ -22,15 +22,19 @@ public class GeneralIT extends TransferProcessControllerIT {
   void successfulRequest() throws IOException {
 
     var idPrefix = "patientId";
-    var patientsAndIds = generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
+    int totalPatients = 3;
+    var patientsAndIds =
+        generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, totalPatients);
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(idPrefix, 3);
+    mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
@@ -38,26 +42,8 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/test/start")
-                .retrieve()
-                .toBodilessEntity()
-                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-                .doOnNext(r -> assertThat(r).isNotEmpty())
-                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(
-                    r ->
-                        Mono.delay(Duration.ofSeconds(3))
-                            .flatMap(
-                                i ->
-                                    client
-                                        .get()
-                                        .uri(r.getFirst())
-                                        .retrieve()
-                                        .bodyToMono(Status.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(3))
+    startProcess(Duration.ofSeconds(3))
+        .assertNext(r -> completedWithBundles(totalPatients, r))
         .verifyComplete();
   }
 
@@ -72,11 +58,13 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatientsWithPaging(idPrefix, totalPatients, pageSize);
+    mockCohortSelector.consentForNPatientsWithPaging(idPrefix, totalPatients, pageSize);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
@@ -84,26 +72,8 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/test/start")
-                .retrieve()
-                .toBodilessEntity()
-                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-                .doOnNext(r -> assertThat(r).isNotEmpty())
-                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(
-                    r ->
-                        Mono.delay(Duration.ofSeconds(3))
-                            .flatMap(
-                                i ->
-                                    client
-                                        .get()
-                                        .uri(r.getFirst())
-                                        .retrieve()
-                                        .bodyToMono(Status.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(totalPatients))
+    startProcess(Duration.ofSeconds(3))
+        .assertNext(r -> completedWithBundles(totalPatients, r))
         .verifyComplete();
   }
 
@@ -117,11 +87,13 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(idPrefix, totalPatients);
+    mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
@@ -129,26 +101,8 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.successWithRetryAfter();
 
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/test/start")
-                .retrieve()
-                .toBodilessEntity()
-                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-                .doOnNext(r -> assertThat(r).isNotEmpty())
-                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(
-                    r ->
-                        Mono.delay(Duration.ofSeconds(6))
-                            .flatMap(
-                                i ->
-                                    client
-                                        .get()
-                                        .uri(r.getFirst())
-                                        .retrieve()
-                                        .bodyToMono(Status.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(totalPatients))
+    startProcess(Duration.ofSeconds(6))
+        .assertNext(r -> completedWithBundles(totalPatients, r))
         .verifyComplete();
   }
 
@@ -178,11 +132,13 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(idPrefix, 3);
+    mockCohortSelector.consentForNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));

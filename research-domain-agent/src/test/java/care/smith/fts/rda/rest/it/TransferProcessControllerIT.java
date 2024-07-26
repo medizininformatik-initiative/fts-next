@@ -12,7 +12,7 @@ import care.smith.fts.rda.rest.it.mock.MockDeidentifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
-import java.util.function.Consumer;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
@@ -23,6 +23,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.test.StepVerifier.FirstStep;
 
 /* RDA IT
  * - [x] patient endpoint
@@ -60,9 +61,12 @@ public class TransferProcessControllerIT extends BaseIT {
     resetAll();
   }
 
-  protected void startProcess(
-      Bundle bundle, Duration duration, Consumer<Status> assertionConsumer) {
-    client
+  protected FirstStep<Status> startProcess(Duration duration) {
+    return startProcess(duration, new Bundle());
+  }
+
+  protected FirstStep<Status> startProcess(Duration duration, Bundle bundle) {
+    return client
         .post()
         .uri("/api/v2/process/test/patient")
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
@@ -70,22 +74,17 @@ public class TransferProcessControllerIT extends BaseIT {
         .retrieve()
         .toBodilessEntity()
         .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(duration)
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class)))
-        .as(
-            response ->
-                StepVerifier.create(response).assertNext(assertionConsumer).verifyComplete());
+        .flatMap(r -> Mono.delay(duration).flatMap(i -> retrieveStatus(r)))
+        .as(StepVerifier::create);
   }
 
-  protected void startProcessAndExpectError(Duration duration) {
-    startProcess(
-        new Bundle(),
-        duration,
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.ERROR);
-        });
+  private Mono<Status> retrieveStatus(List<String> r) {
+    return client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class);
+  }
+
+  protected static void completeWithResources(Status r, int received, int sent) {
+    assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+    assertThat(r.receivedResources()).isEqualTo(received);
+    assertThat(r.sentResources()).isEqualTo(sent);
   }
 }

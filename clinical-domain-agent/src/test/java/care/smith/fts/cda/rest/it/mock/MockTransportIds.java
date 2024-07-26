@@ -8,16 +8,22 @@ import care.smith.fts.util.tca.PseudonymizeResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
 import org.mockserver.model.HttpError;
 import org.mockserver.model.HttpRequest;
+import org.mockserver.model.HttpResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 
+@Slf4j
 @Builder
 public class MockTransportIds {
 
@@ -41,11 +47,7 @@ public class MockTransportIds {
     var tidMap = transportIds.stream().collect(toMap(Function.identity(), Function.identity()));
     var pseudonymizeResponse = new PseudonymizeResponse(tidMap, Duration.ofDays(1));
     tca.when(mockRequestSpec)
-        .respond(
-            response()
-                .withStatusCode(200)
-                .withContentType(APPLICATION_JSON)
-                .withBody(om.writeValueAsString(pseudonymizeResponse)));
+        .respond(successResponse(200, om.writeValueAsString(pseudonymizeResponse)));
   }
 
   public void isDown() {
@@ -56,16 +58,36 @@ public class MockTransportIds {
     tca.when(mockRequestSpec).respond(request -> null, Delay.minutes(10));
   }
 
-  public void unknownDomain(ObjectMapper om, String patientId, String identifierSystem)
-      throws JsonProcessingException {
+  public void unknownDomain(ObjectMapper om) throws JsonProcessingException {
     tca.when(mockRequestSpec)
         .respond(
-            response()
-                .withStatusCode(400)
-                .withContentType(APPLICATION_JSON)
-                .withBody(
-                    om.writeValueAsString(
-                        ProblemDetail.forStatusAndDetail(
-                            HttpStatus.BAD_REQUEST, "Unknown domain 'MII'"))));
+            successResponse(
+                400,
+                om.writeValueAsString(
+                    ProblemDetail.forStatusAndDetail(
+                        HttpStatus.BAD_REQUEST, "Unknown domain 'MII'"))));
+  }
+
+  public void successWithStatusCode(List<Integer> statusCodes) throws JsonProcessingException {
+    var tidMap = transportIds.stream().collect(toMap(Function.identity(), Function.identity()));
+    var pseudonymizeResponse =
+        om.writeValueAsString(new PseudonymizeResponse(tidMap, Duration.ofDays(1)));
+    var rs = new LinkedList<>(statusCodes);
+    tca.when(mockRequestSpec)
+        .respond(
+            request ->
+                Optional.ofNullable(rs.poll())
+                    .map(
+                        statusCode -> {
+                          log.trace("statusCode: {}", statusCode);
+                          return statusCode < 400
+                              ? successResponse(200, pseudonymizeResponse)
+                              : response().withStatusCode(statusCode);
+                        })
+                    .orElseGet(() -> successResponse(200, pseudonymizeResponse)));
+  }
+
+  private HttpResponse successResponse(int statusCode, String om) {
+    return response().withStatusCode(statusCode).withContentType(APPLICATION_JSON).withBody(om);
   }
 }

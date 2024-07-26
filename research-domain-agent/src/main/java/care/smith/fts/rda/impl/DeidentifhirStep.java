@@ -2,6 +2,7 @@ package care.smith.fts.rda.impl;
 
 import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.generateRegistry;
 import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.replaceIDs;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.Deidentificator;
@@ -10,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -45,6 +45,8 @@ class DeidentifhirStep implements Deidentificator {
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(transportIds)
         .retrieve()
-        .bodyToMono(new ParameterizedTypeReference<>() {});
+        .bodyToMono(Object.class)
+        .map(o -> (Map<String, String>) o)
+        .retryWhen(defaultRetryStrategy());
   }
 }
