@@ -28,13 +28,19 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   @Test
   void hdsDown() {
     mockBundleSender.isDown();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(1));
+
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
   void hdsTimeout() {
     mockBundleSender.timeout();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(12));
+
+    startProcess(Duration.ofSeconds(12))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
@@ -46,6 +52,8 @@ public class BundleSenderIT extends TransferProcessControllerIT {
         .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()));
     mockBundleSender.successWithStatusCode(List.of(500));
 
-    successfulRequest(Duration.ofSeconds(3), 1);
+    startProcess(Duration.ofSeconds(3))
+        .assertNext(r -> completedWithBundles(1, r))
+        .verifyComplete();
   }
 }

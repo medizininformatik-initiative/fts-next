@@ -31,19 +31,28 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
   @Test
   void tcaDown() throws JsonProcessingException {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(3));
+
+    startProcess(Duration.ofSeconds(3))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
   void tcaTimeout() throws JsonProcessingException {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(11));
+
+    startProcess(Duration.ofSeconds(11))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
   void unknownDomain() throws IOException {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).unknownDomain(om);
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(3));
+
+    startProcess(Duration.ofSeconds(3))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
@@ -57,6 +66,8 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
         .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()));
     mockBundleSender.success();
 
-    successfulRequest(Duration.ofSeconds(3), 1);
+    startProcess(Duration.ofSeconds(3))
+        .assertNext(r -> completedWithBundles(1, r))
+        .verifyComplete();
   }
 }

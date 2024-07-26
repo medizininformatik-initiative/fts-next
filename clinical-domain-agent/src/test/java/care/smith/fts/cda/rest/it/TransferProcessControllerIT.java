@@ -12,7 +12,7 @@ import care.smith.fts.cda.rest.it.mock.MockDataSelector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
-import java.util.function.Consumer;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +21,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.test.StepVerifier.FirstStep;
 
 /*
  * CDA has two endpoints to test: `/{project}/start` and `/status/{projectId}`.
@@ -77,28 +78,6 @@ public class TransferProcessControllerIT extends BaseIT {
 
   protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 
-  public void successfulRequest(Duration duration, int expectedPatientsSent) {
-    client
-        .post()
-        .uri("/api/v2/process/test/start")
-        .retrieve()
-        .toBodilessEntity()
-        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .doOnNext(r -> assertThat(r).isNotEmpty())
-        .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-        .flatMap(
-            r ->
-                Mono.delay(duration)
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class)))
-        .as(
-            response ->
-                StepVerifier.create(response)
-                    .assertNext(
-                        r -> assertThat(r.bundlesSentCount()).isEqualTo(expectedPatientsSent))
-                    .verifyComplete());
-  }
-
   @BeforeEach
   void setUp(@LocalServerPort int port) {
     client = WebClient.builder().baseUrl("http://localhost:" + port).build();
@@ -109,38 +88,34 @@ public class TransferProcessControllerIT extends BaseIT {
     resetAll();
   }
 
-  protected void startProcess(Duration duration, Consumer<Status> assertionConsumer) {
-    client
+  protected FirstStep<Status> startProcess(Duration duration) {
+    return client
         .post()
         .uri("/api/v2/process/test/start")
         .retrieve()
         .toBodilessEntity()
         .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(
-            r ->
-                Mono.delay(duration)
-                    .flatMap(
-                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class)))
-        .as(
-            response ->
-                StepVerifier.create(response).assertNext(assertionConsumer).verifyComplete());
+        .doOnNext(r -> assertThat(r).isNotEmpty())
+        .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
+        .flatMap(r -> Mono.delay(duration).flatMap(i -> retrieveStatus(r)))
+        .as(StepVerifier::create);
   }
 
-  protected void startProcessExpectCompletedWithSkipped(Duration duration) {
-    startProcess(
-        duration,
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.bundlesSentCount()).isEqualTo(0);
-          assertThat(r.patientsSkippedCount()).isEqualTo(1);
-        });
+  private Mono<Status> retrieveStatus(List<String> r) {
+    return client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class);
   }
 
-  protected void startProcessExpectError(Duration duration) {
-    startProcess(
-        duration,
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.ERROR);
-        });
+  protected static void completedWithBundles(int expectedPatientsSent, Status r) {
+    expectPhase(r, Phase.COMPLETED);
+    assertThat(r.bundlesSentCount()).isEqualTo(expectedPatientsSent);
+  }
+
+  protected static void completedWithSkipped(Status r) {
+    completedWithBundles(0, r);
+    assertThat(r.patientsSkippedCount()).isEqualTo(1);
+  }
+
+  protected static void expectPhase(Status r, Phase phase) {
+    assertThat(r.phase()).isEqualTo(phase);
   }
 }

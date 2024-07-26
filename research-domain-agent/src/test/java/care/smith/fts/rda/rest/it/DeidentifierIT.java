@@ -16,19 +16,25 @@ public class DeidentifierIT extends TransferProcessControllerIT {
   @Test
   void tcaDown() {
     mockDeidentifier.isDown();
-    startProcessAndExpectError(Duration.ofSeconds(1));
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
   void tcaTimeout() {
     mockDeidentifier.hasTimeout();
-    startProcessAndExpectError(Duration.ofSeconds(10));
+    startProcess(Duration.ofSeconds(10))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
   void tcaReturnsWrongContentType() {
     mockDeidentifier.returnsWrongContentType();
-    startProcessAndExpectError(Duration.ofMillis(200));
+    startProcess(Duration.ofMillis(200))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
@@ -40,13 +46,8 @@ public class DeidentifierIT extends TransferProcessControllerIT {
 
     log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
 
-    startProcess(
-        transportBundle,
-        Duration.ofSeconds(3),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.receivedResources()).isEqualTo(366);
-          assertThat(r.sentResources()).isEqualTo(1);
-        });
+    startProcess(Duration.ofSeconds(3), transportBundle)
+        .assertNext(r -> completeWithResources(r, 366, 1))
+        .verifyComplete();
   }
 }

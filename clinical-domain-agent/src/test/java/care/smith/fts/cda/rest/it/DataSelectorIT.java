@@ -21,25 +21,36 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   @Test
   void hdsDown() {
     mockDataSelector.whenFetchData(patientId).dropConnection();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(1));
+
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
   void hdsTimeout() {
     mockDataSelector.whenFetchData(patientId).timeout();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(11));
+
+    startProcess(Duration.ofSeconds(11))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
   void hdsReturnsWrongContentType() {
     mockDataSelector.whenFetchData(patientId).respondWithWrongContentType();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(1));
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
   void hdsReturnsEmptyBundle() {
     mockDataSelector.whenFetchData(patientId).respondWithEmptyBundle();
-    startProcessExpectCompletedWithSkipped(Duration.ofSeconds(1));
+
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .verifyComplete();
   }
 
   @Test
@@ -52,6 +63,8 @@ public class DataSelectorIT extends TransferProcessControllerIT {
         .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()), List.of(500));
     mockBundleSender.success();
 
-    successfulRequest(Duration.ofSeconds(5), 1);
+    startProcess(Duration.ofSeconds(5))
+        .assertNext(r -> completedWithBundles(1, r))
+        .verifyComplete();
   }
 }

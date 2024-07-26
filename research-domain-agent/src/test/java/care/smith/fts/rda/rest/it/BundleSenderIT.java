@@ -16,14 +16,20 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   void hdsDown() {
     mockDeidentifier.success();
     mockBundleSender.isDown();
-    startProcessAndExpectError(Duration.ofSeconds(1));
+
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
   void hdsTimeout() {
     mockDeidentifier.success();
     mockBundleSender.hasTimeout();
-    startProcessAndExpectError(Duration.ofSeconds(12));
+
+    startProcess(Duration.ofSeconds(12))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
@@ -35,13 +41,8 @@ public class BundleSenderIT extends TransferProcessControllerIT {
 
     log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
 
-    startProcess(
-        transportBundle,
-        Duration.ofSeconds(3),
-        r -> {
-          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-          assertThat(r.receivedResources()).isEqualTo(366);
-          assertThat(r.sentResources()).isEqualTo(1);
-        });
+    startProcess(Duration.ofSeconds(3), transportBundle)
+        .assertNext(r -> completeWithResources(r, 366, 1))
+        .verifyComplete();
   }
 }

@@ -2,6 +2,7 @@ package care.smith.fts.cda.rest.it;
 
 import static care.smith.fts.test.TestPatientGenerator.generateNPatients;
 
+import care.smith.fts.cda.TransferProcessRunner.Phase;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.time.Duration;
@@ -14,25 +15,37 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   @Test
   void tcaDown() {
     mockCohortSelector.isDown();
-    startProcessExpectError(Duration.ofSeconds(1));
+
+    startProcess(Duration.ofSeconds(1))
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
   void tcaTimeoutConsentedPatientsRequest() {
     mockCohortSelector.timeout();
-    startProcessExpectError(Duration.ofSeconds(10));
+
+    startProcess(Duration.ofSeconds(10))
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
   void tcaSendsWrongContentType() throws IOException {
     mockCohortSelector.wrongContentType();
-    startProcessExpectError(Duration.ofMillis(200));
+
+    startProcess(Duration.ofMillis(200))
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
   void unknownDomain() throws JsonProcessingException {
     mockCohortSelector.unknownDomain(om);
-    startProcessExpectError(Duration.ofMillis(200));
+
+    startProcess(Duration.ofMillis(200))
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
@@ -56,7 +69,10 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     }
 
     mockBundleSender.success();
-    successfulRequest(Duration.ofSeconds(4), total);
+
+    startProcess(Duration.ofSeconds(4))
+        .assertNext(r -> completedWithBundles(total, r))
+        .verifyComplete();
   }
 
   @Test
@@ -82,6 +98,9 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     }
 
     mockBundleSender.success();
-    successfulRequest(Duration.ofSeconds(8), total);
+
+    startProcess(Duration.ofSeconds(8))
+        .assertNext(r -> completedWithBundles(total, r))
+        .verifyComplete();
   }
 }
