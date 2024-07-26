@@ -10,7 +10,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
 
   @BeforeEach
   void setUp() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
+    mockCohortSelector.consentForOnePatient(patientId);
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
   }
 

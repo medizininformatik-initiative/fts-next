@@ -26,7 +26,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(idPrefix, 3);
+    mockCohortSelector.consentForNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -38,27 +38,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/test/start")
-                .retrieve()
-                .toBodilessEntity()
-                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-                .doOnNext(r -> assertThat(r).isNotEmpty())
-                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(
-                    r ->
-                        Mono.delay(Duration.ofSeconds(3))
-                            .flatMap(
-                                i ->
-                                    client
-                                        .get()
-                                        .uri(r.getFirst())
-                                        .retrieve()
-                                        .bodyToMono(Status.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(3))
-        .verifyComplete();
+    successfulRequest(Duration.ofSeconds(3), 3);
   }
 
   @Test
@@ -72,7 +52,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatientsWithPaging(idPrefix, totalPatients, pageSize);
+    mockCohortSelector.consentForNPatientsWithPaging(idPrefix, totalPatients, pageSize);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -84,27 +64,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/test/start")
-                .retrieve()
-                .toBodilessEntity()
-                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-                .doOnNext(r -> assertThat(r).isNotEmpty())
-                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(
-                    r ->
-                        Mono.delay(Duration.ofSeconds(3))
-                            .flatMap(
-                                i ->
-                                    client
-                                        .get()
-                                        .uri(r.getFirst())
-                                        .retrieve()
-                                        .bodyToMono(Status.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(totalPatients))
-        .verifyComplete();
+    successfulRequest(Duration.ofSeconds(3), totalPatients);
   }
 
   @Test
@@ -117,7 +77,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(idPrefix, totalPatients);
+    mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -129,27 +89,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.successWithRetryAfter();
 
-    StepVerifier.create(
-            client
-                .post()
-                .uri("/api/v2/process/test/start")
-                .retrieve()
-                .toBodilessEntity()
-                .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-                .doOnNext(r -> assertThat(r).isNotEmpty())
-                .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-                .flatMap(
-                    r ->
-                        Mono.delay(Duration.ofSeconds(6))
-                            .flatMap(
-                                i ->
-                                    client
-                                        .get()
-                                        .uri(r.getFirst())
-                                        .retrieve()
-                                        .bodyToMono(Status.class))))
-        .assertNext(r -> assertThat(r.bundlesSentCount()).isEqualTo(totalPatients))
-        .verifyComplete();
+    successfulRequest(Duration.ofSeconds(6), totalPatients);
   }
 
   @Test
@@ -178,7 +118,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.successNPatients(idPrefix, 3);
+    mockCohortSelector.consentForNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();

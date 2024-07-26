@@ -14,6 +14,9 @@ import care.smith.fts.util.MediaTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +26,8 @@ import org.hl7.fhir.r4.model.UriType;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
 import org.mockserver.model.HttpError;
+import org.mockserver.model.HttpRequest;
+import org.mockserver.model.HttpResponse;
 import org.mockserver.model.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -41,57 +46,79 @@ public class MockCohortSelector {
     return FhirGenerators.gicsResponse(patientId);
   }
 
-  public void successOnePatient(String patientId) throws IOException {
-    successNPatients(patientId, 1);
+  public void consentForOnePatient(String patientId) throws IOException {
+    consentForNPatients(patientId, 1);
   }
 
-  public void successNPatients(String idPrefix, int n) throws IOException {
-    var consent =
-        validConsent(withPrefix(idPrefix)).generateResources().limit(n).collect(toBundle());
-    tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
-        .respond(
-            response()
-                .withStatusCode(200)
-                .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
-                .withBody(fhirResourceToString(consent)));
+  public void consentForNPatients(String idPrefix, int n) throws IOException {
+    consentForNPatientsWithPaging(idPrefix, n, n);
   }
 
-  public void successNPatientsWithPaging(String idPrefix, int total, int maxPageSize)
+  public void consentForNPatientsWithPaging(String idPrefix, int total, int maxPageSize)
       throws IOException {
+    consentForNPatientsWithPaging(idPrefix, total, maxPageSize, List.of());
+  }
+
+  public void consentForNPatientsWithPaging(
+      String idPrefix, int total, int maxPageSize, List<Integer> statusCodes) throws IOException {
     assertThat(maxPageSize).isGreaterThan(0);
     assertThat(total).isGreaterThanOrEqualTo(maxPageSize);
+
     var bundleFhirGenerator = validConsent(withPrefix(idPrefix));
+    var rs = new LinkedList<>(statusCodes);
 
     tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(
             request -> {
               log.trace("path: {}", request.getPath());
-
-              var fromRequest = request.getFirstQueryStringParameter("from");
-              var from = !fromRequest.isEmpty() ? Integer.parseInt(fromRequest) : 0;
-              var countRequest = request.getFirstQueryStringParameter("count");
-              var count = !countRequest.isEmpty() ? Integer.parseInt(countRequest) : maxPageSize;
-              log.trace("request params: from {}, count {}", from, count);
-
-              var consent =
-                  bundleFhirGenerator
-                      .generateResources()
-                      .limit(count)
-                      .collect(toBundle())
-                      .setTotal(total);
-
-              var nextFrom = from + count;
-              var nextCount = min(total - nextFrom, maxPageSize);
-              if (nextFrom < total) {
-                log.trace("Add nextLink count consent bundle");
-                consent = consent.addLink(nextLink(nextFrom, nextCount));
-              }
-
-              return response()
-                  .withStatusCode(200)
-                  .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
-                  .withBody(fhirResourceToString(consent));
+              return Optional.ofNullable(rs.poll())
+                  .map(
+                      statusCode -> {
+                        log.trace("statusCode: {}", statusCode);
+                        return statusCode < 400
+                            ? successResponse(
+                                total, maxPageSize, request, bundleFhirGenerator, statusCode)
+                            : response().withStatusCode(statusCode);
+                      })
+                  .orElseGet(
+                      () -> successResponse(total, maxPageSize, request, bundleFhirGenerator, 200));
             });
+  }
+
+  private HttpResponse successResponse(
+      int total,
+      int maxPageSize,
+      HttpRequest request,
+      FhirGenerator<Bundle> bundleFhirGenerator,
+      int statusCode) {
+    log.trace("Generate response with status code: {}", statusCode);
+    var from = extractParameter(request, "from", 0);
+    var count = extractParameter(request, "count", maxPageSize);
+    log.trace("request params: from {}, count {}", from, count);
+
+    var consent =
+        bundleFhirGenerator.generateResources().limit(count).collect(toBundle()).setTotal(total);
+
+    consent = addNextLink(total, maxPageSize, from, count, consent);
+    return response()
+        .withStatusCode(statusCode)
+        .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
+        .withBody(fhirResourceToString(consent));
+  }
+
+  private static int extractParameter(HttpRequest request, String name, int x) {
+    String fromRequest = request.getFirstQueryStringParameter(name);
+    return !fromRequest.isEmpty() ? Integer.parseInt(fromRequest) : x;
+  }
+
+  private Bundle addNextLink(int total, int maxPageSize, int from, int count, Bundle consent) {
+    var nextFrom = from + count;
+    var nextCount = min(total - nextFrom, maxPageSize);
+    if (nextFrom < total) {
+      log.trace("Add nextLink count consent bundle");
+      consent = consent.addLink(nextLink(nextFrom, nextCount));
+    }
+    return consent;
   }
 
   private Bundle.BundleLinkComponent nextLink(int from, int count) {

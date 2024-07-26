@@ -77,6 +77,28 @@ public class TransferProcessControllerIT extends BaseIT {
 
   protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 
+  public void successfulRequest(Duration duration, int expectedPatientsSent) {
+    client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .doOnNext(r -> assertThat(r).isNotEmpty())
+        .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
+        .flatMap(
+            r ->
+                Mono.delay(duration)
+                    .flatMap(
+                        i -> client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class)))
+        .as(
+            response ->
+                StepVerifier.create(response)
+                    .assertNext(
+                        r -> assertThat(r.bundlesSentCount()).isEqualTo(expectedPatientsSent))
+                    .verifyComplete());
+  }
+
   @BeforeEach
   void setUp(@LocalServerPort int port) {
     client = WebClient.builder().baseUrl("http://localhost:" + port).build();

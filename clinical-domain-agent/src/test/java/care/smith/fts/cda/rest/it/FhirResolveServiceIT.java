@@ -13,7 +13,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
 
   @BeforeEach
   void setUp() throws IOException {
-    mockCohortSelector.successOnePatient(patientId);
+    mockCohortSelector.consentForOnePatient(patientId);
   }
 
   @Test
