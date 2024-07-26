@@ -59,6 +59,12 @@
         <scope>import</scope>
         <type>pom</type>
       </dependency>
+
+      <dependency>
+        <groupId>org.mock-server</groupId>
+        <artifactId>mockserver-junit-jupiter</artifactId>
+        <version>5.15.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
