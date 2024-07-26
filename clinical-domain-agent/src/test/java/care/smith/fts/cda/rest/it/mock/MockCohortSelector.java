@@ -47,11 +47,17 @@ public class MockCohortSelector {
   }
 
   public void consentForOnePatient(String patientId) throws IOException {
+    log.info("consentForOnePatient {}", patientId);
     consentForNPatients(patientId, 1);
   }
 
   public void consentForNPatients(String idPrefix, int n) throws IOException {
     consentForNPatientsWithPaging(idPrefix, n, n);
+  }
+
+  public void consentForNPatients(String idPrefix, int n, List<Integer> statusCodes)
+      throws IOException {
+    consentForNPatientsWithPaging(idPrefix, n, n, statusCodes);
   }
 
   public void consentForNPatientsWithPaging(String idPrefix, int total, int maxPageSize)
@@ -64,8 +70,11 @@ public class MockCohortSelector {
     assertThat(maxPageSize).isGreaterThan(0);
     assertThat(total).isGreaterThanOrEqualTo(maxPageSize);
 
-    var bundleFhirGenerator = validConsent(withPrefix(idPrefix));
+    var bundleFhirGenerator =
+        total > 1 ? validConsent(withPrefix(idPrefix)) : validConsent(() -> idPrefix);
     var rs = new LinkedList<>(statusCodes);
+
+    log.trace("total: {}, maxPageSize: {}", total, maxPageSize);
 
     tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
         .respond(

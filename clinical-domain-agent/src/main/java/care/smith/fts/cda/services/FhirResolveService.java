@@ -1,6 +1,7 @@
 package care.smith.fts.cda.services;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
@@ -48,6 +49,7 @@ public class FhirResolveService implements PatientIdResolver {
   }
 
   private Mono<Bundle> fetchPatientBundle(String patientId) {
+    log.trace("fetchPatientBundle {}", patientId);
     return client
         .get()
         .uri(
@@ -59,6 +61,7 @@ public class FhirResolveService implements PatientIdResolver {
         .retrieve()
         .bodyToMono(Bundle.class)
         .doOnError(e -> log.error(e.getMessage()))
+        .retryWhen(defaultRetryStrategy())
         .onErrorResume(
             WebClientException.class,
             e -> Mono.error(new TransferProcessException("Cannot resolve patient id", e)));

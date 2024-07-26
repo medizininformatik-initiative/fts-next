@@ -1,6 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.util.Map.entry;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -53,11 +54,12 @@ class TCACohortSelector implements CohortSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), TCACohortSelector::handleBadRequest)
-        .bodyToMono(Bundle.class);
+        .bodyToMono(Bundle.class)
+        .doOnError(e -> log.error(e.getMessage()))
+        .retryWhen(defaultRetryStrategy());
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle) {
-    log.trace("fetchNextPage: {}", bundle.getLink("next"));
     return ofNullable(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
         .map(this::fetchBundle)

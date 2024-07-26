@@ -22,15 +22,19 @@ public class GeneralIT extends TransferProcessControllerIT {
   void successfulRequest() throws IOException {
 
     var idPrefix = "patientId";
-    var patientsAndIds = generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
+    int totalPatients = 3;
+    var patientsAndIds =
+        generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, totalPatients);
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.consentForNPatients(idPrefix, 3);
+    mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
@@ -38,7 +42,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    successfulRequest(Duration.ofSeconds(3), 3);
+    successfulRequest(Duration.ofSeconds(3), totalPatients);
   }
 
   @Test
@@ -56,7 +60,9 @@ public class GeneralIT extends TransferProcessControllerIT {
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
@@ -81,7 +87,9 @@ public class GeneralIT extends TransferProcessControllerIT {
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
@@ -122,7 +130,9 @@ public class GeneralIT extends TransferProcessControllerIT {
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
-      mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).success(patientId);
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
       mockDataSelector
           .whenFetchData(patientId)
           .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));

@@ -1,15 +1,18 @@
 package care.smith.fts.cda.rest.it;
 
+import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
+import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class FhirResolveServiceIT extends TransferProcessControllerIT {
-  private static final String patientId = "id1";
+  private static final String patientId = "patientId";
 
   @BeforeEach
   void setUp() throws IOException {
@@ -69,5 +72,20 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
           assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
           assertThat(r.patientsSkippedCount()).isEqualTo(1);
         });
+  }
+
+  @Test
+  void hdsFirstRequestFails() throws IOException {
+    var patient = generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
+    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+    mockDataSelector
+        .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+        .resolveId(patientId, List.of(500));
+    mockDataSelector
+        .whenFetchData(patientId)
+        .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()));
+    mockBundleSender.success();
+
+    successfulRequest(Duration.ofSeconds(3), 1);
   }
 }

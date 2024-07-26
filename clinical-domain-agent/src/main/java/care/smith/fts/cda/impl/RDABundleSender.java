@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.of;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -60,13 +62,20 @@ final class RDABundleSender implements BundleSender {
                     .build(config.project()))
         .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))
         .bodyValue(requireNonNull(bundle))
-        .exchangeToMono(this::waitForRDACompleted);
+        .exchangeToMono(this::waitForRDACompleted)
+        .doOnError(e -> log.error("{}", e.getMessage()))
+        .retryWhen(defaultRetryStrategy());
   }
 
   private Mono<ResponseEntity<Void>> waitForRDACompleted(ClientResponse clientResponse) {
-    log.trace("statusCode: {}", clientResponse.statusCode());
+    HttpStatusCode statusCode = clientResponse.statusCode();
+    log.trace("statusCode: {}", statusCode);
+    if (statusCode.is4xxClientError() || statusCode.is5xxServerError()) {
+      return clientResponse.createError();
+    }
+
     var uri = clientResponse.headers().header(CONTENT_LOCATION);
-    log.trace("{}", uri);
+    log.trace("uri: {}", uri);
     if (uri.isEmpty()) {
       return Mono.error(new TransferProcessException("Missing Content-Location"));
     }
