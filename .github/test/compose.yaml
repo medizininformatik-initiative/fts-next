@@ -25,7 +25,7 @@ services:
       retries: 3
       start_period: 60s
   cd-hds:
-    image: samply/blaze:0.29.1@sha256:3f267702ecbaa6ac00486e2e3c3b739ec31786ec15133d469d0b740cad073b8c
+    image: samply/blaze:0.29.2@sha256:76b1c07b562ca19ddb8f05e950b7ec1a23bfe4797a08737f30ad15ae1231f0bd
     ports: [ ":8080" ]
     networks: [ "clinical-domain" ]
     environment:
@@ -56,7 +56,7 @@ services:
       retries: 3
       start_period: 60s
   rd-hds:
-    image: samply/blaze:0.29.1@sha256:3f267702ecbaa6ac00486e2e3c3b739ec31786ec15133d469d0b740cad073b8c
+    image: samply/blaze:0.29.2@sha256:76b1c07b562ca19ddb8f05e950b7ec1a23bfe4797a08737f30ad15ae1231f0bd
     ports: [ ":8080" ]
     networks: [ "research-domain" ]
     environment:
