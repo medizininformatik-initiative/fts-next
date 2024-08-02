@@ -21,17 +21,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.MediaType;
+import org.redisson.api.RBucketReactive;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.web.reactive.function.client.WebClient;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.params.SetParams;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @SpringBootTest
@@ -41,7 +42,9 @@ class FhirPseudonymProviderTest {
   private static final Long SEED = 101620L;
 
   @Autowired WebClient.Builder httpClientBuilder;
-  @Mock Jedis jedis;
+  @MockBean RedissonClient redisClient;
+  @Mock RedissonReactiveClient redis;
+  @Mock RBucketReactive<Object> bucket;
   @Autowired PseudonymizationConfiguration pseudonymizationConfiguration;
 
   private FhirPseudonymProvider pseudonymProvider;
@@ -50,12 +53,13 @@ class FhirPseudonymProviderTest {
   void setUp(MockServerClient mockServer) {
     var address = "http://localhost:%d".formatted(mockServer.getPort());
 
-    JedisPool jedisPool = Mockito.mock(JedisPool.class);
-    given(jedisPool.getResource()).willReturn(jedis);
+    given(redisClient.reactive()).willReturn(redis);
+    given(redis.getBucket(anyString())).willReturn(bucket);
+
     pseudonymProvider =
         new FhirPseudonymProvider(
             httpClientBuilder.baseUrl(address).build(),
-            jedisPool,
+            redisClient,
             pseudonymizationConfiguration,
             new Random(SEED));
   }
@@ -72,19 +76,18 @@ class FhirPseudonymProviderTest {
                 .withBody(
                     json(
                         """
-                                { "resourceType": "Parameters", "parameter": [
-                                  {"name": "target", "valueString": "domain"}, {"name": "original", "valueString": "id1"}]}
-                                """,
+                                  { "resourceType": "Parameters", "parameter": [
+                                    {"name": "target", "valueString": "domain"}, {"name":
+   "original", "valueString": "id1"}]}
+                                  """,
                         ONLY_MATCHING_FIELDS)))
         .respond(
             response()
                 .withBody(
                     fhirGenerator.generateString(), MediaType.create("application", "fhir+json")));
 
-    given(jedis.set(anyString(), anyString(), any(SetParams.class))).willReturn("OK");
-    // In retrieveTransportIds(), the first jedis.get() checks whether the ID exists
-    // already. By returning null every other call, we simulate that it is a unique ID.
-    given(jedis.get(anyString())).willReturn(null, "469680023");
+    given(bucket.setIfAbsent(anyString(), any())).willReturn(Mono.just(true));
+    given(bucket.get()).willReturn(Mono.empty());
 
     Map<String, String> idMap = Map.of("id1", "Bo1z3Z87i");
     create(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"))
@@ -94,7 +97,7 @@ class FhirPseudonymProviderTest {
 
   @Test
   void retrievePseudonymIDs() {
-    given(jedis.get(anyString())).willReturn("123456789", "987654321");
+    given(bucket.get()).willReturn(Mono.just("123456789"), Mono.just("987654321"));
     create(pseudonymProvider.fetchPseudonymizedIds(Set.of("id1", "id2")))
         .expectNextMatches(
             m ->

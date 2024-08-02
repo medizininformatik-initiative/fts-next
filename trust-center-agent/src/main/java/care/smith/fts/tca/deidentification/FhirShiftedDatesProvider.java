@@ -7,36 +7,44 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.params.SetParams;
 
+@Slf4j
 @Component
 public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
   private static final String SHIFTED_DATE_PREFIX = "shiftedDate";
-  private final JedisPool jedisPool;
+  private final RedissonClient redisClient;
 
-  public FhirShiftedDatesProvider(JedisPool jedisPool) {
-    this.jedisPool = jedisPool;
+  public FhirShiftedDatesProvider(RedissonClient redisClient) {
+    this.redisClient = redisClient;
   }
 
   @Override
   public Mono<Map<String, Duration>> generateDateShift(Set<String> ids, Duration dateShiftBy) {
-    try (Jedis jedis = jedisPool.getResource()) {
-      return Flux.fromIterable(ids)
-          .map(id -> generateIfNotExists(id, jedis, dateShiftBy))
-          .map(id -> new Entry(id, ofMillis(parseLong(jedis.get(withPrefix(id))))))
-          .collectMap(Entry::id, Entry::shift);
-    }
-  }
-
-  private String generateIfNotExists(String id, Jedis jedis, Duration dateShiftBy) {
-    var timeShift = getRandomDateShift(dateShiftBy);
-    jedis.set((withPrefix(id)), String.valueOf(timeShift), new SetParams().nx());
-    return id;
+    RedissonReactiveClient redis = redisClient.reactive();
+    return Flux.fromIterable(ids)
+        .flatMap(
+            id ->
+                redis
+                    .getBucket(withPrefix(id))
+                    .setIfAbsent(String.valueOf(getRandomDateShift(dateShiftBy)))
+                    .doOnError(e -> log.error("e: {}", e.getMessage()))
+                    .switchIfEmpty(Mono.just(true)) // TODO check if we need this
+                    .map(ret -> id))
+        .doOnNext(id -> log.trace("generateDateShift for id: {}", id))
+        .flatMap(
+            id ->
+                redis
+                    .<String>getBucket(withPrefix(id))
+                    .get()
+                    .doOnNext(x -> log.trace("x: {}", x))
+                    .map(shift -> new Entry(id, ofMillis(parseLong(shift)))))
+        .collectMap(Entry::id, Entry::shift);
   }
 
   private static String withPrefix(String id) {
