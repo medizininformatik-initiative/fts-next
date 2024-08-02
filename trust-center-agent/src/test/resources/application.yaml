@@ -10,7 +10,7 @@ consent:
         none: { }
 
 deIdentification:
-  keystoreUrl: http://valkey:6379
+  keystoreUrl: redis://valkey:6379
   gpas:
     fhir:
       baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas

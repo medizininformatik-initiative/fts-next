@@ -9,7 +9,7 @@ management:
       http.server.requests: 25,100,250,500,1000,10000,60000
 
 deIdentification:
-  keystoreUrl: http://keystore:6379
+  keystoreUrl: redis://keystore:6379
   gpas:
     fhir:
       baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas

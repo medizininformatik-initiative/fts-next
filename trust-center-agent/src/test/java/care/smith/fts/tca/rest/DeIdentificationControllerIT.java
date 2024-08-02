@@ -94,14 +94,8 @@ class DeIdentificationControllerIT extends BaseIT {
         .respond(
             request ->
                 Optional.ofNullable(statusCodes.poll())
-                    .map(
-                        statusCode ->
-                            statusCode < 400
-                                ? response()
-                                    .withStatusCode(200)
-                                    .withContentType(APPLICATION_FHIR_JSON)
-                                    .withBody(body)
-                                : response().withStatusCode(statusCode))
+                    .filter(statusCode -> statusCode >= 400)
+                    .map(statusCode -> response().withStatusCode(statusCode))
                     .orElseGet(
                         () ->
                             response()

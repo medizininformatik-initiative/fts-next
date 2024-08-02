@@ -34,7 +34,7 @@ public class BaseIT {
 
   @DynamicPropertySource
   static void registerRedisMockUrl(DynamicPropertyRegistry registry) {
-    String baseUrl = "http://localhost:%d".formatted(keystore.getFirstMappedPort());
+    String baseUrl = "redis://localhost:%d".formatted(keystore.getFirstMappedPort());
     registry.add("de-identification.keystore-url", () -> baseUrl);
   }
 }
