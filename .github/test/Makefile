@@ -27,6 +27,10 @@ clean-dbs:
 	docker compose down cd-hds rd-hds gics-db
 	docker compose up --wait cd-hds rd-hds gics-db
 
+clean-rd-hds:
+	docker compose down rd-hds
+	docker compose up --wait rd-hds
+
 all: pull start upload transfer wait check-status check-resources clean-dbs
 
 .PHONY: all pull start upload transfer wait check-status check-resources
