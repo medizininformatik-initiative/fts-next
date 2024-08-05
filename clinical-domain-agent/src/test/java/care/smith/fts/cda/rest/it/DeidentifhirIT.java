@@ -18,7 +18,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
 
   public DeidentifhirIT() throws IOException {
     patient = generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
-    log.trace("patient: {}", patient.getIdPart());
+    log.trace("Patient ID: {}", patient.getIdPart());
   }
 
   @BeforeEach
