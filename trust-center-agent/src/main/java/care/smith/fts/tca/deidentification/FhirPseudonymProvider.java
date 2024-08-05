@@ -87,7 +87,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .getBucket("tid:" + tid)
         .get()
         .switchIfEmpty(Mono.just("OK"))
-        .doOnError(e -> log.error("error: {}", e.getMessage()))
+        .doOnError(e -> log.error(e.getMessage()))
         .flatMap(ret -> ret.equals("OK") ? Mono.just(tid) : getUniqueTransportId());
   }
 
@@ -98,8 +98,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
             ids.stream().map(id -> Map.of("name", "original", "valueString", id)));
     var params = Map.of("resourceType", "Parameters", "parameter", idParams.toList());
 
-    log.trace(
-        "fetchOrCreatePseudonyms for domain: %s and ids: %s".formatted(domain, ids.toString()));
+    log.trace("fetchOrCreatePseudonyms for domain: %s and %d ids".formatted(domain, ids.size()));
 
     return httpClient
         .post()
@@ -111,8 +110,9 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .onStatus(
             r -> r.equals(HttpStatus.BAD_REQUEST), FhirPseudonymProvider::handleGpasBadRequest)
         .bodyToMono(GpasParameterResponse.class)
+        .doOnError(e -> log.error(e.getMessage()))
         .retryWhen(defaultRetryStrategy())
-        .doOnNext(r -> log.trace("$pseudonymize response: {}", r))
+        .doOnNext(r -> log.trace("$pseudonymize response: {} parameters", r.parameter().size()))
         .map(GpasParameterResponse::getMappedID)
         .flatMapMany(
             map -> Flux.fromIterable(map.entrySet()).map(e -> Tuples.of(e.getKey(), e.getValue())));
@@ -133,12 +133,18 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public Mono<Map<String, String>> fetchPseudonymizedIds(Set<String> ids) {
-    if (!ids.isEmpty()) {
+  public Mono<Map<String, String>> fetchPseudonymizedIds(Set<String> tids) {
+    if (!tids.isEmpty()) {
       RedissonReactiveClient redis = redisClient.reactive();
-      return Flux.fromIterable(ids)
+      return Flux.fromIterable(tids)
           .flatMap(
-              id -> redis.<String>getBucket("tid:" + id).get().map(value -> Tuples.of(id, value)))
+              tid ->
+                  redis
+                      .<String>getBucket("tid:" + tid)
+                      .get()
+                      .doOnError(
+                          e -> log.error("fetchPseudonymizedId for {}, {}", tid, e.getMessage()))
+                      .map(value -> Tuples.of(tid, value)))
           .collectMap(Tuple2::getT1, Tuple2::getT2);
 
     } else {

@@ -71,6 +71,8 @@ class DeidentifhirStep implements Deidentificator {
       String patientId, Set<String> ids) {
     PseudonymizeRequest request = new PseudonymizeRequest(patientId, ids, domain, dateShift);
 
+    log.trace("Fetch TIDs and date shifting values for {} IDs", ids.size());
+
     return httpClient
         .post()
         .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
@@ -83,7 +85,7 @@ class DeidentifhirStep implements Deidentificator {
                 s.bodyToMono(ProblemDetail.class)
                     .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
         .bodyToMono(PseudonymizeResponse.class)
-        .doOnError(e -> log.error(e.toString()))
+        .doOnError(e -> log.error(e.getMessage()))
         .retryWhen(defaultRetryStrategy());
   }
 }

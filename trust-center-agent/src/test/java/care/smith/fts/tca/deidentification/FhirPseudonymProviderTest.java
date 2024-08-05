@@ -28,6 +28,7 @@ import org.mockserver.model.MediaType;
 import org.redisson.api.RBucketReactive;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
+import org.redisson.client.RedisTimeoutException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -96,6 +97,35 @@ class FhirPseudonymProviderTest {
   }
 
   @Test
+  void retrieveTransportIdsWhenRedisDown(MockServerClient mockServer) throws IOException {
+    var fhirGenerator = FhirGenerators.gpasGetOrCreateResponse(() -> "id1", () -> "469680023");
+
+    mockServer
+        .when(
+            request()
+                .withMethod("POST")
+                .withPath("/$pseudonymizeAllowCreate")
+                .withBody(
+                    json(
+                        """
+                                  { "resourceType": "Parameters", "parameter": [
+                                    {"name": "target", "valueString": "domain"}, {"name":
+   "original", "valueString": "id1"}]}
+                                  """,
+                        ONLY_MATCHING_FIELDS)))
+        .respond(
+            response()
+                .withBody(
+                    fhirGenerator.generateString(), MediaType.create("application", "fhir+json")));
+
+    given(bucket.get()).willReturn(Mono.error(new RedisTimeoutException("timeout")));
+
+    create(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"))
+        .expectError(RedisTimeoutException.class)
+        .verify();
+  }
+
+  @Test
   void retrievePseudonymIDs() {
     given(bucket.get()).willReturn(Mono.just("123456789"), Mono.just("987654321"));
     create(pseudonymProvider.fetchPseudonymizedIds(Set.of("id1", "id2")))
@@ -106,6 +136,14 @@ class FhirPseudonymProviderTest {
                     && m.containsValue("123456789")
                     && m.containsValue("987654321"))
         .verifyComplete();
+  }
+
+  @Test
+  void retrievePseudonymIDsWhenRedisDown() {
+    given(bucket.get()).willReturn(Mono.error(new RedisTimeoutException("timeout")));
+    create(pseudonymProvider.fetchPseudonymizedIds(Set.of("id1", "id2")))
+        .expectError(RedisTimeoutException.class)
+        .verify();
   }
 
   @AfterEach

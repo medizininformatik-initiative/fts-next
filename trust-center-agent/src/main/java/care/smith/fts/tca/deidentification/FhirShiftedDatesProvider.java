@@ -33,7 +33,7 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
                 redis
                     .getBucket(withPrefix(id))
                     .setIfAbsent(String.valueOf(getRandomDateShift(dateShiftBy)))
-                    .doOnError(e -> log.error("e: {}", e.getMessage()))
+                    .doOnError(e -> log.error("Set date shift: {}", e.getMessage()))
                     .switchIfEmpty(Mono.just(true)) // TODO check if we need this
                     .map(ret -> id))
         .doOnNext(id -> log.trace("generateDateShift for id: {}", id))
@@ -42,7 +42,7 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
                 redis
                     .<String>getBucket(withPrefix(id))
                     .get()
-                    .doOnNext(x -> log.trace("x: {}", x))
+                    .doOnError(e -> log.error("Receive date shift: {}", e.getMessage()))
                     .map(shift -> new Entry(id, ofMillis(parseLong(shift)))))
         .collectMap(Entry::id, Entry::shift);
   }

@@ -44,7 +44,7 @@ public class EverythingDataSelector implements DataSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
-        .doOnError(e -> log.error("", e))
+        .doOnError(e -> log.error(e.getMessage()))
         .retryWhen(defaultRetryStrategy())
         // TODO Paging using .expand()? see Flare
         .flux();
