@@ -30,7 +30,6 @@ services:
     networks: [ "clinical-domain" ]
     environment:
       BASE_URL: "http://cd-hds:8080"
-      STORAGE: "in-memory"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 10s
@@ -61,7 +60,6 @@ services:
     networks: [ "research-domain" ]
     environment:
       BASE_URL: "http://rd-hds:8080"
-      STORAGE: "in-memory"
       ENFORCE_REFERENTIAL_INTEGRITY: "false"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
