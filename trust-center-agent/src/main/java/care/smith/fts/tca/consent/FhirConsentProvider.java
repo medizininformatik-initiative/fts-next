@@ -158,18 +158,19 @@ public class FhirConsentProvider implements ConsentProvider {
    * @return a Mono emitting a Bundle of consents
    */
   private Mono<Bundle> fetchConsentPageFromGics(String domain, PagingParams pagingParams) {
-    int to = pagingParams.sum();
     var body =
         Map.of(
             "resourceType",
             "Parameters",
             "parameter",
             List.of(Map.of("name", "domain", "valueString", domain)));
-    String formatted =
-        "/$allConsentsForDomain?_count=%s&_offset=%s".formatted(to, pagingParams.from());
+    var url =
+        "/$allConsentsForDomain?_count=%s&_offset=%s"
+            .formatted(pagingParams.count, pagingParams.from());
+    log.trace("Fetch consent page from gics with URL: {}", url);
     return httpClient
         .post()
-        .uri(formatted)
+        .uri(url)
         .bodyValue(body)
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))

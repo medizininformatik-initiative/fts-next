@@ -119,7 +119,7 @@ class FhirConsentProviderTest {
             postRequest.withQueryStringParameters(
                 List.of(
                     new Parameter("_offset", String.valueOf(defaultPageSize)),
-                    new Parameter("_count", String.valueOf(2 * defaultPageSize)))))
+                    new Parameter("_count", String.valueOf(defaultPageSize)))))
         .respond(httpResponse);
 
     var expectedNextLink = "/fake?from=%s&count=%s".formatted(defaultPageSize, defaultPageSize);
