@@ -66,7 +66,6 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       phase.set(Phase.RUNNING);
       cohortSelector
           .selectCohort()
-          .doOnError(e -> log.error(e.getMessage()))
           .doOnError(e -> phase.set(Phase.ERROR))
           .flatMap(this::executePatient)
           .doOnComplete(() -> phase.set(Phase.COMPLETED))

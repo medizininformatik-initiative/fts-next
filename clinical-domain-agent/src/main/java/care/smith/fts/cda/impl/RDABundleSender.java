@@ -63,7 +63,7 @@ final class RDABundleSender implements BundleSender {
         .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))
         .bodyValue(requireNonNull(bundle))
         .exchangeToMono(this::waitForRDACompleted)
-        .doOnError(e -> log.error(e.getMessage()))
+        .doOnError(e -> log.error("Unable to send Bundle to RDA: {}", e.getMessage()))
         .retryWhen(defaultRetryStrategy());
   }
 

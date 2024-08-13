@@ -179,7 +179,7 @@ public class FhirConsentProvider implements ConsentProvider {
         .bodyToMono(Bundle.class)
         .retryWhen(defaultRetryStrategy())
         .doOnNext(b -> log.trace("Consent fetched, {} bundle entries", b.getEntry().size()))
-        .doOnError(b -> log.error("Error fetching consent", b));
+        .doOnError(b -> log.error("Unable to fetch consent from gICS", b));
   }
 
   private static Mono<Throwable> handleGicsNotFound(ClientResponse r) {

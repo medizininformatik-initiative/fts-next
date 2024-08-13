@@ -85,7 +85,10 @@ class DeidentifhirStep implements Deidentificator {
                 s.bodyToMono(ProblemDetail.class)
                     .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
         .bodyToMono(PseudonymizeResponse.class)
-        .doOnError(e -> log.error(e.getMessage()))
+        .doOnError(
+            e ->
+                log.error(
+                    "Cannot fetch transport deidentification data from TCA: {}", e.getMessage()))
         .retryWhen(defaultRetryStrategy());
   }
 }

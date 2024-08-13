@@ -87,7 +87,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .getBucket("tid:" + tid)
         .get()
         .switchIfEmpty(Mono.just("OK"))
-        .doOnError(e -> log.error(e.getMessage()))
+        .doOnError(e -> log.error("Cannot read transport ID from keystore: {}", e.getMessage()))
         .flatMap(ret -> ret.equals("OK") ? Mono.just(tid) : getUniqueTransportId());
   }
 
@@ -110,7 +110,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .onStatus(
             r -> r.equals(HttpStatus.BAD_REQUEST), FhirPseudonymProvider::handleGpasBadRequest)
         .bodyToMono(GpasParameterResponse.class)
-        .doOnError(e -> log.error(e.getMessage()))
+        .doOnError(e -> log.error("Unable to fetch pseudonym from gPAS: {}", e.getMessage()))
         .retryWhen(defaultRetryStrategy())
         .doOnNext(r -> log.trace("$pseudonymize response: {} parameters", r.parameter().size()))
         .map(GpasParameterResponse::getMappedID)

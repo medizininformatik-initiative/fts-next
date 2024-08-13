@@ -44,7 +44,7 @@ public class EverythingDataSelector implements DataSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
-        .doOnError(e -> log.error(e.getMessage()))
+        .doOnError(e -> log.error("Unable to fetch patient data from HDS: {}", e.getMessage()))
         .retryWhen(defaultRetryStrategy())
         // TODO Paging using .expand()? see Flare
         .flux();
