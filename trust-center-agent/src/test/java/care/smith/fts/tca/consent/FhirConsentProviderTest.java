@@ -122,12 +122,14 @@ class FhirConsentProviderTest {
                     new Parameter("_count", String.valueOf(defaultPageSize)))))
         .respond(httpResponse);
 
-    var expectedNextLink = "/fake?from=%s&count=%s".formatted(defaultPageSize, defaultPageSize);
+    var expectedNextLink =
+        "http://localhost:8080/api/v2/cd/consented-patients?from=%s&count=%s"
+            .formatted(defaultPageSize, defaultPageSize);
 
     log.info("Get first page");
     create(
             fhirConsentProvider.consentedPatientsPage(
-                "MII", POLICY_SYSTEM, POLICIES, fromUriString("/fake")))
+                "MII", POLICY_SYSTEM, POLICIES, fromUriString("http://localhost:8080")))
         .assertNext(
             consentBundle ->
                 assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink))
@@ -138,7 +140,7 @@ class FhirConsentProviderTest {
                 "MII",
                 POLICY_SYSTEM,
                 POLICIES,
-                fromUriString("/fake?from=0&count=200"),
+                fromUriString("http://localhost:8080"),
                 defaultPageSize,
                 defaultPageSize))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink()).isEmpty())

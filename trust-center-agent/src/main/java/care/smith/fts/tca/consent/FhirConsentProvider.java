@@ -102,7 +102,8 @@ public class FhirConsentProvider implements ConsentProvider {
       UriComponentsBuilder requestUrl, PagingParams pagingParams) {
     var uri =
         requestUrl
-            .replaceQueryParam("from", pagingParams.sum())
+            .path("/api/v2/cd/consented-patients")
+            .queryParam("from", pagingParams.sum())
             .replaceQueryParam("count", pagingParams.count())
             .toUriString();
     return new Bundle.BundleLinkComponent(new StringType("next"), new UriType(uri));
