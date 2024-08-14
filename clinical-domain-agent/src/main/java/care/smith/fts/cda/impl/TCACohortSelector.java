@@ -40,12 +40,13 @@ class TCACohortSelector implements CohortSelector {
     return fetchBundle("/api/v2/cd/consented-patients")
         .expand(this::fetchNextPage)
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
-        .doOnError(e -> log.error(e.getMessage()))
+        .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
         .onErrorResume(WebClientException.class, TCACohortSelector::handleError)
         .flatMap(this::extractConsentedPatients);
   }
 
   private Mono<Bundle> fetchBundle(String uri) {
+    log.debug("fetchBundle URL: {}", uri);
     return client
         .post()
         .uri(uri)
@@ -55,7 +56,6 @@ class TCACohortSelector implements CohortSelector {
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), TCACohortSelector::handleBadRequest)
         .bodyToMono(Bundle.class)
-        .doOnError(e -> log.error(e.getMessage()))
         .retryWhen(defaultRetryStrategy());
   }
 

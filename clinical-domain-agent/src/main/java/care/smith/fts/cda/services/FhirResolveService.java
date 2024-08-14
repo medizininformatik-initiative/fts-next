@@ -60,7 +60,7 @@ public class FhirResolveService implements PatientIdResolver {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
-        .doOnError(e -> log.error(e.getMessage()))
+        .doOnError(e -> log.error("Unable to fetch patient ID from HDS: {}", e.getMessage()))
         .retryWhen(defaultRetryStrategy())
         .onErrorResume(
             WebClientException.class,
