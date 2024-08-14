@@ -125,7 +125,7 @@ services:
       retries: 3
       start_period: 120s
   gpas:
-    image: creg.smith.care/fts/gpas:2023.1.2@sha256:6ccc25c108060fe7dce34a776c60b24139b655796c51256600a86ad3d71818f6
+    image: creg.smith.care/fts/gpas:2024.1.0@sha256:3325286fac6ce5a3ab39b01600c252d81b1677f9016d4f920399dbd456bb0381
     ports: [ ":8080" ]
     networks: [ "trust-center", "gpas" ]
     depends_on:
