@@ -20,6 +20,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import reactor.tools.agent.ReactorDebugAgent;
 
 @Slf4j
 @SpringBootApplication
@@ -28,6 +29,7 @@ import org.springframework.context.annotation.Primary;
 public class ResearchDomainAgent {
 
   public static void main(String... args) {
+    ReactorDebugAgent.init();
     SpringApplication.run(ResearchDomainAgent.class, args);
   }
 

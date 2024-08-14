@@ -42,6 +42,14 @@
     </repository>
   </repositories>
 
+  <dependencies>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-tools</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -149,6 +157,30 @@
           <configuration>
             <classesDirectory>${project.build.outputDirectory}</classesDirectory>
           </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>copy-agent</id>
+              <phase>package</phase>
+              <goals>
+                <goal>copy</goal>
+              </goals>
+              <configuration>
+                <artifactItems>
+                  <artifactItem>
+                    <groupId>io.projectreactor</groupId>
+                    <artifactId>reactor-tools</artifactId>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <destFileName>reactor-tools.jar</destFileName>
+                  </artifactItem>
+                </artifactItems>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>

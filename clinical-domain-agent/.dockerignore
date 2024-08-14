@@ -1,3 +1,4 @@
 *
 !target/clinical-domain-agent.jar
+!target/reactor-tools.jar
 !application.yaml

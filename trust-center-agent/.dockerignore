@@ -1,3 +1,4 @@
 *
 !target/trust-center-agent.jar
+!target/reactor-tools.jar
 !application.yaml
