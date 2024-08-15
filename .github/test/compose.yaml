@@ -95,7 +95,7 @@ services:
       retries: 3
       start_period: 10s
   gics:
-    image: creg.smith.care/fts/gics:2023.1.4@sha256:093f317ad936ff8595105bf21abccd4ad33ddd066d132e5ba34d5b37e5b8bd62
+    image: creg.smith.care/fts/gics:2024.1.1@sha256:d0b2435ebb98ed8b7db368697c90ce18a014ba036fdc7472a49d2aac5d52adb0
     ports: [ ":8080" ]
     networks: [ "trust-center", "gics" ]
     depends_on:
