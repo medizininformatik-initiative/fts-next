@@ -69,7 +69,7 @@ public class NamespacingReplacementProvider
 
     @Override
     public String getKeyForResourceTypeAndID(@NotNull String resourceType, @NotBlank String id) {
-      return prefix + ".id." + resourceType + ":" + id;
+      return prefix + "." + resourceType + ":" + id;
     }
 
     @Override

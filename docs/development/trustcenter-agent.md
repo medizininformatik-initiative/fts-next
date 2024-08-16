@@ -31,10 +31,9 @@ The RDA asks the TCA to provide the secure IDs for the transport IDs and replace
 ```mermaid
 sequenceDiagram
     CDA ->> TCA: IDs: <Set<oRID>> & oPID
-    TCA --> TCA: Find PID in IDs
     TCA ->> gPAS: pseudomizeOrCreate oPID, Salt_oPID
     gPAS ->> TCA: oPID ➙ sPID, Salt_oPID ➙ Salt
-    TCA ->> Keystore: idMap: <Map<oRID, tRID>> & oPID ➙ tPID
+    TCA ->> Keystore: idMap: <Map<oRID, sRID>>
     TCA ->> CDA: IdMap: <Map<oRID, tRID>> & oPID ➙ tPID
     CDA ->> RDA: Transport IDs: <Set<tRID>> & tPID
     RDA ->> TCA: Transport IDs

@@ -52,10 +52,10 @@ public class MockDataSelector {
   public MockTransportIds whenTransportIds(String patientId, String identifierSystem)
       throws JsonProcessingException {
     var id1 = patientId + ".identifier." + identifierSystem + ":" + patientId;
-    var id2 = patientId + ".id.Patient:" + patientId;
+    var id2 = patientId + ".Patient:" + patientId;
 
     Set<String> ids = Set.of(id1, id2);
-    var pseudonymizeRequest = new PseudonymizeRequest(patientId, ids, "MII", Duration.ofDays(14));
+    var pseudonymizeRequest = new PseudonymizeRequest(id1, ids, "MII", Duration.ofDays(14));
     return MockTransportIds.builder()
         .tca(tca)
         .transportIds(ids)

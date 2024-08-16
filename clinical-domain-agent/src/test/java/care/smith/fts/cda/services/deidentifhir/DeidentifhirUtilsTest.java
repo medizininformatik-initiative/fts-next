@@ -23,7 +23,7 @@ class DeidentifhirUtilsTest {
     Map<String, String> transportIDs =
         Map.of(
             "id1.identifier.identifierSystem1:id1", "tid1.identifier.identifierSystem1:tid1",
-            "id1.id.Patient:id1", "tid1.id.Patient:tid1");
+            "id1.Patient:id1", "tid1.Patient:tid1");
 
     Registry registry = generateRegistry(patient.id(), transportIDs, Duration.ofMillis(1000));
 
@@ -36,7 +36,7 @@ class DeidentifhirUtilsTest {
 
     Patient p = (Patient) b.getEntryFirstRep().getResource();
 
-    assertThat(p.getId()).isEqualTo("Patient/tid1.id.Patient:tid1");
+    assertThat(p.getId()).isEqualTo("Patient/tid1.Patient:tid1");
     assertThat(p.getIdentifierFirstRep().getValue())
         .isEqualTo("tid1.identifier.identifierSystem1:tid1");
   }

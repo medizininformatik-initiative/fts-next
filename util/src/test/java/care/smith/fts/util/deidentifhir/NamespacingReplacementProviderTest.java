@@ -23,7 +23,7 @@ class NamespacingReplacementProviderTest {
   @Test
   void namespacedIdFound() {
     var keyCreator = withNamespacing("pre");
-    var replacements = Map.of("pre.id.patient:some", "replacement");
+    var replacements = Map.of("pre.patient:some", "replacement");
     var provider = NamespacingReplacementProvider.of(keyCreator, replacements);
 
     assertThat(provider.getIDReplacement("patient", "some")).isEqualTo("replacement");

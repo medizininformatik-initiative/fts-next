@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
@@ -96,9 +97,8 @@ class FhirPseudonymProviderTest {
 
     Set<String> ids = Set.of("id1");
     var mapName = "Bo1z3Z87i";
-
     var idMap = Tuples.of(mapName, Map.of("id1", "xLCUONMhJ"));
-    create(pseudonymProvider.retrieveTransportIds(ids, "domain"))
+    create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
         .expectNext(idMap)
         .verifyComplete();
   }
@@ -108,7 +108,14 @@ class FhirPseudonymProviderTest {
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
     assertThrows(
         RedisTimeoutException.class,
-        () -> pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"));
+        () -> pseudonymProvider.retrieveTransportIds("id1", Set.of("id1"), "domain"));
+  }
+
+  @Test
+  void retrieveTransportIdsWithWrongPatientId() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> pseudonymProvider.retrieveTransportIds("wrongId", Set.of("id1"), "domain"));
   }
 
   @Test
@@ -131,6 +138,21 @@ class FhirPseudonymProviderTest {
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
     create(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
         .expectError(RedisTimeoutException.class)
+        .verify();
+  }
+
+  @Test
+  void fetchPseudonymIDsWithGpasBadRequestResponse(MockServerClient mockServer) {
+    mockServer
+        .when(request().withMethod("POST").withPath("/$pseudonymizeAllowCreate"))
+        .respond(response().withStatusCode(400));
+
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
+
+    Set<String> ids = Set.of("id1");
+    create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
+        .expectError(WebClientResponseException.class)
         .verify();
   }
 

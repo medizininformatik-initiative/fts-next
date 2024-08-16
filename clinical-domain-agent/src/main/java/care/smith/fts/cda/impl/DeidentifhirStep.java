@@ -12,7 +12,6 @@ import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -52,12 +51,19 @@ class DeidentifhirStep implements Deidentificator {
     ConsentedPatient patient = bundle.consentedPatient();
     IDATScraper idatScraper = new IDATScraper(scraperConfig, patient);
     var ids = idatScraper.gatherIDs(bundle.bundle());
-    return fetchTransportIdsAndDateShiftingValues(patient.id(), ids)
+
+    var pid =
+        ids.stream()
+            .filter(id -> id.contains("identifier"))
+            .filter(id -> id.endsWith(patient.id()))
+            .findFirst()
+            .orElseThrow();
+
+    return fetchTransportIdsAndDateShiftingValues(pid, ids)
         .map(
             response -> {
-              Map<String, String> transportIDs = response.originalToTransportIDMap();
-              Duration dateShiftValue = response.dateShiftValue();
-
+              var transportIDs = response.originalToTransportIDMap();
+              var dateShiftValue = response.dateShiftValue();
               var registry = generateRegistry(patient.id(), transportIDs, dateShiftValue);
               var deidentified =
                   DeidentifhirUtils.deidentify(

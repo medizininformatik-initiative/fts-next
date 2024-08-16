@@ -4,14 +4,11 @@ import static java.lang.Long.parseLong;
 import static java.time.Duration.ofMillis;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -25,26 +22,22 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
   }
 
   @Override
-  public Mono<Map<String, Duration>> generateDateShift(Set<String> ids, Duration dateShiftBy) {
+  public Mono<Duration> generateDateShift(String id, Duration dateShiftBy) {
     RedissonReactiveClient redis = redisClient.reactive();
-    return Flux.fromIterable(ids)
+    return redis
+        .getBucket(withPrefix(id))
+        .setIfAbsent(String.valueOf(getRandomDateShift(dateShiftBy)))
+        .doOnError(e -> log.error("Unable to set date shift: {}", e.getMessage()))
+        .switchIfEmpty(Mono.just(true)) // TODO check if we need this
+        .map(ret -> id)
+        .doOnNext(ignore -> log.trace("generateDateShift for id: {}", id))
         .flatMap(
-            id ->
-                redis
-                    .getBucket(withPrefix(id))
-                    .setIfAbsent(String.valueOf(getRandomDateShift(dateShiftBy)))
-                    .doOnError(e -> log.error("Unable to set date shift: {}", e.getMessage()))
-                    .switchIfEmpty(Mono.just(true)) // TODO check if we need this
-                    .map(ret -> id))
-        .doOnNext(id -> log.trace("generateDateShift for id: {}", id))
-        .flatMap(
-            id ->
+            ignore ->
                 redis
                     .<String>getBucket(withPrefix(id))
                     .get()
                     .doOnError(e -> log.error("Unable to receive date shift: {}", e.getMessage()))
-                    .map(shift -> new Entry(id, ofMillis(parseLong(shift)))))
-        .collectMap(Entry::id, Entry::shift);
+                    .map(shift -> ofMillis(parseLong(shift))));
   }
 
   private static String withPrefix(String id) {
@@ -54,6 +47,4 @@ public class FhirShiftedDatesProvider implements ShiftedDatesProvider {
   public long getRandomDateShift(Duration dateShiftBy) {
     return new Random().nextLong(-dateShiftBy.toMillis(), dateShiftBy.toMillis());
   }
-
-  private record Entry(String id, Duration shift) {}
 }
