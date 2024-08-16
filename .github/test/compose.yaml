@@ -95,7 +95,7 @@ services:
       retries: 3
       start_period: 10s
   gics:
-    image: creg.smith.care/fts/gics:2024.1.1@sha256:d0b2435ebb98ed8b7db368697c90ce18a014ba036fdc7472a49d2aac5d52adb0
+    image: ghcr.io/knoppiks/mosaic-gics:2024.1.1@sha256:e17c49726a6c311407c1ffc598e1fd778ba83a4b0ebc8813a1deaa85e34e8c22
     ports: [ ":8080" ]
     networks: [ "trust-center", "gics" ]
     depends_on:
@@ -125,7 +125,7 @@ services:
       retries: 3
       start_period: 120s
   gpas:
-    image: creg.smith.care/fts/gpas:2024.1.0@sha256:3325286fac6ce5a3ab39b01600c252d81b1677f9016d4f920399dbd456bb0381
+    image: ghcr.io/knoppiks/mosaic-gpas:2024.1.0@sha256:255a099cc4113c62a96121a9f3a8916d9f48e4ca7f0b710a3036bd4134c79e72
     ports: [ ":8080" ]
     networks: [ "trust-center", "gpas" ]
     depends_on:
