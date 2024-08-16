@@ -17,6 +17,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 @WebFluxTest(DeIdentificationController.class)
 class DeIdentificationControllerTest {
@@ -27,15 +28,16 @@ class DeIdentificationControllerTest {
 
   @Test
   void getTransportIdsAndDateShiftingValues() {
-    given(pseudonymProvider.retrieveTransportIds(Set.of("id1", "id2"), "domain"))
-        .willReturn(Mono.just(Map.of("id1", "tid1", "id2", "tid2")));
+    var ids = Set.of("id1", "id2");
+    var mapName = "tIDMapName";
+    given(pseudonymProvider.retrieveTransportIds(ids, "domain"))
+        .willReturn(Mono.just(Tuples.of(mapName, Map.of("id1", "tid1", "id2", "tid2"))));
     given(shiftedDatesProvider.generateDateShift(Set.of("patientId1"), Duration.ofDays(14)))
         .willReturn(Mono.just(Map.of("patientId1", Duration.ofDays(1))));
 
-    var body =
-        new PseudonymizeRequest("patientId1", Set.of("id1", "id2"), "domain", Duration.ofDays(14));
+    var body = new PseudonymizeRequest("patientId1", ids, "domain", Duration.ofDays(14));
     var expectedResponse =
-        "{\"idMap\":{\"id1\":\"tid1\",\"id2\":\"tid2\"},\"dateShiftValue\":86400}";
+        "{\"tIDMapName\":\"tIDMapName\", \"originalToTransportIDMap\":{\"id1\":\"tid1\",\"id2\":\"tid2\"},\"dateShiftValue\":86400}";
     webClient
         .post()
         .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
@@ -70,12 +72,14 @@ class DeIdentificationControllerTest {
 
   @Test
   void getTransportIdsAndDateShiftingValuesEmptyIds() {
-    given(pseudonymProvider.retrieveTransportIds(Set.of(), "domain"))
-        .willReturn(Mono.just(Map.of()));
-    given(shiftedDatesProvider.generateDateShift(Set.of(), Duration.ofDays(14)))
+    Set<String> ids = Set.of();
+    var mapName = String.valueOf(ids.hashCode());
+    given(pseudonymProvider.retrieveTransportIds(ids, "domain"))
+        .willReturn(Mono.just(Tuples.of(mapName, Map.of())));
+    given(shiftedDatesProvider.generateDateShift(ids, Duration.ofDays(14)))
         .willReturn(Mono.just(Map.of("id1", Duration.ofDays(1))));
 
-    var body = new PseudonymizeRequest("id1", Set.of(), "domain", Duration.ofDays(14));
+    var body = new PseudonymizeRequest("id1", ids, "domain", Duration.ofDays(14));
     webClient
         .post()
         .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
@@ -92,7 +96,7 @@ class DeIdentificationControllerTest {
   @Test
   void fetchPseudonymizedIds() {
     var ids = Set.of("tid-1", "tid2");
-    given(pseudonymProvider.fetchPseudonymizedIds(ids))
+    given(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
         .willReturn(Mono.just(Map.of("tid-1", "pid1", "tid2", "pid2")));
 
     var expectedResponse = "{\"tid-1\":\"pid1\",\"tid2\":\"pid2\"}";
@@ -100,7 +104,7 @@ class DeIdentificationControllerTest {
         .post()
         .uri("/api/v2/rd/resolve-pseudonyms")
         .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(ids))
+        .body(fromValue("tIDMapName"))
         .accept(MediaType.APPLICATION_JSON)
         .exchange()
         .expectStatus()
@@ -112,13 +116,13 @@ class DeIdentificationControllerTest {
   @Test
   void fetchPseudonymizedIdsEmptyIds() {
     Set<String> ids = Set.of();
-    given(pseudonymProvider.fetchPseudonymizedIds(ids)).willReturn(Mono.empty());
+    given(pseudonymProvider.fetchPseudonymizedIds("tIDMapName")).willReturn(Mono.empty());
 
     webClient
         .post()
         .uri("/api/v2/rd/resolve-pseudonyms")
         .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(ids))
+        .body(fromValue("tIDMapName"))
         .accept(MediaType.APPLICATION_JSON)
         .exchange()
         .expectStatus()

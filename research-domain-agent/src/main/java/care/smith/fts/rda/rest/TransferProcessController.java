@@ -20,11 +20,10 @@ import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
+import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.r4.model.PrimitiveType;
 import org.hl7.fhir.r4.model.StringType;
 import org.springframework.http.ResponseEntity;
@@ -90,25 +89,24 @@ public class TransferProcessController {
     var bundleWithoutParameters =
         resourceStream(bundle)
             .filter(
-                not(and(Parameters.class::isInstance, p -> p.getIdPart().equals("transport-ids"))))
+                not(
+                    and(
+                        Parameters.class::isInstance,
+                        p -> p.getIdPart().equals("transport-id-map"))))
             .collect(toBundle());
-    var transportIds =
+    var transportIdMapName =
         resourceStream(bundle)
             .filter(Parameters.class::isInstance)
-            .filter(p -> p.getIdPart().equals("transport-ids"))
+            .filter(p -> p.getIdPart().equals("transport-id-map"))
             .map(Parameters.class::cast)
             .findFirst()
-            .map(TransferProcessController::extractTransportIds)
-            .orElse(Set.of());
-    return new TransportBundle(bundleWithoutParameters, transportIds);
-  }
-
-  private static Set<String> extractTransportIds(Parameters resource) {
-    return resource.getParameters("transport-id").stream()
-        .map(Parameters.ParametersParameterComponent::getValue)
-        .map(StringType.class::cast)
-        .map(PrimitiveType::getValue)
-        .collect(Collectors.toSet());
+            .map(resource -> resource.getParameter("transport-id-map-name"))
+            .map(ParametersParameterComponent::getValue)
+            .map(StringType.class::cast)
+            .map(PrimitiveType::getValue)
+            .orElseThrow(
+                () -> new IllegalArgumentException("Parameters 'transport-id-map' not found"));
+    return new TransportBundle(bundleWithoutParameters, transportIdMapName);
   }
 
   private Optional<TransferProcessDefinition> findProcess(String project) {

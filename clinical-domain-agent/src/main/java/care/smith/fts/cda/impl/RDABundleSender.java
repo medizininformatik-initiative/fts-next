@@ -47,10 +47,10 @@ final class RDABundleSender implements BundleSender {
   }
 
   private static Bundle toPlainBundle(TransportBundle transportBundle) {
-    Parameters transportIds = new Parameters();
-    transportIds.setId("transport-ids");
-    transportBundle.transportIds().forEach(id -> transportIds.addParameter("transport-id", id));
-    return concat(of(transportIds), resourceStream(transportBundle.bundle())).collect(toBundle());
+    Parameters transportIdMap = new Parameters();
+    transportIdMap.setId("transport-id-map");
+    transportIdMap.addParameter("transport-id-map-name", transportBundle.tIDMapName());
+    return concat(of(transportIdMap), resourceStream(transportBundle.bundle())).collect(toBundle());
   }
 
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {

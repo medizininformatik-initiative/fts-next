@@ -4,7 +4,6 @@ import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
@@ -15,7 +14,6 @@ import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
 import care.smith.fts.test.MockServerUtil;
 import com.typesafe.config.Config;
 import java.io.IOException;
-import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.api.AfterEach;
@@ -52,17 +50,12 @@ class DeidentifhirStepTest {
             request()
                 .withMethod("POST")
                 .withPath("/api/v2/rd/resolve-pseudonyms")
-                .withBody(
-                    json(
-                        """
-                               ["tid1"]
-                               """,
-                        ONLY_MATCHING_FIELDS)))
+                .withBody("tIDMapName"))
         .respond(response().withStatusCode(200));
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(new TransportBundle(bundle, Set.of("tid1")))).verifyComplete();
+    create(step.replaceIds(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
   }
 
   @Test
@@ -73,7 +66,7 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(new TransportBundle(bundle, Set.of("tid1")))).verifyComplete();
+    create(step.replaceIds(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
   }
 
   @Test
@@ -83,12 +76,7 @@ class DeidentifhirStepTest {
             request()
                 .withMethod("POST")
                 .withPath("/api/v2/rd/resolve-pseudonyms")
-                .withBody(
-                    json(
-                        """
-                            ["tid1"]
-                            """,
-                        ONLY_MATCHING_FIELDS)))
+                .withBody("tIDMapName"))
         .respond(
             response()
                 .withBody(
@@ -100,7 +88,7 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(new TransportBundle(bundle, Set.of("tid1"))))
+    create(step.replaceIds(new TransportBundle(bundle, "tIDMapName")))
         .assertNext(
             b -> {
               assertThat(b.getEntry().size()).isEqualTo(1);

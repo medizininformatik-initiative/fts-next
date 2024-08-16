@@ -1,5 +1,7 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
+
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
@@ -45,16 +47,17 @@ public class DeIdentificationController {
         requestData.flatMap(
             r -> {
               if (!r.ids().isEmpty()) {
-                Mono<Map<String, String>> transportIds =
-                    pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
+                var transportIds = pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
                 Mono<Map<String, Duration>> shiftedDates =
                     shiftedDatesProvider.generateDateShift(Set.of(r.patientId()), r.dateShift());
                 return transportIds.zipWith(
-                    shiftedDates, (t, s) -> new PseudonymizeResponse(t, s.get(r.patientId())));
+                    shiftedDates,
+                    (t, s) -> new PseudonymizeResponse(t.getT1(), t.getT2(), s.get(r.patientId())));
               } else {
                 return Mono.empty();
               }
             });
+
     return response
         .map(ResponseEntity::ok)
         .onErrorResume(
@@ -73,11 +76,15 @@ public class DeIdentificationController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<Map<String, String>>> fetchPseudonymizedIds(
-      @RequestBody @NotNull Set<@Pattern(regexp = "^[\\w-]+$") String> ids) {
-    var pseudonymizedIDs =
-        Mono.just(ids)
-            .doOnNext(b -> log.info("Resolve pseudonyms for: {}", b))
-            .flatMap(pseudonymProvider::fetchPseudonymizedIds);
-    return pseudonymizedIDs.map(ResponseEntity::ok);
+      @RequestBody @NotNull @Pattern(regexp = "^[\\w-]+$") String transportIDMapName) {
+    log.trace("Resolve pseudonyms of map: {} ", transportIDMapName);
+    return pseudonymProvider
+        .fetchPseudonymizedIds(transportIDMapName)
+        .doOnError(
+            e ->
+                log.error(
+                    "Could not fetch pseudonyms of map {}: {}", transportIDMapName, e.getMessage()))
+        .retryWhen(defaultRetryStrategy())
+        .map(ResponseEntity::ok);
   }
 }

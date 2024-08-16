@@ -54,7 +54,6 @@ class DeIdentificationControllerIT extends BaseIT {
                     pseudonymizeAllowCreate(
                         "MII",
                         ofEntries(
-                            entry("patient-144218", "pseudonym-144352"),
                             entry("id-144218", "pseudonym-144218"),
                             entry("id-244194", "pseudonym-244194")))));
 
@@ -71,7 +70,7 @@ class DeIdentificationControllerIT extends BaseIT {
             res -> {
               assertThat(res).isNotNull();
               assertThat(res.dateShiftValue().toDays()).isBetween(-14L, 14L);
-              assertThat(res.idMap()).containsKeys("id-144218", "id-244194");
+              assertThat(res.originalToTransportIDMap()).containsKeys("id-144218", "id-244194");
             })
         .verifyComplete();
   }
@@ -79,13 +78,11 @@ class DeIdentificationControllerIT extends BaseIT {
   @Test
   void firstRequestToGpasFails() throws IOException {
     var statusCodes = new LinkedList<>(List.of(500));
-    String body =
+    String responseBody =
         pseudonymizeAllowCreate(
             "MII",
             ofEntries(
-                entry("patient-144218", "pseudonym-144352"),
-                entry("id-144218", "pseudonym-144218"),
-                entry("id-244194", "pseudonym-244194")));
+                entry("id-144218", "pseudonym-144218"), entry("id-244194", "pseudonym-244194")));
     gpas.when(
             request()
                 .withMethod("POST")
@@ -101,7 +98,7 @@ class DeIdentificationControllerIT extends BaseIT {
                             response()
                                 .withStatusCode(200)
                                 .withContentType(APPLICATION_FHIR_JSON)
-                                .withBody(body)));
+                                .withBody(responseBody)));
 
     var response =
         doPost(
@@ -116,7 +113,7 @@ class DeIdentificationControllerIT extends BaseIT {
             res -> {
               assertThat(res).isNotNull();
               assertThat(res.dateShiftValue().toDays()).isBetween(-14L, 14L);
-              assertThat(res.idMap()).containsKeys("id-144218", "id-244194");
+              assertThat(res.originalToTransportIDMap()).containsKeys("id-144218", "id-244194");
             })
         .verifyComplete();
   }

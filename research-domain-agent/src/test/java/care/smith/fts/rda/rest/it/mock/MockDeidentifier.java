@@ -1,6 +1,6 @@
 package care.smith.fts.rda.rest.it.mock;
 
-import static java.util.stream.Collectors.toMap;
+import static care.smith.fts.test.TidPidMap.getTidPidMapAsJson;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
 import org.mockserver.model.HttpError;
@@ -39,26 +38,19 @@ public class MockDeidentifier {
                 .withContentType(APPLICATION_JSON))
         .respond(
             request -> {
-              String body = request.getBodyAsString();
-
-              @SuppressWarnings("unchecked")
-              List<String> tid = om.readValue(body, List.class);
-              var sidMap =
-                  om.writeValueAsString(
-                      tid.stream().collect(toMap(Function.identity(), Function.identity())));
-
+              String body = getTidPidMapAsJson();
               return Optional.ofNullable(rs.poll())
                   .map(
                       statusCode ->
                           statusCode < 400
-                              ? successResponse(statusCode, sidMap)
+                              ? successResponse(statusCode, body)
                               : response().withStatusCode(statusCode))
-                  .orElseGet(() -> successResponse(200, sidMap));
+                  .orElseGet(() -> successResponse(200, body));
             });
   }
 
-  private HttpResponse successResponse(int statusCode, String sidMap) {
-    return response().withStatusCode(statusCode).withContentType(APPLICATION_JSON).withBody(sidMap);
+  private HttpResponse successResponse(int statusCode, String body) {
+    return response().withStatusCode(statusCode).withContentType(APPLICATION_JSON).withBody(body);
   }
 
   public void isDown() {

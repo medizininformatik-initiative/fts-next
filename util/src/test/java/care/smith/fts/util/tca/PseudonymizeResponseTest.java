@@ -17,9 +17,10 @@ class PseudonymizeResponseTest {
   @Test
   void serialize() throws JsonProcessingException {
     Map<String, String> idMap = Map.of("original", "pseudonym");
-    var response = new PseudonymizeResponse(idMap, Duration.ofDays(14));
+    var response = new PseudonymizeResponse("tIDMapName", idMap, Duration.ofDays(14));
 
     assertThat(objectMapper.writeValueAsString(response))
+        .contains("tIDMapName")
         .contains("original")
         .contains("pseudonym")
         .contains("1209600");
@@ -30,11 +31,11 @@ class PseudonymizeResponseTest {
     var response =
         objectMapper.readValue(
             """
-                    {"idMap":{"original":"pseudonym"},"dateShiftValue":1209600.000000000}
+                    {"tIDMapName": "tIDMapName", "originalToTransportIDMap":{"original":"pseudonym"},"dateShiftValue":1209600.000000000}
                     """,
             PseudonymizeResponse.class);
 
     assertThat(response.dateShiftValue()).isEqualTo(Duration.ofDays(14));
-    assertThat(response.idMap()).isEqualTo(Map.of("original", "pseudonym"));
+    assertThat(response.originalToTransportIDMap()).isEqualTo(Map.of("original", "pseudonym"));
   }
 }
