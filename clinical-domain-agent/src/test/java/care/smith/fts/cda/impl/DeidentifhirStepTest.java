@@ -99,7 +99,7 @@ class DeidentifhirStepTest {
                 .withBody(
                     json(
                         """
-                                {"idMap":{"id1.identifier.identifierSystem:id1":"tident1",
+                                {"tIDMapName": "tIDMapName", "originalToTransportIDMap":{"id1.identifier.identifierSystem:id1":"tident1",
                                  "id1.id.Patient:id1":"tid1"},"dateShiftValue":1209600.000000000}
                                 """))
                 .withStatusCode(200));

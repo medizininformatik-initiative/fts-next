@@ -8,15 +8,23 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Bundle;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class DeidentifierIT extends TransferProcessControllerIT {
+  Bundle transportBundle;
+
+  @BeforeEach
+  void setUp() throws IOException {
+    transportBundle = FhirGenerators.transportBundle().generateResource();
+  }
 
   @Test
   void tcaDown() {
     mockDeidentifier.isDown();
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(1), transportBundle)
         .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
         .verifyComplete();
   }
@@ -24,7 +32,7 @@ public class DeidentifierIT extends TransferProcessControllerIT {
   @Test
   void tcaTimeout() {
     mockDeidentifier.hasTimeout();
-    startProcess(Duration.ofSeconds(10))
+    startProcess(Duration.ofSeconds(10), transportBundle)
         .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
         .verifyComplete();
   }
@@ -32,17 +40,15 @@ public class DeidentifierIT extends TransferProcessControllerIT {
   @Test
   void tcaReturnsWrongContentType() {
     mockDeidentifier.returnsWrongContentType();
-    startProcess(Duration.ofMillis(200))
+    startProcess(Duration.ofMillis(200), transportBundle)
         .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
         .verifyComplete();
   }
 
   @Test
-  void tcaFirstRequestFails() throws IOException {
+  void tcaFirstRequestFails() {
     mockDeidentifier.success(List.of(500));
     mockBundleSender.success();
-
-    var transportBundle = FhirGenerators.transportBundle().generateResource();
 
     log.info("Start process with transport bundle of size {}", transportBundle.getEntry().size());
 

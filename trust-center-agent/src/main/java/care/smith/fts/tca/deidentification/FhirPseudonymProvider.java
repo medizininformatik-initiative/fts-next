@@ -2,11 +2,13 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
+import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.error.UnknownDomainException;
 import java.time.Duration;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -18,10 +20,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
-import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
 @Slf4j
@@ -52,46 +52,49 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    *
    * @param ids the IDs to pseudonymize
    * @param domain the domain used in gPAS
-   * @return the TransportIDs
+   * @return Map<TID, PID>
    */
   @Override
-  public Mono<Map<String, String>> retrieveTransportIds(Set<String> ids, String domain) {
-    RedissonReactiveClient redis = redisClient.reactive();
+  public Mono<Tuple2<String, Map<String, String>>> retrieveTransportIds(
+      Set<String> ids, String domain) {
+    var tIDMapName = generateTID();
+    var originalToTransportIDMapping = ids.stream().collect(toMap(id -> id, id -> generateTID()));
 
-    return fetchOrCreatePseudonyms(domain, ids)
+    var rMap = redisClient.reactive().getMapCache(tIDMapName);
+    return rMap.expire(Duration.ofSeconds(configuration.getTransportIdTTLinSeconds()))
+        .map(ignore -> rMap)
+        .flatMap(ignore -> fetchOrCreatePseudonyms(domain, ids))
         .flatMap(
-            tuple ->
-                getUniqueTransportId().map(tid -> Tuples.of(tuple.getT1(), tid, tuple.getT2())))
-        .flatMap(
-            tuple3 ->
-                redis
-                    .getBucket("tid:" + tuple3.getT2())
-                    .setIfAbsent(
-                        tuple3.getT3(),
-                        Duration.ofSeconds(configuration.getTransportIdTTLinSeconds()))
-                    .map(ret -> tuple3))
-        .collectMap(Tuple3::getT1, Tuple3::getT2);
+            originalToSecureIDMapping -> {
+              var transportToSecureIDMapping =
+                  originalToSecureIDMapping.entrySet().stream()
+                      .collect(
+                          toMap(
+                              entry -> {
+                                log.info(entry.getKey());
+                                log.info(originalToTransportIDMapping.get(entry.getKey()));
+
+                                return originalToTransportIDMapping.get(entry.getKey());
+                              },
+                              Entry::getValue));
+
+              return rMap.putAll(transportToSecureIDMapping);
+            })
+        .then(Mono.fromCallable(() -> Tuples.of(tIDMapName, originalToTransportIDMapping)));
   }
 
-  /** Generate a random transport ID and make sure it does not yet exist in the key-value-store. */
-  private Mono<String> getUniqueTransportId() {
-    var tid =
-        randomGenerator
-            .ints(9, 0, ALLOWED_PSEUDONYM_CHARS.length())
-            .mapToObj(ALLOWED_PSEUDONYM_CHARS::charAt)
-            .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
-            .toString();
-
-    RedissonReactiveClient redis = redisClient.reactive();
-    return redis
-        .getBucket("tid:" + tid)
-        .get()
-        .switchIfEmpty(Mono.just("OK"))
-        .doOnError(e -> log.error("Cannot read transport ID from keystore: {}", e.getMessage()))
-        .flatMap(ret -> ret.equals("OK") ? Mono.just(tid) : getUniqueTransportId());
+  private String generateTID() {
+    return randomGenerator
+        .ints(9, 0, ALLOWED_PSEUDONYM_CHARS.length())
+        .mapToObj(ALLOWED_PSEUDONYM_CHARS::charAt)
+        .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+        .toString();
   }
 
-  private Flux<Tuple2<String, String>> fetchOrCreatePseudonyms(String domain, Set<String> ids) {
+  /**
+   * @return Flux of (id, pid) tuples
+   */
+  private Mono<Map<String, String>> fetchOrCreatePseudonyms(String domain, Set<String> ids) {
     var idParams =
         Stream.concat(
             Stream.of(Map.of("name", "target", "valueString", domain)),
@@ -113,9 +116,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .doOnError(e -> log.error("Unable to fetch pseudonym from gPAS: {}", e.getMessage()))
         .retryWhen(defaultRetryStrategy())
         .doOnNext(r -> log.trace("$pseudonymize response: {} parameters", r.parameter().size()))
-        .map(GpasParameterResponse::getMappedID)
-        .flatMapMany(
-            map -> Flux.fromIterable(map.entrySet()).map(e -> Tuples.of(e.getKey(), e.getValue())));
+        .map(GpasParameterResponse::getMappedID);
   }
 
   private static Mono<Throwable> handleGpasBadRequest(ClientResponse r) {
@@ -133,22 +134,13 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   @Override
-  public Mono<Map<String, String>> fetchPseudonymizedIds(Set<String> tids) {
-    if (!tids.isEmpty()) {
-      RedissonReactiveClient redis = redisClient.reactive();
-      return Flux.fromIterable(tids)
-          .flatMap(
-              tid ->
-                  redis
-                      .<String>getBucket("tid:" + tid)
-                      .get()
-                      .doOnError(
-                          e -> log.error("fetchPseudonymizedId for {}, {}", tid, e.getMessage()))
-                      .map(value -> Tuples.of(tid, value)))
-          .collectMap(Tuple2::getT1, Tuple2::getT2);
-
-    } else {
-      return Mono.empty();
-    }
+  public Mono<Map<String, String>> fetchPseudonymizedIds(String tIDMapName) {
+    RedissonReactiveClient redis = redisClient.reactive();
+    return Mono.just(tIDMapName)
+        .flatMap(name -> redis.getMapCache(name).readAllMap())
+        .map(
+            m ->
+                m.entrySet().stream()
+                    .collect(toMap(e -> (String) e.getKey(), e -> (String) e.getValue())));
   }
 }

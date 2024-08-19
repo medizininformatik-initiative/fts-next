@@ -10,7 +10,6 @@ import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender;
 import java.util.List;
-import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,7 @@ class DefaultTransferProcessRunnerTest {
             "test",
             () -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new Bundle())),
-            (b) -> fromIterable(List.of(new TransportBundle(new Bundle(), Set.of()))),
+            (b) -> fromIterable(List.of(new TransportBundle(new Bundle(), "tIDMapName"))),
             (b) -> just(result));
 
     String processId = runner.start(process);

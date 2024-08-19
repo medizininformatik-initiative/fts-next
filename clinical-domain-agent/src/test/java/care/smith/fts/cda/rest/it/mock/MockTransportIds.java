@@ -45,7 +45,7 @@ public class MockTransportIds {
 
   public void success() throws JsonProcessingException {
     var tidMap = transportIds.stream().collect(toMap(Function.identity(), Function.identity()));
-    var pseudonymizeResponse = new PseudonymizeResponse(tidMap, Duration.ofDays(1));
+    var pseudonymizeResponse = new PseudonymizeResponse("tIDMapName", tidMap, Duration.ofDays(1));
     tca.when(mockRequestSpec)
         .respond(successResponse(200, om.writeValueAsString(pseudonymizeResponse)));
   }
@@ -71,7 +71,7 @@ public class MockTransportIds {
   public void successWithStatusCode(List<Integer> statusCodes) throws JsonProcessingException {
     var tidMap = transportIds.stream().collect(toMap(Function.identity(), Function.identity()));
     var pseudonymizeResponse =
-        om.writeValueAsString(new PseudonymizeResponse(tidMap, Duration.ofDays(1)));
+        om.writeValueAsString(new PseudonymizeResponse("tIDMapName", tidMap, Duration.ofDays(1)));
     var rs = new LinkedList<>(statusCodes);
     tca.when(mockRequestSpec)
         .respond(

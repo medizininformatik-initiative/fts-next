@@ -1,10 +1,13 @@
 package care.smith.fts.rda.rest;
 
 import static care.smith.fts.rda.rest.TransferProcessController.fromPlainBundle;
+import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static java.util.List.of;
+import static java.util.stream.Stream.concat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
 
@@ -51,10 +54,16 @@ class TransferProcessControllerTest {
 
   @Test
   void startExistingProjectSucceeds() {
+    Parameters transportIdMap = new Parameters();
+    transportIdMap.setId("transport-id-map");
+    transportIdMap.addParameter("transport-id-map-name", "tIDMapName");
+
+    Bundle bundle =
+        concat(Stream.of(transportIdMap), resourceStream(new Bundle())).collect(toBundle());
     var start =
         api.start(
             "example",
-            Mono.just(new Bundle()),
+            Mono.just(bundle),
             UriComponentsBuilder.fromUriString("http://localhost:1234"));
     var uri =
         UriComponentsBuilder.fromUriString("http://localhost:1234")
@@ -89,12 +98,12 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("transport-id", new StringType("some"))
-                    .setId("transport-ids"))
+                    .addParameter("transport-id-map-name", new StringType("tIDMapName"))
+                    .setId("transport-id-map"))
             .collect(toBundle());
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
-    assertThat(transportBundle.transportIds()).containsExactlyInAnyOrder("some");
+    assertThat(transportBundle.tIDMapName()).isEqualTo("tIDMapName");
     assertThat(transportBundle.bundle().getEntry()).hasSize(0);
   }
 
@@ -103,14 +112,14 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("transport-id", new StringType("some"))
-                    .setId("transport-ids"),
+                    .addParameter("transport-id-map-name", new StringType("tIDMapName"))
+                    .setId("transport-id-map"),
                 new Patient(),
                 new Observation())
             .collect(toBundle());
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
-    assertThat(transportBundle.transportIds()).containsExactlyInAnyOrder("some");
+    assertThat(transportBundle.tIDMapName()).isEqualTo("tIDMapName");
     assertThat(transportBundle.bundle().getEntry()).hasSize(2);
   }
 
@@ -119,13 +128,11 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("unknown", new StringType("some"))
-                    .setId("transport-ids"))
+                    .addParameter("unknown", new StringType("tIDMapName"))
+                    .setId("transport-id-map"))
             .collect(toBundle());
 
-    TransportBundle transportBundle = fromPlainBundle(bundle);
-    assertThat(transportBundle.transportIds()).isEmpty();
-    assertThat(transportBundle.bundle().getEntry()).hasSize(0);
+    assertThrows(IllegalArgumentException.class, () -> fromPlainBundle(bundle));
   }
 
   @Test
@@ -133,13 +140,11 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("transport-ids", new StringType("some"))
+                    .addParameter("transport-id-map-name", new StringType("tIDMapName"))
                     .setId("unknown"))
             .collect(toBundle());
 
-    TransportBundle transportBundle = fromPlainBundle(bundle);
-    assertThat(transportBundle.transportIds()).isEmpty();
-    assertThat(transportBundle.bundle().getEntry()).hasSize(1);
+    assertThrows(IllegalArgumentException.class, () -> fromPlainBundle(bundle));
   }
 
   private static TransferProcessDefinition mockTransferProcess() {

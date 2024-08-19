@@ -1,6 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
@@ -12,6 +13,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -25,7 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.MediaType;
-import org.redisson.api.RBucketReactive;
+import org.redisson.api.RMapCacheReactive;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
 import org.redisson.client.RedisTimeoutException;
@@ -34,6 +36,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 @Slf4j
 @SpringBootTest
@@ -45,7 +48,7 @@ class FhirPseudonymProviderTest {
   @Autowired WebClient.Builder httpClientBuilder;
   @MockBean RedissonClient redisClient;
   @Mock RedissonReactiveClient redis;
-  @Mock RBucketReactive<Object> bucket;
+  @Mock RMapCacheReactive<Object, Object> mapCache;
   @Autowired PseudonymizationConfiguration pseudonymizationConfiguration;
 
   private FhirPseudonymProvider pseudonymProvider;
@@ -55,7 +58,6 @@ class FhirPseudonymProviderTest {
     var address = "http://localhost:%d".formatted(mockServer.getPort());
 
     given(redisClient.reactive()).willReturn(redis);
-    given(redis.getBucket(anyString())).willReturn(bucket);
 
     pseudonymProvider =
         new FhirPseudonymProvider(
@@ -77,9 +79,10 @@ class FhirPseudonymProviderTest {
                 .withBody(
                     json(
                         """
-                                  { "resourceType": "Parameters", "parameter": [
-                                    {"name": "target", "valueString": "domain"}, {"name":
-   "original", "valueString": "id1"}]}
+                                  { "resourceType": "Parameters",
+                                    "parameter": [
+                                      {"name": "target", "valueString": "domain"},
+                                      {"name": "original", "valueString": "id1"}]}
                                   """,
                         ONLY_MATCHING_FIELDS)))
         .respond(
@@ -87,48 +90,33 @@ class FhirPseudonymProviderTest {
                 .withBody(
                     fhirGenerator.generateString(), MediaType.create("application", "fhir+json")));
 
-    given(bucket.setIfAbsent(anyString(), any())).willReturn(Mono.just(true));
-    given(bucket.get()).willReturn(Mono.empty());
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
+    given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
-    Map<String, String> idMap = Map.of("id1", "Bo1z3Z87i");
-    create(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"))
+    Set<String> ids = Set.of("id1");
+    var mapName = "Bo1z3Z87i";
+
+    var idMap = Tuples.of(mapName, Map.of("id1", "xLCUONMhJ"));
+    create(pseudonymProvider.retrieveTransportIds(ids, "domain"))
         .expectNext(idMap)
         .verifyComplete();
   }
 
   @Test
-  void retrieveTransportIdsWhenRedisDown(MockServerClient mockServer) throws IOException {
-    var fhirGenerator = FhirGenerators.gpasGetOrCreateResponse(() -> "id1", () -> "469680023");
-
-    mockServer
-        .when(
-            request()
-                .withMethod("POST")
-                .withPath("/$pseudonymizeAllowCreate")
-                .withBody(
-                    json(
-                        """
-                                  { "resourceType": "Parameters", "parameter": [
-                                    {"name": "target", "valueString": "domain"}, {"name":
-   "original", "valueString": "id1"}]}
-                                  """,
-                        ONLY_MATCHING_FIELDS)))
-        .respond(
-            response()
-                .withBody(
-                    fhirGenerator.generateString(), MediaType.create("application", "fhir+json")));
-
-    given(bucket.get()).willReturn(Mono.error(new RedisTimeoutException("timeout")));
-
-    create(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"))
-        .expectError(RedisTimeoutException.class)
-        .verify();
+  void retrieveTransportIdsWhenRedisDown() {
+    given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
+    assertThrows(
+        RedisTimeoutException.class,
+        () -> pseudonymProvider.retrieveTransportIds(Set.of("id1"), "domain"));
   }
 
   @Test
-  void retrievePseudonymIDs() {
-    given(bucket.get()).willReturn(Mono.just("123456789"), Mono.just("987654321"));
-    create(pseudonymProvider.fetchPseudonymizedIds(Set.of("id1", "id2")))
+  void fetchPseudonymIDs() {
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.readAllMap())
+        .willReturn(Mono.just(Map.of("id1", "123456789", "id2", "987654321")));
+    create(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
         .expectNextMatches(
             m ->
                 m.containsKey("id1")
@@ -139,9 +127,9 @@ class FhirPseudonymProviderTest {
   }
 
   @Test
-  void retrievePseudonymIDsWhenRedisDown() {
-    given(bucket.get()).willReturn(Mono.error(new RedisTimeoutException("timeout")));
-    create(pseudonymProvider.fetchPseudonymizedIds(Set.of("id1", "id2")))
+  void fetchPseudonymIDsWhenRedisDown() {
+    given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
+    create(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
         .expectError(RedisTimeoutException.class)
         .verify();
   }

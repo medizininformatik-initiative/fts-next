@@ -17,10 +17,7 @@ deIdentification:
       auth:
         none: { }
   pseudonymization:
-    domain: domain
     transportIdTTLinSeconds: 1000
-  dateShifting:
-    shiftByDays: 14
 
 logging:
   level:

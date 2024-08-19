@@ -9,7 +9,6 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.rda.TransferProcessRunner.Phase;
-import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +29,12 @@ class DefaultTransferProcessRunnerTest {
     TransferProcessDefinition process =
         new TransferProcessDefinition("test", (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())), (b) -> just(result));
 
-    String processId = runner.start(process, Mono.just(new TransportBundle(new Bundle().addEntry(new Bundle().getEntryFirstRep()), Set.of())));
+    String processId =
+        runner.start(
+            process,
+            Mono.just(
+                new TransportBundle(
+                    new Bundle().addEntry(new Bundle().getEntryFirstRep()), "tIDMapName")));
     sleep(500L);
     create(runner.status(processId))
         .assertNext(
