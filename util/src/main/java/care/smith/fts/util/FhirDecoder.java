@@ -15,6 +15,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.AbstractDecoder;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
 import reactor.core.publisher.Flux;
@@ -49,8 +50,12 @@ public class FhirDecoder extends AbstractDecoder<IBaseResource> {
       DataBuffer buffer, ResolvableType targetType, MimeType mimeType, Map<String, Object> hints)
       throws DecodingException {
     log.trace("decode {} from {}", targetType, mimeType);
-    return fhir.newJsonParser()
-        .parseResource(ensureBaseResource(targetType), buffer.asInputStream());
+    try {
+      return fhir.newJsonParser()
+          .parseResource(ensureBaseResource(targetType), buffer.asInputStream());
+    } finally {
+      DataBufferUtils.release(buffer);
+    }
   }
 
   @Override
