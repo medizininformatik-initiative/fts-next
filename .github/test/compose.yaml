@@ -26,7 +26,7 @@ services:
       start_period: 60s
   cd-hds:
     image: samply/blaze:0.29.3@sha256:47527f478ef2ddf932f4e5c882c0266ac179d7a2fc37ed66868d079698541da3
-    ports: [ ":8080" ]
+    ports: [ ":8080", ":9090" ]
     networks: [ "clinical-domain" ]
     environment:
       BASE_URL: "http://cd-hds:8080"
@@ -40,7 +40,7 @@ services:
   # Research Domain
   rd-agent:
     image: research-domain-agent:latest
-    ports: [ ":8080" ]
+    ports: [ ":8080", ":9090" ]
     networks: [ "agents", "research-domain" ]
     volumes:
     - ./rd-agent/projects:/app/projects
@@ -71,6 +71,8 @@ services:
   # Trust Center
   tc-agent:
     image: trust-center-agent:latest
+    ports: [ ":9090" ]
+    privileged: true
     networks: [ "agents", "trust-center" ]
     depends_on:
       keystore:

@@ -10,4 +10,11 @@ WORKDIR /app
 VOLUME /app/projects
 
 USER nobody
-CMD [ "java", "-jar", "./clinical-domain-agent.jar" ]
+CMD [ "java",\
+      "-Dcom.sun.management.jmxremote", \
+      "-Dcom.sun.management.jmxremote.port=9090", \
+      "-Dcom.sun.management.jmxremote.rmi.port=9090", \
+      "-Dcom.sun.management.jmxremote.authenticate=false", \
+      "-Dcom.sun.management.jmxremote.ssl=false", \
+      "-jar", \
+      "./clinical-domain-agent.jar" ]
