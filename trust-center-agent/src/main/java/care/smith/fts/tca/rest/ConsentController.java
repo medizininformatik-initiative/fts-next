@@ -42,6 +42,7 @@ public class ConsentController {
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {
+    var t0 = System.currentTimeMillis();
     var response =
         request.flatMap(
             r ->
@@ -54,6 +55,7 @@ public class ConsentController {
                     count.orElse(defaultPageSize)));
     return response
         .map(ResponseEntity::ok)
+        .doOnNext(i -> log.trace("Fetch consent took: {} ms", System.currentTimeMillis() - t0))
         .onErrorResume(
             e -> {
               if (e instanceof UnknownDomainException) {

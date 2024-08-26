@@ -10,9 +10,7 @@ import care.smith.fts.util.tca.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -47,12 +45,13 @@ public class DeIdentificationController {
         requestData.flatMap(
             r -> {
               if (!r.ids().isEmpty()) {
-                var transportIds = pseudonymProvider.retrieveTransportIds(r.ids(), r.domain());
-                Mono<Map<String, Duration>> shiftedDates =
-                    shiftedDatesProvider.generateDateShift(Set.of(r.patientId()), r.dateShift());
+                var transportIds =
+                    pseudonymProvider.retrieveTransportIds(r.patientId(), r.ids(), r.domain());
+                var shiftedDate =
+                    shiftedDatesProvider.generateDateShift(r.patientId(), r.dateShift());
                 return transportIds.zipWith(
-                    shiftedDates,
-                    (t, s) -> new PseudonymizeResponse(t.getT1(), t.getT2(), s.get(r.patientId())));
+                    shiftedDate,
+                    (t, shift) -> new PseudonymizeResponse(t.getT1(), t.getT2(), shift));
               } else {
                 return Mono.empty();
               }

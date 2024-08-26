@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class DateShiftingRequestTest {
@@ -17,11 +16,11 @@ class DateShiftingRequestTest {
 
   @Test
   void serialize() throws JsonProcessingException {
-    var request = new DateShiftingRequest(Set.of("id1", "id2"), Duration.ofDays(7));
+    var request = new DateShiftingRequest("id1", Duration.ofDays(7));
 
     String jsonString = objectMapper.writeValueAsString(request);
 
-    assertThat(jsonString).contains("id1").contains("id2").contains("604800"); // 7 days in seconds
+    assertThat(jsonString).contains("id1").contains("604800"); // 7 days in seconds
   }
 
   @Test
@@ -29,14 +28,14 @@ class DateShiftingRequestTest {
     String json =
         """
             {
-                "ids": ["id1", "id2"],
+                "id": "id1",
                 "dateShift": 604800.000000000
             }
             """;
 
     DateShiftingRequest request = objectMapper.readValue(json, DateShiftingRequest.class);
 
-    assertThat(request.ids()).containsExactlyInAnyOrder("id1", "id2");
+    assertThat(request.id()).isEqualTo("id1");
     assertThat(request.dateShift()).isEqualTo(Duration.ofDays(7));
   }
 }

@@ -61,7 +61,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("domain", "MII"),
-                entry("patientId", "patient-144218"),
+                entry("patientId", "id-144218"),
                 entry("ids", Set.of("id-144218", "id-244194")),
                 entry("dateShift", ofDays(14).getSeconds())));
 
@@ -104,7 +104,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("domain", "MII"),
-                entry("patientId", "patient-144218"),
+                entry("patientId", "id-144218"),
                 entry("ids", Set.of("id-144218", "id-244194")),
                 entry("dateShift", ofDays(14).getSeconds())));
 

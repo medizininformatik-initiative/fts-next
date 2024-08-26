@@ -17,7 +17,7 @@ class ScrapingStorageTest {
   @Test
   void getIDReplacement() {
     assertThat(scrapingStorage.getIDReplacement("Patient", "patientId")).isEqualTo("patientId");
-    assertThat(scrapingStorage.getGatheredIDATs()).containsExactly("test.id.Patient:patientId");
+    assertThat(scrapingStorage.getGatheredIDATs()).containsExactly("test.Patient:patientId");
   }
 
   @Test

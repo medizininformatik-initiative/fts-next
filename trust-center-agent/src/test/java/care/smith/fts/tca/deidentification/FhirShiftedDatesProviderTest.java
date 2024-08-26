@@ -7,7 +7,6 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.util.tca.DateShiftingRequest;
 import java.time.Duration;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,17 +40,13 @@ class FhirShiftedDatesProviderTest {
     given(redis.getBucket(anyString())).willReturn(bucket);
 
     given(bucket.setIfAbsent(anyString())).willReturn(Mono.just(true));
-    given(bucket.get()).willReturn(Mono.just("2"), Mono.just("4"), Mono.just("6"));
-    var request = new DateShiftingRequest(Set.of("1", "2", "3"), Duration.ofDays(14));
+    given(bucket.get()).willReturn(Mono.just("2"));
+    var request = new DateShiftingRequest("1", Duration.ofDays(14));
 
-    var expectedShiftedDates =
-        Set.of(Duration.ofMillis(2), Duration.ofMillis(4), Duration.ofMillis(6));
+    var expectedShiftedDate = Duration.ofMillis(2);
 
-    create(provider.generateDateShift(request.ids(), request.dateShift()))
-        .assertNext(
-            shiftedDates ->
-                assertThat(shiftedDates.values())
-                    .containsExactlyInAnyOrderElementsOf(expectedShiftedDates))
+    create(provider.generateDateShift("1", request.dateShift()))
+        .assertNext(shiftedDate -> assertThat(shiftedDate).isEqualTo(expectedShiftedDate))
         .verifyComplete();
   }
 

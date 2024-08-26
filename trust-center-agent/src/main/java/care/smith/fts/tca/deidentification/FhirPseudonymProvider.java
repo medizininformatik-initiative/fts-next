@@ -6,6 +6,8 @@ import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.error.UnknownDomainException;
+import com.google.common.hash.Hashing;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.Map.Entry;
@@ -56,28 +58,34 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    */
   @Override
   public Mono<Tuple2<String, Map<String, String>>> retrieveTransportIds(
-      Set<String> ids, String domain) {
+      String patientId, Set<String> ids, String domain) {
+
+    if (!ids.contains(patientId)) {
+      throw new IllegalArgumentException("patientId must be part of ids");
+    }
+    var saltKey = "Salt_" + patientId;
     var tIDMapName = generateTID();
     var originalToTransportIDMapping = ids.stream().collect(toMap(id -> id, id -> generateTID()));
-
     var rMap = redisClient.reactive().getMapCache(tIDMapName);
     return rMap.expire(Duration.ofSeconds(configuration.getTransportIdTTLinSeconds()))
         .map(ignore -> rMap)
-        .flatMap(ignore -> fetchOrCreatePseudonyms(domain, ids))
+        .flatMap(ignore -> fetchOrCreatePseudonyms(domain, Set.of(patientId, saltKey)))
         .flatMap(
             originalToSecureIDMapping -> {
+              var sha256 = Hashing.sha256();
+              var salt = originalToSecureIDMapping.get(saltKey);
               var transportToSecureIDMapping =
-                  originalToSecureIDMapping.entrySet().stream()
+                  originalToTransportIDMapping.entrySet().stream()
                       .collect(
                           toMap(
-                              entry -> {
-                                log.info(entry.getKey());
-                                log.info(originalToTransportIDMapping.get(entry.getKey()));
-
-                                return originalToTransportIDMapping.get(entry.getKey());
-                              },
-                              Entry::getValue));
-
+                              Entry::getValue,
+                              entry ->
+                                  sha256
+                                      .hashString(salt + entry.getKey(), StandardCharsets.UTF_8)
+                                      .toString()));
+              transportToSecureIDMapping.put(
+                  originalToTransportIDMapping.get(patientId),
+                  originalToSecureIDMapping.get(patientId));
               return rMap.putAll(transportToSecureIDMapping);
             })
         .then(Mono.fromCallable(() -> Tuples.of(tIDMapName, originalToTransportIDMapping)));

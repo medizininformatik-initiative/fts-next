@@ -61,6 +61,11 @@ class TCACohortSelector implements CohortSelector {
 
   private Mono<Bundle> fetchNextPage(Bundle bundle) {
     return ofNullable(bundle.getLink("next"))
+        .map(
+            url -> {
+              log.trace("Fetch next page from: {}", url);
+              return url;
+            })
         .map(BundleLinkComponent::getUrl)
         .map(this::fetchBundle)
         .orElse(Mono.empty());

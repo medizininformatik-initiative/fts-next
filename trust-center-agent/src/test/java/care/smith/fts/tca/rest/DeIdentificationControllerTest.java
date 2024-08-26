@@ -30,10 +30,10 @@ class DeIdentificationControllerTest {
   void getTransportIdsAndDateShiftingValues() {
     var ids = Set.of("id1", "id2");
     var mapName = "tIDMapName";
-    given(pseudonymProvider.retrieveTransportIds(ids, "domain"))
+    given(pseudonymProvider.retrieveTransportIds("patientId1", ids, "domain"))
         .willReturn(Mono.just(Tuples.of(mapName, Map.of("id1", "tid1", "id2", "tid2"))));
-    given(shiftedDatesProvider.generateDateShift(Set.of("patientId1"), Duration.ofDays(14)))
-        .willReturn(Mono.just(Map.of("patientId1", Duration.ofDays(1))));
+    given(shiftedDatesProvider.generateDateShift("patientId1", Duration.ofDays(14)))
+        .willReturn(Mono.just(Duration.ofDays(1)));
 
     var body = new PseudonymizeRequest("patientId1", ids, "domain", Duration.ofDays(14));
     var expectedResponse =
@@ -53,10 +53,10 @@ class DeIdentificationControllerTest {
 
   @Test
   void getTransportIdsAndDateShiftingValuesUnknownDomain() {
-    given(pseudonymProvider.retrieveTransportIds(Set.of("id1"), "unknown domain"))
+    given(pseudonymProvider.retrieveTransportIds("id1", Set.of("id1"), "unknown domain"))
         .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
-    given(shiftedDatesProvider.generateDateShift(Set.of("id1"), Duration.ofDays(14)))
-        .willReturn(Mono.just(Map.of("id1", Duration.ofDays(1))));
+    given(shiftedDatesProvider.generateDateShift("id1", Duration.ofDays(14)))
+        .willReturn(Mono.just(Duration.ofDays(1)));
 
     var body = new PseudonymizeRequest("id1", Set.of("id1"), "unknown domain", Duration.ofDays(14));
     webClient
@@ -74,10 +74,10 @@ class DeIdentificationControllerTest {
   void getTransportIdsAndDateShiftingValuesEmptyIds() {
     Set<String> ids = Set.of();
     var mapName = String.valueOf(ids.hashCode());
-    given(pseudonymProvider.retrieveTransportIds(ids, "domain"))
+    given(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
         .willReturn(Mono.just(Tuples.of(mapName, Map.of())));
-    given(shiftedDatesProvider.generateDateShift(ids, Duration.ofDays(14)))
-        .willReturn(Mono.just(Map.of("id1", Duration.ofDays(1))));
+    given(shiftedDatesProvider.generateDateShift("id1", Duration.ofDays(14)))
+        .willReturn(Mono.just(Duration.ofDays(1)));
 
     var body = new PseudonymizeRequest("id1", ids, "domain", Duration.ofDays(14));
     webClient

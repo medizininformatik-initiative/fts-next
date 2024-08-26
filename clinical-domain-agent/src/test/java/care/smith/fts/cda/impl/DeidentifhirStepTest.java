@@ -55,8 +55,8 @@ class DeidentifhirStepTest {
                     json(
                         """
                                 {
-                                  "patientId" : "id1",
-                                  "ids" : [ "id1.identifier.identifierSystem:id1", "id1.id.Patient:id1" ],
+                                  "patientId" : "id1.identifier.identifierSystem:id1",
+                                  "ids" : [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
                                   "domain" : "domain",
                                   "dateShift" : 1209600.0
                                 }
@@ -100,7 +100,7 @@ class DeidentifhirStepTest {
                     json(
                         """
                                 {"tIDMapName": "tIDMapName", "originalToTransportIDMap":{"id1.identifier.identifierSystem:id1":"tident1",
-                                 "id1.id.Patient:id1":"tid1"},"dateShiftValue":1209600.000000000}
+                                 "id1.Patient:id1":"tid1"},"dateShiftValue":1209600.000000000}
                                 """))
                 .withStatusCode(200));
 

@@ -12,7 +12,8 @@ public interface PseudonymProvider {
    * @param domain the domain
    * @return the <code>PseudonymResponse</code>
    */
-  Mono<Tuple2<String, Map<String, String>>> retrieveTransportIds(Set<String> ids, String domain);
+  Mono<Tuple2<String, Map<String, String>>> retrieveTransportIds(
+      String patientId, Set<String> ids, String domain);
 
   /**
    * Retrieves the mapping of <code>transportId</code> to <code>secureId</code>
