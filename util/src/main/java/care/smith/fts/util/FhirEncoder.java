@@ -15,6 +15,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.AbstractEncoder;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.util.MimeType;
 import reactor.core.publisher.Flux;
 
@@ -50,6 +51,8 @@ public class FhirEncoder extends AbstractEncoder<IBaseResource> {
       log.trace("encode {} to {}", valueType, mimeType);
       fhir.newJsonParser().encodeToWriter(value, w);
     } catch (IOException e) {
+      log.error("Error encoding value: {}", e.getMessage(), e);
+      DataBufferUtils.release(dataBuffer);
       return null;
     }
     return dataBuffer;
