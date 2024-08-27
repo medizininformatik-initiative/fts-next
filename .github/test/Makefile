@@ -9,8 +9,7 @@ start:
 	docker compose up --wait
 
 upload:
-	../scripts/upload-consent.sh patient-1
-	../scripts/upload-patient.sh patient-1
+	../scripts/upload-data.sh 100
 
 transfer:
 	../scripts/start-transfer.sh example >process.url
@@ -18,11 +17,14 @@ transfer:
 wait:
 	../scripts/await-transfer.sh "$(shell cat process.url)"
 
+check-consent:
+	../scripts/check-consent.sh 100
+
 check-status:
-	../scripts/check-status.sh "$(shell cat process.url)"
+	../scripts/check-status.sh "$(shell cat process.url)" 100
 
 check-resources:
-	../scripts/check-resources.sh
+	../scripts/check-resources.sh 100
 
 show-status:
 	curl -sf "$(shell cat process.url)"

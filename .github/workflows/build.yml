@@ -168,6 +168,10 @@ jobs:
       working-directory: .github/test
       run: make upload
 
+    - name: Check Consent
+      working-directory: .github/test
+      run: make check-consent
+
     - name: Start Transfer
       working-directory: .github/test
       run: make transfer
