@@ -6,9 +6,21 @@ if [ -z "${1}" ]; then
   exit 2
 fi
 
-echo -n "Wait for transfer process to finish..."
-while [ "$(curl -sf "${1}" | jq -r '.phase')" != "COMPLETED" ]; do
-  echo -n "."
+function printStatus() {
+  phase="$(echo "${1}" | jq -r '.phase')"
+  sent="$(echo "${1}" | jq -r '.bundlesSentCount')"
+  skipped="$(echo "${1}" | jq -r '.patientsSkippedCount')"
+  printf "· %-14s transferred: %-5d skipped: %-5d\n" "${phase}" "${sent}" "${skipped}"
+}
+
+echo "Wait for transfer process to finish..."
+while response="$(curl -sf "${1}")" && [ "$(echo "${response}" | jq -r '.phase')" == "RUNNING" ]; do
+  printStatus "${response}"
   sleep 5
 done
-echo " Done"
+
+printStatus "${response}"
+
+if [ "$(echo "${response}" | jq -r '.phase')" == "ERROR" ]; then
+  exit 1
+fi
