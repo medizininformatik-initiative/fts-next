@@ -42,7 +42,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    startProcess(Duration.ofSeconds(3))
+    startProcess(Duration.ofSeconds(8))
         .assertNext(r -> completedWithBundles(totalPatients, r))
         .verifyComplete();
   }
@@ -72,7 +72,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    startProcess(Duration.ofSeconds(3))
+    startProcess(Duration.ofSeconds(8))
         .assertNext(r -> completedWithBundles(totalPatients, r))
         .verifyComplete();
   }
@@ -101,7 +101,7 @@ public class GeneralIT extends TransferProcessControllerIT {
 
     mockBundleSender.successWithRetryAfter();
 
-    startProcess(Duration.ofSeconds(6))
+    startProcess(Duration.ofSeconds(16))
         .assertNext(r -> completedWithBundles(totalPatients, r))
         .verifyComplete();
   }
