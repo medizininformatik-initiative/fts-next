@@ -30,14 +30,16 @@ The RDA asks the TCA to provide the secure IDs for the transport IDs and replace
 
 ```mermaid
 sequenceDiagram
-    CDA ->> TCA: IDs: <Set<oRID>> & oPID
+    CDA ->> TCA: Resource IDs: <Set<oRID>> & oPID
     TCA ->> gPAS: pseudomizeOrCreate oPID, Salt_oPID
     gPAS ->> TCA: oPID ➙ sPID, Salt_oPID ➙ Salt
-    TCA ->> Keystore: idMap: <Map<oRID, sRID>>
-    TCA ->> CDA: IdMap: <Map<oRID, tRID>> & oPID ➙ tPID
+    TCA ->> Keystore: idMapName & idMap: <Map<oRID, sRID>>
+    TCA ->> CDA: IdMapName & IdMap: <Map<oRID, tRID>> & oPID ➙ tPID
     CDA ->> RDA: Transport IDs: <Set<tRID>> & tPID
-    RDA ->> TCA: Transport IDs
-    TCA ->> RDA: Map<tRID, sRID> & sPID
+    RDA ->> TCA: Transport IDs: <Set<tRID>> & tPID
+    TCA ->> Keystore: idMapName
+    Keystore ->> TCA: idMap: Map<tRID, sRID> & sPID
+    TCA ->> RDA: idMap: Map<tRID, sRID> & sPID
 ```
 
 ### Shifted Dates Provider
