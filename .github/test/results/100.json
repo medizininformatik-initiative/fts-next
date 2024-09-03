@@ -1,0 +1,14 @@
+{
+  "bundlesSentCount": 100,
+  "patientsSkippedCount": 0,
+  "count": {
+    "total": 21,
+    "Patient": 100,
+    "Encounter": 760,
+    "Observation": 7855,
+    "Condition": 4675,
+    "DiagnosticReport": 499,
+    "Medication": 0,
+    "MedicationAdministration": 169
+  }
+}

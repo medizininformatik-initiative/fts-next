@@ -31,7 +31,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   void hdsTimeout() {
     mockDataSelector.whenFetchData(patientId).timeout();
 
-    startProcess(Duration.ofSeconds(11))
+    startProcess(Duration.ofSeconds(50))
         .assertNext(TransferProcessControllerIT::completedWithSkipped)
         .verifyComplete();
   }

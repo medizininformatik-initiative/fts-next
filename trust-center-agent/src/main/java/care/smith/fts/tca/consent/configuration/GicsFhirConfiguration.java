@@ -17,7 +17,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Data
 public class GicsFhirConfiguration {
   @NotBlank String baseUrl;
-  int defaultPageSize = 100;
+  int defaultPageSize = 50;
   @NotNull HTTPClientAuthMethod.AuthMethod auth;
 
   @Bean

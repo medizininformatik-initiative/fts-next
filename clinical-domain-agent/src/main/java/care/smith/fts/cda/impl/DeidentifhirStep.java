@@ -90,6 +90,7 @@ class DeidentifhirStep implements Deidentificator {
                 s.bodyToMono(ProblemDetail.class)
                     .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
         .bodyToMono(PseudonymizeResponse.class)
+        .timeout(Duration.ofSeconds(30))
         .doOnError(
             e ->
                 log.error(

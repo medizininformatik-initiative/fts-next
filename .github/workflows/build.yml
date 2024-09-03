@@ -168,6 +168,10 @@ jobs:
       working-directory: .github/test
       run: make upload
 
+    - name: Check Consent
+      working-directory: .github/test
+      run: make check-consent
+
     - name: Start Transfer
       working-directory: .github/test
       run: make transfer
@@ -184,10 +188,25 @@ jobs:
       working-directory: .github/test
       run: make check-resources
 
-    - name: Collect Logs
-      if: failure()
+    - name: Collect Agent Logs
+      if: failure() || cancelled()
       working-directory: .github/test
-      run: docker compose logs
+      run: docker compose logs cd-agent tc-agent rd-agent
+
+    - name: Collect MOSAIC Logs
+      if: failure() || cancelled()
+      working-directory: .github/test
+      run: docker compose logs gics gpas
+
+    - name: Collect HDS Logs
+      if: failure() || cancelled()
+      working-directory: .github/test
+      run: docker compose logs cd-hds rd-hds
+
+    - name: Collect DB Logs
+      if: failure() || cancelled()
+      working-directory: .github/test
+      run: docker compose logs gics-db gpas-db keystore
 
   push-image:
     if: github.event_name != 'pull_request' || (github.event.pull_request.base.repo.full_name == github.event.pull_request.head.repo.full_name)

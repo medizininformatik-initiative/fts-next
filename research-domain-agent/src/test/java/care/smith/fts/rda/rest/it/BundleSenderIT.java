@@ -36,7 +36,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
     mockDeidentifier.success();
     mockBundleSender.hasTimeout();
 
-    startProcess(Duration.ofSeconds(12), transportBundle)
+    startProcess(Duration.ofSeconds(50), transportBundle)
         .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.ERROR))
         .verifyComplete();
   }
