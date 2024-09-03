@@ -11,6 +11,7 @@ import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,7 @@ class TCACohortSelector implements CohortSelector {
   public Flux<ConsentedPatient> selectCohort() {
     return fetchBundle("/api/v2/cd/consented-patients")
         .expand(this::fetchNextPage)
+        .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
         .onErrorResume(WebClientException.class, TCACohortSelector::handleError)

@@ -25,7 +25,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   void tcaTimeoutConsentedPatientsRequest() {
     mockCohortSelector.timeout();
 
-    startProcess(Duration.ofSeconds(10))
+    startProcess(Duration.ofSeconds(30))
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
   }
@@ -70,7 +70,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    startProcess(Duration.ofSeconds(4))
+    startProcess(Duration.ofSeconds(12))
         .assertNext(r -> completedWithBundles(total, r))
         .verifyComplete();
   }
