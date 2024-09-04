@@ -5,8 +5,10 @@ management:
         include: [ "health", "info", "prometheus" ]
 
   metrics:
-    distribution.slo:
-      http.server.requests: 25,100,250,500,1000,10000,60000
+    distribution:
+      slo:
+        http.server.requests: 25,100,250,500,1000,10000
+        http.client.requests: 25,100,250,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
 
 deIdentification:
   keystoreUrl: redis://keystore:6379

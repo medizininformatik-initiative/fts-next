@@ -8,6 +8,7 @@ import static org.mockserver.model.HttpResponse.response;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.test.MockServerUtil;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,13 +29,14 @@ class FhirResolveServiceTest {
   private static final String KDS_PATIENT = "https://some.example.com/pid";
 
   @Autowired WebClient.Builder builder;
+  @Autowired MeterRegistry meterRegistry;
 
   private FhirResolveService service;
 
   @BeforeEach
   void setUp(MockServerClient mockServer) throws Exception {
     var config = clientConfig(mockServer);
-    this.service = new FhirResolveService(KDS_PATIENT, config.createClient(builder));
+    this.service = new FhirResolveService(KDS_PATIENT, config.createClient(builder), meterRegistry);
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();
       mockServer

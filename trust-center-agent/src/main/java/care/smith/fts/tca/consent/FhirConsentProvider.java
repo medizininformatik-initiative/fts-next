@@ -8,6 +8,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.util.error.UnknownDomainException;
 import com.google.common.base.Predicates;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,7 @@ public class FhirConsentProvider implements ConsentProvider {
   private final int defaultPageSize;
   private final WebClient httpClient;
   private final PolicyHandler policyHandler;
+  private final MeterRegistry meterRegistry;
 
   /**
    * Constructs a FhirConsentProvider with the specified parameters.
@@ -39,10 +41,12 @@ public class FhirConsentProvider implements ConsentProvider {
   public FhirConsentProvider(
       @Qualifier("gicsFhirHttpClient") WebClient httpClient,
       PolicyHandler policyHandler,
-      int defaultPageSize) {
+      int defaultPageSize,
+      MeterRegistry meterRegistry) {
     this.policyHandler = policyHandler;
     this.httpClient = httpClient;
     this.defaultPageSize = defaultPageSize;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -159,6 +163,7 @@ public class FhirConsentProvider implements ConsentProvider {
    * @return a Mono emitting a Bundle of consents
    */
   private Mono<Bundle> fetchConsentPageFromGics(String domain, PagingParams pagingParams) {
+
     var body =
         Map.of(
             "resourceType",
@@ -178,8 +183,7 @@ public class FhirConsentProvider implements ConsentProvider {
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentProvider::handleGicsNotFound)
         .bodyToMono(Bundle.class)
-        .retryWhen(defaultRetryStrategy())
-        .doOnNext(b -> log.trace("Consent fetched, {} bundle entries", b.getEntry().size()))
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchConsentPageFromGics"))
         .doOnError(b -> log.error("Unable to fetch consent from gICS", b));
   }
 

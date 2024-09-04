@@ -11,6 +11,7 @@ import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.util.HTTPClientConfig;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -22,13 +23,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
 
 @Slf4j
+@SpringBootTest
 @ExtendWith(MockitoExtension.class)
 class TCACohortSelectorTest {
+
+  @Autowired MeterRegistry meterRegistry;
 
   private static final Set<String> POLICIES = Set.of("any");
 
@@ -53,7 +59,8 @@ class TCACohortSelectorTest {
     var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     given(response.bodyToMono(String.class)).willReturn(Mono.just(""));
-    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
+    var cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
 
     create(cohortSelector.selectCohort()).expectError().verify();
   }
@@ -63,7 +70,8 @@ class TCACohortSelectorTest {
     given(response.bodyToMono(ProblemDetail.class))
         .willReturn(Mono.just(ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Some TCA Error")));
     var client = builder().exchangeFunction(req -> just(response));
-    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
+    var cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
 
     create(cohortSelector.selectCohort()).expectError().verify();
   }
@@ -81,7 +89,8 @@ class TCACohortSelectorTest {
             .collect(toBundle());
     Bundle outer = Stream.of(inner).collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
-    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
+    var cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
 
     create(cohortSelector.selectCohort()).expectNextCount(1).verifyComplete();
   }
@@ -92,7 +101,8 @@ class TCACohortSelectorTest {
     given(response.statusCode()).willReturn(OK);
     Bundle outer = Stream.<Resource>of().collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
-    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
+    var cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
 
     create(cohortSelector.selectCohort()).verifyComplete();
   }
@@ -103,7 +113,8 @@ class TCACohortSelectorTest {
     given(response.statusCode()).willReturn(OK);
     Bundle outer = Stream.of(Stream.<Resource>of().collect(toBundle())).collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
-    var cohortSelector = new TCACohortSelector(config, config.server().createClient(client));
+    var cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
 
     create(cohortSelector.selectCohort()).verifyComplete();
   }

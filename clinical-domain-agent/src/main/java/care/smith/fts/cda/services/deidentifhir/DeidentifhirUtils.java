@@ -6,6 +6,8 @@ import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
 import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Bundle;
@@ -51,9 +53,18 @@ public interface DeidentifhirUtils {
     return registry;
   }
 
-  static Bundle deidentify(Config config, Registry registry, Bundle bundle, String patientId) {
+  static Bundle deidentify(
+      Config config,
+      Registry registry,
+      Bundle bundle,
+      String patientId,
+      MeterRegistry meterRegistry) {
+    var sample = Timer.start(meterRegistry);
+
     Map<String, String> staticContext = new Map.Map1<>(Handlers.patientIdentifierKey(), patientId);
     Deidentifhir deidentifhir = Deidentifhir.apply(config, registry);
-    return (Bundle) deidentifhir.deidentify(bundle, staticContext);
+    var deidentified = (Bundle) deidentifhir.deidentify(bundle, staticContext);
+    sample.stop(meterRegistry.timer("deidentify"));
+    return deidentified;
   }
 }

@@ -13,7 +13,9 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.TransferProcessException;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.util.Map;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -31,10 +33,13 @@ import reactor.util.retry.Retry;
 final class RDABundleSender implements BundleSender {
   private final RDABundleSenderConfig config;
   private final WebClient client;
+  private final MeterRegistry meterRegistry;
 
-  public RDABundleSender(RDABundleSenderConfig config, WebClient client) {
+  public RDABundleSender(
+      RDABundleSenderConfig config, WebClient client, MeterRegistry meterRegistry) {
     this.config = config;
     this.client = client;
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -56,15 +61,12 @@ final class RDABundleSender implements BundleSender {
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {
     return client
         .post()
-        .uri(
-            uri ->
-                uri.pathSegment("api", "v2", "process", "{project}", "patient")
-                    .build(config.project()))
+        .uri("/api/v2/process/{project}/patient", Map.of("project", config.project()))
         .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))
         .bodyValue(requireNonNull(bundle))
         .exchangeToMono(this::waitForRDACompleted)
-        .doOnError(e -> log.error("Unable to send Bundle to RDA: {}", e.getMessage()))
-        .retryWhen(defaultRetryStrategy());
+        .retryWhen(defaultRetryStrategy(meterRegistry, "sendBundleToRda"))
+        .doOnError(e -> log.error("Unable to send Bundle to RDA: {}", e.getMessage()));
   }
 
   private Mono<ResponseEntity<Void>> waitForRDACompleted(ClientResponse clientResponse) {

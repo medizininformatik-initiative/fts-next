@@ -11,6 +11,7 @@ import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IDATScraper;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -28,18 +29,21 @@ class DeidentifhirStep implements Deidentificator {
   private final Duration dateShift;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
+  private final MeterRegistry meterRegistry;
 
   public DeidentifhirStep(
       WebClient httpClient,
       String domain,
       Duration dateShift,
       com.typesafe.config.Config deidentifhirConfig,
-      com.typesafe.config.Config scraperConfig) {
+      com.typesafe.config.Config scraperConfig,
+      MeterRegistry meterRegistry) {
     this.httpClient = httpClient;
     this.domain = domain;
     this.dateShift = dateShift;
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -67,7 +71,7 @@ class DeidentifhirStep implements Deidentificator {
               var registry = generateRegistry(patient.id(), transportIDs, dateShiftValue);
               var deidentified =
                   DeidentifhirUtils.deidentify(
-                      deidentifhirConfig, registry, bundle.bundle(), patient.id());
+                      deidentifhirConfig, registry, bundle.bundle(), patient.id(), meterRegistry);
               return new TransportBundle(deidentified, response.tIDMapName());
             });
   }
@@ -91,10 +95,10 @@ class DeidentifhirStep implements Deidentificator {
                     .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
         .bodyToMono(PseudonymizeResponse.class)
         .timeout(Duration.ofSeconds(30))
+        .retryWhen(defaultRetryStrategy(meterRegistry, "transport-ids-and-date-shifting-values"))
         .doOnError(
             e ->
                 log.error(
-                    "Cannot fetch transport deidentification data from TCA: {}", e.getMessage()))
-        .retryWhen(defaultRetryStrategy());
+                    "Cannot fetch transport deidentification data from TCA: {}", e.getMessage()));
   }
 }

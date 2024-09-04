@@ -71,6 +71,7 @@ services:
   # Trust Center
   tc-agent:
     image: trust-center-agent:latest
+    ports: [ ":8080" ]
     networks: [ "agents", "trust-center" ]
     depends_on:
       keystore:

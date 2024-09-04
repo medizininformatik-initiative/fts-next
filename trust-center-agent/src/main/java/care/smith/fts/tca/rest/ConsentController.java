@@ -5,6 +5,7 @@ import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentRequest;
+import io.micrometer.core.annotation.Timed;
 import jakarta.validation.Valid;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class ConsentController {
       value = "/cd/consented-patients",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
+  @Timed(value = "http.client.requests.gics")
   public Mono<ResponseEntity<Bundle>> consentedPatients(
       @RequestBody @Valid Mono<ConsentRequest> request,
       UriComponentsBuilder uriBuilder,

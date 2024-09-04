@@ -7,6 +7,7 @@ import static java.util.stream.Collectors.toMap;
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.error.UnknownDomainException;
 import com.google.common.hash.Hashing;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
@@ -36,16 +37,19 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   private final PseudonymizationConfiguration configuration;
   private final RedissonClient redisClient;
   private final RandomGenerator randomGenerator;
+  private final MeterRegistry meterRegistry;
 
   public FhirPseudonymProvider(
       @Qualifier("gpasFhirHttpClient") WebClient httpClient,
       RedissonClient redisClient,
       PseudonymizationConfiguration configuration,
-      RandomGenerator randomGenerator) {
+      RandomGenerator randomGenerator,
+      MeterRegistry meterRegistry) {
     this.httpClient = httpClient;
     this.configuration = configuration;
     this.redisClient = redisClient;
     this.randomGenerator = randomGenerator;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -119,10 +123,10 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .onStatus(
-            r -> r.equals(HttpStatus.BAD_REQUEST), FhirPseudonymProvider::handleGpasBadRequest)
+            r1 -> r1.equals(HttpStatus.BAD_REQUEST), FhirPseudonymProvider::handleGpasBadRequest)
         .bodyToMono(GpasParameterResponse.class)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchOrCreatePseudonymsOnGpas"))
         .doOnError(e -> log.error("Unable to fetch pseudonym from gPAS: {}", e.getMessage()))
-        .retryWhen(defaultRetryStrategy())
         .doOnNext(r -> log.trace("$pseudonymize response: {} parameters", r.parameter().size()))
         .map(GpasParameterResponse::getMappedID);
   }
@@ -149,6 +153,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         .map(
             m ->
                 m.entrySet().stream()
-                    .collect(toMap(e -> (String) e.getKey(), e -> (String) e.getValue())));
+                    .collect(toMap(e -> (String) e.getKey(), e -> (String) e.getValue())))
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchPseudonymizedIds"));
   }
 }

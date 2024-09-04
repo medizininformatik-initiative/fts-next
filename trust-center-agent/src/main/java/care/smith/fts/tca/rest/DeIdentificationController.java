@@ -1,7 +1,5 @@
 package care.smith.fts.tca.rest;
 
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
@@ -83,7 +81,6 @@ public class DeIdentificationController {
             e ->
                 log.error(
                     "Could not fetch pseudonyms of map {}: {}", transportIDMapName, e.getMessage()))
-        .retryWhen(defaultRetryStrategy())
         .map(ResponseEntity::ok);
   }
 }

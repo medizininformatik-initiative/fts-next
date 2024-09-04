@@ -6,6 +6,8 @@ import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
 import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 
@@ -39,8 +41,12 @@ public interface DeidentifhirUtil {
    * Replace all IDs contained in the provided bundle with the replacement stored in the provided
    * pseudonymMap.
    */
-  static Bundle replaceIDs(Config config, Registry registry, Bundle bundle) {
+  static Bundle replaceIDs(
+      Config config, Registry registry, Bundle bundle, MeterRegistry meterRegistry) {
+    var sample = Timer.start(meterRegistry);
     var deidentifhir = Deidentifhir.apply(config, registry);
-    return (Bundle) deidentifhir.deidentify(bundle);
+    var deidentified = (Bundle) deidentifhir.deidentify(bundle);
+    sample.stop(meterRegistry.timer("replaceIDs"));
+    return deidentified;
   }
 }
