@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.cda.services.FhirResolveConfig;
 import care.smith.fts.util.HTTPClientConfig;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,16 +14,18 @@ import org.springframework.web.reactive.function.client.WebClient;
 class EverythingDataSelectorFactoryTest {
 
   @Autowired WebClient.Builder client;
+  @Autowired MeterRegistry meterRegistry;
 
   @Test
   void testConfigType() {
-    assertThat(new EverythingDataSelectorFactory(client).getConfigType()).isNotNull();
+    assertThat(new EverythingDataSelectorFactory(client, meterRegistry).getConfigType())
+        .isNotNull();
   }
 
   @Test
   void testCreateWithoutResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(client)
+            new EverythingDataSelectorFactory(client, meterRegistry)
                 .create(
                     null,
                     new EverythingDataSelectorConfig(new HTTPClientConfig("http://localhost"))))
@@ -32,7 +35,7 @@ class EverythingDataSelectorFactoryTest {
   @Test
   void testCreateWithResolver() {
     assertThat(
-            new EverythingDataSelectorFactory(client)
+            new EverythingDataSelectorFactory(client, meterRegistry)
                 .create(
                     null,
                     new EverythingDataSelectorConfig(

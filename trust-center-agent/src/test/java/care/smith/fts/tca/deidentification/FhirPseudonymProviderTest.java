@@ -12,6 +12,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerators;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
@@ -51,6 +52,7 @@ class FhirPseudonymProviderTest {
   @Mock RedissonReactiveClient redis;
   @Mock RMapCacheReactive<Object, Object> mapCache;
   @Autowired PseudonymizationConfiguration pseudonymizationConfiguration;
+  @Autowired MeterRegistry meterRegistry;
 
   private FhirPseudonymProvider pseudonymProvider;
 
@@ -65,7 +67,8 @@ class FhirPseudonymProviderTest {
             httpClientBuilder.baseUrl(address).build(),
             redisClient,
             pseudonymizationConfiguration,
-            new Random(SEED));
+            new Random(SEED),
+            meterRegistry);
   }
 
   @Test

@@ -13,6 +13,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
 import care.smith.fts.test.MockServerUtil;
 import com.typesafe.config.Config;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
@@ -22,10 +23,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
 
+@SpringBootTest
 @ExtendWith(MockServerExtension.class)
 class DeidentifhirStepTest {
+  @Autowired MeterRegistry meterRegistry;
   private DeidentifhirStep step;
 
   @BeforeEach
@@ -35,7 +40,7 @@ class DeidentifhirStepTest {
 
     step =
         new DeidentifhirStep(
-            config, server.createClient(WebClient.builder()), "domain", ofDays(14));
+            config, server.createClient(WebClient.builder()), "domain", ofDays(14), meterRegistry);
   }
 
   @AfterEach

@@ -6,13 +6,19 @@ import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import de.ume.deidentifhir.Registry;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
+@SpringBootTest
 class DeidentifhirUtilTest {
+
+  @Autowired MeterRegistry meterRegistry;
 
   @Test
   void replaceIDs() throws IOException {
@@ -22,7 +28,8 @@ class DeidentifhirUtilTest {
     var config = parseResources(DeidentifhirUtilTest.class, "TransportToRD.profile");
     var transportBundle = generateOnePatient("tid1", "2023", "identifierSystem1");
 
-    var pseudomizedBundle = DeidentifhirUtil.replaceIDs(config, registry, transportBundle);
+    var pseudomizedBundle =
+        DeidentifhirUtil.replaceIDs(config, registry, transportBundle, meterRegistry);
 
     Bundle b = (Bundle) pseudomizedBundle.getEntryFirstRep().getResource();
     Patient p = (Patient) b.getEntryFirstRep().getResource();

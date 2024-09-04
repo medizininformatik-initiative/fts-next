@@ -4,6 +4,7 @@ import static java.time.Duration.ofSeconds;
 
 import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.util.FhirCodecConfiguration;
+import care.smith.fts.util.MetricsConfig;
 import care.smith.fts.util.WebClientDefaults;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +25,7 @@ import org.springframework.context.annotation.Primary;
 @Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
-@Import({WebClientDefaults.class, FhirCodecConfiguration.class})
+@Import({WebClientDefaults.class, FhirCodecConfiguration.class, MetricsConfig.class})
 public class ClinicalDomainAgent {
 
   public static void main(String... args) {

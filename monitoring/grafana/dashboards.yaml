@@ -1,0 +1,30 @@
+apiVersion: 1
+
+providers:
+  - name: 'HTTP Requests'
+    type: file
+    options:
+      path: /etc/grafana/dashboards/http-requests.json
+
+  - name: 'HTTP Requests Retries'
+    type: file
+    options:
+      path: /etc/grafana/dashboards/http-request-retries.json
+
+  - name: 'Fetch Distribution'
+    type: file
+    options:
+      path: /etc/grafana/dashboards/http-request-duration.json
+      foldersFromFilesStructure: false
+
+  - name: 'System'
+    type: file
+    options:
+      path: /etc/grafana/dashboards/system.json
+      foldersFromFilesStructure: false
+
+  - name: 'JVM'
+    type: file
+    options:
+      path: /etc/grafana/dashboards/jvm.json
+    foldersFromFilesStructure: false

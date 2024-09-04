@@ -4,6 +4,7 @@ import care.smith.fts.tca.consent.FhirConsentProvider;
 import care.smith.fts.tca.consent.PolicyHandler;
 import care.smith.fts.util.HTTPClientConfig;
 import care.smith.fts.util.auth.HTTPClientAuthMethod;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -32,9 +33,10 @@ public class GicsFhirConfiguration {
   }
 
   @Bean
-  FhirConsentProvider fhirConsentProvider(PolicyHandler policyHandler, WebClient.Builder builder) {
+  FhirConsentProvider fhirConsentProvider(
+      PolicyHandler policyHandler, WebClient.Builder builder, MeterRegistry meterRegistry) {
     HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
     var client = httpClientConfig.createClient(builder);
-    return new FhirConsentProvider(client, policyHandler, defaultPageSize);
+    return new FhirConsentProvider(client, policyHandler, defaultPageSize, meterRegistry);
   }
 }

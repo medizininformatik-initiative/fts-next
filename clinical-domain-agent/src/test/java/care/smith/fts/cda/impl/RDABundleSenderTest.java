@@ -19,6 +19,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.test.WebClientTestUtil;
 import care.smith.fts.util.HTTPClientConfig;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
@@ -26,11 +27,16 @@ import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.*;
 
+@SpringBootTest
 @ExtendWith(MockitoExtension.class)
 class RDABundleSenderTest {
+
+  @Autowired MeterRegistry meterRegistry;
 
   private static final String PATIENT_ID = "patient-102931";
   private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);
@@ -45,7 +51,8 @@ class RDABundleSenderTest {
             .exchangeFunction(
                 matchRequest(HttpMethod.POST).willRespond(ClientResponse.create(OK).build()));
     client.exchangeStrategies(ExchangeStrategies.builder().build());
-    var bundleSender = new RDABundleSender(config, config.server().createClient(client));
+    var bundleSender =
+        new RDABundleSender(config, config.server().createClient(client), meterRegistry);
 
     create(bundleSender.send(fromStream(generate(() -> null))))
         .expectError(NullPointerException.class)
@@ -59,7 +66,8 @@ class RDABundleSenderTest {
             .exchangeFunction(
                 matchRequest(HttpMethod.POST)
                     .willRespond(ClientResponse.create(BAD_REQUEST).build()));
-    var bundleSender = new RDABundleSender(config, config.server().createClient(client));
+    var bundleSender =
+        new RDABundleSender(config, config.server().createClient(client), meterRegistry);
 
     create(
             bundleSender.send(
@@ -77,7 +85,8 @@ class RDABundleSenderTest {
                     matchRequest(HttpMethod.POST)
                         .willRespond(ClientResponse.create(ACCEPTED).build()),
                     matchRequest(HttpMethod.GET).willRespond(ClientResponse.create(OK).build())));
-    var bundleSender = new RDABundleSender(config, config.server().createClient(client));
+    var bundleSender =
+        new RDABundleSender(config, config.server().createClient(client), meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
@@ -99,7 +108,8 @@ class RDABundleSenderTest {
                                     "http://localhost:1234/api/v2/process/status/processId")
                                 .build()),
                     matchRequest(HttpMethod.GET).willRespond(ClientResponse.create(OK).build())));
-    var bundleSender = new RDABundleSender(config, config.server().createClient(client));
+    var bundleSender =
+        new RDABundleSender(config, config.server().createClient(client), meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
@@ -126,7 +136,8 @@ class RDABundleSenderTest {
                                 .header(RETRY_AFTER, "Hello there")
                                 .build()),
                     matchRequest(HttpMethod.GET).willRespond(ClientResponse.create(OK).build())));
-    var bundleSender = new RDABundleSender(config, config.server().createClient(client));
+    var bundleSender =
+        new RDABundleSender(config, config.server().createClient(client), meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))

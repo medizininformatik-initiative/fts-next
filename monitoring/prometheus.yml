@@ -5,20 +5,20 @@ scrape_configs:
 - job_name: "tca"
   metrics_path: "/actuator/prometheus"
   static_configs:
-  - targets: [ "trustcenteragent:9090" ]
+    - targets: [ "tc-agent:8080" ]
 
 - job_name: "cda"
   metrics_path: "/actuator/prometheus"
   static_configs:
-  - targets: [ "clinicaldomainagent:9090" ]
+    - targets: [ "cd-agent:8080" ]
 
 - job_name: "rda"
   metrics_path: "/actuator/prometheus"
   static_configs:
-  - targets: [ "researchdomainagent:9090" ]
+    - targets: [ "rd-agent:8080" ]
 
 
-- job_name: 'prometheus'
+- job_name: "prometheus"
   scrape_interval: 5s
   static_configs:
-  - targets: [ 'localhost:9090' ]
+    - targets: [ "localhost:9090" ]

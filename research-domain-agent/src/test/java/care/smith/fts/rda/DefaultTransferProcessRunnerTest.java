@@ -27,7 +27,10 @@ class DefaultTransferProcessRunnerTest {
   void runMockTestSuccessfully() throws InterruptedException {
     BundleSender.Result result = new Result();
     TransferProcessDefinition process =
-        new TransferProcessDefinition("test", (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())), (b) -> just(result));
+        new TransferProcessDefinition(
+            "test",
+            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            (b) -> just(result));
 
     String processId =
         runner.start(

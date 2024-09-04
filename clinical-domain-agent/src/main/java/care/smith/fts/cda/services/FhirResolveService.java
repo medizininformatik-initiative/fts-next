@@ -6,6 +6,7 @@ import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.util.error.TransferProcessException;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -20,11 +21,14 @@ import reactor.core.publisher.Mono;
 public class FhirResolveService implements PatientIdResolver {
 
   private final WebClient client;
+  private final MeterRegistry meterRegistry;
   private final String identifierSystem;
 
-  public FhirResolveService(String identifierSystem, WebClient client) {
+  public FhirResolveService(
+      String identifierSystem, WebClient client, MeterRegistry meterRegistry) {
     this.identifierSystem = identifierSystem;
     this.client = client;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -53,15 +57,13 @@ public class FhirResolveService implements PatientIdResolver {
     return client
         .get()
         .uri(
-            uri ->
-                uri.pathSegment("Patient")
-                    .queryParam("identifier", identifierSystem + "|" + patientId)
-                    .build())
+            "/Patient",
+            uri -> uri.queryParam("identifier", identifierSystem + "|" + patientId).build())
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchPatientBundleResolvePID"))
         .doOnError(e -> log.error("Unable to fetch patient ID from HDS: {}", e.getMessage()))
-        .retryWhen(defaultRetryStrategy())
         .onErrorResume(
             WebClientException.class,
             e -> Mono.error(new TransferProcessException("Cannot resolve patient id", e)));

@@ -6,6 +6,7 @@ import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -16,9 +17,11 @@ import reactor.core.publisher.Mono;
 @Slf4j
 final class FhirStoreBundleSender implements BundleSender {
   private final WebClient client;
+  private final MeterRegistry meterRegistry;
 
-  public FhirStoreBundleSender(WebClient client) {
+  public FhirStoreBundleSender(WebClient client, MeterRegistry meterRegistry) {
     this.client = client;
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -26,11 +29,12 @@ final class FhirStoreBundleSender implements BundleSender {
     log.trace("Sending bundle");
     return client
         .post()
+        .uri("")
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
         .bodyValue(toTransactionBundle(bundle))
         .retrieve()
         .toBodilessEntity()
-        .retryWhen(defaultRetryStrategy())
+        .retryWhen(defaultRetryStrategy(meterRegistry, "sendBundleToHds"))
         .doOnNext(res -> log.trace("Response received: {}", res))
         .doOnError(err -> log.debug("Error received", err))
         .map(b -> new Result());

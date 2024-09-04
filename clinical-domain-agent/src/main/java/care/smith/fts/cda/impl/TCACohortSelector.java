@@ -10,6 +10,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
@@ -30,10 +31,13 @@ import reactor.core.publisher.Mono;
 class TCACohortSelector implements CohortSelector {
   private final TCACohortSelectorConfig config;
   private final WebClient client;
+  private final MeterRegistry meterRegistry;
 
-  public TCACohortSelector(TCACohortSelectorConfig config, WebClient client) {
+  public TCACohortSelector(
+      TCACohortSelectorConfig config, WebClient client, MeterRegistry meterRegistry) {
     this.config = config;
     this.client = client;
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -58,7 +62,7 @@ class TCACohortSelector implements CohortSelector {
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), TCACohortSelector::handleBadRequest)
         .bodyToMono(Bundle.class)
-        .retryWhen(defaultRetryStrategy());
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchBundle"));
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle) {

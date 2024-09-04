@@ -14,6 +14,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.FhirUtils;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 class FhirConsentProviderTest {
   @Autowired WebClient.Builder httpClientBuilder;
   @Autowired PolicyHandler policyHandler;
+  @Autowired MeterRegistry meterRegistry;
 
   @MockBean
   RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start
@@ -94,7 +96,10 @@ class FhirConsentProviderTest {
 
     fhirConsentProvider =
         new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, defaultPageSize);
+            httpClientBuilder.baseUrl(address).build(),
+            policyHandler,
+            defaultPageSize,
+            meterRegistry);
 
     Bundle bundle =
         gicsConsentGenerator
@@ -154,7 +159,7 @@ class FhirConsentProviderTest {
 
     fhirConsentProvider =
         new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
+            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize, meterRegistry);
 
     Bundle bundle =
         Stream.generate(gicsConsentGenerator::generateString)
@@ -178,10 +183,7 @@ class FhirConsentProviderTest {
     create(
             fhirConsentProvider.consentedPatientsPage(
                 "MII", POLICY_SYSTEM, POLICIES, fromUriString("http://trustcenteragent:1234")))
-        .assertNext(
-            consentBundle -> {
-              assertThat(consentBundle.getLink("next")).isNull();
-            })
+        .assertNext(consentBundle -> assertThat(consentBundle.getLink("next")).isNull())
         .verifyComplete();
   }
 
@@ -192,7 +194,7 @@ class FhirConsentProviderTest {
 
     fhirConsentProvider =
         new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize);
+            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize, meterRegistry);
     Bundle bundle =
         Stream.generate(gicsConsentGenerator::generateString)
             .limit(totalEntries)
@@ -226,7 +228,8 @@ class FhirConsentProviderTest {
   @Test
   void negativePagingArgumentsThrowException() {
     fhirConsentProvider =
-        new FhirConsentProvider(httpClientBuilder.baseUrl(address).build(), policyHandler, 1);
+        new FhirConsentProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, 1, meterRegistry);
 
     assertErrorWithInvalidPagingArgs(-1, -1);
     assertErrorWithInvalidPagingArgs(-1, 0);
@@ -249,7 +252,8 @@ class FhirConsentProviderTest {
   @Test
   void tooLargePagingArgumentsThrowException() {
     fhirConsentProvider =
-        new FhirConsentProvider(httpClientBuilder.baseUrl(address).build(), policyHandler, 1);
+        new FhirConsentProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, 1, meterRegistry);
     create(
             fhirConsentProvider.consentedPatientsPage(
                 "domain",

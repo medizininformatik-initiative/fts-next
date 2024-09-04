@@ -7,14 +7,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.ConsentedPatient;
 import de.ume.deidentifhir.Registry;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
+@SpringBootTest
 class DeidentifhirUtilsTest {
+
+  @Autowired MeterRegistry meterRegistry;
 
   @Test
   void deidentify() throws IOException {
@@ -31,7 +37,7 @@ class DeidentifhirUtilsTest {
 
     var bundle = generateOnePatient("id1", "2023", "identifierSystem1");
     Bundle deidentifiedBundle =
-        DeidentifhirUtils.deidentify(config, registry, bundle, patient.id());
+        DeidentifhirUtils.deidentify(config, registry, bundle, patient.id(), meterRegistry);
     Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
 
     Patient p = (Patient) b.getEntryFirstRep().getResource();

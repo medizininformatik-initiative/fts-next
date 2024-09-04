@@ -13,6 +13,7 @@ import care.smith.fts.api.Period;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
 import care.smith.fts.util.HTTPClientConfig;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
 import org.hl7.fhir.r4.model.Bundle;
@@ -21,12 +22,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
 
+@SpringBootTest
 @ExtendWith(MockitoExtension.class)
 class EverythingDataSelectorTest {
 
+  @Autowired MeterRegistry meterRegistry;
   private static final String PATIENT_ID = "patient-112348";
   private static final PatientIdResolver patient = pid -> Mono.just(new IdType("Patient", pid));
 
@@ -37,7 +42,8 @@ class EverythingDataSelectorTest {
   @Test
   void noConsentErrors() {
     var client = builder();
-    var dataSelector = new EverythingDataSelector(common, server.createClient(client), patient);
+    var dataSelector =
+        new EverythingDataSelector(common, server.createClient(client), patient, meterRegistry);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).expectError().verify();
   }
@@ -46,7 +52,8 @@ class EverythingDataSelectorTest {
   void noConsentSucceedsIfConsentIgnored() {
     var client = builder().exchangeFunction(req -> Mono.just(ClientResponse.create(OK).build()));
     DataSelector.Config common = new DataSelector.Config(true, null);
-    var dataSelector = new EverythingDataSelector(common, server.createClient(client), patient);
+    var dataSelector =
+        new EverythingDataSelector(common, server.createClient(client), patient, meterRegistry);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).verifyComplete();
   }
@@ -60,7 +67,8 @@ class EverythingDataSelectorTest {
       var bundle = FhirContext.forR4().newJsonParser().parseResource(Bundle.class, inStream);
       given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(bundle));
     }
-    var dataSelector = new EverythingDataSelector(common, server.createClient(client), patient);
+    var dataSelector =
+        new EverythingDataSelector(common, server.createClient(client), patient, meterRegistry);
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));

@@ -4,6 +4,8 @@ import static com.typesafe.config.ConfigFactory.parseFile;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.cda.Deidentificator;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -11,9 +13,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class DeidentifhirStepFactory implements Deidentificator.Factory<DeidentifhirStepConfig> {
 
   private final WebClient.Builder builder;
+  private final MeterRegistry meterRegistry;
 
-  public DeidentifhirStepFactory(WebClient.Builder builder) {
+  public DeidentifhirStepFactory(
+      WebClient.Builder builder, @Autowired MeterRegistry meterRegistry) {
     this.builder = builder;
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -31,6 +36,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
         implConfig.tca().domain(),
         implConfig.dateShift(),
         parseFile(requireNonNull(implConfig.deidentifhirConfig())),
-        parseFile(requireNonNull(implConfig.scraperConfig())));
+        parseFile(requireNonNull(implConfig.scraperConfig())),
+        meterRegistry);
   }
 }
