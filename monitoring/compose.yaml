@@ -17,7 +17,8 @@ services:
     volumes:
     - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
     - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml
-    - ./grafana/histogram.json:/etc/grafana/histogram.json
+    - ./grafana/dashboards:/etc/grafana/dashboards
+    - ./grafana/grafana.ini:/etc/grafana/grafana.ini
     ports:
     - 42128:3000
     networks: [ "fts" ]

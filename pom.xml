@@ -16,7 +16,6 @@
     <module>api</module>
     <module>util</module>
     <module>test-util</module>
-    <module>monitoring-util</module>
     <module>clinical-domain-agent</module>
     <module>research-domain-agent</module>
     <module>trust-center-agent</module>

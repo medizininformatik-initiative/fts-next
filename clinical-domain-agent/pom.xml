@@ -33,13 +33,6 @@
     </dependency>
 
     <dependency>
-      <groupId>care.smith.fts</groupId>
-      <artifactId>monitoring-util</artifactId>
-      <version>${project.version}</version>
-      <type>pom</type>
-    </dependency>
-
-    <dependency>
       <groupId>ca.uhn.hapi.fhir</groupId>
       <artifactId>hapi-fhir-structures-r4</artifactId>
     </dependency>

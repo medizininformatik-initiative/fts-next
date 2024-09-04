@@ -13,7 +13,7 @@ build:
 	mvn ${MAVEN_ARGS} package
 
 build/utils:
-	mvn ${MAVEN_ARGS} install --projects .,api,util,test-util,monitoring-util
+	mvn ${MAVEN_ARGS} install --projects .,api,util,test-util
 
 coverage:
 	mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
