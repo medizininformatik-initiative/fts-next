@@ -4,6 +4,7 @@ import static java.time.Duration.ofSeconds;
 
 import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.util.FhirCodecConfiguration;
+import care.smith.fts.util.MetricsConfig;
 import care.smith.fts.util.WebClientDefaults;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -19,7 +20,7 @@ import org.springframework.context.annotation.Primary;
 @Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
-@Import({WebClientDefaults.class, FhirCodecConfiguration.class})
+@Import({WebClientDefaults.class, FhirCodecConfiguration.class, MetricsConfig.class})
 public class TrustCenterAgent {
 
   public static void main(String... args) {
