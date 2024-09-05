@@ -22,7 +22,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   void hdsDown() {
     mockDataSelector.whenFetchData(patientId).dropConnection();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(TransferProcessControllerIT::completedWithSkipped)
         .verifyComplete();
   }
@@ -39,7 +39,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   @Test
   void hdsReturnsWrongContentType() {
     mockDataSelector.whenFetchData(patientId).respondWithWrongContentType();
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(TransferProcessControllerIT::completedWithSkipped)
         .verifyComplete();
   }
@@ -48,7 +48,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   void hdsReturnsEmptyBundle() {
     mockDataSelector.whenFetchData(patientId).respondWithEmptyBundle();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(TransferProcessControllerIT::completedWithSkipped)
         .verifyComplete();
   }

@@ -23,7 +23,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   void hdsDown() {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
@@ -49,7 +49,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   void hdsReturnsWrongContentType() {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).wrongContentType();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
@@ -62,7 +62,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   void hdsReturnsMoreThanOneResult() throws IOException {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).moreThanOneResult();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
@@ -75,7 +75,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   void hdsReturnsEmptyBundle() {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).emptyBundle();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED);

@@ -1,6 +1,7 @@
 package care.smith.fts.util;
 
 import static com.google.common.base.Predicates.or;
+import static java.lang.Boolean.parseBoolean;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -11,6 +12,8 @@ import reactor.util.retry.RetryBackoffSpec;
 
 public interface RetryStrategies {
 
+  boolean RETRY_TIMEOUT = parseBoolean(System.getProperty("fts.retryTimeout", "true"));
+
   static RetryBackoffSpec defaultRetryStrategy(MeterRegistry meterRegistry, String name) {
     var counter = meterRegistry.counter("http.client.requests.retries", "request_name", name);
     return Retry.backoff(3, Duration.ofSeconds(1))
@@ -19,7 +22,7 @@ public interface RetryStrategies {
   }
 
   static boolean isTimeout(Throwable e) {
-    return e instanceof TimeoutException;
+    return RETRY_TIMEOUT && e instanceof TimeoutException;
   }
 
   private static boolean is5xxServerError(Throwable e) {

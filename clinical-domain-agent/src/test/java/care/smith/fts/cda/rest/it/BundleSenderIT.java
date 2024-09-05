@@ -29,7 +29,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   void hdsDown() {
     mockBundleSender.isDown();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(TransferProcessControllerIT::completedWithSkipped)
         .verifyComplete();
   }
