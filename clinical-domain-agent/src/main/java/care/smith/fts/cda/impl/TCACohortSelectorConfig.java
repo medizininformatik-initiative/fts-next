@@ -1,6 +1,6 @@
 package care.smith.fts.cda.impl;
 
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import com.fasterxml.jackson.annotation.JsonClassDescription;
 import jakarta.validation.constraints.NotNull;
 import java.util.Set;
@@ -8,7 +8,7 @@ import java.util.Set;
 @JsonClassDescription("")
 public record TCACohortSelectorConfig(
     /* */
-    @NotNull HTTPClientConfig server,
+    @NotNull HttpClientConfig server,
     /* */
     @NotNull String patientIdentifierSystem,
     /* */

@@ -1,14 +1,14 @@
 package care.smith.fts.rda.impl;
 
 import static care.smith.fts.test.WebClientTestUtil.matchRequest;
-import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
+import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.web.reactive.function.client.WebClient.builder;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.rda.BundleSender;
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ class FhirStoreBundleSenderTest {
 
   @Autowired MeterRegistry meterRegistry;
 
-  private final HTTPClientConfig server = new HTTPClientConfig("http://localhost", NONE);
+  private final HttpClientConfig server = new HttpClientConfig("http://localhost", NONE);
   private final FhirStoreBundleSenderConfig config =
       new FhirStoreBundleSenderConfig(server, "example");
 

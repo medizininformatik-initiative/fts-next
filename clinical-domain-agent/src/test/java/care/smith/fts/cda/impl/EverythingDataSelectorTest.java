@@ -12,7 +12,7 @@ import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.Period;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
@@ -37,7 +37,7 @@ class EverythingDataSelectorTest {
 
   @Mock ClientResponse response;
   private final DataSelector.Config common = new DataSelector.Config(false, null);
-  private final HTTPClientConfig server = new HTTPClientConfig("http://localhost");
+  private final HttpClientConfig server = new HttpClientConfig("http://localhost");
 
   @Test
   void noConsentErrors() {

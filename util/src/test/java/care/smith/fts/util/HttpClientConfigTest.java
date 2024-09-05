@@ -2,30 +2,30 @@ package care.smith.fts.util;
 
 import static org.assertj.core.api.Assertions.*;
 
-import care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod;
+import care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
-public class HTTPClientConfigTest {
+public class HttpClientConfigTest {
 
   @Test
   public void nullBaseUrlThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(() -> new HTTPClientConfig(null));
+        .isThrownBy(() -> new HttpClientConfig(null));
   }
 
   @Test
   public void emptyBaseUrlThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(() -> new HTTPClientConfig(""));
+        .isThrownBy(() -> new HttpClientConfig(""));
   }
 
   @Test
   public void nullAuthDoesntThrow() {
-    assertThat(new HTTPClientConfig("http://localhost", null).auth()).isEqualTo(AuthMethod.NONE);
+    assertThat(new HttpClientConfig("http://localhost", null).auth()).isEqualTo(AuthMethod.NONE);
   }
 
   @Test
@@ -39,12 +39,12 @@ public class HTTPClientConfigTest {
           none: {}
         """;
 
-    assertThat(om.readValue(config, HTTPClientConfig.class)).isNotNull();
+    assertThat(om.readValue(config, HttpClientConfig.class)).isNotNull();
   }
 
   @Test
   public void clientCreated() {
-    HTTPClientConfig config = new HTTPClientConfig("http://localhost");
+    HttpClientConfig config = new HttpClientConfig("http://localhost");
     WebClient client = config.createClient(WebClient.builder());
 
     assertThat(client).isNotNull();

@@ -2,7 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ class RDABundleSenderFactoryTest {
             new RDABundleSenderFactory(clientBuilder, meterRegistry)
                 .create(
                     null,
-                    new RDABundleSenderConfig(new HTTPClientConfig("http://localhost"), "example")))
+                    new RDABundleSenderConfig(new HttpClientConfig("http://localhost"), "example")))
         .isNotNull();
   }
 }

@@ -22,12 +22,12 @@ public class HTTPClientBasicAuthTest {
           password: pass-090130
         """;
 
-    assertThat(om.readValue(config, HTTPClientAuthMethod.AuthMethod.class)).isNotNull();
+    assertThat(om.readValue(config, HttpClientAuthMethod.AuthMethod.class)).isNotNull();
   }
 
   @Test
   public void clientCreated() {
-    HTTPClientBasicAuth config = new HTTPClientBasicAuth("user-090058", "pass-090130");
+    HttpClientBasicAuth config = new HttpClientBasicAuth("user-090058", "pass-090130");
 
     var client = WebClient.builder();
 

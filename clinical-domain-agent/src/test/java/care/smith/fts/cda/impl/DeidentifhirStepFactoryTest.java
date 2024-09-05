@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.impl.DeidentifhirStepConfig.TCAConfig;
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.File;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ class DeidentifhirStepFactoryTest {
                 .create(
                     new Deidentificator.Config(),
                     new DeidentifhirStepConfig(
-                        new TCAConfig(new HTTPClientConfig("baseUrl:1234"), "domain"),
+                        new TCAConfig(new HttpClientConfig("baseUrl:1234"), "domain"),
                         ofDays(14),
                         new File("deidentifhirConfig"),
                         new File("scraperConfig"))))
