@@ -1,11 +1,11 @@
 package care.smith.fts.rda.impl;
 
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import jakarta.validation.constraints.NotNull;
 
 public record FhirStoreBundleSenderConfig(
     /* */
-    @NotNull HTTPClientConfig server,
+    @NotNull HttpClientConfig server,
 
     /* */
     String project) {}

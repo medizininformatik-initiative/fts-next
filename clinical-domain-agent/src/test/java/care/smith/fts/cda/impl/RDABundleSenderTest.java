@@ -2,7 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.WebClientTestUtil.matchRequest;
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
+import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static java.util.stream.Stream.generate;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
@@ -18,7 +18,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.test.WebClientTestUtil;
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.stream.Stream;
@@ -41,7 +41,7 @@ class RDABundleSenderTest {
   private static final String PATIENT_ID = "patient-102931";
   private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);
 
-  private final HTTPClientConfig server = new HTTPClientConfig("http://localhost", NONE);
+  private final HttpClientConfig server = new HttpClientConfig("http://localhost", NONE);
   private final RDABundleSenderConfig config = new RDABundleSenderConfig(server, "example");
 
   @Test

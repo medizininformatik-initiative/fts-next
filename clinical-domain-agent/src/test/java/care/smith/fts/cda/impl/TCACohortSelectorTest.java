@@ -1,7 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.auth.HTTPClientAuthMethod.AuthMethod.NONE;
+import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
@@ -10,7 +10,7 @@ import static org.springframework.web.reactive.function.client.WebClient.builder
 import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.util.HTTPClientConfig;
+import care.smith.fts.util.HttpClientConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Date;
 import java.util.List;
@@ -50,7 +50,7 @@ class TCACohortSelectorTest {
   @BeforeEach
   void setUp() {
     var address = "http://localhost";
-    var server = new HTTPClientConfig(address, NONE);
+    var server = new HttpClientConfig(address, NONE);
     config = new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
   }
 

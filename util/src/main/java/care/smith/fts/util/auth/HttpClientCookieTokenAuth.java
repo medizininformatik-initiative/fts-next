@@ -4,9 +4,9 @@ import static org.springframework.http.HttpHeaders.COOKIE;
 
 import org.springframework.web.reactive.function.client.WebClient;
 
-public record HTTPClientCookieTokenAuth(
+public record HttpClientCookieTokenAuth(
     /* */
-    String token) implements HTTPClientAuthMethod {
+    String token) implements HttpClientAuthMethod {
 
   @Override
   public void configure(WebClient.Builder builder) {

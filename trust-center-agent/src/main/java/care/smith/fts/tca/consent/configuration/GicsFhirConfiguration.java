@@ -2,8 +2,8 @@ package care.smith.fts.tca.consent.configuration;
 
 import care.smith.fts.tca.consent.FhirConsentProvider;
 import care.smith.fts.tca.consent.PolicyHandler;
-import care.smith.fts.util.HTTPClientConfig;
-import care.smith.fts.util.auth.HTTPClientAuthMethod;
+import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.auth.HttpClientAuthMethod;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,7 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class GicsFhirConfiguration {
   @NotBlank String baseUrl;
   int defaultPageSize = 50;
-  @NotNull HTTPClientAuthMethod.AuthMethod auth;
+  @NotNull HttpClientAuthMethod.AuthMethod auth;
 
   @Bean
   int defaultPageSize() {
@@ -28,14 +28,14 @@ public class GicsFhirConfiguration {
 
   @Bean("gicsFhirHttpClient")
   public WebClient httpClient(WebClient.Builder builder) {
-    HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
+    HttpClientConfig httpClientConfig = new HttpClientConfig(baseUrl, auth);
     return httpClientConfig.createClient(builder);
   }
 
   @Bean
   FhirConsentProvider fhirConsentProvider(
       PolicyHandler policyHandler, WebClient.Builder builder, MeterRegistry meterRegistry) {
-    HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
+    HttpClientConfig httpClientConfig = new HttpClientConfig(baseUrl, auth);
     var client = httpClientConfig.createClient(builder);
     return new FhirConsentProvider(client, policyHandler, defaultPageSize, meterRegistry);
   }

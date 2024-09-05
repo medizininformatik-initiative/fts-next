@@ -21,12 +21,12 @@ public class HTTPClientCookieTokenAuthTest {
           token: token-090112
         """;
 
-    assertThat(om.readValue(config, HTTPClientAuthMethod.AuthMethod.class)).isNotNull();
+    assertThat(om.readValue(config, HttpClientAuthMethod.AuthMethod.class)).isNotNull();
   }
 
   @Test
   public void clientCreated() {
-    HTTPClientCookieTokenAuth config = new HTTPClientCookieTokenAuth("token-090112");
+    HttpClientCookieTokenAuth config = new HttpClientCookieTokenAuth("token-090112");
 
     assertThatNoException().isThrownBy(() -> config.configure(WebClient.builder()));
   }

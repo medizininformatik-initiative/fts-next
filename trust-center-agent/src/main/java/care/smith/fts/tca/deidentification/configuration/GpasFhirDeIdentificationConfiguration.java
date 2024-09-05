@@ -1,7 +1,7 @@
 package care.smith.fts.tca.deidentification.configuration;
 
-import care.smith.fts.util.HTTPClientConfig;
-import care.smith.fts.util.auth.HTTPClientAuthMethod;
+import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.auth.HttpClientAuthMethod;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +18,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Data
 public class GpasFhirDeIdentificationConfiguration {
   @NotBlank String baseUrl;
-  @NotNull HTTPClientAuthMethod.AuthMethod auth;
+  @NotNull HttpClientAuthMethod.AuthMethod auth;
 
   @Bean
   public ObjectMapper objectMapper() {
@@ -27,7 +27,7 @@ public class GpasFhirDeIdentificationConfiguration {
 
   @Bean("gpasFhirHttpClient")
   public WebClient httpClient(WebClient.Builder builder) {
-    HTTPClientConfig httpClientConfig = new HTTPClientConfig(baseUrl, auth);
+    HttpClientConfig httpClientConfig = new HttpClientConfig(baseUrl, auth);
     return httpClientConfig.createClient(builder);
   }
 
