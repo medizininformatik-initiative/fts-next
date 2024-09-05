@@ -11,7 +11,7 @@ on:
 jobs:
   build-jar:
     env:
-      MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN
+      MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
     runs-on: ubuntu-24.04
     strategy:

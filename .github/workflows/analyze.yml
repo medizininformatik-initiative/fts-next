@@ -11,7 +11,7 @@ on:
 jobs:
   codeql:
     env:
-      MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN
+      MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
     permissions:
       security-events: write
