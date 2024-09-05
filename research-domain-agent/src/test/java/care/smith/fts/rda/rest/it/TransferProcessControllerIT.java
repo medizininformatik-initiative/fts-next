@@ -1,5 +1,6 @@
 package care.smith.fts.rda.rest.it;
 
+import static care.smith.fts.rda.TransferProcessRunner.Phase.RUNNING;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
@@ -13,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.test.StepVerifier.FirstStep;
@@ -65,7 +68,11 @@ public class TransferProcessControllerIT extends BaseIT {
     return startProcess(duration, new Bundle());
   }
 
-  protected FirstStep<Status> startProcess(Duration duration, Bundle bundle) {
+  protected FirstStep<Status> startProcess(Duration timeout, Bundle bundle) {
+    return startProcess(timeout, bundle, s -> s.phase() != RUNNING);
+  }
+
+  protected FirstStep<Status> startProcess(Duration timeout, Bundle bundle, Predicate<Status> until) {
     return client
         .post()
         .uri("/api/v2/process/test/patient")
@@ -74,7 +81,13 @@ public class TransferProcessControllerIT extends BaseIT {
         .retrieve()
         .toBodilessEntity()
         .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMap(r -> Mono.delay(duration).flatMap(i -> retrieveStatus(r)))
+        .flatMapMany(r -> Flux.interval(Duration.ofMillis(0), Duration.ofMillis(500))
+            .flatMap(i -> retrieveStatus(r))
+            .takeUntil(until)
+            .take(timeout)
+            .timeout(timeout, retrieveStatus(r))
+        )
+        .last()
         .as(StepVerifier::create);
   }
 

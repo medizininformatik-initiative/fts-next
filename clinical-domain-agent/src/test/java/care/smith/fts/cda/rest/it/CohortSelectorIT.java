@@ -16,7 +16,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   void tcaDown() {
     mockCohortSelector.isDown();
 
-    startProcess(Duration.ofSeconds(1))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
   }
@@ -34,7 +34,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   void tcaSendsWrongContentType() throws IOException {
     mockCohortSelector.wrongContentType();
 
-    startProcess(Duration.ofMillis(200))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
   }
@@ -43,7 +43,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   void unknownDomain() throws JsonProcessingException {
     mockCohortSelector.unknownDomain(om);
 
-    startProcess(Duration.ofMillis(200))
+    startProcess(Duration.ofSeconds(3))
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
   }
