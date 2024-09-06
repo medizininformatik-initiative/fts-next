@@ -1,5 +1,6 @@
 package care.smith.fts.test;
 
+import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.FhirGenerators.patient;
 import static care.smith.fts.test.FhirGenerators.withPrefix;
 import static care.smith.fts.util.FhirUtils.toBundle;
@@ -7,7 +8,6 @@ import static java.util.stream.Stream.generate;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 
@@ -28,15 +28,4 @@ public class TestPatientGenerator {
   }
 
   public record BundleAndIds(Bundle bundle, List<String> ids) {}
-
-  static <T> Supplier<T> fromList(List<T> list) {
-    return new Supplier<>() {
-      int i = 0;
-
-      @Override
-      public T get() {
-        return list.get(i++);
-      }
-    };
-  }
 }

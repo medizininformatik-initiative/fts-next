@@ -4,6 +4,7 @@ import static java.util.Map.entry;
 import static java.util.UUID.randomUUID;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.hl7.fhir.r4.model.Bundle;
@@ -74,5 +75,16 @@ public interface FhirGenerators {
 
   static Supplier<String> withPrefix(String prefix) {
     return withPrefix(prefix, 0);
+  }
+
+  static <T> Supplier<T> fromList(List<T> list) {
+    return new Supplier<>() {
+      int i = 0;
+
+      @Override
+      public T get() {
+        return list.get(i++);
+      }
+    };
   }
 }

@@ -7,6 +7,7 @@ import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.PseudonymizeRequest;
+import com.github.dockerjava.api.exception.InternalServerErrorException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -71,6 +72,25 @@ class DeIdentificationControllerTest {
   }
 
   @Test
+  void getTransportIdsAndDateShiftingValuesIllegalArgumentException() {
+    given(pseudonymProvider.retrieveTransportIds("id1", Set.of("id1"), "domain"))
+        .willReturn(Mono.error(new IllegalArgumentException("Illegal argument")));
+    given(shiftedDatesProvider.generateDateShift("id1", Duration.ofDays(14)))
+        .willReturn(Mono.just(Duration.ofDays(1)));
+
+    var body = new PseudonymizeRequest("id1", Set.of("id1"), "domain", Duration.ofDays(14));
+    webClient
+        .post()
+        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(fromValue(body))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError();
+  }
+
+  @Test
   void getTransportIdsAndDateShiftingValuesEmptyIds() {
     Set<String> ids = Set.of();
     var mapName = String.valueOf(ids.hashCode());
@@ -94,8 +114,27 @@ class DeIdentificationControllerTest {
   }
 
   @Test
+  void getTransportIdsAndDateShiftingValuesInternalServerError() {
+    var ids = Set.of("id1", "id2");
+    given(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
+        .willReturn(Mono.error(new InternalServerErrorException("Internal Server Error")));
+    given(shiftedDatesProvider.generateDateShift("id1", Duration.ofDays(14)))
+        .willReturn(Mono.just(Duration.ofDays(1)));
+
+    var body = new PseudonymizeRequest("id1", ids, "domain", Duration.ofDays(14));
+    webClient
+        .post()
+        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(fromValue(body))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is5xxServerError();
+  }
+
+  @Test
   void fetchPseudonymizedIds() {
-    var ids = Set.of("tid-1", "tid2");
     given(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
         .willReturn(Mono.just(Map.of("tid-1", "pid1", "tid2", "pid2")));
 
@@ -115,7 +154,6 @@ class DeIdentificationControllerTest {
 
   @Test
   void fetchPseudonymizedIdsEmptyIds() {
-    Set<String> ids = Set.of();
     given(pseudonymProvider.fetchPseudonymizedIds("tIDMapName")).willReturn(Mono.empty());
 
     webClient

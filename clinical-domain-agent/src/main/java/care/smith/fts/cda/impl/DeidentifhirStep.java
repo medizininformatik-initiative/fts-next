@@ -3,7 +3,6 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
-import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
@@ -52,18 +51,10 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
-    ConsentedPatient patient = bundle.consentedPatient();
-    IDATScraper idatScraper = new IDATScraper(scraperConfig, patient);
+    var patient = bundle.consentedPatient();
+    var idatScraper = new IDATScraper(scraperConfig, patient);
     var ids = idatScraper.gatherIDs(bundle.bundle());
-
-    var pid =
-        ids.stream()
-            .filter(id -> id.contains("identifier"))
-            .filter(id -> id.endsWith(patient.id()))
-            .findFirst()
-            .orElseThrow();
-
-    return fetchTransportIdsAndDateShiftingValues(pid, ids)
+    return fetchTransportIdsAndDateShiftingValues(patient.id(), ids)
         .map(
             response -> {
               var transportIDs = response.originalToTransportIDMap();

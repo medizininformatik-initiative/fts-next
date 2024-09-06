@@ -54,15 +54,14 @@ public class DeIdentificationController {
                 return Mono.empty();
               }
             });
-
     return response
         .map(ResponseEntity::ok)
         .onErrorResume(
             e -> {
-              if (e instanceof UnknownDomainException) {
+              if (e instanceof UnknownDomainException || e instanceof IllegalArgumentException) {
                 return ErrorResponseUtil.badRequest(e);
               } else {
-                log.error("Unexpected error", e);
+                log.error("Internal error", e);
                 return ErrorResponseUtil.internalServerError(e);
               }
             });
