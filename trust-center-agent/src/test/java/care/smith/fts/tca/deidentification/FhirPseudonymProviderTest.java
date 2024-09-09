@@ -1,5 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
+import static care.smith.fts.test.FhirGenerators.fromList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -12,9 +14,12 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerators;
+import care.smith.fts.util.MediaTypes;
+import care.smith.fts.util.error.UnknownDomainException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -36,9 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
 @Slf4j
 @SpringBootTest
@@ -73,7 +76,9 @@ class FhirPseudonymProviderTest {
 
   @Test
   void retrieveTransportIds(MockServerClient mockServer) throws IOException {
-    var fhirGenerator = FhirGenerators.gpasGetOrCreateResponse(() -> "id1", () -> "469680023");
+    var fhirGenerator =
+        FhirGenerators.gpasGetOrCreateResponse(
+            fromList(List.of("id1", "Salt_id1")), fromList(List.of("469680023", "123")));
 
     mockServer
         .when(
@@ -86,7 +91,8 @@ class FhirPseudonymProviderTest {
                                   { "resourceType": "Parameters",
                                     "parameter": [
                                       {"name": "target", "valueString": "domain"},
-                                      {"name": "original", "valueString": "id1"}]}
+                                      {"name": "original", "valueString": "id1"},
+                                      {"name": "original", "valueString": "Salt_id1"}]}
                                   """,
                         ONLY_MATCHING_FIELDS)))
         .respond(
@@ -98,11 +104,15 @@ class FhirPseudonymProviderTest {
     given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
     given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
-    Set<String> ids = Set.of("id1");
+    var ids = Set.of("Patient.id1", "identifier.id1");
     var mapName = "Bo1z3Z87i";
-    var idMap = Tuples.of(mapName, Map.of("id1", "xLCUONMhJ"));
     create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
-        .expectNext(idMap)
+        .assertNext(
+            t2 -> {
+              assertThat(t2.getT1()).isEqualTo(mapName);
+              assertThat(t2.getT2().keySet()).isEqualTo(ids);
+              assertThat(t2.getT2().values()).containsExactlyInAnyOrder("xLCUONMhJ", "S3DWTXcF_");
+            })
         .verifyComplete();
   }
 
@@ -112,13 +122,6 @@ class FhirPseudonymProviderTest {
     assertThrows(
         RedisTimeoutException.class,
         () -> pseudonymProvider.retrieveTransportIds("id1", Set.of("id1"), "domain"));
-  }
-
-  @Test
-  void retrieveTransportIdsWithWrongPatientId() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> pseudonymProvider.retrieveTransportIds("wrongId", Set.of("id1"), "domain"));
   }
 
   @Test
@@ -145,17 +148,42 @@ class FhirPseudonymProviderTest {
   }
 
   @Test
-  void fetchPseudonymIDsWithGpasBadRequestResponse(MockServerClient mockServer) {
+  void fetchPseudonymIDsWithUnknownDomainException(MockServerClient mockServer) {
     mockServer
         .when(request().withMethod("POST").withPath("/$pseudonymizeAllowCreate"))
-        .respond(response().withStatusCode(400));
+        .respond(
+            response()
+                .withStatusCode(400)
+                .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
+                .withBody(
+                    "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"error\",\"code\":\"processing\",\"diagnostics\":\"Unknown domain\"}]}"));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
 
     Set<String> ids = Set.of("id1");
     create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
-        .expectError(WebClientResponseException.class)
+        .expectError(UnknownDomainException.class)
+        .verify();
+  }
+
+  @Test
+  void fetchPseudonymIDsWithUnknownError(MockServerClient mockServer) {
+    mockServer
+        .when(request().withMethod("POST").withPath("/$pseudonymizeAllowCreate"))
+        .respond(
+            response()
+                .withStatusCode(400)
+                .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
+                .withBody(
+                    "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"error\",\"code\":\"processing\",\"diagnostics\":\"Unknown error\"}]}"));
+
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
+
+    Set<String> ids = Set.of("id1");
+    create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
+        .expectError(IllegalArgumentException.class)
         .verify();
   }
 

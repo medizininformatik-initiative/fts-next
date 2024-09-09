@@ -61,7 +61,7 @@ class DeidentifhirStepTest {
                     json(
                         """
                                 {
-                                  "patientId" : "id1.identifier.identifierSystem:id1",
+                                  "patientId" : "id1",
                                   "ids" : [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
                                   "domain" : "domain",
                                   "dateShift" : 1209600.0

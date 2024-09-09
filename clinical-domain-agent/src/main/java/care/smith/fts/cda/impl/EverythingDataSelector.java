@@ -3,22 +3,27 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.util.Optional.ofNullable;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.net.URI;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 public class EverythingDataSelector implements DataSelector {
@@ -26,6 +31,7 @@ public class EverythingDataSelector implements DataSelector {
   private final WebClient client;
   private final PatientIdResolver pidResolver;
   private final MeterRegistry meterRegistry;
+  private final int defaultPageSize = 500;
 
   public EverythingDataSelector(
       Config common,
@@ -46,44 +52,49 @@ public class EverythingDataSelector implements DataSelector {
   }
 
   private Flux<Bundle> fetchEverything(ConsentedPatient patient, IIdType fhirId) {
-    log.trace("patient={}", patient);
-    log.trace("fhirId: {}", fhirId);
+    var uriBuilder = common.ignoreConsent() ? withoutConsent(fhirId) : withConsent(patient, fhirId);
+    return fetchBundle("/Patient/{id}/$everything", uriBuilder)
+        .doOnError(e -> log.error("Unable to fetch patient data from HDS: {}", e.getMessage()))
+        .expand(b -> fetchNextPage(b, uriBuilder));
+  }
 
-    var headersSpec =
-        common.ignoreConsent() ? buildClient(fhirId) : buildClientWithConsent(patient, fhirId);
-
-    return headersSpec
+  private Mono<Bundle> fetchBundle(String uri, Function<UriBuilder, URI> builder) {
+    log.debug("Fetching patient data from HDS: {}", uri);
+    return client
+        .get()
+        .uri(uri, builder)
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchEverything"))
-        .doOnError(e -> log.error("Unable to fetch patient data from HDS: {}", e.getMessage()))
-        // TODO Paging using .expand()? see Flare
-        .flux();
+        .timeout(Duration.ofSeconds(30))
+        .doOnNext(b -> log.trace("Fetched Bundle with {} resources", b.getEntry().size()));
   }
 
-  private RequestHeadersSpec<?> buildClient(IIdType fhirId) {
-    var uriBuilder = UriComponentsBuilder.fromPath("/Patient/{id}/$everything");
-    var uri = uriBuilder.build().toUriString();
-    return client.get().uri(uri, uriBuilder1 -> uriBuilder1.build(fhirId.getIdPart()));
+  private Mono<Bundle> fetchNextPage(Bundle bundle, Function<UriBuilder, URI> builder) {
+    return ofNullable(bundle.getLink("next"))
+        .map(BundleLinkComponent::getUrl)
+        .map(b -> fetchBundle(b, builder))
+        .orElse(Mono.empty());
   }
 
-  private RequestHeadersSpec<?> buildClientWithConsent(ConsentedPatient patient, IIdType fhirId) {
+  private Function<UriBuilder, URI> withoutConsent(IIdType fhirId) {
+    return (uriBuilder) ->
+        uriBuilder.queryParam("_count", defaultPageSize).build(fhirId.getIdPart());
+  }
+
+  private Function<UriBuilder, URI> withConsent(ConsentedPatient patient, IIdType fhirId) {
     var period = patient.maxConsentedPeriod();
     if (period.isEmpty()) {
       throw new IllegalArgumentException(
           "Patient has no consent configured, and ignoreConsent is false.");
     }
-
-    return client
-        .get()
-        .uri(
-            "/Patient/{id}/$everything",
-            uriBuilder1 ->
-                uriBuilder1
-                    .queryParam("start", formatWithSystemTZ(period.get().start()))
-                    .queryParam("end", formatWithSystemTZ(period.get().end()))
-                    .build(Map.of("id", fhirId.getIdPart())));
+    return (uriBuilder) ->
+        uriBuilder
+            .queryParam("_count", defaultPageSize)
+            .queryParam("start", formatWithSystemTZ(period.get().start()))
+            .queryParam("end", formatWithSystemTZ(period.get().end()))
+            .build(Map.of("id", fhirId.getIdPart()));
   }
 
   private static String formatWithSystemTZ(ZonedDateTime t) {

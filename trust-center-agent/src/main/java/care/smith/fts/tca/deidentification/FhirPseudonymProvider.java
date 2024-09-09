@@ -63,16 +63,12 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   @Override
   public Mono<Tuple2<String, Map<String, String>>> retrieveTransportIds(
       String patientId, Set<String> ids, String domain) {
-
-    if (!ids.contains(patientId)) {
-      throw new IllegalArgumentException("patientId must be part of ids");
-    }
+    log.trace("retrieveTransportIds patientId={}, ids={}", patientId, ids);
     var saltKey = "Salt_" + patientId;
     var tIDMapName = generateTID();
     var originalToTransportIDMapping = ids.stream().collect(toMap(id -> id, id -> generateTID()));
     var rMap = redisClient.reactive().getMapCache(tIDMapName);
     return rMap.expire(Duration.ofSeconds(configuration.getTransportIdTTLinSeconds()))
-        .map(ignore -> rMap)
         .flatMap(ignore -> fetchOrCreatePseudonyms(domain, Set.of(patientId, saltKey)))
         .flatMap(
             originalToSecureIDMapping -> {
@@ -87,12 +83,31 @@ public class FhirPseudonymProvider implements PseudonymProvider {
                                   sha256
                                       .hashString(salt + entry.getKey(), StandardCharsets.UTF_8)
                                       .toString()));
-              transportToSecureIDMapping.put(
-                  originalToTransportIDMapping.get(patientId),
-                  originalToSecureIDMapping.get(patientId));
+              replacePatientIdMapping(
+                  patientId,
+                  originalToSecureIDMapping,
+                  transportToSecureIDMapping,
+                  originalToTransportIDMapping);
               return rMap.putAll(transportToSecureIDMapping);
             })
         .then(Mono.fromCallable(() -> Tuples.of(tIDMapName, originalToTransportIDMapping)));
+  }
+
+  /**
+   * With this function we make sure that the patient's ID in the RDA is the pseudomized ID. This
+   * ensures that we can de-pseudomize patients.
+   */
+  private static void replacePatientIdMapping(
+      String patientId,
+      Map<String, String> originalToSecureIDMapping,
+      Map<String, String> transportToSecureIDMapping,
+      Map<String, String> originalToTransportIDMapping) {
+    if (originalToTransportIDMapping.keySet().stream()
+        .anyMatch(id -> id.endsWith("Patient." + patientId))) {
+      transportToSecureIDMapping.put(
+          originalToTransportIDMapping.get("Patient." + patientId),
+          originalToSecureIDMapping.get(patientId));
+    }
   }
 
   private String generateTID() {
@@ -140,7 +155,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
               if (diagnostics != null && diagnostics.startsWith("Unknown domain")) {
                 return Mono.error(new UnknownDomainException(diagnostics));
               } else {
-                return Mono.error(new UnknownError());
+                return Mono.error(new IllegalArgumentException(diagnostics));
               }
             });
   }

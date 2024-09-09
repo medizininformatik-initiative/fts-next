@@ -55,7 +55,7 @@ public class MockDataSelector {
     var id2 = patientId + ".Patient:" + patientId;
 
     Set<String> ids = Set.of(id1, id2);
-    var pseudonymizeRequest = new PseudonymizeRequest(id1, ids, "MII", Duration.ofDays(14));
+    var pseudonymizeRequest = new PseudonymizeRequest(patientId, ids, "MII", Duration.ofDays(14));
     return MockTransportIds.builder()
         .tca(tca)
         .transportIds(ids)
