@@ -11,10 +11,18 @@ import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
 public class WebClientDefaults implements WebClientCustomizer {
+
+  private static final MimeType[] JACKSON_MIME_TYPES =
+      new MimeType[] {
+        MediaType.APPLICATION_JSON,
+        MediaTypes.APPLICATION_FHIR_JSON,
+        MediaType.APPLICATION_PROBLEM_JSON
+      };
 
   private final HttpClient httpClient;
   private final ObjectMapper objectMapper;
@@ -33,13 +41,9 @@ public class WebClientDefaults implements WebClientCustomizer {
   }
 
   private void configureObjectMapper(ClientCodecConfigurer cs) {
-    var encoder =
-        new Jackson2JsonEncoder(
-            objectMapper, MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_FHIR_JSON);
+    var encoder = new Jackson2JsonEncoder(objectMapper, JACKSON_MIME_TYPES);
     cs.defaultCodecs().jackson2JsonEncoder(encoder);
-    var decoder =
-        new Jackson2JsonDecoder(
-            objectMapper, MediaType.APPLICATION_JSON, MediaTypes.APPLICATION_FHIR_JSON);
+    var decoder = new Jackson2JsonDecoder(objectMapper, JACKSON_MIME_TYPES);
     cs.defaultCodecs().jackson2JsonDecoder(decoder);
   }
 }

@@ -9,7 +9,45 @@ on:
   merge_group:
 
 jobs:
+  test:
+    env:
+      MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN -Dfts.retryTimeout=false
+      GITHUB_TOKEN: ${{ github.token }}
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+        auth:
+        - none
+        - basic
+    steps:
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # v4
+      with:
+        distribution: 'temurin'
+        java-version: 21
+        cache: 'maven'
+
+    - name: Run Tests
+      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }} -Dspring.profiles.active=auth:${{ matrix.auth }}
+
+    - name: Generate Code Coverage Report
+      run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
+        use_legacy_upload_endpoint: true
+
   build-jar:
+    needs: [ test ]
     env:
       MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
@@ -30,27 +68,8 @@ jobs:
         java-version: 21
         cache: 'maven'
 
-    - name: Build Dependencies
-      run: make build/utils
-
-    - name: Unit Tests
-      run: make -C ${{ matrix.agent }} test/unit
-
-    - name: Integration Tests
-      run: make -C ${{ matrix.agent }} test/integration
-
-    - name: Generate Code Coverage Report
-      run: make coverage
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: true
-        use_legacy_upload_endpoint: true
-
     - name: Build Agent
-      run: make -C ${{ matrix.agent }} build
+      run: mvn ${MAVEN_ARGS} -DskipTests package
 
     - name: Upload Jar
       uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4

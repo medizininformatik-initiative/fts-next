@@ -12,6 +12,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.reactive.server.WebTestClient.bindToServer;
 
 import ca.uhn.fhir.context.FhirContext;
+import care.smith.fts.util.auth.HttpServerAuthConfig;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.stream.Stream;
@@ -46,7 +47,7 @@ import reactor.test.StepVerifier;
 
 @Slf4j
 @SpringBootTest(
-    classes = {FhirCodecConfiguration.class, WebServerFhirCodecTest.Config.class},
+    classes = {FhirCodecConfiguration.class, WebServerFhirCodecTest.Config.class, HttpServerAuthConfig.class},
     webEnvironment = RANDOM_PORT)
 public class WebServerFhirCodecTest {
 

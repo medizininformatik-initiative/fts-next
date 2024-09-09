@@ -11,3 +11,8 @@ management:
       fetchPseudonymsForTransportIds: 5,10,25,100,250,500,1000,5000,10000
       replaceIDs: 25,100,250,500,1000,10000
       sendBundleToHds: 25,50,100,250,500,1000,2000,5000,10000
+
+security:
+  endpoints:
+  - path: /api/v2/**
+    role: cd-agent

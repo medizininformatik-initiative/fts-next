@@ -12,6 +12,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
 import care.smith.fts.test.FhirGenerators;
+import care.smith.fts.test.TestWebClientAuth;
 import care.smith.fts.util.MediaTypes;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -23,20 +24,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT)
+@Import(TestWebClientAuth.class)
 class ConsentControllerIT extends BaseIT {
   private static WebClient client;
 
   @BeforeAll
-  static void setUp(@LocalServerPort int port) {
-    client = WebClient.builder().baseUrl("http://localhost:" + port).build();
+  static void setUp(@LocalServerPort int port, @Autowired WebClient.Builder webClientBuilder) {
+    client = webClientBuilder.baseUrl("http://localhost:" + port).build();
   }
 
   @Test

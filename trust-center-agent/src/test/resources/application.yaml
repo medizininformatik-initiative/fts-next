@@ -9,6 +9,13 @@ consent:
       auth:
         none: { }
 
+security:
+  endpoints:
+  - path: /api/v2/cd/**
+    role: cd
+  - path: /api/v2/rd/**
+    role: rd
+
 deIdentification:
   keystoreUrl: redis://valkey:6379
   gpas:

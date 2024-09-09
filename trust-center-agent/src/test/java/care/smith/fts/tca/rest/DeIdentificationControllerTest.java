@@ -5,6 +5,7 @@ import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
+import care.smith.fts.test.TestWebClientAuth;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.PseudonymizeRequest;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
@@ -15,12 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 @WebFluxTest(DeIdentificationController.class)
+@Import(TestWebClientAuth.class)
 class DeIdentificationControllerTest {
 
   @MockBean PseudonymProvider pseudonymProvider;

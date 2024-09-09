@@ -6,6 +6,7 @@ import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.util.FhirCodecConfiguration;
 import care.smith.fts.util.MetricsConfig;
 import care.smith.fts.util.WebClientDefaults;
+import care.smith.fts.util.auth.HttpServerAuthConfig;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -25,7 +26,7 @@ import org.springframework.context.annotation.Primary;
 @Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
-@Import({WebClientDefaults.class, FhirCodecConfiguration.class, MetricsConfig.class})
+@Import({WebClientDefaults.class, FhirCodecConfiguration.class, MetricsConfig.class, HttpServerAuthConfig.class})
 public class ClinicalDomainAgent {
 
   public static void main(String... args) {

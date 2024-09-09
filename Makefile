@@ -12,9 +12,6 @@ test:
 build:
 	mvn ${MAVEN_ARGS} package
 
-build/utils:
-	mvn ${MAVEN_ARGS} install --projects .,api,util,test-util
-
 coverage:
 	mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
 
@@ -26,4 +23,4 @@ images:
 e2e:
 	$(MAKE) -C .github/test all
 
-.PHONY:	clean test build build/utils images e2e
+.PHONY:	clean test build images e2e
