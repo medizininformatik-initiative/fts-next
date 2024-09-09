@@ -22,3 +22,15 @@ scrape_configs:
   scrape_interval: 5s
   static_configs:
     - targets: [ "localhost:9090" ]
+
+- job_name: "blaze-cd-hds"
+  static_configs:
+    - targets: [ "cd-hds:8081" ]
+    - labels:
+        instance: "blaze-cd-hds"
+
+- job_name: "blaze-rd-hds"
+  static_configs:
+    - targets: [ "rd-hds:8081" ]
+    - labels:
+        instance: "blaze-rd-hds"
