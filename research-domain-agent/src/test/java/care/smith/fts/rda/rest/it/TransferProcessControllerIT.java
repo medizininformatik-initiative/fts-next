@@ -10,6 +10,7 @@ import care.smith.fts.rda.TransferProcessRunner.Phase;
 import care.smith.fts.rda.TransferProcessRunner.Status;
 import care.smith.fts.rda.rest.it.mock.MockBundleSender;
 import care.smith.fts.rda.rest.it.mock.MockDeidentifier;
+import care.smith.fts.test.TestWebClientAuth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -46,6 +48,7 @@ import reactor.test.StepVerifier.FirstStep;
 
 @Slf4j
 @SpringBootTest(classes = ResearchDomainAgent.class, webEnvironment = RANDOM_PORT)
+@Import(TestWebClientAuth.class)
 public class TransferProcessControllerIT extends BaseIT {
   protected WebClient client;
 

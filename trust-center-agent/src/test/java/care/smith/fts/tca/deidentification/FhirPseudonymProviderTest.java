@@ -15,6 +15,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.MediaTypes;
+import care.smith.fts.test.TestWebClientAuth;
 import care.smith.fts.util.error.UnknownDomainException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -40,6 +41,7 @@ import org.redisson.client.RedisTimeoutException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -47,6 +49,7 @@ import reactor.core.publisher.Mono;
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
 @ExtendWith(MockitoExtension.class)
+@Import(TestWebClientAuth.class)
 class FhirPseudonymProviderTest {
   private static final Long SEED = 101620L;
 

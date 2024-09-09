@@ -1,3 +1,4 @@
 logging.level:
+  web: TRACE
   care.smith.fts: DEBUG
   care.smith.fts.tca.*: TRACE

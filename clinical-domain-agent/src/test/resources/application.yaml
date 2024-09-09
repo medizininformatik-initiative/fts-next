@@ -1,6 +1,11 @@
 projects:
   directory: "src/test/resources/projects"
 
+security:
+  endpoints:
+  - path: /api/v2/**
+    role: client
+
 logging.level:
   org.mockserver.log: WARN
   care.smith.fts.cda: TRACE

@@ -10,6 +10,7 @@ import care.smith.fts.cda.TransferProcessRunner.Status;
 import care.smith.fts.cda.rest.it.mock.MockBundleSender;
 import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
 import care.smith.fts.cda.rest.it.mock.MockDataSelector;
+import care.smith.fts.test.TestWebClientAuth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
@@ -18,8 +19,10 @@ import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -70,6 +73,7 @@ import reactor.test.StepVerifier.FirstStep;
  */
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
+@Import(TestWebClientAuth.class)
 public class TransferProcessControllerIT extends BaseIT {
   protected WebClient client;
 
@@ -82,8 +86,8 @@ public class TransferProcessControllerIT extends BaseIT {
   protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 
   @BeforeEach
-  void setUp(@LocalServerPort int port) {
-    client = WebClient.builder().baseUrl("http://localhost:" + port).build();
+  void setUp(@LocalServerPort int port, @Autowired WebClient.Builder webClientBuilder) {
+    client = webClientBuilder.baseUrl("http://localhost:" + port).build();
   }
 
   @AfterEach

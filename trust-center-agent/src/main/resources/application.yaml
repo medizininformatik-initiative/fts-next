@@ -10,6 +10,13 @@ management:
         http.server.requests: 25,100,250,500,1000,10000
         http.client.requests: 25,100,250,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
 
+security:
+  endpoints:
+  - path: /api/v2/cd/**
+    role: cd
+  - path: /api/v2/rd/**
+    role: rd
+
 deIdentification:
   keystoreUrl: redis://keystore:6379
   gpas:
