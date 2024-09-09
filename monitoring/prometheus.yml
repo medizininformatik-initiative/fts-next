@@ -17,7 +17,6 @@ scrape_configs:
   static_configs:
     - targets: [ "rd-agent:8080" ]
 
-
 - job_name: "prometheus"
   scrape_interval: 5s
   static_configs:
