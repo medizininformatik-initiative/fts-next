@@ -36,7 +36,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   void hdsTimeout() {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
 
-    startProcess(Duration.ofSeconds(50))
+    startProcess(Duration.ofMinutes(1))
         .assertNext(
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED);

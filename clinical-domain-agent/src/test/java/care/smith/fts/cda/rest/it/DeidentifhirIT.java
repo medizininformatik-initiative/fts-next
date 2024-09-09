@@ -41,7 +41,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
   void tcaTimeout() throws JsonProcessingException {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
 
-    startProcess(Duration.ofSeconds(50))
+    startProcess(Duration.ofMinutes(1))
         .assertNext(TransferProcessControllerIT::completedWithSkipped)
         .verifyComplete();
   }

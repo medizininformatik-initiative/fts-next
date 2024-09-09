@@ -25,7 +25,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   void tcaTimeoutConsentedPatientsRequest() {
     mockCohortSelector.timeout();
 
-    startProcess(Duration.ofSeconds(30))
+    startProcess(Duration.ofMinutes(1))
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
   }

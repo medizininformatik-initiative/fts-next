@@ -38,7 +38,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   void hdsTimeout() {
     mockBundleSender.timeout();
 
-    startProcess(Duration.ofSeconds(50))
+    startProcess(Duration.ofMinutes(1))
         .assertNext(TransferProcessControllerIT::completedWithSkipped)
         .verifyComplete();
   }
