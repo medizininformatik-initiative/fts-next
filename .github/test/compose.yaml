@@ -1,3 +1,5 @@
+name: fts-test
+
 networks:
   agents:
   clinical-domain:
