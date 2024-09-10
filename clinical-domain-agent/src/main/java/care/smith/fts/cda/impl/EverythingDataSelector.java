@@ -55,7 +55,7 @@ public class EverythingDataSelector implements DataSelector {
     var uriBuilder = common.ignoreConsent() ? withoutConsent(fhirId) : withConsent(patient, fhirId);
     return fetchBundle("/Patient/{id}/$everything", uriBuilder)
         .doOnError(e -> log.error("Unable to fetch patient data from HDS: {}", e.getMessage()))
-        .expand(b -> fetchNextPage(b, uriBuilder));
+        .expand(this::fetchNextPage);
   }
 
   private Mono<Bundle> fetchBundle(String uri, Function<UriBuilder, URI> builder) {
@@ -71,10 +71,10 @@ public class EverythingDataSelector implements DataSelector {
         .doOnNext(b -> log.trace("Fetched Bundle with {} resources", b.getEntry().size()));
   }
 
-  private Mono<Bundle> fetchNextPage(Bundle bundle, Function<UriBuilder, URI> builder) {
+  private Mono<Bundle> fetchNextPage(Bundle bundle) {
     return ofNullable(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
-        .map(b -> fetchBundle(b, builder))
+        .map(uri -> fetchBundle(uri, UriBuilder::build))
         .orElse(Mono.empty());
   }
 
