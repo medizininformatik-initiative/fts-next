@@ -6,6 +6,11 @@ providers:
     options:
       path: /etc/grafana/dashboards/http-requests.json
 
+  - name: 'Blaze'
+    type: file
+    options:
+      path: /etc/grafana/dashboards/blaze.json
+
   - name: 'HTTP Requests Retries'
     type: file
     options:

@@ -8,7 +8,7 @@ services:
     command:
     - --enable-feature=native-histograms
     - --config.file=/prometheus.yml
-    networks: [ "fts" ]
+    networks: [ "monitoring", "clinical-domain", "research-domain", "trust-center" ]
     ports:
     - :9090
 
@@ -21,8 +21,15 @@ services:
     - ./grafana/grafana.ini:/etc/grafana/grafana.ini
     ports:
     - 42128:3000
-    networks: [ "fts" ]
+    networks: [ "monitoring" ]
 networks:
-  fts:
-    name: ${NETWORK_NAME:-fts-smith-care}
+  monitoring:
+  clinical-domain:
     external: true
+    name: fts-test_clinical-domain
+  research-domain:
+    external: true
+    name: fts-test_research-domain
+  trust-center:
+    external: true
+    name: fts-test_trust-center
