@@ -1,56 +1,67 @@
 package care.smith.fts.rda.impl;
 
-import static care.smith.fts.test.WebClientTestUtil.matchRequest;
-import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.web.reactive.function.client.WebClient.builder;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.rda.BundleSender;
-import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.test.MockServerUtil;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.hl7.fhir.r4.model.Bundle;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockserver.client.MockServerClient;
+import org.mockserver.junit.jupiter.MockServerExtension;
+import org.mockserver.model.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpMethod;
-import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClient.Builder;
 
 @SpringBootTest
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(MockServerExtension.class)
 class FhirStoreBundleSenderTest {
 
   @Autowired MeterRegistry meterRegistry;
+  private WebClient client;
 
-  private final HttpClientConfig server = new HttpClientConfig("http://localhost", NONE);
-  private final FhirStoreBundleSenderConfig config =
-      new FhirStoreBundleSenderConfig(server, "example");
+  @BeforeEach
+  void setUp(MockServerClient mockServer, @Autowired Builder builder) {
+    var server = MockServerUtil.clientConfig(mockServer);
+    client = server.createClient(builder);
+  }
 
   @Test
-  void requestErrors() {
-    var client =
-        builder()
-            .exchangeFunction(
-                matchRequest(HttpMethod.POST)
-                    .willRespond(ClientResponse.create(BAD_REQUEST).build()));
-    var bundleSender =
-        new FhirStoreBundleSender(config.server().createClient(client), meterRegistry);
+  void requestErrors(MockServerClient mockServer) {
+    mockServer
+        .when(request().withMethod("POST"))
+        .respond(response().withStatusCode(BAD_REQUEST.value()));
+
+    var bundleSender = new FhirStoreBundleSender(client, meterRegistry);
 
     create(bundleSender.send(new Bundle())).expectError().verify();
   }
 
   @Test
-  void bundleSent() {
-    var client =
-        builder()
-            .exchangeFunction(
-                matchRequest(HttpMethod.POST).willRespond(ClientResponse.create(OK).build()));
-    var bundleSender =
-        new FhirStoreBundleSender(config.server().createClient(client), meterRegistry);
+  void bundleSent(MockServerClient mockServer) {
+    mockServer
+        .when(
+            request()
+                .withContentType(MediaType.parse(APPLICATION_FHIR_JSON.toString()))
+                .withMethod("POST"))
+        .respond(response().withStatusCode(OK.value()));
+    var bundleSender = new FhirStoreBundleSender(client, meterRegistry);
 
     create(bundleSender.send(new Bundle())).expectNext(new BundleSender.Result()).verifyComplete();
+  }
+
+  @AfterEach
+  void tearDown(MockServerClient mockServer) {
+    mockServer.reset();
   }
 }
