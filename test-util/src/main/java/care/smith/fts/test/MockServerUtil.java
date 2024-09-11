@@ -38,5 +38,5 @@ public interface MockServerUtil {
     }
   }
 
-  public static MediaType APPLICATION_FHIR_JSON = create("application", "fhir+json");
+  MediaType APPLICATION_FHIR_JSON = create("application", "fhir+json");
 }
