@@ -10,6 +10,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static org.springframework.http.HttpStatus.ACCEPTED;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.OK;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Flux.fromStream;
@@ -61,11 +62,7 @@ class RDABundleSenderTest {
 
   @Test
   void nullBundleErrors(MockServerClient mockServer) {
-    mockServer
-        .when(
-            request()
-                .withMethod("POST"))
-        .respond(response().withStatusCode(OK.value()));
+    mockServer.when(request().withMethod("POST")).respond(response().withStatusCode(OK.value()));
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     create(bundleSender.send(fromStream(generate(() -> null))))
@@ -74,7 +71,7 @@ class RDABundleSenderTest {
   }
 
   @Test
-  void requestErrors(MockServerClient mockServer) {
+  void badRequest(MockServerClient mockServer) {
     mockServer
         .when(request().withMethod("POST"))
         .respond(response().withStatusCode(BAD_REQUEST.value()));
@@ -87,10 +84,25 @@ class RDABundleSenderTest {
   }
 
   @Test
-  void missingContentLocation(MockServerClient mockServer) {
+  void contentLocationIsNull(MockServerClient mockServer) {
     mockServer
         .when(request().withMethod("POST"))
         .respond(response().withStatusCode(ACCEPTED.value()));
+    mockServer.when(request().withMethod("GET")).respond(response().withStatusCode(OK.value()));
+
+    var bundleSender = new RDABundleSender(config, client, meterRegistry);
+
+    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
+    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
+        .expectErrorMessage("Missing Content-Location")
+        .verify();
+  }
+
+  @Test
+  void contentLocationIsEmpty(MockServerClient mockServer) {
+    mockServer
+        .when(request().withMethod("POST"))
+        .respond(response().withStatusCode(ACCEPTED.value()).withHeader(CONTENT_LOCATION, ""));
     mockServer.when(request().withMethod("GET")).respond(response().withStatusCode(OK.value()));
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
@@ -122,6 +134,22 @@ class RDABundleSenderTest {
   }
 
   @Test
+  void withStatusUnequalAcceptedInWaitForRDACompleted(MockServerClient mockServer) {
+    mockServer
+        .when(request().withMethod("POST"))
+        .respond(
+            response()
+                .withStatusCode(CREATED.value())
+                .withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId"));
+
+    var bundleSender = new RDABundleSender(config, client, meterRegistry);
+    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
+    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
+        .expectErrorMessage("Require ACCEPTED status")
+        .verify();
+  }
+
+  @Test
   void withNumberFormatExceptionInGetRetryAfter(MockServerClient mockServer) {
     mockServer
         .when(request().withMethod("POST"))
@@ -131,7 +159,11 @@ class RDABundleSenderTest {
                 .withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId"));
     mockServer
         .when(request().withMethod("GET").withPath("/api/v2/process/status/processId"), once())
-        .respond(response().withStatusCode(ACCEPTED.value()).withHeader(RETRY_AFTER, "1"));
+        .respond(
+            response()
+                .withStatusCode(ACCEPTED.value())
+                .withHeader(RETRY_AFTER, "1")
+                .withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId"));
     mockServer
         .when(request().withMethod("GET").withPath("/api/v2/process/status/processId"))
         .respond(response().withStatusCode(OK.value()));
@@ -156,7 +188,8 @@ class RDABundleSenderTest {
         .respond(
             response()
                 .withStatusCode(ACCEPTED.value())
-                .withHeader(RETRY_AFTER, "try to parse this!"));
+                .withHeader(RETRY_AFTER, "try to parse this!")
+                .withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId"));
     mockServer
         .when(request().withMethod("GET").withPath("/api/v2/process/status/processId"))
         .respond(response().withStatusCode(OK.value()));

@@ -126,15 +126,14 @@ public class TransferProcessController {
         .onErrorResume(ErrorResponseUtil::notFound);
   }
 
-  private static BodyBuilder responseForStatus(Status s) {
+  private BodyBuilder responseForStatus(Status s) {
     return switch (s.phase()) {
-      case QUEUED -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS, "Queued"));
       case RUNNING ->
           ResponseEntity.accepted()
               .headers(
                   h -> {
                     h.add(X_PROGRESS, "Running");
-                    h.add(RETRY_AFTER, "1");
+                    h.add(RETRY_AFTER, "3");
                   });
       case COMPLETED, ERROR -> ResponseEntity.ok();
     };

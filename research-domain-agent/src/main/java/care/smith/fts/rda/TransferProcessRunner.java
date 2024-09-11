@@ -13,7 +13,6 @@ public interface TransferProcessRunner {
   record Status(String processId, Phase phase, long receivedResources, long sentResources) {}
 
   enum Phase {
-    QUEUED,
     RUNNING,
     COMPLETED,
     ERROR

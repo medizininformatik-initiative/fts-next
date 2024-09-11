@@ -49,13 +49,12 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       deidentificator = process.deidentificator();
       bundleSender = process.bundleSender();
 
-      phase = new AtomicReference<>(Phase.QUEUED);
+      phase = new AtomicReference<>(Phase.RUNNING);
       receivedResources = new AtomicLong();
       sentResources = new AtomicLong();
     }
 
     public void execute(Mono<TransportBundle> data) {
-      phase.set(Phase.RUNNING);
       data.doOnNext(
               b ->
                   log.debug(
