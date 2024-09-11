@@ -60,7 +60,7 @@ class TCACohortSelectorTest {
     given(response.statusCode()).willReturn(OK);
     given(response.bodyToMono(String.class)).willReturn(Mono.just(""));
     var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort()).expectError().verify();
   }
@@ -71,7 +71,7 @@ class TCACohortSelectorTest {
         .willReturn(Mono.just(ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Some TCA Error")));
     var client = builder().exchangeFunction(req -> just(response));
     var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort()).expectError().verify();
   }
@@ -90,7 +90,7 @@ class TCACohortSelectorTest {
     Bundle outer = Stream.of(inner).collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
     var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort()).expectNextCount(1).verifyComplete();
   }
@@ -102,7 +102,7 @@ class TCACohortSelectorTest {
     Bundle outer = Stream.<Resource>of().collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
     var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort()).verifyComplete();
   }
@@ -114,7 +114,7 @@ class TCACohortSelectorTest {
     Bundle outer = Stream.of(Stream.<Resource>of().collect(toBundle())).collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
     var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client), meterRegistry);
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort()).verifyComplete();
   }

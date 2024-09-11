@@ -35,8 +35,8 @@ class FhirResolveServiceTest {
 
   @BeforeEach
   void setUp(MockServerClient mockServer) throws Exception {
-    var config = clientConfig(mockServer);
-    this.service = new FhirResolveService(KDS_PATIENT, config.createClient(builder), meterRegistry);
+    var client = clientConfig(mockServer).createClient(builder, null);
+    this.service = new FhirResolveService(KDS_PATIENT, client, meterRegistry);
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();
       mockServer

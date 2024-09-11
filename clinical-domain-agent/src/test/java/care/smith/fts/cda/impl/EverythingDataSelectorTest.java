@@ -43,7 +43,7 @@ class EverythingDataSelectorTest {
   void noConsentErrors() {
     var client = builder();
     var dataSelector =
-        new EverythingDataSelector(common, server.createClient(client), patient, meterRegistry);
+        new EverythingDataSelector(common, server.createClient(client, null), patient, meterRegistry);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).expectError().verify();
   }
@@ -53,7 +53,7 @@ class EverythingDataSelectorTest {
     var client = builder().exchangeFunction(req -> Mono.just(ClientResponse.create(OK).build()));
     DataSelector.Config common = new DataSelector.Config(true, null);
     var dataSelector =
-        new EverythingDataSelector(common, server.createClient(client), patient, meterRegistry);
+        new EverythingDataSelector(common, server.createClient(client, null), patient, meterRegistry);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).verifyComplete();
   }
@@ -68,7 +68,7 @@ class EverythingDataSelectorTest {
       given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(bundle));
     }
     var dataSelector =
-        new EverythingDataSelector(common, server.createClient(client), patient, meterRegistry);
+        new EverythingDataSelector(common, server.createClient(client, null), patient, meterRegistry);
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));

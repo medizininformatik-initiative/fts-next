@@ -19,6 +19,7 @@ import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.Builder;
@@ -33,7 +34,7 @@ class FhirStoreBundleSenderTest {
   @BeforeEach
   void setUp(MockServerClient mockServer, @Autowired Builder builder) {
     var server = MockServerUtil.clientConfig(mockServer);
-    client = server.createClient(builder);
+    client = server.createClient(builder, null);
   }
 
   @Test

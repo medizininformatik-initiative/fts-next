@@ -2,7 +2,6 @@ package care.smith.fts.util.auth;
 
 import care.smith.fts.util.auth.HttpServerAuthConfig.Endpoint;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 
 public class HttpServerNoneAuth implements HttpServerAuthMethod {
@@ -10,7 +9,7 @@ public class HttpServerNoneAuth implements HttpServerAuthMethod {
 
   @Override
   public ServerHttpSecurity configure(ServerHttpSecurity http) {
-    return http.csrf(CsrfSpec::disable);
+    return http;
   }
 
   @Override

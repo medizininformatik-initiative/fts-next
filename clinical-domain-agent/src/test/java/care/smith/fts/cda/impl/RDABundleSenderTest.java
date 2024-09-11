@@ -57,7 +57,7 @@ class RDABundleSenderTest {
   @BeforeEach
   void setUp(MockServerClient mockServer, @Autowired WebClient.Builder builder) {
     var server = MockServerUtil.clientConfig(mockServer);
-    client = server.createClient(builder);
+    client = server.createClient(builder, null);
   }
 
   @Test

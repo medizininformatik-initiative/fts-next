@@ -5,7 +5,7 @@ import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.cda.Deidentificator;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -13,11 +13,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class DeidentifhirStepFactory implements Deidentificator.Factory<DeidentifhirStepConfig> {
 
   private final WebClient.Builder builder;
+  private final WebClientSsl ssl;
   private final MeterRegistry meterRegistry;
 
   public DeidentifhirStepFactory(
-      WebClient.Builder builder, @Autowired MeterRegistry meterRegistry) {
+      WebClient.Builder builder, WebClientSsl ssl, MeterRegistry meterRegistry) {
     this.builder = builder;
+    this.ssl = ssl;
     this.meterRegistry = meterRegistry;
   }
 
@@ -29,7 +31,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
   @Override
   public Deidentificator create(
       Deidentificator.Config commonConfig, DeidentifhirStepConfig implConfig) {
-    var httpClient = implConfig.tca().server().createClient(builder);
+    var httpClient = implConfig.tca().server().createClient(builder, ssl);
 
     return new DeidentifhirStep(
         httpClient,

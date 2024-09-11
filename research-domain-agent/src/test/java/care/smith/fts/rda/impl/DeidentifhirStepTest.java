@@ -40,7 +40,7 @@ class DeidentifhirStepTest {
 
     step =
         new DeidentifhirStep(
-            config, server.createClient(WebClient.builder()), "domain", ofDays(14), meterRegistry);
+            config, server.createClient(WebClient.builder(), null), "domain", ofDays(14), meterRegistry);
   }
 
   @AfterEach

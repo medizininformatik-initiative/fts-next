@@ -25,7 +25,7 @@ public class HttpClientConfigTest {
 
   @Test
   public void nullAuthDoesntThrow() {
-    assertThat(new HttpClientConfig("http://localhost", null).auth()).isEqualTo(AuthMethod.NONE);
+    assertThat(new HttpClientConfig("http://localhost").auth()).isEqualTo(AuthMethod.NONE);
   }
 
   @Test
@@ -45,7 +45,7 @@ public class HttpClientConfigTest {
   @Test
   public void clientCreated() {
     HttpClientConfig config = new HttpClientConfig("http://localhost");
-    WebClient client = config.createClient(WebClient.builder());
+    WebClient client = config.createClient(WebClient.builder(), null);
 
     assertThat(client).isNotNull();
   }

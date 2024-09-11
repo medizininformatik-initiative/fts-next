@@ -5,6 +5,7 @@ import care.smith.fts.cda.services.PatientIdResolver;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.hl7.fhir.r4.model.IdType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -14,11 +15,13 @@ public class EverythingDataSelectorFactory
     implements DataSelector.Factory<EverythingDataSelectorConfig> {
 
   private final WebClient.Builder clientBuilder;
+  private final WebClientSsl ssl;
   private final MeterRegistry meterRegistry;
 
   public EverythingDataSelectorFactory(
-      WebClient.Builder clientBuilder, @Autowired MeterRegistry meterRegistry) {
+      WebClient.Builder clientBuilder, WebClientSsl ssl, MeterRegistry meterRegistry) {
     this.clientBuilder = clientBuilder;
+    this.ssl = ssl;
     this.meterRegistry = meterRegistry;
   }
 
@@ -29,7 +32,7 @@ public class EverythingDataSelectorFactory
 
   @Override
   public DataSelector create(DataSelector.Config common, EverythingDataSelectorConfig config) {
-    var client = config.fhirServer().createClient(clientBuilder);
+    var client = config.fhirServer().createClient(clientBuilder, ssl);
     PatientIdResolver resolver = createResolver(config, client);
     return new EverythingDataSelector(common, client, resolver, meterRegistry);
   }

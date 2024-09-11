@@ -1,6 +1,30 @@
 projects:
   directory: "src/test/resources/projects"
 
+spring:
+  ssl:
+    bundle:
+      pem:
+        server:
+          keystore:
+            certificate: target/test-classes/server.crt
+            private-key: target/test-classes/server.key
+          truststore:
+            certificate: target/test-classes/ca.crt
+        client:
+          truststore:
+            certificate: target/test-classes/ca.crt
+
+server:
+  ssl:
+    bundle: server
+
+test:
+  webclient:
+    default:
+      ssl:
+        bundle: client
+
 security:
   endpoints:
   - path: /api/v2/**
