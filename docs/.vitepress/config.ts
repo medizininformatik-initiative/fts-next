@@ -11,12 +11,12 @@ export default defineConfig({
     outline: false,
 
     editLink: {
-      pattern: 'https://github.com/life-research/fts-next/edit/master/docs/:path',
+      pattern: 'https://github.com/medizininformatik-initiative/fts-next/edit/master/docs/:path',
       text: 'Edit this page on GitHub'
     },
 
     socialLinks: [
-      {icon: 'github', link: 'https://github.com/life-research/fts-next'}
+      {icon: 'github', link: 'https://github.com/medizininformatik-initiative/fts-next'}
     ],
 
     nav: [
@@ -26,11 +26,11 @@ export default defineConfig({
         items: [
           {
             text: 'Issues',
-            link: 'https://github.com/life-research/fts-next/issues',
+            link: 'https://github.com/medizininformatik-initiative/fts-next/issues',
           },
           {
             text: 'Releases',
-            link: 'https://github.com/life-research/fts-next/releases',
+            link: 'https://github.com/medizininformatik-initiative/fts-next/releases',
           },
         ]
       }
