@@ -1,7 +1,7 @@
 # SMITH FHIR Transfer Services (FTS)
 
-[![Build](https://github.com/life-research/fts-next/actions/workflows/build.yml/badge.svg)](https://github.com/life-research/fts-next/actions/workflows/build.yml)
-[![Code Coverage](https://codecov.io/gh/life-research/fts-next/branch/main/graph/badge.svg)](https://codecov.io/gh/life-research/fts-next)
+[![Build](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml/badge.svg)](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml)
+[![Code Coverage](https://codecov.io/gh/medizininformatik-initiative/fts-next/branch/main/graph/badge.svg)](https://codecov.io/gh/medizininformatik-initiative/fts-next)
 
 The FHIR Transfer Services (FTS) facilitate the transfer of
 FHIR ([Fast Healthcare Interoperability Resources][fhir]) resources between FHIR servers, inhabiting
@@ -40,8 +40,8 @@ confidentiality.
 
 ## Documentation
 
-Please see the [official docs](https://life-research.github.io/fts-next) page for complete
-documentation.
+Please see the [official docs](https://medizininformatik-initiative.github.io/fts-next) page for
+complete documentation.
 
 [fhir]: https://fhir.org/
 
