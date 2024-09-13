@@ -15,7 +15,8 @@ public interface HttpServerAuthMethod {
 
   ReactiveUserDetailsService configureUsers();
 
-  record AuthMethod(HttpServerBasicAuth basic, HttpServerNoneAuth none) {}
+  record AuthMethod(
+      HttpServerClientCertAuth clientCert, HttpServerBasicAuth basic, HttpServerNoneAuth none) {}
 
-  AuthMethod NONE = new AuthMethod(null, HttpServerNoneAuth.NONE);
+  AuthMethod NONE = new AuthMethod(null, null, HttpServerNoneAuth.NONE);
 }

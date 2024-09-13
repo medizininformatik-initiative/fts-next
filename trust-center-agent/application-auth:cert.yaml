@@ -1,0 +1,38 @@
+spring:
+  ssl:
+    bundle:
+      pem:
+        cd-agent:
+          keystore:
+            certificate: target/test-classes/client-cd-agent.crt
+            private-key: target/test-classes/client-cd-agent.key
+          truststore:
+            certificate: target/test-classes/ca.crt
+        rd-agent:
+          keystore:
+            certificate: target/test-classes/client-rd-agent.crt
+            private-key: target/test-classes/client-rd-agent.key
+          truststore:
+            certificate: target/test-classes/ca.crt
+
+server:
+  ssl:
+    client-auth: want
+
+test:
+  webclient:
+    cd-agent:
+      ssl:
+        bundle: cd-agent
+    rd-agent:
+      ssl:
+        bundle: rd-agent
+
+security:
+  auth:
+    client-cert:
+      users:
+      - username: cd-agent
+        role: cd
+      - username: rd-agent
+        role: rd
