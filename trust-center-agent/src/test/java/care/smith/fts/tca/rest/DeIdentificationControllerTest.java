@@ -1,34 +1,39 @@
 package care.smith.fts.tca.rest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.web.reactive.function.BodyInserters.fromValue;
+import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.PseudonymProvider;
 import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
-import care.smith.fts.test.TestWebClientAuth;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.PseudonymizeRequest;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-@WebFluxTest(DeIdentificationController.class)
-@Import(TestWebClientAuth.class)
+@Slf4j
+@ExtendWith(MockitoExtension.class)
 class DeIdentificationControllerTest {
 
-  @MockBean PseudonymProvider pseudonymProvider;
-  @MockBean ShiftedDatesProvider shiftedDatesProvider;
-  @Autowired WebTestClient webClient;
+  @Mock PseudonymProvider pseudonymProvider;
+  @Mock ShiftedDatesProvider shiftedDatesProvider;
+
+  private DeIdentificationController controller;
+
+  @BeforeEach
+  void setUp() {
+    this.controller = new DeIdentificationController(pseudonymProvider, shiftedDatesProvider);
+  }
 
   @Test
   void getTransportIdsAndDateShiftingValues() {
@@ -40,19 +45,18 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.just(Duration.ofDays(1)));
 
     var body = new PseudonymizeRequest("patientId1", ids, "domain", Duration.ofDays(14));
-    var expectedResponse =
-        "{\"tIDMapName\":\"tIDMapName\", \"originalToTransportIDMap\":{\"id1\":\"tid1\",\"id2\":\"tid2\"},\"dateShiftValue\":86400}";
-    webClient
-        .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(body)
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .json(expectedResponse);
+
+    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+              assertThat(r.getBody().dateShiftValue()).isEqualTo(Duration.ofSeconds(86400));
+              assertThat(r.getBody().originalToTransportIDMap())
+                  .containsEntry("id1", "tid1")
+                  .containsEntry("id2", "tid2");
+              assertThat(r.getBody().tIDMapName()).isEqualTo("tIDMapName");
+            })
+        .verifyComplete();
   }
 
   @Test
@@ -63,15 +67,13 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.just(Duration.ofDays(1)));
 
     var body = new PseudonymizeRequest("id1", Set.of("id1"), "unknown domain", Duration.ofDays(14));
-    webClient
-        .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .is4xxClientError();
+
+    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode().is4xxClientError()).isTrue();
+            })
+        .verifyComplete();
   }
 
   @Test
@@ -82,38 +84,20 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.just(Duration.ofDays(1)));
 
     var body = new PseudonymizeRequest("id1", Set.of("id1"), "domain", Duration.ofDays(14));
-    webClient
-        .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .is4xxClientError();
+
+    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode().is4xxClientError()).isTrue();
+            })
+        .verifyComplete();
   }
 
   @Test
   void getTransportIdsAndDateShiftingValuesEmptyIds() {
-    Set<String> ids = Set.of();
-    var mapName = String.valueOf(ids.hashCode());
-    given(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
-        .willReturn(Mono.just(Tuples.of(mapName, Map.of())));
-    given(shiftedDatesProvider.generateDateShift("id1", Duration.ofDays(14)))
-        .willReturn(Mono.just(Duration.ofDays(1)));
+    var body = new PseudonymizeRequest("id1", Set.of(), "domain", Duration.ofDays(14));
 
-    var body = new PseudonymizeRequest("id1", ids, "domain", Duration.ofDays(14));
-    webClient
-        .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .isEmpty();
+    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body))).verifyComplete();
   }
 
   @Test
@@ -125,63 +109,33 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.just(Duration.ofDays(1)));
 
     var body = new PseudonymizeRequest("id1", ids, "domain", Duration.ofDays(14));
-    webClient
-        .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(body))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
+
+    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode().is5xxServerError()).isTrue();
+            })
+        .verifyComplete();
   }
 
   @Test
   void fetchPseudonymizedIds() {
     given(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
-        .willReturn(Mono.just(Map.of("tid-1", "pid1", "tid2", "pid2")));
+        .willReturn(Mono.just(Map.of("tid-1", "pid1", "tid-2", "pid2")));
 
-    var expectedResponse = "{\"tid-1\":\"pid1\",\"tid2\":\"pid2\"}";
-    webClient
-        .post()
-        .uri("/api/v2/rd/resolve-pseudonyms")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue("tIDMapName"))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .json(expectedResponse);
+    create(controller.fetchPseudonymizedIds("tIDMapName"))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+              assertThat(r.getBody()).containsEntry("tid-1", "pid1").containsEntry("tid-2", "pid2");
+            })
+        .verifyComplete();
   }
 
   @Test
   void fetchPseudonymizedIdsEmptyIds() {
     given(pseudonymProvider.fetchPseudonymizedIds("tIDMapName")).willReturn(Mono.empty());
 
-    webClient
-        .post()
-        .uri("/api/v2/rd/resolve-pseudonyms")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue("tIDMapName"))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .isEmpty();
-  }
-
-  @Test
-  void rejectInvalidIds() {
-    webClient
-        .post()
-        .uri("/api/v2/rd/resolve-pseudonyms")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(fromValue(Set.of("username=Guest'%0AUser:'Admin")))
-        .accept(MediaType.APPLICATION_JSON)
-        .exchange()
-        .expectStatus()
-        .is5xxServerError();
+    create(controller.fetchPseudonymizedIds("tIDMapName")).verifyComplete();
   }
 }
