@@ -6,9 +6,9 @@ import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 @Component
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
-  private final Map<String, TransferProcessInstance> instances = new HashMap<>();
+  private final Map<String, TransferProcessInstance> instances = new ConcurrentHashMap<>();
 
   @Override
   public String start(TransferProcessDefinition process) {
