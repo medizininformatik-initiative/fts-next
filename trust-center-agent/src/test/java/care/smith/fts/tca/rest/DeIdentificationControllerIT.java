@@ -8,7 +8,9 @@ import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
+import static org.mockserver.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
@@ -28,8 +30,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -120,6 +125,28 @@ class DeIdentificationControllerIT extends BaseIT {
               assertThat(res.originalToTransportIDMap()).containsKeys("id-144218", "id-244194");
             })
         .verifyComplete();
+  }
+
+  @Test
+  void rejectInvalidIds() {
+    var response =
+        client
+            .post()
+            .uri("/api/v2/rd/resolve-pseudonyms")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(fromValue(Set.of("username=Guest'%0AUser:'Admin")))
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .toBodilessEntity();
+
+    create(response)
+        .expectErrorSatisfies(
+            e -> {
+              assertThat(e).isInstanceOf(WebClientResponseException.class);
+              assertThat(((WebClientResponseException) e).getStatusCode())
+                  .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            })
+        .verify();
   }
 
   private static Mono<PseudonymizeResponse> doPost(Map<String, Object> body) {
