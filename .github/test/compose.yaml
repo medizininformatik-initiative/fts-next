@@ -89,7 +89,7 @@ services:
       retries: 3
       start_period: 60s
   keystore:
-    image: valkey/valkey:7.2.6-alpine@sha256:c44fbf88ee63dd2f34218bf151f64a65567c01f804d4462c4ab08cced89eb844
+    image: valkey/valkey:7.2.6-alpine@sha256:e671b8add37f77455a119171c1891b18ddc3a0c29f219f77b849e2789caff44a
     networks: [ "trust-center" ]
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
