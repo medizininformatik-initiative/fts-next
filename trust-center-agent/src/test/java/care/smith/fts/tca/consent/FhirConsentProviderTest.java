@@ -13,7 +13,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
-import care.smith.fts.test.TestWebClientAuth;
+import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.FhirUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -44,7 +44,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Slf4j
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
-@Import(TestWebClientAuth.class)
+@Import(TestWebClientFactory.class)
 class FhirConsentProviderTest {
   @Autowired WebClient.Builder httpClientBuilder;
   @Autowired PolicyHandler policyHandler;

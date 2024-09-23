@@ -8,8 +8,10 @@ import care.smith.fts.cda.impl.DeidentifhirStepConfig.TCAConfig;
 import care.smith.fts.util.HttpClientConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.File;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -17,26 +19,30 @@ import org.springframework.web.reactive.function.client.WebClient;
 class DeidentifhirStepFactoryTest {
 
   @Autowired private MeterRegistry meterRegistry;
+  @Autowired private WebClientSsl ssl;
 
-  public DeidentifhirStepFactoryTest() {}
+  private DeidentifhirStepFactory factory;
+
+  @BeforeEach
+  void setUp() {
+    factory = new DeidentifhirStepFactory(WebClient.builder(), ssl, meterRegistry);
+  }
 
   @Test
   void getConfigType() {
-    assertThat(new DeidentifhirStepFactory(WebClient.builder(), meterRegistry).getConfigType())
-        .isNotNull();
+    assertThat(factory.getConfigType()).isNotNull();
   }
 
   @Test
   void create() {
     assertThat(
-            new DeidentifhirStepFactory(WebClient.builder(), meterRegistry)
-                .create(
-                    new Deidentificator.Config(),
-                    new DeidentifhirStepConfig(
-                        new TCAConfig(new HttpClientConfig("baseUrl:1234"), "domain"),
-                        ofDays(14),
-                        new File("deidentifhirConfig"),
-                        new File("scraperConfig"))))
+            factory.create(
+                new Deidentificator.Config(),
+                new DeidentifhirStepConfig(
+                    new TCAConfig(new HttpClientConfig("baseUrl:1234"), "domain"),
+                    ofDays(14),
+                    new File("deidentifhirConfig"),
+                    new File("scraperConfig"))))
         .isNotNull();
   }
 }

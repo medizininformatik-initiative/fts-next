@@ -1,26 +1,25 @@
 security:
   auth:
-    insecure:
-      basic:
-        users:
-        - username: cd-agent
-          password: "{bcrypt}$2a$10$S7FXGqbbci2YOjBAAaeC9.KaTP8sZ2Hyi5d3aub1L..oe3L2kqv/K"
-          # password: "{noop}Aj6cloJYsTpu+op+"
-          role: cd
-        - username: rd-agent
-          password: "{bcrypt}$2a$10$m0kteW3J47snneNzGTzkzeAtGo8FfODkmPP0uLXOz8uRvkc5Lqwme"
-          # password: "{noop}1J5MhEhhiGh33dgt"
-          role: rd
+    basic:
+      users:
+      - username: cd-agent
+        password: "{bcrypt}$2a$10$S7FXGqbbci2YOjBAAaeC9.KaTP8sZ2Hyi5d3aub1L..oe3L2kqv/K"
+        # password: "{noop}Aj6cloJYsTpu+op+"
+        role: cd
+      - username: rd-agent
+        password: "{bcrypt}$2a$10$m0kteW3J47snneNzGTzkzeAtGo8FfODkmPP0uLXOz8uRvkc5Lqwme"
+        # password: "{noop}1J5MhEhhiGh33dgt"
+        role: rd
 
 test:
   webclient:
-    auth:
-      basic:
-        endpoints:
-        - path: /api/v2/cd/**
-          username: cd-agent
+    cd-agent:
+      auth:
+        basic:
+          user: cd-agent
           password: Aj6cloJYsTpu+op+
-        - path: /api/v2/rd/**
-          username: rd-agent
+    rd-agent:
+      auth:
+        basic:
+          user: rd-agent
           password: 1J5MhEhhiGh33dgt
-

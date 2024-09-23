@@ -10,7 +10,7 @@ import care.smith.fts.cda.TransferProcessRunner.Status;
 import care.smith.fts.cda.rest.it.mock.MockBundleSender;
 import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
 import care.smith.fts.cda.rest.it.mock.MockDataSelector;
-import care.smith.fts.test.TestWebClientAuth;
+import care.smith.fts.test.TestWebClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
@@ -73,7 +73,7 @@ import reactor.test.StepVerifier.FirstStep;
  */
 @Slf4j
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
-@Import(TestWebClientAuth.class)
+@Import(TestWebClientFactory.class)
 public class TransferProcessControllerIT extends BaseIT {
   protected WebClient client;
 
@@ -86,8 +86,8 @@ public class TransferProcessControllerIT extends BaseIT {
   protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 
   @BeforeEach
-  void setUp(@LocalServerPort int port, @Autowired WebClient.Builder webClientBuilder) {
-    client = webClientBuilder.baseUrl("http://localhost:" + port).build();
+  void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+    client = factory.webClient().baseUrl("https://localhost:" + port).build();
   }
 
   @AfterEach

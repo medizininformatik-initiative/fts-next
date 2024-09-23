@@ -1,0 +1,21 @@
+spring:
+  ssl:
+    bundle:
+      pem:
+        client:
+          keystore:
+            certificate: target/test-classes/client-default.crt
+            private-key: target/test-classes/client-default.key
+          truststore:
+            certificate: target/test-classes/ca.crt
+
+server:
+  ssl:
+    client-auth: want
+
+security:
+  auth:
+    client-cert:
+      users:
+      - username: default
+        role: client

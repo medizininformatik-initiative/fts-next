@@ -10,7 +10,7 @@ import care.smith.fts.rda.TransferProcessRunner.Phase;
 import care.smith.fts.rda.TransferProcessRunner.Status;
 import care.smith.fts.rda.rest.it.mock.MockBundleSender;
 import care.smith.fts.rda.rest.it.mock.MockDeidentifier;
-import care.smith.fts.test.TestWebClientAuth;
+import care.smith.fts.test.TestWebClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
@@ -48,7 +48,7 @@ import reactor.test.StepVerifier.FirstStep;
 
 @Slf4j
 @SpringBootTest(classes = ResearchDomainAgent.class, webEnvironment = RANDOM_PORT)
-@Import(TestWebClientAuth.class)
+@Import(TestWebClientFactory.class)
 public class TransferProcessControllerIT extends BaseIT {
   protected WebClient client;
 
@@ -58,8 +58,8 @@ public class TransferProcessControllerIT extends BaseIT {
   protected final MockBundleSender mockBundleSender = new MockBundleSender(hds);
 
   @BeforeEach
-  void setUp(@LocalServerPort int port, @Autowired WebClient.Builder builder) {
-    client = builder.baseUrl("http://localhost:" + port).build();
+  void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+    client = factory.webClient().baseUrl("https://localhost:" + port).build();
   }
 
   @AfterEach

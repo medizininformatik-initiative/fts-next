@@ -42,7 +42,7 @@ class DeidentifhirStepTest {
 
     step =
         new DeidentifhirStep(
-            server.createClient(WebClient.builder()),
+            server.createClient(WebClient.builder(), null),
             "domain",
             ofDays(14),
             deidentifhirConfig,

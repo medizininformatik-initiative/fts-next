@@ -34,3 +34,28 @@ logging:
 spring:
   main:
     allow-bean-definition-overriding: true
+  ssl:
+    bundle:
+      pem:
+        server:
+          keystore:
+            certificate: target/test-classes/server.crt
+            private-key: target/test-classes/server.key
+          truststore:
+            certificate: target/test-classes/ca.crt
+        client:
+          truststore:
+            certificate: target/test-classes/ca.crt
+
+server:
+  ssl:
+    bundle: server
+
+test:
+  webclient:
+    cd-agent:
+      ssl:
+        bundle: client
+    rd-agent:
+      ssl:
+        bundle: client

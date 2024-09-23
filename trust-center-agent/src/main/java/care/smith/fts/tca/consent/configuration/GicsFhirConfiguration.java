@@ -8,6 +8,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,16 +28,19 @@ public class GicsFhirConfiguration {
   }
 
   @Bean("gicsFhirHttpClient")
-  public WebClient httpClient(WebClient.Builder builder) {
+  public WebClient httpClient(WebClient.Builder builder, WebClientSsl ssl) {
     HttpClientConfig httpClientConfig = new HttpClientConfig(baseUrl, auth);
-    return httpClientConfig.createClient(builder);
+    return httpClientConfig.createClient(builder, ssl);
   }
 
   @Bean
   FhirConsentProvider fhirConsentProvider(
-      PolicyHandler policyHandler, WebClient.Builder builder, MeterRegistry meterRegistry) {
+      PolicyHandler policyHandler,
+      WebClient.Builder builder,
+      MeterRegistry meterRegistry,
+      WebClientSsl ssl) {
     HttpClientConfig httpClientConfig = new HttpClientConfig(baseUrl, auth);
-    var client = httpClientConfig.createClient(builder);
+    var client = httpClientConfig.createClient(builder, ssl);
     return new FhirConsentProvider(client, policyHandler, defaultPageSize, meterRegistry);
   }
 }

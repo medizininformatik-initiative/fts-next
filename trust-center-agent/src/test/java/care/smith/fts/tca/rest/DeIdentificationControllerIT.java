@@ -8,13 +8,12 @@ import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
-import care.smith.fts.test.TestWebClientAuth;
+import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.tca.PseudonymizeResponse;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -31,7 +30,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -39,14 +37,16 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT)
-@Import(TestWebClientAuth.class)
+@Import(TestWebClientFactory.class)
 class DeIdentificationControllerIT extends BaseIT {
 
-  private static WebClient client;
+  private static WebClient cdClient;
+  private static WebClient rdClient;
 
   @BeforeAll
-  static void setUp(@LocalServerPort int port, @Autowired WebClient.Builder webClientBuilder) {
-    client = webClientBuilder.baseUrl("http://localhost:" + port).build();
+  static void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+    cdClient = factory.webClient("cd-agent").baseUrl("https://localhost:" + port).build();
+    rdClient = factory.webClient("rd-agent").baseUrl("https://localhost:" + port).build();
   }
 
   @Test
@@ -130,7 +130,7 @@ class DeIdentificationControllerIT extends BaseIT {
   @Test
   void rejectInvalidIds() {
     var response =
-        client
+        rdClient
             .post()
             .uri("/api/v2/rd/resolve-pseudonyms")
             .contentType(MediaType.APPLICATION_JSON)
@@ -150,7 +150,7 @@ class DeIdentificationControllerIT extends BaseIT {
   }
 
   private static Mono<PseudonymizeResponse> doPost(Map<String, Object> body) {
-    return client
+    return cdClient
         .post()
         .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
         .contentType(MediaType.APPLICATION_JSON)

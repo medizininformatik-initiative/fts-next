@@ -5,7 +5,6 @@ import static org.springframework.security.core.userdetails.User.withUsername;
 
 import java.util.List;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,10 +13,7 @@ public record HttpServerBasicAuth(List<UserSpec> users) implements HttpServerAut
 
   @Override
   public ServerHttpSecurity configure(ServerHttpSecurity http) {
-    return http
-        /* We disable csrf for basic auth */
-        .csrf(CsrfSpec::disable)
-        .httpBasic(withDefaults());
+    return http.httpBasic(withDefaults());
   }
 
   @Override

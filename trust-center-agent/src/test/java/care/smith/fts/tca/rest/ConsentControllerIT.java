@@ -12,7 +12,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
 import care.smith.fts.test.FhirGenerators;
-import care.smith.fts.test.TestWebClientAuth;
+import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.MediaTypes;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -34,13 +34,13 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT)
-@Import(TestWebClientAuth.class)
+@Import(TestWebClientFactory.class)
 class ConsentControllerIT extends BaseIT {
   private static WebClient client;
 
   @BeforeAll
-  static void setUp(@LocalServerPort int port, @Autowired WebClient.Builder webClientBuilder) {
-    client = webClientBuilder.baseUrl("http://localhost:" + port).build();
+  static void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+    client = factory.webClient("cd-agent").baseUrl("https://localhost:" + port).build();
   }
 
   @Test

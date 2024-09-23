@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import care.smith.fts.util.auth.HttpServerAuthMethod.AuthMethod;
-import care.smith.fts.util.auth.HttpServerAuthMethod.Insecure;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +21,9 @@ class HttpServerAuthConfigTest {
   @Test
   void multipleAuthMethodsThrow() {
     var config = new HttpServerAuthConfig();
-    config.setAuth(new AuthMethod(new Insecure(new HttpServerBasicAuth(List.of()), new HttpServerNoneAuth())));
+    config.setAuth(
+        new AuthMethod(
+            null, new HttpServerBasicAuth(List.of()), new HttpServerNoneAuth()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(config::userDetailsService)
@@ -32,7 +33,7 @@ class HttpServerAuthConfigTest {
   @Test
   void noAuthMethodDefaultsToNone() {
     var config = new HttpServerAuthConfig();
-    config.setAuth(new AuthMethod(new Insecure(null, null)));
+    config.setAuth(new AuthMethod(null, null, null));
 
     var reactiveUserDetailsService = config.userDetailsService();
 

@@ -1,18 +1,16 @@
 security:
   auth:
-    insecure:
-      basic:
-        users:
-        - username: cd-agent
-          password: "{bcrypt}$2a$10$kUT57nDMEPtigO3BtsD/UeQMLsBDsOwu4iFVAEcgucPbD1zGaHI5y"
-          # password: "{noop}bdfXkmQQIQLEkvVq"
-          role: cd-agent
+    basic:
+      users:
+      - username: cd-agent
+        password: "{bcrypt}$2a$10$kUT57nDMEPtigO3BtsD/UeQMLsBDsOwu4iFVAEcgucPbD1zGaHI5y"
+        # password: "{noop}bdfXkmQQIQLEkvVq"
+        role: cd-agent
 
 test:
   webclient:
-    auth:
-      basic:
-        endpoints:
-        - path: /api/v2/**
-          username: cd-agent
+    default:
+      auth:
+        basic:
+          user: cd-agent
           password: bdfXkmQQIQLEkvVq
