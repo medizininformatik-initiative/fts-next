@@ -46,7 +46,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
-        use_legacy_upload_endpoint: true
 
   build-jar:
     needs: [ test ]
