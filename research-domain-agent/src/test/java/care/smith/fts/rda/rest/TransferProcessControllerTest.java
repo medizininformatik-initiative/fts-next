@@ -161,7 +161,7 @@ class TransferProcessControllerTest {
                 .headers(
                     h -> {
                       h.add(X_PROGRESS, "Running");
-                      h.add(RETRY_AFTER, "1");
+                      h.add(RETRY_AFTER, "3");
                     })
                 .body(new Status("processId", Phase.RUNNING, 0, 0)))
         .verifyComplete();

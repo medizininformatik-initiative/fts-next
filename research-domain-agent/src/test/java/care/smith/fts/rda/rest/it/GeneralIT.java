@@ -108,4 +108,32 @@ public class GeneralIT extends TransferProcessControllerIT {
                     .verifyThenAssertThat()
                     .hasOperatorErrors());
   }
+
+  @Test
+  void callingStatusReturnsQueued() throws IOException {
+    mockDeidentifier.success();
+    mockBundleSender.success();
+
+    var transportBundle = FhirGenerators.transportBundle().generateResource();
+
+    client
+        .post()
+        .uri("/api/v2/process/test/patient")
+        .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
+        .bodyValue(transportBundle)
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .flatMap(
+            r -> {
+              var uri = r.getFirst().concat("-unknown-process-id");
+              return client.get().uri(uri).retrieve().bodyToMono(Status.class);
+            })
+        .as(
+            response ->
+                StepVerifier.create(response)
+                    .expectError(NotFound.class)
+                    .verifyThenAssertThat()
+                    .hasOperatorErrors());
+  }
 }

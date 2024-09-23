@@ -112,7 +112,6 @@ public class TransferProcessControllerIT extends BaseIT {
             .flatMap(i -> retrieveStatus(r))
             .takeUntil(until)
             .take(timeout)
-            .timeout(timeout, retrieveStatus(r))
         )
         .last()
         .as(StepVerifier::create);

@@ -8,26 +8,25 @@ import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.of;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
+import static org.springframework.http.HttpStatus.ACCEPTED;
+import static org.springframework.http.HttpStatus.OK;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 @Slf4j
 final class RDABundleSender implements BundleSender {
@@ -64,40 +63,73 @@ final class RDABundleSender implements BundleSender {
         .uri("/api/v2/process/{project}/patient", Map.of("project", config.project()))
         .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))
         .bodyValue(requireNonNull(bundle))
-        .exchangeToMono(this::waitForRDACompleted)
+        .retrieve()
+        .toBodilessEntity()
+        .flatMap(this::processOrWaitForRDACompleted)
         .retryWhen(defaultRetryStrategy(meterRegistry, "sendBundleToRda"))
         .doOnError(e -> log.error("Unable to send Bundle to RDA: {}", e.getMessage()));
   }
 
-  private Mono<ResponseEntity<Void>> waitForRDACompleted(ClientResponse clientResponse) {
-    HttpStatusCode statusCode = clientResponse.statusCode();
-    log.trace("statusCode: {}", statusCode);
-    if (statusCode.is4xxClientError() || statusCode.is5xxServerError()) {
-      return clientResponse.createError();
+  private Mono<ResponseEntity<Void>> processOrWaitForRDACompleted(ResponseEntity<Void> response) {
+    if (response.getStatusCode() == OK) {
+      return Mono.just(response);
+    } else {
+      return waitForRDACompleted(response);
+    }
+  }
+
+  private Mono<ResponseEntity<Void>> waitForRDACompleted(ResponseEntity<Void> response) {
+    return Mono.just(response)
+        .flatMap(this::extractStatusUri)
+        .doOnNext(uri -> log.trace("Status Uri: {}", uri))
+        .flatMap(
+            uri ->
+                fetchStatus(uri)
+                    .expand(
+                        r -> fetchStatus(uri).delayElement(Duration.ofSeconds(getRetryAfter(r))))
+                    .takeUntil(r -> r.getStatusCode() != ACCEPTED)
+                    .take(10)
+                    .last())
+        .flatMap(
+            r -> {
+              if (r.getStatusCode() == OK) {
+                return Mono.just(r);
+              } else {
+                log.error("Error: {}", r.getStatusCode());
+                return Mono.error(new TransferProcessException("Error: " + r.getStatusCode()));
+              }
+            });
+  }
+
+  private Mono<ResponseEntity<Void>> fetchStatus(URI uri) {
+    return client.get().uri(uri.toString()).retrieve().toBodilessEntity();
+  }
+
+  private Mono<URI> extractStatusUri(ResponseEntity<Void> response) {
+    HttpStatusCode statusCode = response.getStatusCode();
+    if (!statusCode.equals(ACCEPTED)) {
+      return Mono.error(new TransferProcessException("Require ACCEPTED status"));
     }
 
-    var uri = clientResponse.headers().header(CONTENT_LOCATION);
-    log.trace("uri: {}", uri);
-    if (uri.isEmpty()) {
+    var uri = response.getHeaders().get(CONTENT_LOCATION);
+    log.trace("uri {}", uri);
+    if (uri == null || uri.isEmpty() || uri.getFirst().isBlank()) {
       return Mono.error(new TransferProcessException("Missing Content-Location"));
     }
 
-    return client
-        .get()
-        .uri(uri.getFirst())
-        .retrieve()
-        .onStatus(
-            s -> s == HttpStatus.ACCEPTED,
-            c -> Mono.error(new RetryAfterException(getRetryAfter(c))))
-        .toBodilessEntity()
-        .retryWhen(retrySpec());
+    return Mono.just(URI.create(uri.getFirst()));
   }
 
-  private static Long getRetryAfter(ClientResponse c) {
-    return c.headers().header(RETRY_AFTER).stream()
-        .findFirst()
-        .map(RDABundleSender::parseRetryAfter)
-        .orElse(1L);
+  /**
+   * @return the duration in seconds after which a retry may be performed
+   */
+  private static Long getRetryAfter(ResponseEntity<Void> response) {
+    var retryAfter = response.getHeaders().get(RETRY_AFTER);
+    if (retryAfter == null) {
+      return 1L;
+    } else {
+      return retryAfter.stream().findFirst().map(RDABundleSender::parseRetryAfter).orElse(1L);
+    }
   }
 
   private static long parseRetryAfter(String s) {
@@ -106,31 +138,6 @@ final class RDABundleSender implements BundleSender {
     } catch (NumberFormatException e) {
       log.warn("Failed to parse Retry-After header: {}", s);
       return 1L;
-    }
-  }
-
-  private Retry retrySpec() {
-    return Retry.max(10)
-        .filter(t -> t instanceof RetryAfterException)
-        .doBeforeRetryAsync(signal -> Mono.delay(retryAfterDuration(signal.failure())).then())
-        .onRetryExhaustedThrow(
-            (spec, signal) -> new TransferProcessException("RDABundleSender retry exhausted"));
-  }
-
-  private static Duration retryAfterDuration(Throwable failure) {
-    if (failure instanceof RetryAfterException) {
-      return Duration.ofSeconds(((RetryAfterException) failure).getRetryAfter());
-    } else {
-      return Duration.ofSeconds(1L);
-    }
-  }
-
-  @Getter
-  private static class RetryAfterException extends RuntimeException {
-    private final Long retryAfter;
-
-    public RetryAfterException(long retryAfter) {
-      this.retryAfter = retryAfter;
     }
   }
 }
