@@ -124,6 +124,7 @@ jobs:
         - clinical-domain-agent
         - trust-center-agent
         - research-domain-agent
+        count: [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" ]
     steps:
     - name: Download Container Image
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
