@@ -144,7 +144,7 @@ class DeIdentificationControllerIT extends BaseIT {
             e -> {
               assertThat(e).isInstanceOf(WebClientResponseException.class);
               assertThat(((WebClientResponseException) e).getStatusCode())
-                  .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+                  .isEqualTo(HttpStatus.BAD_REQUEST);
             })
         .verify();
   }
