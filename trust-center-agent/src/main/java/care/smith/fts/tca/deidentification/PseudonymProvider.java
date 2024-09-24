@@ -16,9 +16,10 @@ public interface PseudonymProvider {
       String patientId, Set<String> ids, String domain);
 
   /**
-   * Retrieves the mapping of <code>transportId</code> to <code>secureId</code>
+   * Retrieves the mapping of <code>transportId</code> to <code>secureId</code> using the mappings
+   * name.
    *
-   * @param ids the transport ids
+   * @param tIDMapName the transport id map name
    * @return the mapped tid:sid
    */
   Mono<Map<String, String>> fetchPseudonymizedIds(String tIDMapName);
