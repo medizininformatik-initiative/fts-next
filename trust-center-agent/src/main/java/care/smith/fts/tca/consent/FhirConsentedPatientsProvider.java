@@ -7,6 +7,7 @@ import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.tca.ConsentRequest;
 import com.google.common.base.Predicates;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
@@ -14,9 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -24,9 +23,7 @@ import reactor.core.publisher.Mono;
 
 /** This class provides functionalities for handling FHIR consents using an HTTP client. */
 @Slf4j
-@Component
-public class FhirConsentProvider implements ConsentProvider {
-  private final int defaultPageSize;
+public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider {
   private final WebClient httpClient;
   private final PolicyHandler policyHandler;
   private final MeterRegistry meterRegistry;
@@ -38,60 +35,41 @@ public class FhirConsentProvider implements ConsentProvider {
    * @param policyHandler the handler for policy-related operations
    * @param defaultPageSize the default page size for paginated results
    */
-  public FhirConsentProvider(
-      @Qualifier("gicsFhirHttpClient") WebClient httpClient,
-      PolicyHandler policyHandler,
-      int defaultPageSize,
-      MeterRegistry meterRegistry) {
+  public FhirConsentedPatientsProvider(
+      WebClient httpClient, PolicyHandler policyHandler, MeterRegistry meterRegistry) {
     this.policyHandler = policyHandler;
     this.httpClient = httpClient;
-    this.defaultPageSize = defaultPageSize;
     this.meterRegistry = meterRegistry;
-  }
-
-  /**
-   * Retrieves the first page (with defaultPageSize) of consented patients for the given domain and
-   * policies.
-   *
-   * @param domain the domain to search for consented patients
-   * @param policies the set of policies to filter patients
-   * @return a Mono emitting a Bundle of consented patients
-   */
-  @Override
-  public Mono<Bundle> consentedPatientsPage(
-      String domain, String policySystem, Set<String> policies, UriComponentsBuilder requestUrl) {
-    return consentedPatientsPage(domain, policySystem, policies, requestUrl, 0, defaultPageSize);
   }
 
   /**
    * Retrieves a page of consented patients for the given domain and policies, with pagination.
    *
-   * @param domain the domain to search for consented patients
-   * @param policies the set of policies to filter patients
-   * @param from the starting index for pagination
-   * @param count the number of patients to retrieve
+   * @param consentRequest the set of policies to filter patients
+   * @param pagingParams the starting index for pagination
    * @return a Mono emitting a Bundle of consented patients
    */
   @Override
-  public Mono<Bundle> consentedPatientsPage(
-      String domain,
-      String policySystem,
-      Set<String> policies,
-      UriComponentsBuilder requestUrl,
-      int from,
-      int count) {
-
-    Set<String> policiesToCheck = policyHandler.getPoliciesToCheck(policies);
+  public Mono<Bundle> fetchAll(
+      ConsentRequest consentRequest, UriComponentsBuilder requestUrl, PagingParams pagingParams) {
+    Set<String> policiesToCheck = policyHandler.getPoliciesToCheck(consentRequest.policies());
     if (policiesToCheck.isEmpty()) {
       return Mono.just(new Bundle());
     }
+    log.trace("Fetching consent from gics with PagingParams {}", pagingParams);
+    return fetchConsentedPatientsFromGics(
+            consentRequest.policySystem(), policiesToCheck, consentRequest.domain(), pagingParams)
+        .map(bundle -> addNextLink(bundle, requestUrl, pagingParams));
+  }
 
-    return Mono.fromCallable(() -> new PagingParams(from, count))
-        .doOnNext(b -> log.trace("Fetching consent from gics with PagingParams {}", b))
-        .flatMap(
-            p ->
-                fetchConsentedPatientsFromGics(policySystem, policiesToCheck, domain, p)
-                    .map(bundle -> addNextLink(bundle, requestUrl, p)));
+  @Override
+  public Mono<Bundle> fetch(
+      ConsentRequest consentRequest,
+      UriComponentsBuilder requestUrl,
+      PagingParams pagingParams,
+      List<String> pids) {
+
+    return null;
   }
 
   private Bundle addNextLink(
@@ -139,7 +117,7 @@ public class FhirConsentProvider implements ConsentProvider {
       String policySystem, Set<String> policiesToCheck, Bundle outerBundle) {
     return typedResourceStream(outerBundle, Bundle.class)
         .filter(b -> hasAllPolicies(policySystem, b, policiesToCheck))
-        .map(FhirConsentProvider::filterInnerBundle)
+        .map(FhirConsentedPatientsProvider::filterInnerBundle)
         .collect(toBundle())
         .setTotal(outerBundle.getTotal());
   }
@@ -172,7 +150,7 @@ public class FhirConsentProvider implements ConsentProvider {
             List.of(Map.of("name", "domain", "valueString", domain)));
     var url =
         "/$allConsentsForDomain?_count=%s&_offset=%s"
-            .formatted(pagingParams.count, pagingParams.from());
+            .formatted(pagingParams.count(), pagingParams.from());
     log.trace("Fetch consent page from gics with URL: {}", url);
     return httpClient
         .post()
@@ -181,7 +159,8 @@ public class FhirConsentProvider implements ConsentProvider {
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))
         .retrieve()
-        .onStatus(r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentProvider::handleGicsNotFound)
+        .onStatus(
+            r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentedPatientsProvider::handleGicsNotFound)
         .bodyToMono(Bundle.class)
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchConsentPageFromGics"))
         .doOnError(b -> log.error("Unable to fetch consent from gICS", b));
@@ -199,21 +178,5 @@ public class FhirConsentProvider implements ConsentProvider {
                 return Mono.error(new UnknownError());
               }
             });
-  }
-
-  record PagingParams(int from, int count) {
-
-    PagingParams {
-      if (from < 0 || count < 0) {
-        throw new IllegalArgumentException("from and count must be non-negative");
-      } else if (Integer.MAX_VALUE - count < from) {
-        throw new IllegalArgumentException(
-            "from + count must be smaller than %s".formatted(Integer.MAX_VALUE));
-      }
-    }
-
-    int sum() {
-      return from + count;
-    }
   }
 }

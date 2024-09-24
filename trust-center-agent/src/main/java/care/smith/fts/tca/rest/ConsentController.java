@@ -1,11 +1,11 @@
 package care.smith.fts.tca.rest;
 
-import care.smith.fts.tca.consent.ConsentProvider;
+import care.smith.fts.tca.consent.ConsentedPatientsProvider;
+import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentRequest;
-import io.micrometer.core.annotation.Timed;
 import jakarta.validation.Valid;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -24,13 +24,14 @@ import reactor.core.publisher.Mono;
 @RequestMapping(value = "api/v2")
 @Validated
 public class ConsentController {
-  private final ConsentProvider consentProvider;
+  private final ConsentedPatientsProvider consentedPatientsProvider;
   private final int defaultPageSize;
 
   @Autowired
   ConsentController(
-      ConsentProvider consentProvider, @Qualifier("defaultPageSize") int defaultPageSize) {
-    this.consentProvider = consentProvider;
+      ConsentedPatientsProvider consentedPatientsProvider,
+      @Qualifier("defaultPageSize") int defaultPageSize) {
+    this.consentedPatientsProvider = consentedPatientsProvider;
     this.defaultPageSize = defaultPageSize;
   }
 
@@ -38,26 +39,16 @@ public class ConsentController {
       value = "/cd/consented-patients",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
-  @Timed(value = "http.client.requests.gics")
   public Mono<ResponseEntity<Bundle>> consentedPatients(
       @RequestBody @Valid Mono<ConsentRequest> request,
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {
-    var t0 = System.currentTimeMillis();
+    var pagingParams = new PagingParams(from.orElse(0), count.orElse(defaultPageSize));
     var response =
-        request.flatMap(
-            r ->
-                consentProvider.consentedPatientsPage(
-                    r.domain(),
-                    r.policySystem(),
-                    r.policies(),
-                    uriBuilder,
-                    from.orElse(0),
-                    count.orElse(defaultPageSize)));
+        request.flatMap(r -> consentedPatientsProvider.fetchAll(r, uriBuilder, pagingParams));
     return response
         .map(ResponseEntity::ok)
-        .doOnNext(i -> log.trace("Fetch consent took: {} ms", System.currentTimeMillis() - t0))
         .onErrorResume(
             e -> {
               if (e instanceof UnknownDomainException) {
