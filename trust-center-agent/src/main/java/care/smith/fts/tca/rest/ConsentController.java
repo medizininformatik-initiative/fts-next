@@ -36,10 +36,10 @@ public class ConsentController {
   }
 
   @PostMapping(
-      value = "/cd/consented-patients",
+      value = "/cd/consented-patients/fetch-all",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
-  public Mono<ResponseEntity<Bundle>> consentedPatients(
+  public Mono<ResponseEntity<Bundle>> fetchAll(
       @RequestBody @Valid Mono<ConsentRequest> request,
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
@@ -47,15 +47,29 @@ public class ConsentController {
     var pagingParams = new PagingParams(from.orElse(0), count.orElse(defaultPageSize));
     var response =
         request.flatMap(r -> consentedPatientsProvider.fetchAll(r, uriBuilder, pagingParams));
-    return response
-        .map(ResponseEntity::ok)
-        .onErrorResume(
-            e -> {
-              if (e instanceof UnknownDomainException) {
-                return ErrorResponseUtil.badRequest(e);
-              } else {
-                return ErrorResponseUtil.internalServerError(e);
-              }
-            });
+    return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
+  }
+
+  @PostMapping(
+      value = "/cd/consented-patients/fetch",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
+  public Mono<ResponseEntity<Bundle>> fetch(
+      @RequestBody @Valid Mono<ConsentRequest> request,
+      UriComponentsBuilder uriBuilder,
+      @RequestParam("from") Optional<Integer> from,
+      @RequestParam("count") Optional<Integer> count) {
+    var pagingParams = new PagingParams(from.orElse(0), count.orElse(defaultPageSize));
+    var response =
+        request.flatMap(r -> consentedPatientsProvider.fetch(r, uriBuilder, pagingParams));
+    return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
+  }
+
+  private static Mono<ResponseEntity<Bundle>> errorResponse(Throwable e) {
+    if (e instanceof UnknownDomainException) {
+      return ErrorResponseUtil.badRequest(e);
+    } else {
+      return ErrorResponseUtil.internalServerError(e);
+    }
   }
 }

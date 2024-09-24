@@ -50,7 +50,7 @@ import reactor.test.StepVerifier.FirstStep;
  *   - [x] Wrong content type
  *   - [x] TCA/gICS: unknown domain, this is the only setting that returns an error (bad request),
  * other settings may return an empty bundle
- * - [ ] DataSelector
+ * - [x] DataSelector
  *   - [x] FhirResolveService
  *     - [x] HDS slow
  *     - [x] HDS down
@@ -58,11 +58,11 @@ import reactor.test.StepVerifier.FirstStep;
  *     - [x] may return error:
  *       - [x] More than one result
  *       - [x] Unable to resolve patient id
- *   - [ ] everything
+ *   - [x] everything
  *     - [x] HDS slow
  *     - [x] HDS down
  *     - [x] wrong content type
- *     - [ ] paging - not implemented
+ *     - [x] paging
  * - [x] Deidentifhir
  *   - [x] TCA slow
  *   - [x] TCA down

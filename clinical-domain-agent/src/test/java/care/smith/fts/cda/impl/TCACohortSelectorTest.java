@@ -62,7 +62,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).expectError().verify();
+    create(cohortSelector.selectCohort(List.of())).expectError().verify();
   }
 
   @Test
@@ -73,7 +73,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).expectError().verify();
+    create(cohortSelector.selectCohort(List.of())).expectError().verify();
   }
 
   @Test
@@ -92,7 +92,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).expectNextCount(1).verifyComplete();
+    create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
   }
 
   @Test
@@ -104,7 +104,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).verifyComplete();
+    create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
   @Test
@@ -116,7 +116,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).verifyComplete();
+    create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
   private static Consent.provisionComponent denyProvision() {

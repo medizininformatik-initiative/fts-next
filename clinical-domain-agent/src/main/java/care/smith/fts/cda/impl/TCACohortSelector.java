@@ -41,9 +41,14 @@ class TCACohortSelector implements CohortSelector {
   }
 
   @Override
-  public Flux<ConsentedPatient> selectCohort() {
-    return fetchBundle("/api/v2/cd/consented-patients")
-        .expand(this::fetchNextPage)
+  public Flux<ConsentedPatient> selectCohort(List<String> pids) {
+    var url =
+        pids.isEmpty()
+            ? "/api/v2/cd/consented-patients/fetch-all"
+            : "/api/v2/cd/consented-patients/fetch";
+
+    return fetchBundle(url, pids)
+        .expand(bundle -> fetchNextPage(bundle, pids))
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
@@ -51,12 +56,12 @@ class TCACohortSelector implements CohortSelector {
         .flatMap(this::extractConsentedPatients);
   }
 
-  private Mono<Bundle> fetchBundle(String uri) {
+  private Mono<Bundle> fetchBundle(String uri, List<String> pids) {
     log.debug("fetchBundle URL: {}", uri);
     return client
         .post()
         .uri(uri)
-        .bodyValue(constructBody(config.policies(), config.policySystem(), config.domain()))
+        .bodyValue(constructBody(config.policies(), config.policySystem(), config.domain(), pids))
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
@@ -65,7 +70,7 @@ class TCACohortSelector implements CohortSelector {
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchBundle"));
   }
 
-  private Mono<Bundle> fetchNextPage(Bundle bundle) {
+  private Mono<Bundle> fetchNextPage(Bundle bundle, List<String> pids) {
     return ofNullable(bundle.getLink("next"))
         .map(
             url -> {
@@ -73,14 +78,17 @@ class TCACohortSelector implements CohortSelector {
               return url;
             })
         .map(BundleLinkComponent::getUrl)
-        .map(this::fetchBundle)
+        .map(uri -> fetchBundle(uri, pids))
         .orElse(Mono.empty());
   }
 
   private Map<String, Object> constructBody(
-      Set<String> policies, @NotNull String v2, String domain) {
+      Set<String> policies, @NotNull String v2, String domain, List<String> pids) {
     return Map.ofEntries(
-        entry("policies", policies), entry("policySystem", v2), entry("domain", domain));
+        entry("policies", policies),
+        entry("policySystem", v2),
+        entry("domain", domain),
+        entry("pids", pids));
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
