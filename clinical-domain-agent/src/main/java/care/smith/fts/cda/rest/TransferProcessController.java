@@ -41,7 +41,7 @@ public class TransferProcessController {
       @RequestBody(required = false) List<String> pids) {
     var process = findProcess(project);
     if (process.isPresent()) {
-      log.debug("Running process: {}", process.get());
+      log.debug("Running process for project: {}", process.get().project());
 
       var id = processRunner.start(process.get(), Optional.ofNullable(pids).orElse(List.of()));
       var jobUri = generateJobUri(uriBuilder, id);

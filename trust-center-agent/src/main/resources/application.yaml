@@ -1,3 +1,7 @@
+spring:
+  mustache:
+    checkTemplateLocation: false
+
 management:
   endpoints:
     web:

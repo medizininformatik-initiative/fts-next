@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.config.MeterFilter;
 import java.util.Arrays;
 import lombok.Data;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,7 +16,6 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @ConfigurationProperties(prefix = "management.metrics.distribution")
-@Data
 public class MetricsConfig {
 
   @Bean

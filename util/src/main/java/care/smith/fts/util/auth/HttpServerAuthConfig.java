@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import lombok.Data;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -46,7 +47,7 @@ public class HttpServerAuthConfig {
 
   private static HttpServerAuthMethod authMethod(AuthMethod auth) {
     var httpServerAuthMethodStream =
-        Stream.of(auth.clientCert(), auth.basic(), auth.none())
+        Stream.of(auth.clientCert(), auth.basic(), auth.oauth2(), auth.none())
             .filter(Objects::nonNull)
             .toList();
     if (httpServerAuthMethodStream.size() == 1) {

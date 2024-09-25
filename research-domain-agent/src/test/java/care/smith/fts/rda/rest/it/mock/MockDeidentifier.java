@@ -6,6 +6,7 @@ import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.util.tca.ResearchMappingResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -41,7 +42,7 @@ public class MockDeidentifier {
                 .withContentType(APPLICATION_JSON))
         .respond(
             request -> {
-              var tidPidMap = om.readValue(getTidPidMapAsJson(), Map.class);
+              var tidPidMap = om.readValue(getTidPidMapAsJson(), new TypeReference<Map<String, String>>() {});
               var resolveResponse = new ResearchMappingResponse(tidPidMap, Duration.ofMillis(12345));
               var body = om.writeValueAsString(resolveResponse);
               return Optional.ofNullable(rs.poll())
