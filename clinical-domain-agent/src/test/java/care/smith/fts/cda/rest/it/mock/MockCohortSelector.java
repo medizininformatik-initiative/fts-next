@@ -37,13 +37,19 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class MockCohortSelector {
 
   private final MockServerClient tca;
+  private List<String> urls =
+      List.of("/api/v2/cd/consented-patients/fetch-all", "/api/v2/cd/consented-patients/fetch");
 
   public MockCohortSelector(MockServerClient tca) {
     this.tca = tca;
   }
 
-  private FhirGenerator<Bundle> validConsent(Supplier<String> patientId) throws IOException {
-    return FhirGenerators.gicsResponse(patientId);
+  private FhirGenerator<Bundle> validConsent(Supplier<String> patientId) {
+    try {
+      return FhirGenerators.gicsResponse(patientId);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public void consentForOnePatient(String patientId) throws IOException {
@@ -70,31 +76,42 @@ public class MockCohortSelector {
     assertThat(maxPageSize).isGreaterThan(0);
     assertThat(total).isGreaterThanOrEqualTo(maxPageSize);
 
-    var bundleFhirGenerator =
-        total > 1 ? validConsent(withPrefix(idPrefix)) : validConsent(() -> idPrefix);
     var rs = new LinkedList<>(statusCodes);
 
     log.trace("total: {}, maxPageSize: {}", total, maxPageSize);
+    urls.forEach(
+        url -> {
+          FhirGenerator<Bundle> bundleFhirGenerator =
+              total > 1 ? validConsent(withPrefix(idPrefix)) : validConsent(() -> idPrefix);
 
-    tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
-        .respond(
-            request -> {
-              log.trace("path: {}", request.getPath());
-              return Optional.ofNullable(rs.poll())
-                  .map(
-                      statusCode -> {
-                        log.trace("statusCode: {}", statusCode);
-                        return statusCode < 400
-                            ? successResponse(
-                                total, maxPageSize, request, bundleFhirGenerator, statusCode)
-                            : response().withStatusCode(statusCode);
-                      })
-                  .orElseGet(
-                      () -> successResponse(total, maxPageSize, request, bundleFhirGenerator, 200));
-            });
+          tca.when(request().withMethod("POST").withPath(url))
+              .respond(
+                  request -> {
+                    log.trace("path: {}", request.getPath());
+                    return Optional.ofNullable(rs.poll())
+                        .map(
+                            statusCode -> {
+                              log.trace("statusCode: {}", statusCode);
+                              return statusCode < 400
+                                  ? successResponse(
+                                      url,
+                                      total,
+                                      maxPageSize,
+                                      request,
+                                      bundleFhirGenerator,
+                                      statusCode)
+                                  : response().withStatusCode(statusCode);
+                            })
+                        .orElseGet(
+                            () ->
+                                successResponse(
+                                    url, total, maxPageSize, request, bundleFhirGenerator, 200));
+                  });
+        });
   }
 
   private HttpResponse successResponse(
+      String url,
       int total,
       int maxPageSize,
       HttpRequest request,
@@ -108,7 +125,7 @@ public class MockCohortSelector {
     var consent =
         bundleFhirGenerator.generateResources().limit(count).collect(toBundle()).setTotal(total);
 
-    consent = addNextLink(total, maxPageSize, from, count, consent);
+    consent = addNextLink(url, total, maxPageSize, from, count, consent);
     return response()
         .withStatusCode(statusCode)
         .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
@@ -120,21 +137,20 @@ public class MockCohortSelector {
     return !fromRequest.isEmpty() ? Integer.parseInt(fromRequest) : x;
   }
 
-  private Bundle addNextLink(int total, int maxPageSize, int from, int count, Bundle consent) {
+  private Bundle addNextLink(
+      String url, int total, int maxPageSize, int from, int count, Bundle consent) {
     var nextFrom = from + count;
     var nextCount = min(total - nextFrom, maxPageSize);
     if (nextFrom < total) {
       log.trace("Add nextLink count consent bundle");
-      consent = consent.addLink(nextLink(nextFrom, nextCount));
+      consent = consent.addLink(nextLink(url, nextFrom, nextCount));
     }
     return consent;
   }
 
-  private Bundle.BundleLinkComponent nextLink(int from, int count) {
-
+  private Bundle.BundleLinkComponent nextLink(String url, int from, int count) {
     var uri =
-        UriComponentsBuilder.fromUriString(
-                "http://localhost:%s/api/v2/cd/consented-patients".formatted(tca.getPort()))
+        UriComponentsBuilder.fromUriString(url.formatted(tca.getPort()))
             .replaceQueryParam("from", from)
             .replaceQueryParam("count", count)
             .toUriString();
@@ -149,29 +165,38 @@ public class MockCohortSelector {
   }
 
   public void timeout() {
-    tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
-        .respond(request -> null, Delay.minutes(10));
+    tca.when(request().withMethod("POST")).respond(request -> null, Delay.minutes(10));
   }
 
   public void wrongContentType() throws IOException {
     var consent = Stream.of(validConsent(() -> "id1").generateResource()).collect(toBundle());
-    tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
-        .respond(
-            response()
-                .withStatusCode(200)
-                .withContentType(MediaType.PLAIN_TEXT_UTF_8)
-                .withBody(fhirResourceToString(consent)));
+    urls.forEach(
+        url ->
+            tca.when(request().withMethod("POST").withPath(url))
+                .respond(
+                    response()
+                        .withStatusCode(200)
+                        .withContentType(MediaType.PLAIN_TEXT_UTF_8)
+                        .withBody(fhirResourceToString(consent))));
   }
 
-  public void unknownDomain(ObjectMapper om) throws JsonProcessingException {
-    tca.when(request().withMethod("POST").withPath("/api/v2/cd/consented-patients"))
-        .respond(
-            response()
-                .withStatusCode(400)
-                .withContentType(MediaType.APPLICATION_JSON)
-                .withBody(
-                    om.writeValueAsString(
-                        ProblemDetail.forStatusAndDetail(
-                            HttpStatus.BAD_REQUEST, "No consents found for domain  'MII1234'"))));
+  public void unknownDomain(ObjectMapper om) {
+    urls.forEach(
+        url -> {
+          try {
+            tca.when(request().withMethod("POST").withPath(url))
+                .respond(
+                    response()
+                        .withStatusCode(400)
+                        .withContentType(MediaType.APPLICATION_JSON)
+                        .withBody(
+                            om.writeValueAsString(
+                                ProblemDetail.forStatusAndDetail(
+                                    HttpStatus.BAD_REQUEST,
+                                    "No consents found for domain  'MII1234'"))));
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 }

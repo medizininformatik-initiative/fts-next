@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,7 +45,8 @@ class ProjectReaderTest {
   @Test
   void testDirYieldsBeans() throws Exception {
     TransferProcessDefinition process =
-        new TransferProcessDefinition("example", () -> null, c -> null, b -> null, b -> null);
+        new TransferProcessDefinition(
+            "example", (List<String> pids) -> null, c -> null, b -> null, b -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
     var factory = new ProjectReader(processFactory, objectMapper, testDirectory);

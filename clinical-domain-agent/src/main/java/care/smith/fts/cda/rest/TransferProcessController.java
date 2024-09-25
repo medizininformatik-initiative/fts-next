@@ -33,11 +33,14 @@ public class TransferProcessController {
 
   @PostMapping(value = "/{project:[\\w-]+}/start")
   Mono<ResponseEntity<Object>> start(
-      @PathVariable("project") String project, UriComponentsBuilder uriBuilder) {
+      @PathVariable("project") String project,
+      UriComponentsBuilder uriBuilder,
+      @RequestBody(required = false) List<String> pids) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
-      var id = processRunner.start(process.get());
+
+      var id = processRunner.start(process.get(), Optional.ofNullable(pids).orElse(List.of()));
       var jobUri = generateJobUri(uriBuilder, id);
       return processRunner
           .status(id)

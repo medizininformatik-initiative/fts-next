@@ -95,6 +95,8 @@ public class TransferProcessControllerIT extends BaseIT {
     resetAll();
   }
 
+
+
   protected FirstStep<Status> startProcess(Duration timeout) {
     return startProcess(timeout, s -> s.phase() != RUNNING);
   }
@@ -108,11 +110,37 @@ public class TransferProcessControllerIT extends BaseIT {
         .mapNotNull(r -> r.getHeaders().get("Content-Location"))
         .doOnNext(r -> assertThat(r).isNotEmpty())
         .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
-        .flatMapMany(r -> Flux.interval(Duration.ofMillis(0), Duration.ofMillis(500))
-            .flatMap(i -> retrieveStatus(r))
-            .takeUntil(until)
-            .take(timeout)
-        )
+        .flatMapMany(
+            r ->
+                Flux.interval(Duration.ofMillis(0), Duration.ofMillis(500))
+                    .flatMap(i -> retrieveStatus(r))
+                    .takeUntil(until)
+                    .take(timeout))
+        .last()
+        .as(StepVerifier::create);
+  }
+
+  protected FirstStep<Status> startProcessForIds(Duration timeout, List<String> ids) {
+    return startProcessForIds(timeout, s -> s.phase() != RUNNING, ids);
+  }
+
+  protected FirstStep<Status> startProcessForIds(
+      Duration timeout, Predicate<Status> until, List<String> ids) {
+    return client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .bodyValue(ids)
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .doOnNext(r -> assertThat(r).isNotEmpty())
+        .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
+        .flatMapMany(
+            r ->
+                Flux.interval(Duration.ofMillis(0), Duration.ofMillis(500))
+                    .flatMap(i -> retrieveStatus(r))
+                    .takeUntil(until)
+                    .take(timeout))
         .last()
         .as(StepVerifier::create);
   }

@@ -32,12 +32,12 @@ class DefaultTransferProcessRunnerTest {
     TransferProcessDefinition process =
         new TransferProcessDefinition(
             "test",
-            () -> fromIterable(List.of(PATIENT)),
+            pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new Bundle())),
-            (b) -> fromIterable(List.of(new TransportBundle(new Bundle(), "tIDMapName"))),
-            (b) -> just(result));
+            b -> fromIterable(List.of(new TransportBundle(new Bundle(), "tIDMapName"))),
+            b -> just(result));
 
-    String processId = runner.start(process);
+    String processId = runner.start(process, List.of());
     sleep(500L);
     create(runner.status(processId))
         .assertNext(

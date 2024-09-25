@@ -7,6 +7,7 @@ import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessRunner.Status;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,7 @@ class TransferProcessControllerTest {
         new TransferProcessController(
             new TransferProcessRunner() {
               @Override
-              public String start(TransferProcessDefinition process) {
+              public String start(TransferProcessDefinition process, List<String> pids) {
                 return "processId";
               }
 
@@ -41,7 +42,9 @@ class TransferProcessControllerTest {
 
   @Test
   void startExistingProjectSucceeds() {
-    var start = api.start("example", UriComponentsBuilder.fromUriString("http://localhost:1234"));
+    var start =
+        api.start(
+            "example", UriComponentsBuilder.fromUriString("http://localhost:1234"), List.of());
     var uri =
         UriComponentsBuilder.fromUriString("http://localhost:1234")
             .path("api/v2/process/status/processId")
@@ -58,7 +61,8 @@ class TransferProcessControllerTest {
   @Test
   void startNonExistingProjectErrors() {
     var start =
-        api.start("non-existent", UriComponentsBuilder.fromUriString("http://localhost:1234"));
+        api.start(
+            "non-existent", UriComponentsBuilder.fromUriString("http://localhost:1234"), List.of());
     create(start)
         .expectNext(
             ResponseEntity.of(
@@ -71,9 +75,9 @@ class TransferProcessControllerTest {
   private static TransferProcessDefinition mockTransferProcess() {
     return new TransferProcessDefinition(
         "example",
-        () -> null,
+        pids -> null,
         consentedPatient -> null,
-        (patientBundle) -> null,
-        (transportBundle) -> null);
+        patientBundle -> null,
+        transportBundle -> null);
   }
 }

@@ -96,6 +96,27 @@ class TCACohortSelectorTest {
   }
 
   @Test
+  void consentBundleForIdsSucceeds() {
+    var client = builder().exchangeFunction(req -> just(response));
+    given(response.statusCode()).willReturn(OK);
+    Bundle inner =
+        Stream.of(
+                new Patient()
+                    .addIdentifier(
+                        new Identifier().setSystem(PID_SYSTEM).setValue("patient-122651")),
+                new Consent().setProvision(denyProvision()))
+            .collect(toBundle());
+    Bundle outer = Stream.of(inner).collect(toBundle());
+    given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
+    var cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
+
+    create(cohortSelector.selectCohort(List.of("patient-122651")))
+        .expectNextCount(1)
+        .verifyComplete();
+  }
+
+  @Test
   void emptyOuterBundleGivesEmptyResult() {
     var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
