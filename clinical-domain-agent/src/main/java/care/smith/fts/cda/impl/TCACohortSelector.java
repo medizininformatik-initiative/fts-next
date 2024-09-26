@@ -58,10 +58,17 @@ class TCACohortSelector implements CohortSelector {
 
   private Mono<Bundle> fetchBundle(String uri, List<String> pids) {
     log.debug("fetchBundle URL: {}", uri);
+    var body =
+        constructBody(
+            config.domain(),
+            config.policySystem(),
+            config.policies(),
+            config.patientIdentifierSystem(),
+            pids);
     return client
         .post()
         .uri(uri)
-        .bodyValue(constructBody(config.policies(), config.policySystem(), config.domain(), pids))
+        .bodyValue(body)
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
@@ -83,12 +90,24 @@ class TCACohortSelector implements CohortSelector {
   }
 
   private Map<String, Object> constructBody(
-      Set<String> policies, @NotNull String v2, String domain, List<String> pids) {
-    return Map.ofEntries(
-        entry("policies", policies),
-        entry("policySystem", v2),
-        entry("domain", domain),
-        entry("pids", pids));
+      String domain,
+      @NotNull String policySystem,
+      Set<String> policies,
+      Object patientIdentifierSystem,
+      List<String> pids) {
+    if (pids.isEmpty()) {
+      return Map.ofEntries(
+          entry("policies", policies),
+          entry("policySystem", policySystem),
+          entry("domain", domain));
+    } else {
+      return Map.ofEntries(
+          entry("policies", policies),
+          entry("policySystem", policySystem),
+          entry("patientIdentifierSystem", patientIdentifierSystem),
+          entry("domain", domain),
+          entry("pids", pids));
+    }
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {

@@ -18,7 +18,7 @@ import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.ConsentRequest;
+import care.smith.fts.util.tca.ConsentFetchRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
@@ -58,6 +58,8 @@ class FhirConsentedPatientsProviderFetchTest {
 
   private static final String POLICY_SYSTEM =
       "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
+  private static final String PATIENT_IDENTIFIER_SYSTEM =
+      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
   private FhirConsentedPatientsProvider fhirConsentProvider;
 
   private static final Set<String> POLICIES =
@@ -66,8 +68,13 @@ class FhirConsentedPatientsProviderFetchTest {
           "IDAT_speichern_verarbeiten",
           "MDAT_erheben",
           "MDAT_speichern_verarbeiten");
-  private static final ConsentRequest consentRequest =
-      new ConsentRequest("MII", POLICIES, POLICY_SYSTEM, List.of("id1", "id2", "id3", "id4"));
+  private static final ConsentFetchRequest consentRequest =
+      new ConsentFetchRequest(
+          "MII",
+          POLICIES,
+          POLICY_SYSTEM,
+          PATIENT_IDENTIFIER_SYSTEM,
+          List.of("id1", "id2", "id3", "id4"));
   private static String address;
   private static FhirGenerator<Bundle> gicsConsentGenerator;
   private static JsonBody jsonBody1;
@@ -86,8 +93,8 @@ class FhirConsentedPatientsProviderFetchTest {
                     "resourceType": "Parameters",
                     "parameter": [
                       {"name": "domain", "valueString": "MII"},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy", "value": "id1"}},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy", "value": "id2"}}
+                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id1"}},
+                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id2"}}
                   ]}
                   """,
             ONLY_MATCHING_FIELDS);
@@ -98,8 +105,8 @@ class FhirConsentedPatientsProviderFetchTest {
                     "resourceType": "Parameters",
                     "parameter": [
                       {"name": "domain", "valueString": "MII"},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy", "value": "id3"}},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy", "value": "id4"}}
+                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id3"}},
+                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id4"}}
                   ]}
                   """,
             ONLY_MATCHING_FIELDS);
@@ -294,34 +301,44 @@ class FhirConsentedPatientsProviderFetchTest {
   }
 
   @Test
-  void emptyPoliciesYieldEmptyBundle(MockServerClient mockServer) {
-    int totalEntries = 0;
-    int pageSize = 2;
-
+  void emptyPoliciesYieldEmptyBundle() {
     var policyHandler = new PolicyHandler(Set.of());
     var consentRequest =
-        new ConsentRequest("MII", Set.of(), POLICY_SYSTEM, List.of("id1", "id2", "id3", "id4"));
+        new ConsentFetchRequest(
+            "MII",
+            Set.of(),
+            POLICY_SYSTEM,
+            PATIENT_IDENTIFIER_SYSTEM,
+            List.of("id1", "id2", "id3", "id4"));
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
-    Bundle bundle =
-        Stream.generate(gicsConsentGenerator::generateString)
-            .limit(totalEntries)
-            .map(FhirUtils::stringToFhirBundle)
-            .collect(toBundle())
-            .setTotal(totalEntries);
-
-    HttpRequest postRequest =
-        request().withMethod("POST").withPath("/$allConsentsForPerson").withBody(jsonBody1);
-    HttpResponse httpResponse =
-        response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON);
-    mockServer.when(postRequest).respond(httpResponse);
 
     create(
             fhirConsentProvider.fetch(
                 consentRequest,
                 fromUriString("http://trustcenteragent:8080"),
-                new PagingParams(0, pageSize)))
+                new PagingParams(0, 2)))
+        .assertNext(
+            consentBundle -> {
+              assertThat(consentBundle.getEntry()).isEmpty();
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void emptyPidsYieldEmptyBundle() {
+    ConsentFetchRequest consentRequest =
+        new ConsentFetchRequest(
+            "MII", POLICIES, POLICY_SYSTEM, PATIENT_IDENTIFIER_SYSTEM, List.of());
+    fhirConsentProvider =
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+    create(
+            fhirConsentProvider.fetch(
+                consentRequest,
+                fromUriString("http://trustcenteragent:8080"),
+                new PagingParams(0, 2)))
         .assertNext(
             consentBundle -> {
               assertThat(consentBundle.getEntry()).isEmpty();

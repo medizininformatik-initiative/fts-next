@@ -5,7 +5,8 @@ import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.ConsentRequest;
+import care.smith.fts.util.tca.ConsentFetchAllRequest;
+import care.smith.fts.util.tca.ConsentFetchRequest;
 import jakarta.validation.Valid;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +41,7 @@ public class ConsentController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
   public Mono<ResponseEntity<Bundle>> fetchAll(
-      @RequestBody @Valid Mono<ConsentRequest> request,
+      @RequestBody @Valid Mono<ConsentFetchAllRequest> request,
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {
@@ -55,7 +56,7 @@ public class ConsentController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
   public Mono<ResponseEntity<Bundle>> fetch(
-      @RequestBody @Valid Mono<ConsentRequest> request,
+      @RequestBody @Valid Mono<ConsentFetchRequest> request,
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {

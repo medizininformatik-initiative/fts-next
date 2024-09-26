@@ -9,7 +9,8 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.ConsentRequest;
+import care.smith.fts.util.tca.ConsentFetchAllRequest;
+import care.smith.fts.util.tca.ConsentFetchRequest;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -33,7 +34,10 @@ class ConsentControllerTest {
 
   private ConsentController controller;
   UriComponentsBuilder requestUrl = fromUriString("/fake/");
-  ConsentRequest consentRequest = new ConsentRequest("MII", Set.of(), "sys", List.of("id1"));
+  ConsentFetchAllRequest consentFetchAllRequest =
+      new ConsentFetchAllRequest("MII", Set.of(), "sys");
+  ConsentFetchRequest consentFetchRequest =
+      new ConsentFetchRequest("MII", Set.of(), "ps", "pis", List.of("id1"));
 
   @BeforeEach
   void setUp() {
@@ -43,17 +47,17 @@ class ConsentControllerTest {
   List<Mono<ResponseEntity<Bundle>>> responses() {
     return List.of(
         controller.fetchAll(
-            Mono.just(consentRequest), requestUrl, Optional.empty(), Optional.empty()),
+            Mono.just(consentFetchAllRequest), requestUrl, Optional.empty(), Optional.empty()),
         controller.fetch(
-            Mono.just(consentRequest), requestUrl, Optional.empty(), Optional.empty()));
+            Mono.just(consentFetchRequest), requestUrl, Optional.empty(), Optional.empty()));
   }
 
   @Test
   void fetchAllEmptyPageYieldsEmptyBundle() {
     var bundle = Stream.<Resource>empty().collect(toBundle());
-    given(provider.fetchAll(consentRequest, requestUrl, new PagingParams(0, 1)))
+    given(provider.fetchAll(consentFetchAllRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.just(bundle));
-    given(provider.fetch(consentRequest, requestUrl, new PagingParams(0, 1)))
+    given(provider.fetch(consentFetchRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.just(bundle));
     responses()
         .forEach(
@@ -65,9 +69,9 @@ class ConsentControllerTest {
 
   @Test
   void fetchErrorResponseYieldsBadRequest() {
-    given(provider.fetchAll(consentRequest, requestUrl, new PagingParams(0, 1)))
+    given(provider.fetchAll(consentFetchAllRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.error(new UnknownDomainException("")));
-    given(provider.fetch(consentRequest, requestUrl, new PagingParams(0, 1)))
+    given(provider.fetch(consentFetchRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.error(new UnknownDomainException("")));
     responses()
         .forEach(
@@ -80,9 +84,9 @@ class ConsentControllerTest {
 
   @Test
   void fetchErrorResponseYieldsInternalServerError() {
-    given(provider.fetchAll(consentRequest, requestUrl, new PagingParams(0, 1)))
+    given(provider.fetchAll(consentFetchAllRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.error(new IllegalArgumentException()));
-    given(provider.fetch(consentRequest, requestUrl, new PagingParams(0, 1)))
+    given(provider.fetch(consentFetchRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.error(new IllegalArgumentException()));
     responses()
         .forEach(

@@ -67,6 +67,7 @@ class FetchConsentControllerIT extends BaseIT {
                 entry("domain", "MII"),
                 entry("policies", Set.of("")),
                 entry("policySystem", "sys"),
+                entry("patientIdentifierSystem", "sys"),
                 entry("pids", List.of("FTS001"))));
     create(response)
         .assertNext(

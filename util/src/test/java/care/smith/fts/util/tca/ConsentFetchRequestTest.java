@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class ConsentRequestTest {
+class ConsentFetchRequestTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().registerModule(new JavaTimeModule());
@@ -17,7 +17,12 @@ class ConsentRequestTest {
   @Test
   void serialize() throws JsonProcessingException {
     var request =
-        new ConsentRequest("domain", Set.of("policy1", "policy2"), "policySystem", List.of("id1"));
+        new ConsentFetchRequest(
+            "domain",
+            Set.of("policy1", "policy2"),
+            "policySystem",
+            "patientIdentifierSystem",
+            List.of("id1"));
 
     String jsonString = objectMapper.writeValueAsString(request);
 
@@ -26,44 +31,29 @@ class ConsentRequestTest {
         .contains("policy1")
         .contains("policy2")
         .contains("policySystem")
+        .contains("patientIdentifierSystem")
         .contains("id1");
   }
 
   @Test
-  void deserializeWithPids() throws JsonProcessingException {
+  void deserialize() throws JsonProcessingException {
     String json =
         """
             {
                 "domain": "domain",
                 "policies": ["policy1", "policy2"],
                 "policySystem": "policySystem",
+                "patientIdentifierSystem": "patientIdentifierSystem",
                 "pids": ["id1"]
             }
             """;
 
-    ConsentRequest request = objectMapper.readValue(json, ConsentRequest.class);
+    ConsentFetchRequest request = objectMapper.readValue(json, ConsentFetchRequest.class);
 
     assertThat(request.domain()).isEqualTo("domain");
     assertThat(request.policies()).containsExactlyInAnyOrder("policy1", "policy2");
     assertThat(request.policySystem()).isEqualTo("policySystem");
+    assertThat(request.patientIdentifierSystem()).isEqualTo("patientIdentifierSystem");
     assertThat(request.pids()).containsExactlyInAnyOrder("id1");
-  }
-
-  @Test
-  void deserializeWithoutPids() throws JsonProcessingException {
-    String json =
-        """
-            {
-                "domain": "domain",
-                "policies": ["policy1", "policy2"],
-                "policySystem": "policySystem"
-            }
-            """;
-
-    ConsentRequest request = objectMapper.readValue(json, ConsentRequest.class);
-
-    assertThat(request.domain()).isEqualTo("domain");
-    assertThat(request.policies()).containsExactlyInAnyOrder("policy1", "policy2");
-    assertThat(request.policySystem()).isEqualTo("policySystem");
   }
 }

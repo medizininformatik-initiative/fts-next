@@ -1,6 +1,7 @@
 package care.smith.fts.tca.consent;
 
-import care.smith.fts.util.tca.ConsentRequest;
+import care.smith.fts.util.tca.ConsentFetchAllRequest;
+import care.smith.fts.util.tca.ConsentFetchRequest;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
@@ -8,7 +9,7 @@ import reactor.core.publisher.Mono;
 public interface ConsentedPatientsProvider {
 
   /**
-   * Fetch consent or all patient IDs provided by `consentRequest.pids()`.
+   * Fetch consent for all patient IDs provided by `consentRequest.pids()`.
    *
    * @param consentRequest
    * @param requestUrl
@@ -16,18 +17,22 @@ public interface ConsentedPatientsProvider {
    * @return Mono<Bundle> with consented patients
    */
   Mono<Bundle> fetch(
-      ConsentRequest consentRequest, UriComponentsBuilder requestUrl, PagingParams pagingParams);
+      ConsentFetchRequest consentRequest,
+      UriComponentsBuilder requestUrl,
+      PagingParams pagingParams);
 
   /**
-   * Fetch consent for all patients in gICS.
+   * Fetch consent for all patients.
    *
-   * @param consentRequest
+   * @param consentFetchAllRequest
    * @param requestUrl
    * @param pagingParams
-   * @return
+   * @return Mono<Bundle> with consented patients
    */
   Mono<Bundle> fetchAll(
-      ConsentRequest consentRequest, UriComponentsBuilder requestUrl, PagingParams pagingParams);
+      ConsentFetchAllRequest consentFetchAllRequest,
+      UriComponentsBuilder requestUrl,
+      PagingParams pagingParams);
 
   record PagingParams(int from, int count) {
     public PagingParams {

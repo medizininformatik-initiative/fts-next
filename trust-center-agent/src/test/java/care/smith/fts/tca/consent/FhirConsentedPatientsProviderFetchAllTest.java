@@ -17,7 +17,7 @@ import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.ConsentRequest;
+import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
@@ -71,8 +71,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
           "IDAT_speichern_verarbeiten",
           "MDAT_erheben",
           "MDAT_speichern_verarbeiten");
-  private static final ConsentRequest consentRequest =
-      new ConsentRequest("MII", POLICIES, POLICY_SYSTEM, null);
+  private static final ConsentFetchAllRequest CONSENT_FETCH_ALL_REQUEST =
+      new ConsentFetchAllRequest("MII", POLICIES, POLICY_SYSTEM);
   private static String address;
   private static FhirGenerator<Bundle> gicsConsentGenerator;
   private static JsonBody jsonBody;
@@ -137,7 +137,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
     log.info("Get first page");
     create(
             fhirConsentProvider.fetchAll(
-                consentRequest,
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://localhost:8080"),
                 new PagingParams(0, defaultPageSize)))
         .assertNext(
@@ -147,7 +147,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
     log.info("Get second page");
     create(
             fhirConsentProvider.fetchAll(
-                consentRequest,
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://localhost:8080"),
                 new PagingParams(defaultPageSize, defaultPageSize)))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink()).isEmpty())
@@ -184,7 +184,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     create(
             fhirConsentProvider.fetchAll(
-                consentRequest,
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(0, pageSize)))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink("next")).isNull())
@@ -220,7 +220,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     create(
             fhirConsentProvider.fetchAll(
-                consentRequest,
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(0, pageSize)))
         .assertNext(
@@ -253,7 +253,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     create(
             fhirConsentProvider.fetchAll(
-                consentRequest,
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(0, pageSize)))
         .expectError(UnknownDomainException.class)
@@ -282,7 +282,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     create(
             fhirConsentProvider.fetchAll(
-                consentRequest,
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(0, pageSize)))
         .expectError(IllegalArgumentException.class)
@@ -310,7 +310,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     create(
             fhirConsentProvider.fetchAll(
-                consentRequest,
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(0, pageSize)))
         .expectError(IllegalArgumentException.class)
@@ -323,8 +323,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
     int pageSize = 2;
 
     var policyHandler = new PolicyHandler(Set.of());
-    var consentRequest =
-        new ConsentRequest("MII", Set.of(), POLICY_SYSTEM, List.of("id1", "id2", "id3", "id4"));
+    var consentRequest = new ConsentFetchAllRequest("MII", Set.of(), POLICY_SYSTEM);
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
             httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);

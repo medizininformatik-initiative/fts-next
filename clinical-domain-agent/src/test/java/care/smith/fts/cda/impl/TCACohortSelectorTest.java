@@ -5,7 +5,6 @@ import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.web.reactive.function.client.ClientResponse.create;
 import static org.springframework.web.reactive.function.client.WebClient.builder;
 import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
