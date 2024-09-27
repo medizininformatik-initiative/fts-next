@@ -14,6 +14,9 @@ upload:
 transfer:
 	../scripts/start-transfer.sh example >process.url
 
+transfer-with-manual-cohort-selection:
+	../scripts/start-transfer-manual-cohort-selection.sh example 100 >process.url
+
 wait:
 	../scripts/await-transfer.sh "$(shell cat process.url)"
 
