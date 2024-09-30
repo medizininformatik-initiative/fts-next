@@ -25,7 +25,6 @@ import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
@@ -72,9 +71,9 @@ class DeidentifhirStepTest {
 
     var consentedPatient = new ConsentedPatient("id1");
     var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var bundleFlux = Flux.just(new ConsentedPatientBundle(bundle, consentedPatient));
+    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
 
-    create(step.deidentify(bundleFlux)).verifyComplete();
+    create(step.deidentify(consentedPatientBundle)).verifyComplete();
   }
 
   @Test
@@ -88,9 +87,9 @@ class DeidentifhirStepTest {
 
     var consentedPatient = new ConsentedPatient("id1");
     var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var bundleFlux = Flux.just(new ConsentedPatientBundle(bundle, consentedPatient));
+    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
 
-    create(step.deidentify(bundleFlux)).verifyComplete();
+    create(step.deidentify(consentedPatientBundle)).verifyComplete();
   }
 
   @Test
@@ -112,9 +111,9 @@ class DeidentifhirStepTest {
 
     var consentedPatient = new ConsentedPatient("id1");
     var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var bundleFlux = Flux.just(new ConsentedPatientBundle(bundle, consentedPatient));
+    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
 
-    create(step.deidentify(bundleFlux)).expectNextCount(1).verifyComplete();
+    create(step.deidentify(consentedPatientBundle)).expectNextCount(1).verifyComplete();
   }
 
   @AfterEach

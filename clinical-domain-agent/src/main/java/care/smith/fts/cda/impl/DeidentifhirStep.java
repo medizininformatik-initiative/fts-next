@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -46,11 +45,7 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   @Override
-  public Flux<TransportBundle> deidentify(Flux<ConsentedPatientBundle> resourceFlux) {
-    return resourceFlux.flatMap(this::deidentify);
-  }
-
-  private Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
+  public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
     var patient = bundle.consentedPatient();
     var idatScraper = new IDATScraper(scraperConfig, patient);
     var ids = idatScraper.gatherIDs(bundle.bundle());

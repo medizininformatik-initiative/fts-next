@@ -80,7 +80,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return dataSelector
           .select(patient)
           .map(b -> new ConsentedPatientBundle(b, patient))
-          .transform(deidentificator::deidentify)
+          .flatMap(deidentificator::deidentify)
           .as(bundleSender::send)
           .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()))
           .doOnError(e -> skippedPatients.incrementAndGet())
