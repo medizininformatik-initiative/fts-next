@@ -11,7 +11,6 @@ import care.smith.fts.util.tca.ConsentFetchRequest;
 import care.smith.fts.util.tca.ConsentRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.http.HttpStatus;
@@ -24,18 +23,15 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider {
   private final WebClient client;
-  private final PolicyHandler policyHandler;
   private final MeterRegistry meterRegistry;
 
   /**
    * Constructs a FhirConsentProvider with the specified parameters.
    *
    * @param client the WebClient used for HTTP requests
-   * @param policyHandler the handler for policy-related operations
    */
   public FhirConsentedPatientsProvider(
-      WebClient client, PolicyHandler policyHandler, MeterRegistry meterRegistry) {
-    this.policyHandler = policyHandler;
+      WebClient client,  MeterRegistry meterRegistry) {
     this.client = client;
     this.meterRegistry = meterRegistry;
   }
@@ -43,8 +39,7 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
   @Override
   public Mono<Bundle> fetch(
       ConsentFetchRequest req, UriComponentsBuilder requestUrl, PagingParams paging) {
-    Set<String> policies = policyHandler.getPoliciesToCheck(req.policies());
-    if (policies.isEmpty() || req.pids().isEmpty()) {
+    if (req.policies().isEmpty() || req.pids().isEmpty()) {
       return Mono.just(new Bundle());
     }
 
@@ -61,8 +56,7 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
   @Override
   public Mono<Bundle> fetchAll(
       ConsentFetchAllRequest req, UriComponentsBuilder requestUrl, PagingParams paging) {
-    Set<String> policies = policyHandler.getPoliciesToCheck(req.policies());
-    if (policies.isEmpty()) {
+    if (req.policies().isEmpty()) {
       return Mono.just(new Bundle());
     }
 

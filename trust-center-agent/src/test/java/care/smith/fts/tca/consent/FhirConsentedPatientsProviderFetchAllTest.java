@@ -51,7 +51,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Import(TestWebClientFactory.class)
 class FhirConsentedPatientsProviderFetchAllTest {
   @Autowired WebClient.Builder httpClientBuilder;
-  @Autowired PolicyHandler policyHandler;
   @Autowired MeterRegistry meterRegistry;
 
   @MockBean
@@ -102,7 +101,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
     int totalEntries = 2 * defaultPageSize;
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
     Bundle bundle =
         gicsConsentGenerator
@@ -161,7 +160,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
     Bundle bundle =
         Stream.generate(gicsConsentGenerator::generateString)
@@ -198,7 +197,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
     Bundle bundle =
         Stream.generate(gicsConsentGenerator::generateString)
             .limit(totalEntries)
@@ -237,7 +236,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
     var operationOutcome = new OperationOutcome();
     var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
@@ -266,7 +265,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
     var operationOutcome = new OperationOutcome();
     var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
@@ -295,7 +294,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
 
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
     var operationOutcome = new OperationOutcome();
     operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
@@ -322,11 +321,10 @@ class FhirConsentedPatientsProviderFetchAllTest {
     int totalEntries = 0;
     int pageSize = 2;
 
-    var policyHandler = new PolicyHandler(Set.of());
     var consentRequest = new ConsentFetchAllRequest("MII", Set.of(), POLICY_SYSTEM);
     fhirConsentProvider =
         new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
     Bundle bundle =
         Stream.generate(gicsConsentGenerator::generateString)
             .limit(totalEntries)

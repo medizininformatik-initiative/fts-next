@@ -1,7 +1,6 @@
 package care.smith.fts.tca.consent.configuration;
 
 import care.smith.fts.tca.consent.FhirConsentedPatientsProvider;
-import care.smith.fts.tca.consent.PolicyHandler;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.auth.HttpClientAuthMethod;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -13,6 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClient.Builder;
 
 @Configuration
 @ConfigurationProperties(prefix = "consent.gics.fhir")
@@ -35,12 +35,9 @@ public class GicsFhirConfiguration {
 
   @Bean
   FhirConsentedPatientsProvider fhirConsentedPatientsProvider(
-      PolicyHandler policyHandler,
-      WebClient.Builder builder,
-      MeterRegistry meterRegistry,
-      WebClientSsl ssl) {
+      Builder builder, MeterRegistry meterRegistry, WebClientSsl ssl) {
     HttpClientConfig httpClientConfig = new HttpClientConfig(baseUrl, auth);
     var client = httpClientConfig.createClient(builder, ssl);
-    return new FhirConsentedPatientsProvider(client, policyHandler, meterRegistry);
+    return new FhirConsentedPatientsProvider(client, meterRegistry);
   }
 }
