@@ -23,7 +23,6 @@ echo "Uploading consent to gics and patients to cd-hds"
 i=1
 while read -r patient; do
   patient_id="$(echo "${patient}" | jq -r .key)"
-  "${SCRIPT_DIR}"/upload-consent.sh "${patient_id}" "$(echo "${patient}" | jq -r .value)"
 
   transfer_test_data "${patient_id}"
 
