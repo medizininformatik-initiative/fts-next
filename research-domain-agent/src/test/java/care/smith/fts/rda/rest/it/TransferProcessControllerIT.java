@@ -67,10 +67,6 @@ public class TransferProcessControllerIT extends BaseIT {
     resetAll();
   }
 
-  protected FirstStep<Status> startProcess(Duration duration) {
-    return startProcess(duration, new Bundle());
-  }
-
   protected FirstStep<Status> startProcess(Duration timeout, Bundle bundle) {
     return startProcess(timeout, bundle, s -> s.phase() != RUNNING);
   }

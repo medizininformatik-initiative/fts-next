@@ -135,7 +135,8 @@ public class TransferProcessController {
                     h.add(X_PROGRESS, "Running");
                     h.add(RETRY_AFTER, "3");
                   });
-      case COMPLETED, ERROR -> ResponseEntity.ok();
+      case COMPLETED -> ResponseEntity.ok();
+      case ERROR -> ResponseEntity.internalServerError();
     };
   }
 }
