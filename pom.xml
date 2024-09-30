@@ -54,7 +54,7 @@
       <dependency>
         <groupId>ca.uhn.hapi.fhir</groupId>
         <artifactId>hapi-fhir-bom</artifactId>
-        <version>7.4.0</version>
+        <version>7.4.2</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
