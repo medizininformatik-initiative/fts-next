@@ -14,7 +14,7 @@ public class MockCohortSelector implements CohortSelector.Factory<MockCohortSele
 
   @Override
   public CohortSelector create(CohortSelector.Config commonConfig, Config implConfig) {
-    return () -> {
+    return pids -> {
       throw new UnsupportedOperationException();
     };
   }

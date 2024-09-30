@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
-class ConsentControllerIT extends BaseIT {
+class FetchAllConsentControllerIT extends BaseIT {
   private static WebClient client;
 
   @BeforeAll
@@ -57,7 +57,7 @@ class ConsentControllerIT extends BaseIT {
                 .withBody(consentGenerator.generateString()));
 
     var response =
-        doPost(
+        fetchAll(
             ofEntries(
                 entry("domain", "MII"),
                 entry("policies", Set.of("")),
@@ -72,10 +72,10 @@ class ConsentControllerIT extends BaseIT {
         .verifyComplete();
   }
 
-  private static Mono<String> doPost(Map<String, Object> body) {
+  private static Mono<String> fetchAll(Map<String, Object> body) {
     return client
         .post()
-        .uri("/api/v2/cd/consented-patients")
+        .uri("/api/v2/cd/consented-patients/fetch-all")
         .contentType(MediaType.APPLICATION_JSON)
         .accept(MediaTypes.APPLICATION_FHIR_JSON)
         .bodyValue(body)
@@ -112,7 +112,7 @@ class ConsentControllerIT extends BaseIT {
                                 .withBody(consentGenerator.generateString())));
 
     var response =
-        doPost(
+        fetchAll(
             ofEntries(
                 entry("domain", "MII"),
                 entry("policies", Set.of("")),

@@ -6,6 +6,7 @@ import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,10 +23,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   private final Map<String, TransferProcessInstance> instances = new ConcurrentHashMap<>();
 
   @Override
-  public String start(TransferProcessDefinition process) {
+  public String start(TransferProcessDefinition process, List<String> pids) {
     var processId = UUID.randomUUID().toString();
     log.info("Run process with processId: {}", processId);
-    TransferProcessInstance transferProcessInstance = new TransferProcessInstance(process);
+    TransferProcessInstance transferProcessInstance = new TransferProcessInstance(process, pids);
     transferProcessInstance.execute();
     instances.put(processId, transferProcessInstance);
     return processId;
@@ -48,14 +49,16 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private final Deidentificator deidentificator;
     private final AtomicLong skippedPatients;
     private final BundleSender bundleSender;
+    private final List<String> pids;
     private final AtomicLong sentBundles;
     private final AtomicReference<Phase> phase;
 
-    public TransferProcessInstance(TransferProcessDefinition process) {
+    public TransferProcessInstance(TransferProcessDefinition process, List<String> pids) {
       cohortSelector = process.cohortSelector();
       dataSelector = process.dataSelector();
       deidentificator = process.deidentificator();
       bundleSender = process.bundleSender();
+      this.pids = pids;
 
       skippedPatients = new AtomicLong();
       sentBundles = new AtomicLong();
@@ -65,7 +68,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     public void execute() {
       phase.set(Phase.RUNNING);
       cohortSelector
-          .selectCohort()
+          .selectCohort(pids)
           .doOnError(e -> phase.set(Phase.ERROR))
           .flatMap(this::executePatient)
           .doOnComplete(() -> phase.set(Phase.COMPLETED))

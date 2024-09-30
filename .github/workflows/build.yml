@@ -152,6 +152,11 @@ jobs:
   e2e-tests:
     needs: [ build-image ]
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        cohort-selection:
+          - transfer
+          - transfer-with-manual-cohort-selection
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
@@ -195,7 +200,7 @@ jobs:
 
     - name: Start Transfer
       working-directory: .github/test
-      run: make transfer
+      run: make ${{ matrix.cohort-selection }}
 
     - name: Wait for Transfer to Finish
       working-directory: .github/test

@@ -3,7 +3,6 @@ package care.smith.fts.cda.rest.it;
 import static care.smith.fts.test.TestPatientGenerator.generateNPatients;
 
 import care.smith.fts.cda.TransferProcessRunner.Phase;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
@@ -19,6 +18,9 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     startProcess(Duration.ofSeconds(3))
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
+    startProcessForIds(Duration.ofSeconds(3), List.of())
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
@@ -26,6 +28,9 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     mockCohortSelector.timeout();
 
     startProcess(Duration.ofMinutes(1))
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
+    startProcessForIds(Duration.ofMinutes(1), List.of())
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
   }
@@ -37,13 +42,19 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     startProcess(Duration.ofSeconds(3))
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
+    startProcessForIds(Duration.ofSeconds(3), List.of())
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
   }
 
   @Test
-  void unknownDomain() throws JsonProcessingException {
+  void unknownDomain() {
     mockCohortSelector.unknownDomain(om);
 
     startProcess(Duration.ofSeconds(3))
+        .assertNext(r -> expectPhase(r, Phase.ERROR))
+        .verifyComplete();
+    startProcessForIds(Duration.ofSeconds(3), List.of())
         .assertNext(r -> expectPhase(r, Phase.ERROR))
         .verifyComplete();
   }
@@ -73,6 +84,9 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     startProcess(Duration.ofSeconds(12))
         .assertNext(r -> completedWithBundles(total, r))
         .verifyComplete();
+    startProcessForIds(Duration.ofSeconds(12), ids)
+        .assertNext(r -> completedWithBundles(total, r))
+        .verifyComplete();
   }
 
   @Test
@@ -100,6 +114,9 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     mockBundleSender.success();
 
     startProcess(Duration.ofSeconds(8))
+        .assertNext(r -> completedWithBundles(total, r))
+        .verifyComplete();
+    startProcessForIds(Duration.ofSeconds(8), ids)
         .assertNext(r -> completedWithBundles(total, r))
         .verifyComplete();
   }

@@ -11,10 +11,13 @@ import static org.mockserver.model.MediaType.APPLICATION_JSON;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.FhirUtils;
+import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
@@ -22,6 +25,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -39,13 +44,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Slf4j
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
 @Import(TestWebClientFactory.class)
-class FhirConsentProviderTest {
+class FhirConsentedPatientsProviderFetchAllTest {
   @Autowired WebClient.Builder httpClientBuilder;
   @Autowired PolicyHandler policyHandler;
   @Autowired MeterRegistry meterRegistry;
@@ -55,7 +59,7 @@ class FhirConsentProviderTest {
 
   private static final String POLICY_SYSTEM =
       "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
-  private FhirConsentProvider fhirConsentProvider;
+  private FhirConsentedPatientsProvider fhirConsentProvider;
 
   @Qualifier("defaultPageSize")
   @Autowired
@@ -67,6 +71,8 @@ class FhirConsentProviderTest {
           "IDAT_speichern_verarbeiten",
           "MDAT_erheben",
           "MDAT_speichern_verarbeiten");
+  private static final ConsentFetchAllRequest CONSENT_FETCH_ALL_REQUEST =
+      new ConsentFetchAllRequest("MII", POLICIES, POLICY_SYSTEM);
   private static String address;
   private static FhirGenerator<Bundle> gicsConsentGenerator;
   private static JsonBody jsonBody;
@@ -75,15 +81,14 @@ class FhirConsentProviderTest {
   static void setUp(MockServerClient mockServer) throws IOException {
     address = "http://localhost:%d".formatted(mockServer.getPort());
     gicsConsentGenerator = FhirGenerators.gicsResponse(randomUuid(), randomUuid());
-
     jsonBody =
         json(
             """
-                            {
-                             "resourceType": "Parameters",
-                             "parameter": [{"name": "domain", "valueString": "MII"}]
-                            }
-                            """,
+                  {
+                   "resourceType": "Parameters",
+                   "parameter": [{"name": "domain", "valueString": "MII"}]
+                  }
+                  """,
             ONLY_MATCHING_FIELDS);
   }
 
@@ -94,15 +99,10 @@ class FhirConsentProviderTest {
 
   @Test
   void paging(MockServerClient mockServer) {
-
     int totalEntries = 2 * defaultPageSize;
-
     fhirConsentProvider =
-        new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(),
-            policyHandler,
-            defaultPageSize,
-            meterRegistry);
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
 
     Bundle bundle =
         gicsConsentGenerator
@@ -131,26 +131,25 @@ class FhirConsentProviderTest {
         .respond(httpResponse);
 
     var expectedNextLink =
-        "http://localhost:8080/api/v2/cd/consented-patients?from=%s&count=%s"
+        "http://localhost:8080/api/v2/cd/consented-patients/fetch-all?from=%s&count=%s"
             .formatted(defaultPageSize, defaultPageSize);
 
     log.info("Get first page");
     create(
-            fhirConsentProvider.consentedPatientsPage(
-                "MII", POLICY_SYSTEM, POLICIES, fromUriString("http://localhost:8080")))
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://localhost:8080"),
+                new PagingParams(0, defaultPageSize)))
         .assertNext(
             consentBundle ->
                 assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink))
         .verifyComplete();
     log.info("Get second page");
     create(
-            fhirConsentProvider.consentedPatientsPage(
-                "MII",
-                POLICY_SYSTEM,
-                POLICIES,
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://localhost:8080"),
-                defaultPageSize,
-                defaultPageSize))
+                new PagingParams(defaultPageSize, defaultPageSize)))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink()).isEmpty())
         .verifyComplete();
   }
@@ -161,8 +160,8 @@ class FhirConsentProviderTest {
     int pageSize = 1;
 
     fhirConsentProvider =
-        new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize, meterRegistry);
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
 
     Bundle bundle =
         Stream.generate(gicsConsentGenerator::generateString)
@@ -184,8 +183,10 @@ class FhirConsentProviderTest {
         .respond(httpResponse);
 
     create(
-            fhirConsentProvider.consentedPatientsPage(
-                "MII", POLICY_SYSTEM, POLICIES, fromUriString("http://trustcenteragent:1234")))
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:1234"),
+                new PagingParams(0, pageSize)))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink("next")).isNull())
         .verifyComplete();
   }
@@ -196,8 +197,8 @@ class FhirConsentProviderTest {
     int pageSize = 1;
 
     fhirConsentProvider =
-        new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, pageSize, meterRegistry);
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
     Bundle bundle =
         Stream.generate(gicsConsentGenerator::generateString)
             .limit(totalEntries)
@@ -218,8 +219,10 @@ class FhirConsentProviderTest {
         .respond(httpResponse);
 
     create(
-            fhirConsentProvider.consentedPatientsPage(
-                "MII", POLICY_SYSTEM, POLICIES, fromUriString("http://trustcenteragent:1234")))
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:1234"),
+                new PagingParams(0, pageSize)))
         .assertNext(
             consentBundle -> {
               assertThat(consentBundle.getEntry()).isEmpty();
@@ -229,43 +232,123 @@ class FhirConsentProviderTest {
   }
 
   @Test
-  void negativePagingArgumentsThrowException() {
+  void unknownDomainCausesGicsNotFound(MockServerClient mockServer) {
+    int pageSize = 2;
+
     fhirConsentProvider =
-        new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, 1, meterRegistry);
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
 
-    assertErrorWithInvalidPagingArgs(-1, -1);
-    assertErrorWithInvalidPagingArgs(-1, 0);
-    assertErrorWithInvalidPagingArgs(0, -1);
-  }
+    var operationOutcome = new OperationOutcome();
+    var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
+    issue.setDiagnostics("No consents found for domain");
 
-  private void assertErrorWithInvalidPagingArgs(int from, int count) {
+    var postRequest =
+        request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
+    var httpResponse =
+        response()
+            .withStatusCode(404)
+            .withBody(FhirUtils.fhirResourceToString(operationOutcome), APPLICATION_JSON);
+    mockServer.when(postRequest).respond(httpResponse);
+
     create(
-            fhirConsentProvider.consentedPatientsPage(
-                "domain",
-                "policySystem",
-                Set.of("Policy A"),
-                UriComponentsBuilder.newInstance(),
-                from,
-                count))
-        .expectErrorMessage("from and count must be non-negative")
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:1234"),
+                new PagingParams(0, pageSize)))
+        .expectError(UnknownDomainException.class)
         .verify();
   }
 
   @Test
-  void tooLargePagingArgumentsThrowException() {
+  void somethingElseCausesGicsNotFound(MockServerClient mockServer) {
+    int pageSize = 2;
+
     fhirConsentProvider =
-        new FhirConsentProvider(
-            httpClientBuilder.baseUrl(address).build(), policyHandler, 1, meterRegistry);
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+
+    var operationOutcome = new OperationOutcome();
+    var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
+    issue.setDiagnostics("Something's not right");
+
+    var postRequest =
+        request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
+    var httpResponse =
+        response()
+            .withStatusCode(404)
+            .withBody(FhirUtils.fhirResourceToString(operationOutcome), APPLICATION_JSON);
+    mockServer.when(postRequest).respond(httpResponse);
+
     create(
-            fhirConsentProvider.consentedPatientsPage(
-                "domain",
-                "policySystem",
-                Set.of("Policy A"),
-                UriComponentsBuilder.newInstance(),
-                Integer.MAX_VALUE - 10,
-                20))
-        .expectErrorMessage("from + count must be smaller than 2147483647")
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:1234"),
+                new PagingParams(0, pageSize)))
+        .expectError(IllegalArgumentException.class)
         .verify();
+  }
+
+  @Test
+  void diagnosticsIsNullInHandleGicsNotFound(MockServerClient mockServer) {
+    int pageSize = 2;
+
+    fhirConsentProvider =
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+
+    var operationOutcome = new OperationOutcome();
+    operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
+
+    var postRequest =
+        request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
+    var httpResponse =
+        response()
+            .withStatusCode(404)
+            .withBody(FhirUtils.fhirResourceToString(operationOutcome), APPLICATION_JSON);
+    mockServer.when(postRequest).respond(httpResponse);
+
+    create(
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:1234"),
+                new PagingParams(0, pageSize)))
+        .expectError(IllegalArgumentException.class)
+        .verify();
+  }
+
+  @Test
+  void emptyPoliciesYieldEmptyBundle(MockServerClient mockServer) {
+    int totalEntries = 0;
+    int pageSize = 2;
+
+    var policyHandler = new PolicyHandler(Set.of());
+    var consentRequest = new ConsentFetchAllRequest("MII", Set.of(), POLICY_SYSTEM);
+    fhirConsentProvider =
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), policyHandler, meterRegistry);
+    Bundle bundle =
+        Stream.generate(gicsConsentGenerator::generateString)
+            .limit(totalEntries)
+            .map(FhirUtils::stringToFhirBundle)
+            .collect(toBundle())
+            .setTotal(totalEntries);
+
+    HttpRequest postRequest =
+        request().withMethod("POST").withPath("/$allConsentsForDomain").withBody(jsonBody);
+    HttpResponse httpResponse =
+        response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON);
+    mockServer.when(postRequest).respond(httpResponse);
+
+    create(
+            fhirConsentProvider.fetchAll(
+                consentRequest,
+                fromUriString("http://trustcenteragent:8080"),
+                new PagingParams(0, pageSize)))
+        .assertNext(
+            consentBundle -> {
+              assertThat(consentBundle.getEntry()).isEmpty();
+            })
+        .verifyComplete();
   }
 }

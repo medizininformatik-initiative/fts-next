@@ -1,11 +1,12 @@
 package care.smith.fts.tca.rest;
 
-import care.smith.fts.tca.consent.ConsentProvider;
+import care.smith.fts.tca.consent.ConsentedPatientsProvider;
+import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.ConsentRequest;
-import io.micrometer.core.annotation.Timed;
+import care.smith.fts.util.tca.ConsentFetchAllRequest;
+import care.smith.fts.util.tca.ConsentFetchRequest;
 import jakarta.validation.Valid;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -24,47 +25,52 @@ import reactor.core.publisher.Mono;
 @RequestMapping(value = "api/v2")
 @Validated
 public class ConsentController {
-  private final ConsentProvider consentProvider;
+  private final ConsentedPatientsProvider consentedPatientsProvider;
   private final int defaultPageSize;
 
   @Autowired
   ConsentController(
-      ConsentProvider consentProvider, @Qualifier("defaultPageSize") int defaultPageSize) {
-    this.consentProvider = consentProvider;
+      ConsentedPatientsProvider consentedPatientsProvider,
+      @Qualifier("defaultPageSize") int defaultPageSize) {
+    this.consentedPatientsProvider = consentedPatientsProvider;
     this.defaultPageSize = defaultPageSize;
   }
 
   @PostMapping(
-      value = "/cd/consented-patients",
+      value = "/cd/consented-patients/fetch-all",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
-  @Timed(value = "http.client.requests.gics")
-  public Mono<ResponseEntity<Bundle>> consentedPatients(
-      @RequestBody @Valid Mono<ConsentRequest> request,
+  public Mono<ResponseEntity<Bundle>> fetchAll(
+      @RequestBody @Valid Mono<ConsentFetchAllRequest> request,
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {
-    var t0 = System.currentTimeMillis();
+    var pagingParams = new PagingParams(from.orElse(0), count.orElse(defaultPageSize));
     var response =
-        request.flatMap(
-            r ->
-                consentProvider.consentedPatientsPage(
-                    r.domain(),
-                    r.policySystem(),
-                    r.policies(),
-                    uriBuilder,
-                    from.orElse(0),
-                    count.orElse(defaultPageSize)));
-    return response
-        .map(ResponseEntity::ok)
-        .doOnNext(i -> log.trace("Fetch consent took: {} ms", System.currentTimeMillis() - t0))
-        .onErrorResume(
-            e -> {
-              if (e instanceof UnknownDomainException) {
-                return ErrorResponseUtil.badRequest(e);
-              } else {
-                return ErrorResponseUtil.internalServerError(e);
-              }
-            });
+        request.flatMap(r -> consentedPatientsProvider.fetchAll(r, uriBuilder, pagingParams));
+    return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
+  }
+
+  @PostMapping(
+      value = "/cd/consented-patients/fetch",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
+  public Mono<ResponseEntity<Bundle>> fetch(
+      @RequestBody @Valid Mono<ConsentFetchRequest> request,
+      UriComponentsBuilder uriBuilder,
+      @RequestParam("from") Optional<Integer> from,
+      @RequestParam("count") Optional<Integer> count) {
+    var pagingParams = new PagingParams(from.orElse(0), count.orElse(defaultPageSize));
+    var response =
+        request.flatMap(r -> consentedPatientsProvider.fetch(r, uriBuilder, pagingParams));
+    return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
+  }
+
+  private static Mono<ResponseEntity<Bundle>> errorResponse(Throwable e) {
+    if (e instanceof UnknownDomainException) {
+      return ErrorResponseUtil.badRequest(e);
+    } else {
+      return ErrorResponseUtil.internalServerError(e);
+    }
   }
 }

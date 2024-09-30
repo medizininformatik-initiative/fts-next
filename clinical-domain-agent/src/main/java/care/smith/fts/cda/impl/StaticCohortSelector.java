@@ -23,7 +23,7 @@ public class StaticCohortSelector implements CohortSelector.Factory<StaticCohort
 
   @Override
   public CohortSelector create(CohortSelector.Config ignored, Config config) {
-    return () -> fromStream(config.pids().stream().map(StaticCohortSelector::staticPatient));
+    return pids -> fromStream(config.pids().stream().map(StaticCohortSelector::staticPatient));
   }
 
   private static ConsentedPatient staticPatient(String id) {

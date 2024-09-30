@@ -5,7 +5,6 @@ import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.web.reactive.function.client.ClientResponse.create;
 import static org.springframework.web.reactive.function.client.WebClient.builder;
 import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
@@ -62,7 +61,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).expectError().verify();
+    create(cohortSelector.selectCohort(List.of())).expectError().verify();
   }
 
   @Test
@@ -73,7 +72,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).expectError().verify();
+    create(cohortSelector.selectCohort(List.of())).expectError().verify();
   }
 
   @Test
@@ -92,7 +91,28 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).expectNextCount(1).verifyComplete();
+    create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void consentBundleForIdsSucceeds() {
+    var client = builder().exchangeFunction(req -> just(response));
+    given(response.statusCode()).willReturn(OK);
+    Bundle inner =
+        Stream.of(
+                new Patient()
+                    .addIdentifier(
+                        new Identifier().setSystem(PID_SYSTEM).setValue("patient-122651")),
+                new Consent().setProvision(denyProvision()))
+            .collect(toBundle());
+    Bundle outer = Stream.of(inner).collect(toBundle());
+    given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
+    var cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
+
+    create(cohortSelector.selectCohort(List.of("patient-122651")))
+        .expectNextCount(1)
+        .verifyComplete();
   }
 
   @Test
@@ -104,7 +124,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).verifyComplete();
+    create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
   @Test
@@ -116,7 +136,7 @@ class TCACohortSelectorTest {
     var cohortSelector =
         new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
-    create(cohortSelector.selectCohort()).verifyComplete();
+    create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
   private static Consent.provisionComponent denyProvision() {

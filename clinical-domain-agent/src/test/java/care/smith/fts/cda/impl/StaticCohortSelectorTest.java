@@ -30,6 +30,8 @@ class StaticCohortSelectorTest {
 
   @Test
   void containsExactlyPatientsConfigured() {
-    create(selector.selectCohort().map(ConsentedPatient::id)).expectNext(TEST_PID).verifyComplete();
+    create(selector.selectCohort(List.of()).map(ConsentedPatient::id))
+        .expectNext(TEST_PID)
+        .verifyComplete();
   }
 }

@@ -1,6 +1,6 @@
 package care.smith.fts.tca.consent.configuration;
 
-import care.smith.fts.tca.consent.FhirConsentProvider;
+import care.smith.fts.tca.consent.FhirConsentedPatientsProvider;
 import care.smith.fts.tca.consent.PolicyHandler;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.auth.HttpClientAuthMethod;
@@ -34,13 +34,13 @@ public class GicsFhirConfiguration {
   }
 
   @Bean
-  FhirConsentProvider fhirConsentProvider(
+  FhirConsentedPatientsProvider fhirConsentedPatientsProvider(
       PolicyHandler policyHandler,
       WebClient.Builder builder,
       MeterRegistry meterRegistry,
       WebClientSsl ssl) {
     HttpClientConfig httpClientConfig = new HttpClientConfig(baseUrl, auth);
     var client = httpClientConfig.createClient(builder, ssl);
-    return new FhirConsentProvider(client, policyHandler, defaultPageSize, meterRegistry);
+    return new FhirConsentedPatientsProvider(client, policyHandler, meterRegistry);
   }
 }
