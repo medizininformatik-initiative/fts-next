@@ -29,15 +29,15 @@ class DefaultTransferProcessRunnerTest {
   @Test
   void runMockTestSuccessfully() throws InterruptedException {
     BundleSender.Result result = new BundleSender.Result(1);
-    TransferProcessDefinition process =
+    var process =
         new TransferProcessDefinition(
             "test",
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new Bundle())),
-            b -> fromIterable(List.of(new TransportBundle(new Bundle(), "tIDMapName"))),
+            b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
             b -> just(result));
 
-    String processId = runner.start(process, List.of());
+    var processId = runner.start(process, List.of());
     sleep(500L);
     create(runner.status(processId))
         .assertNext(
