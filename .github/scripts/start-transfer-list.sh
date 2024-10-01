@@ -12,7 +12,7 @@ if ! cd_agent_base_url="http://$(docker compose port cd-agent 8080)"; then
 fi
 
 share="https://speicherwolke.uni-leipzig.de/index.php/s/MioAzTLMjzbPNyx"
-ids=$(curl -sf "${share}/download?files=authored.json" | jq --argjson limit "${2:-10}" -c '[to_entries | .[0:$limit] | .[] | .key]')
 
-curl -sf -X POST --data "${ids}" \
- -H "Content-Type: application/json" -w "%header{Content-Location}" "${cd_agent_base_url}/api/v2/process/${1}/start"
+curl -sf "${share}/download?files=authored.json" | jq -c "[to_entries | .[0:${2:-10}] | .[].key]" \
+| curl -sf -X POST --data @- -H "Content-Type: application/json" \
+    -w "%header{Content-Location}" "${cd_agent_base_url}/api/v2/process/${1}/start"
