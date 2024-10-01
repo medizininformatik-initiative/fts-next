@@ -6,6 +6,7 @@ import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.util.Optional.ofNullable;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -45,10 +46,11 @@ public class EverythingDataSelector implements DataSelector {
   }
 
   @Override
-  public Flux<Bundle> select(ConsentedPatient patient) {
+  public Flux<ConsentedPatientBundle> select(ConsentedPatient patient) {
     return pidResolver
         .resolve(patient.id())
-        .flatMapMany(fhirId -> fetchEverything(patient, fhirId));
+        .flatMapMany(fhirId -> fetchEverything(patient, fhirId))
+        .map(b -> new ConsentedPatientBundle(b, patient));
   }
 
   private Flux<Bundle> fetchEverything(ConsentedPatient patient, IIdType fhirId) {

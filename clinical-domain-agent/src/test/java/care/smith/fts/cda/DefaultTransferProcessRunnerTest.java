@@ -33,7 +33,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             pids -> fromIterable(List.of(PATIENT)),
-            p -> fromIterable(List.of(new Bundle())),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
             b -> just(result));
 
