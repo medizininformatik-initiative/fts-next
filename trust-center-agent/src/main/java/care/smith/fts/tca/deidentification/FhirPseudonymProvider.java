@@ -63,7 +63,7 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   @Override
   public Mono<Tuple2<String, Map<String, String>>> retrieveTransportIds(
       String patientId, Set<String> ids, String domain) {
-    log.trace("retrieveTransportIds patientId={}, ids={}", patientId, ids);
+    log.trace("retrieveTransportIds patientId={}, n ids={}", patientId, ids.size());
     var saltKey = "Salt_" + patientId;
     var tIDMapName = generateTID();
     var originalToTransportIDMapping = ids.stream().collect(toMap(id -> id, id -> generateTID()));
