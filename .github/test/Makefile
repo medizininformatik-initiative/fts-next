@@ -8,26 +8,29 @@ pull:
 start:
 	docker compose up --wait
 
+download:
+	../scripts/download-test-data.sh ${TEST_SET_SIZE}
+
 upload:
-	../scripts/upload-data.sh 100
+	../scripts/upload-data.sh ${TEST_SET_SIZE}
 
-transfer:
-	../scripts/start-transfer.sh example >process.url
+transfer-all:
+	../scripts/start-transfer-all.sh example >process.url
 
-transfer-with-manual-cohort-selection:
-	../scripts/start-transfer-manual-cohort-selection.sh example 100 >process.url
+transfer-list:
+	../scripts/start-transfer-list.sh example ${TEST_SET_SIZE} >process.url
 
 wait:
 	../scripts/await-transfer.sh "$(shell cat process.url)"
 
 check-consent:
-	../scripts/check-consent.sh 100
+	../scripts/check-consent.sh ${TEST_SET_SIZE}
 
 check-status:
-	../scripts/check-status.sh "$(shell cat process.url)" 100
+	../scripts/check-status.sh "$(shell cat process.url)" ${TEST_SET_SIZE}
 
 check-resources:
-	../scripts/check-resources.sh 100
+	../scripts/check-resources.sh ${TEST_SET_SIZE}
 
 show-status:
 	curl -sf "$(shell cat process.url)"

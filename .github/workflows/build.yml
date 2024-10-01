@@ -155,11 +155,11 @@ jobs:
   e2e-tests:
     needs: [ build-image ]
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        cohort-selection:
-          - transfer
-          - transfer-with-manual-cohort-selection
+    defaults:
+      run:
+        working-directory: .github/test
+    env:
+      TEST_SET_SIZE: 100
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
@@ -183,58 +183,61 @@ jobs:
         | xargs -d' ' -I{} docker load --input /tmp/{}.tar
 
     - name: Pull Container Images
-      working-directory: .github/test
       run: make pull
-
-    - name: Start Test Environment
-      working-directory: .github/test
-      run: make start
 
     - name: Configure PATH
       run: echo "${GITHUB_WORKSPACE}/.github/scripts" >> ${GITHUB_PATH}
 
+    - name: Install Blazectl
+      run: install-blazectl.sh
+
+    - name: Start Test Environment
+      run: make start
+
+    - name: Cache Test Data
+      id: cache-test-data
+      uses: actions/cache@v3
+      with:
+        path: .github/test/test-data
+        key: test-data-${{ env.TEST_SET_SIZE }}
+
+    - name: Download Test Data
+      if: steps.cache-test-data.outputs.cache-hit != 'true'
+      run: make download
+
     - name: Upload Test Data
-      working-directory: .github/test
       run: make upload
 
     - name: Check Consent
-      working-directory: .github/test
       run: make check-consent
 
-    - name: Start Transfer
-      working-directory: .github/test
-      run: make ${{ matrix.cohort-selection }}
+    - name: Run e2e for all Consented Patients
+      run: |
+        make transfer-all wait
+        make check-status check-resources
 
-    - name: Wait for Transfer to Finish
-      working-directory: .github/test
-      run: make wait
+    - name: Clean RD HDS and gPAS DB
+      run: make clean-rd-hds-and-gpas-db
 
-    - name: Check Status
-      working-directory: .github/test
-      run: make check-status
-
-    - name: Check Transferred Resources
-      working-directory: .github/test
-      run: make check-resources
+    - name: Run e2e for Selected Patients
+      run: |
+        make transfer-list wait
+        make check-status check-resources
 
     - name: Collect Agent Logs
       if: failure() || cancelled()
-      working-directory: .github/test
       run: docker compose logs cd-agent tc-agent rd-agent
 
     - name: Collect MOSAIC Logs
       if: failure() || cancelled()
-      working-directory: .github/test
       run: docker compose logs gics gpas
 
     - name: Collect HDS Logs
       if: failure() || cancelled()
-      working-directory: .github/test
       run: docker compose logs cd-hds rd-hds
 
     - name: Collect DB Logs
       if: failure() || cancelled()
-      working-directory: .github/test
       run: docker compose logs gics-db gpas-db keystore
 
   push-image:
