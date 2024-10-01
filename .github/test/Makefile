@@ -11,11 +11,11 @@ start:
 upload:
 	../scripts/upload-data.sh 100
 
-transfer:
-	../scripts/start-transfer.sh example >process.url
+transfer-all:
+	../scripts/start-transfer-all.sh example >process.url
 
-transfer-with-manual-cohort-selection:
-	../scripts/start-transfer-manual-cohort-selection.sh example 100 >process.url
+transfer-list:
+	../scripts/start-transfer-list.sh example 100 >process.url
 
 wait:
 	../scripts/await-transfer.sh "$(shell cat process.url)"
