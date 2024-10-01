@@ -33,7 +33,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
 
     startProcess(Duration.ofSeconds(3))
-        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
@@ -42,7 +42,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
 
     startProcess(Duration.ofMinutes(1))
-        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
@@ -51,7 +51,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
     mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).unknownDomain(om);
 
     startProcess(Duration.ofSeconds(3))
-        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 

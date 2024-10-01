@@ -26,20 +26,20 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void hdsDown() {
+  void rdaDown() {
     mockBundleSender.isDown();
 
     startProcess(Duration.ofSeconds(3))
-        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
   @Test
-  void hdsTimeout() {
+  void rdaTimeout() {
     mockBundleSender.timeout();
 
     startProcess(Duration.ofMinutes(1))
-        .assertNext(TransferProcessControllerIT::completedWithSkipped)
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 

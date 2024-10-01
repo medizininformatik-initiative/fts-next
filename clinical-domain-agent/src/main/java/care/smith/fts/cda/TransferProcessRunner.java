@@ -9,7 +9,7 @@ public interface TransferProcessRunner {
 
   Mono<Status> status(String processId);
 
-  record Status(String processId, Phase phase, long bundlesSentCount, long patientsSkippedCount) {}
+  record Status(String processId, Phase phase, long bundlesSentCount, long bundlesSkippedCount) {}
 
   enum Phase {
     QUEUED,

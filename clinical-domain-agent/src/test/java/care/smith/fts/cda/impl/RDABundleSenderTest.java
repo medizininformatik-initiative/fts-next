@@ -2,7 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
-import static java.util.stream.Stream.generate;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockserver.matchers.Times.once;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -12,8 +12,6 @@ import static org.springframework.http.HttpStatus.ACCEPTED;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.OK;
-import static reactor.core.publisher.Flux.fromIterable;
-import static reactor.core.publisher.Flux.fromStream;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -23,7 +21,6 @@ import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.List;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
@@ -37,7 +34,6 @@ import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.*;
-import reactor.core.publisher.Flux;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
@@ -61,13 +57,11 @@ class RDABundleSenderTest {
   }
 
   @Test
-  void nullBundleErrors(MockServerClient mockServer) {
-    mockServer.when(request().withMethod("POST")).respond(response().withStatusCode(OK.value()));
+  void nullBundleErrors() {
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
-    create(bundleSender.send(fromStream(generate(() -> null))))
-        .expectError(NullPointerException.class)
-        .verify();
+    assertThatExceptionOfType(NullPointerException.class)
+        .isThrownBy(() -> bundleSender.send(null).subscribe());
   }
 
   @Test
@@ -78,7 +72,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
-    create(bundleSender.send(Flux.just(new TransportBundle(new Bundle(), "tIDMapName"))))
+    create(bundleSender.send(new TransportBundle(new Bundle(), "tIDMapName")))
         .expectError(WebClientResponseException.class)
         .verify();
   }
@@ -93,7 +87,7 @@ class RDABundleSenderTest {
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
+    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
         .expectErrorMessage("Missing Content-Location")
         .verify();
   }
@@ -108,7 +102,7 @@ class RDABundleSenderTest {
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
+    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
         .expectErrorMessage("Missing Content-Location")
         .verify();
   }
@@ -128,8 +122,8 @@ class RDABundleSenderTest {
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
-        .expectNext(new BundleSender.Result(1))
+    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+        .expectNext(new BundleSender.Result())
         .verifyComplete();
   }
 
@@ -144,7 +138,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
+    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
         .expectErrorMessage("Require ACCEPTED status")
         .verify();
   }
@@ -170,8 +164,8 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
-        .expectNext(new BundleSender.Result(1))
+    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+        .expectNext(new BundleSender.Result())
         .verifyComplete();
   }
 
@@ -196,8 +190,8 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
-        .expectNext(new BundleSender.Result(1))
+    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+        .expectNext(new BundleSender.Result())
         .verifyComplete();
   }
 
@@ -215,7 +209,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(fromIterable(List.of(new TransportBundle(bundle, "tIDMapName")))))
+    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
         .expectError(TransferProcessException.class)
         .verify();
   }

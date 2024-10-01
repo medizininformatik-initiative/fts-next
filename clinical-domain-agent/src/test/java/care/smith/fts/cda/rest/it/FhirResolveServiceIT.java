@@ -24,11 +24,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
 
     startProcess(Duration.ofSeconds(3))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-              assertThat(r.patientsSkippedCount()).isEqualTo(1);
-            })
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
@@ -37,11 +33,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
 
     startProcess(Duration.ofMinutes(1))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-              assertThat(r.patientsSkippedCount()).isEqualTo(1);
-            })
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
@@ -50,11 +42,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).wrongContentType();
 
     startProcess(Duration.ofSeconds(3))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-              assertThat(r.patientsSkippedCount()).isEqualTo(1);
-            })
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
@@ -63,11 +51,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).moreThanOneResult();
 
     startProcess(Duration.ofSeconds(3))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-              assertThat(r.patientsSkippedCount()).isEqualTo(1);
-            })
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
@@ -76,11 +60,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).emptyBundle();
 
     startProcess(Duration.ofSeconds(3))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-              assertThat(r.patientsSkippedCount()).isEqualTo(1);
-            })
+        .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
 
