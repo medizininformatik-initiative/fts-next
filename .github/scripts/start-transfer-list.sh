@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ -z "${1}" ]; then
+if [ -z "${1:-}" ]; then
   >&2 echo "PROJECT_NAME must be passed as first argument"
   exit 2
 fi
