@@ -155,11 +155,6 @@ jobs:
   e2e-tests:
     needs: [ build-image ]
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        cohort-selection:
-        - transfer-all
-        - transfer-list
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
@@ -201,21 +196,21 @@ jobs:
       working-directory: .github/test
       run: make check-consent
 
-    - name: Start Transfer
+    - name: Run e2e for all Consented Patients
       working-directory: .github/test
-      run: make ${{ matrix.cohort-selection }}
+      run: |
+        make transfer-all wait
+        make check-status check-resources
 
-    - name: Wait for Transfer to Finish
+    - name: Clean RD HDS and gPAS DB
       working-directory: .github/test
-      run: make wait
+      run: make clean-rd-hds-and-gpas-db
 
-    - name: Check Status
+    - name: Run e2e for Selected Patients
       working-directory: .github/test
-      run: make check-status
-
-    - name: Check Transferred Resources
-      working-directory: .github/test
-      run: make check-resources
+      run: |
+        make transfer-list wait
+        make check-status check-resources
 
     - name: Collect Agent Logs
       if: failure() || cancelled()
