@@ -8,11 +8,11 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
-import care.smith.fts.api.cda.BundleSender;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 
 class DefaultTransferProcessRunnerTest {
 
@@ -28,14 +28,13 @@ class DefaultTransferProcessRunnerTest {
 
   @Test
   void runMockTestSuccessfully() throws InterruptedException {
-    BundleSender.Result result = new BundleSender.Result(1);
     var process =
         new TransferProcessDefinition(
             "test",
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new Bundle())),
             b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
-            b -> just(result));
+            b -> just(ResponseEntity.ok().build()));
 
     var processId = runner.start(process, List.of());
     sleep(500L);

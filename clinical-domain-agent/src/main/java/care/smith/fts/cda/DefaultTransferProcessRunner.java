@@ -2,7 +2,6 @@ package care.smith.fts.cda;
 
 import care.smith.fts.api.*;
 import care.smith.fts.api.cda.BundleSender;
-import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
@@ -13,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -70,22 +70,24 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       cohortSelector
           .selectCohort(pids)
           .doOnError(e -> phase.set(Phase.ERROR))
-          .flatMap(this::executePatient)
-          .doOnComplete(() -> phase.set(Phase.COMPLETED))
-          .onErrorComplete()
-          .subscribe();
-    }
-
-    private Mono<Result> executePatient(ConsentedPatient patient) {
-      return dataSelector
-          .select(patient)
-          .map(b -> new ConsentedPatientBundle(b, patient))
+          .flatMap(
+              patient ->
+                  dataSelector.select(patient).map(b -> new ConsentedPatientBundle(b, patient)))
           .flatMap(deidentificator::deidentify)
-          .as(bundleSender::send)
-          .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()))
+          .flatMap(bundleSender::send)
+          .doOnNext(r -> sentBundles.incrementAndGet())
           .doOnError(e -> skippedPatients.incrementAndGet())
           .doOnError(e -> log.error("Skipping patient: {}", e.getMessage()))
-          .onErrorResume(e -> Mono.just(new Result(0)));
+          //          .doOnError(e -> phase.set(Phase.ERROR))
+          .onErrorResume(e -> Mono.just(ResponseEntity.ok().build()))
+          .doOnComplete(
+              () -> {
+                if (phase.get() != Phase.ERROR) {
+                  phase.set(Phase.COMPLETED);
+                }
+              })
+          .onErrorComplete()
+          .subscribe();
     }
 
     public Status status(String processId) {
