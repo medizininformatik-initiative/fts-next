@@ -79,7 +79,6 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private Mono<Result> executePatient(ConsentedPatient patient) {
       return dataSelector
           .select(patient)
-          .map(b -> new ConsentedPatientBundle(b, patient))
           .flatMap(deidentificator::deidentify)
           .as(bundleSender::send)
           .doOnNext(r -> sentBundles.getAndAdd(r.bundleCount()))
