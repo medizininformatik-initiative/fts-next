@@ -14,4 +14,4 @@ summary="$(curl -XPOST -sf -H "Content-Type: application/fhir+json" \
   "${gics_base_url}/\$allConsentsForDomain?_summary=count")"
 
 echo "Check Consent Count"
-assert "number of consents" "$(echo "${summary}" | jq -r .total)" "${1:-10}"
+assert "number of consents" "$(echo "${summary}" | jq -r .total)" "${1:-100}"

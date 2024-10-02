@@ -1,8 +1,5 @@
 AGENTS := $(wildcard *-agent)
 
-clean:
-	mvn ${MAVEN_ARGS} clean
-
 compile:
 	mvn ${MAVEN_ARGS} compile
 
@@ -10,17 +7,18 @@ test:
 	mvn ${MAVEN_ARGS} verify
 
 build:
-	mvn ${MAVEN_ARGS} package
+	mvn ${MAVEN_ARGS} package -DskipTests
 
 coverage:
 	mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
 
-images:
+$(AGENTS):
+	mvn ${MAVEN_ARGS} package -DskipTests --projects $@ --also-make
+	docker build -t ghcr.io/medizininformatik-initiative/fts/$@ $@
+
+all: build
 	@for agent in $(AGENTS); do \
-    	$(MAKE) -C $$agent image; \
+		docker build -t ghcr.io/medizininformatik-initiative/fts/$$agent $$agent; \
     done
 
-e2e:
-	$(MAKE) -C .github/test all
-
-.PHONY:	clean test build images e2e
+.PHONY:	compile test build coverage $(AGENTS) all

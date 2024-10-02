@@ -19,22 +19,22 @@ function expectCount() {
 
 echo "Check Transferred Patient Data"
 assert "transferred patients count" \
-  "$(countResources "Patient")" "$(expectCount "${1:-10}" Patient)"
+  "$(countResources "Patient")" "$(expectCount "${1:-100}" Patient)"
 
 assert "transferred conditions count" \
-  "$(countResources "Encounter")" "$(expectCount "${1:-10}" Encounter)"
+  "$(countResources "Encounter")" "$(expectCount "${1:-100}" Encounter)"
 
 assert "transferred observations count" \
-  "$(countResources "Observation")" "$(expectCount "${1:-10}" Observation)"
+  "$(countResources "Observation")" "$(expectCount "${1:-100}" Observation)"
 
 assert "transferred conditions count" \
-  "$(countResources "Condition")" "$(expectCount "${1:-10}" Condition)"
+  "$(countResources "Condition")" "$(expectCount "${1:-100}" Condition)"
 
 assert "transferred diagnostic reports count" \
-  "$(countResources "DiagnosticReport")" "$(expectCount "${1:-10}" DiagnosticReport)"
+  "$(countResources "DiagnosticReport")" "$(expectCount "${1:-100}" DiagnosticReport)"
 
 assert "transferred medications count" \
-  "$(countResources "Medication")" "$(expectCount "${1:-10}" Medication)"
+  "$(countResources "Medication")" "$(expectCount "${1:-100}" Medication)"
 
 assert "transferred medication administration count" \
-  "$(countResources "MedicationAdministration")" "$(expectCount "${1:-10}" MedicationAdministration)"
+  "$(countResources "MedicationAdministration")" "$(expectCount "${1:-100}" MedicationAdministration)"
