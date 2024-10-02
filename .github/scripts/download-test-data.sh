@@ -14,7 +14,7 @@ export share
 echo "Downloading test data files"
 { echo "hospitalInformation";
   echo "practitionerInformation";
-  curl -sf "${share}/download?files=authored.json" | jq -rc "to_entries | .[0:${1:-10}] | .[].key"
+  curl -sf "${share}/download?files=authored.json" | jq -rc "to_entries | .[0:${1:-100}] | .[].key"
 } | xargs -P8 -I{} bash -c  'download_file "{}"'
 
 echo "Download finished"
