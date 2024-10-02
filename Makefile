@@ -14,11 +14,11 @@ coverage:
 
 $(AGENTS):
 	mvn ${MAVEN_ARGS} package -DskipTests --projects $@ --also-make
-	docker build -t ghcr.io/medizininformatik-initiative/fts-$@ $@
+	docker build -t ghcr.io/medizininformatik-initiative/fts/$@ $@
 
 all: build
 	@for agent in $(AGENTS); do \
-		docker build -t ghcr.io/medizininformatik-initiative/fts-$$agent $$agent; \
+		docker build -t ghcr.io/medizininformatik-initiative/fts/$$agent $$agent; \
     done
 
 .PHONY:	compile test build coverage $(AGENTS) all
