@@ -17,6 +17,7 @@ $(AGENTS):
 	docker build -t ghcr.io/medizininformatik-initiative/fts/$@ $@
 
 all: build
+	mvn ${MAVEN_ARGS} package -DskipTests
 	@for agent in $(AGENTS); do \
 		docker build -t ghcr.io/medizininformatik-initiative/fts/$$agent $$agent; \
     done
