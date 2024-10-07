@@ -170,13 +170,6 @@ jobs:
         merge-multiple: true
         path: /tmp
 
-    - name: Login to SMITH Container Registry
-      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
-      with:
-        registry: creg.smith.care
-        username: ${{ secrets.smith_creg_username }}
-        password: ${{ secrets.smith_creg_password }}
-
     - name: Load Agent Images
       run: |
         echo -n "clinical-domain-agent trust-center-agent research-domain-agent" \
