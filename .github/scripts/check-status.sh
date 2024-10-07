@@ -13,5 +13,5 @@ status="$(curl -sf "${1}")"
 
 echo "Check Transfer Result Status"
 assert "phase" "$(echo "${status}" | jq -r .phase)" "COMPLETED"
-assertGreaterOrEqual "bundles sent" "$(echo "${status}" | jq -r .bundlesSentCount)" "$(jq -r .bundlesSentCount <"results/${2:-100}.json")"
-assert "patients skipped" "$(echo "${status}" | jq -r .bundlesSkippedCount)" "$(jq -r .bundlesSkippedCount <"results/${2:-100}.json")"
+assert-ge "number of bundles sent" "$(echo "${status}" | jq -r .bundlesSentCount)" "$(jq -r .bundlesSentCount <"results/${2:-100}.json")"
+assert "number of patients skipped" "$(echo "${status}" | jq -r .bundlesSkippedCount)" "$(jq -r .bundlesSkippedCount <"results/${2:-100}.json")"
