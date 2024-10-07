@@ -6,7 +6,7 @@ pull:
 	docker compose pull -q --ignore-pull-failures
 
 start:
-	docker compose up --wait
+	docker compose up --wait --pull missing
 
 download:
 	../scripts/download-test-data.sh ${TEST_SET_SIZE}

@@ -11,7 +11,7 @@ networks:
 services:
   # Clinical Domain
   cd-agent:
-    image: clinical-domain-agent:latest
+    image: ghcr.io/medizininformatik-initiative/fts/clinical-domain-agent:latest
     ports: [ ":8080" ]
     networks: [ "agents", "clinical-domain" ]
     volumes:
@@ -41,7 +41,7 @@ services:
 
   # Research Domain
   rd-agent:
-    image: research-domain-agent:latest
+    image: ghcr.io/medizininformatik-initiative/fts/research-domain-agent:latest
     ports: [ ":8080" ]
     networks: [ "agents", "research-domain" ]
     volumes:
@@ -72,7 +72,7 @@ services:
 
   # Trust Center
   tc-agent:
-    image: trust-center-agent:latest
+    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:latest
     ports: [ ":8080" ]
     networks: [ "agents", "trust-center" ]
     depends_on:
