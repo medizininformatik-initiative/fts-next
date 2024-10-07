@@ -32,6 +32,13 @@
       "registryUrls": [
         "https://maven.pkg.github.com/UMEssen/DeidentiFHIR"
       ]
+    },
+    {
+      "matchPackageNames": [
+        "valkey/valkey",
+        "valkey-io/valkey"
+      ],
+      "groupName": "valkey"
     }
   ],
   "hostRules": [
