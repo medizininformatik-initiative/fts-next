@@ -73,7 +73,7 @@ jobs:
       run: mvn ${MAVEN_ARGS} -DskipTests package
 
     - name: Upload Jar
-      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4
+      uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4
       with:
         name: ${{ matrix.agent }}
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
@@ -109,7 +109,7 @@ jobs:
         outputs: type=docker,dest=/tmp/${{ matrix.agent }}.tar
 
     - name: Upload Container Image
-      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4
+      uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4
       with:
         name: ${{ matrix.agent }}-image
         path: /tmp/${{ matrix.agent }}.tar
