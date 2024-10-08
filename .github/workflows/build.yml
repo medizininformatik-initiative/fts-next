@@ -135,7 +135,7 @@ jobs:
       run: docker load --input /tmp/${{ matrix.agent }}.tar
 
     - name: Run Trivy Vulnerability Scanner
-      uses: aquasecurity/trivy-action@0.25.0
+      uses: aquasecurity/trivy-action@f781cce5aab226378ee181d764ab90ea0be3cdd8 # 0.25.0
       with:
         image-ref: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:latest
         format: sarif
