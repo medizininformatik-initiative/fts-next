@@ -116,7 +116,6 @@ jobs:
         if-no-files-found: error
 
   scan-image:
-    continue-on-error: true
     needs: [ build-image ]
     runs-on: ubuntu-24.04
     strategy:
