@@ -116,7 +116,6 @@ jobs:
         if-no-files-found: error
 
   scan-image:
-    continue-on-error: true
     needs: [ build-image ]
     runs-on: ubuntu-24.04
     strategy:
@@ -136,16 +135,16 @@ jobs:
       run: docker load --input /tmp/${{ matrix.agent }}.tar
 
     - name: Run Trivy Vulnerability Scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.25.0
       with:
-        image-ref: ${{ matrix.agent }}:latest
+        image-ref: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:latest
         format: sarif
         output: trivy-results.sarif
         severity: 'CRITICAL,HIGH'
         timeout: '15m0s'
       env:
-        TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
-        TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db:1
+        TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2
+        TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1
 
     - name: Upload Trivy Scan Results to GitHub Security Tab
       uses: github/codeql-action/upload-sarif@6db8d6351fd0be61f9ed8ebd12ccd35dcec51fea # v3
