@@ -149,14 +149,14 @@ public class TransferProcessControllerIT extends BaseIT {
     return client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class);
   }
 
-  protected static void completedWithBundles(int expectedPatientsSent, Status r) {
+  protected static void completedWithBundles(int expectedBundlesSent, Status r) {
     expectPhase(r, Phase.COMPLETED);
-    assertThat(r.bundlesSentCount()).isEqualTo(expectedPatientsSent);
+    assertThat(r.bundlesSentCount()).isEqualTo(expectedBundlesSent);
   }
 
-  protected static void completedWithSkipped(Status r) {
-    completedWithBundles(0, r);
-    assertThat(r.patientsSkippedCount()).isEqualTo(1);
+  protected static void errored(Status r) {
+    expectPhase(r, Phase.ERROR);
+    assertThat(r.bundlesSkippedCount()).isEqualTo(1);
   }
 
   protected static void expectPhase(Status r, Phase phase) {

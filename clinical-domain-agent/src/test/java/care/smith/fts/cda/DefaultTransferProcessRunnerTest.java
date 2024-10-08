@@ -8,11 +8,12 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
-import care.smith.fts.api.cda.BundleSender;
+import care.smith.fts.api.cda.BundleSender.Result;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 class DefaultTransferProcessRunnerTest {
 
@@ -28,14 +29,13 @@ class DefaultTransferProcessRunnerTest {
 
   @Test
   void runMockTestSuccessfully() throws InterruptedException {
-    BundleSender.Result result = new BundleSender.Result(1);
     var process =
         new TransferProcessDefinition(
             "test",
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
-            b -> just(result));
+            b -> Mono.just(new Result()));
 
     var processId = runner.start(process, List.of());
     sleep(500L);
@@ -43,7 +43,7 @@ class DefaultTransferProcessRunnerTest {
         .assertNext(
             r -> {
               assertThat(r.bundlesSentCount()).isEqualTo(1);
-              assertThat(r.patientsSkippedCount()).isEqualTo(0);
+              assertThat(r.bundlesSkippedCount()).isEqualTo(0);
             })
         .verifyComplete();
   }

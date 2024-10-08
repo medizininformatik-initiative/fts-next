@@ -25,7 +25,6 @@ import org.hl7.fhir.r4.model.Parameters;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -42,12 +41,9 @@ final class RDABundleSender implements BundleSender {
   }
 
   @Override
-  public Mono<Result> send(Flux<TransportBundle> bundles) {
-    return bundles
-        .map(RDABundleSender::toPlainBundle)
-        .flatMap(this::sendBundle)
-        .reduce(0, (res, resp) -> res + 1)
-        .map(Result::new);
+  public Mono<Result> send(TransportBundle bundle) {
+    return sendBundle(toPlainBundle(requireNonNull(bundle)))
+        .map(v -> new Result());
   }
 
   private static Bundle toPlainBundle(TransportBundle transportBundle) {

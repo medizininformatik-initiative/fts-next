@@ -9,7 +9,7 @@ fi
 function printStatus() {
   phase="$(echo "${1}" | jq -r '.phase')"
   sent="$(echo "${1}" | jq -r '.bundlesSentCount')"
-  skipped="$(echo "${1}" | jq -r '.patientsSkippedCount')"
+  skipped="$(echo "${1}" | jq -r '.bundlesSkippedCount')"
   printf "· %-14s transferred: %-5d skipped: %-5d\n" "${phase}" "${sent}" "${skipped}"
 }
 
