@@ -2,12 +2,12 @@ package care.smith.fts.cda.rest.it;
 
 import static care.smith.fts.test.TestPatientGenerator.generateNPatients;
 
-import care.smith.fts.cda.TransferProcessRunner.Phase;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClientResponseException.InternalServerError;
 
 public class CohortSelectorIT extends TransferProcessControllerIT {
 
@@ -15,48 +15,40 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
   void tcaDown() {
     mockCohortSelector.isDown();
 
-    startProcess(Duration.ofSeconds(3))
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+    startProcess(Duration.ofSeconds(3)).expectError(InternalServerError.class).verify();
     startProcessForIds(Duration.ofSeconds(3), List.of())
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+        .expectError(InternalServerError.class)
+        .verify();
   }
 
   @Test
   void tcaTimeoutConsentedPatientsRequest() {
     mockCohortSelector.timeout();
 
-    startProcess(Duration.ofMinutes(1))
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+    startProcess(Duration.ofMinutes(1)).expectError(InternalServerError.class).verify();
     startProcessForIds(Duration.ofMinutes(1), List.of())
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+        .expectError(InternalServerError.class)
+        .verify();
   }
 
   @Test
   void tcaSendsWrongContentType() throws IOException {
     mockCohortSelector.wrongContentType();
 
-    startProcess(Duration.ofSeconds(3))
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+    startProcess(Duration.ofSeconds(3)).expectError(InternalServerError.class).verify();
     startProcessForIds(Duration.ofSeconds(3), List.of())
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+        .expectError(InternalServerError.class)
+        .verify();
   }
 
   @Test
   void unknownDomain() {
     mockCohortSelector.unknownDomain(om);
 
-    startProcess(Duration.ofSeconds(3))
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+    startProcess(Duration.ofSeconds(3)).expectError(InternalServerError.class).verify();
     startProcessForIds(Duration.ofSeconds(3), List.of())
-        .assertNext(r -> expectPhase(r, Phase.ERROR))
-        .verifyComplete();
+        .expectError(InternalServerError.class)
+        .verify();
   }
 
   @Test

@@ -3,7 +3,7 @@ package care.smith.fts.cda.rest.it;
 import static care.smith.fts.test.TestPatientGenerator.generateNPatients;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.Status;
+import care.smith.fts.cda.TransferProcessStatus;
 import java.io.IOException;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -157,7 +157,7 @@ public class GeneralIT extends TransferProcessControllerIT {
         .flatMap(
             r -> {
               var uri = r.getFirst().concat("-unknown-process-id");
-              return client.get().uri(uri).retrieve().bodyToMono(Status.class);
+              return client.get().uri(uri).retrieve().bodyToMono(TransferProcessStatus.class);
             })
         .as(
             response ->

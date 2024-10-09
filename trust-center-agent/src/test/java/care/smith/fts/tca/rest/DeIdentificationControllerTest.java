@@ -94,9 +94,20 @@ class DeIdentificationControllerTest {
 
   @Test
   void transportMappingEmptyIds() {
-    var body = new TransportMappingRequest("id1", Set.of(), DEFAULT_DOMAINS, ofDays(14));
+    var mapName = "transferId";
+    var request = new TransportMappingRequest("patientId1", Set.of(), DEFAULT_DOMAINS, ofDays(14));
+    given(mappingProvider.generateTransportMapping(request))
+        .willReturn(Mono.just(new TransportMappingResponse(mapName, Map.of(), ofDays(1))));
 
-    create(controller.transportMapping(Mono.just(body))).verifyComplete();
+    create(controller.transportMapping(Mono.just(request)))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+              assertThat(r.getBody().dateShiftValue()).isEqualTo(Duration.ofSeconds(86400));
+              assertThat(r.getBody().transportMapping()).isEmpty();
+              assertThat(r.getBody().transferId()).isEqualTo("transferId");
+            })
+        .verifyComplete();
   }
 
   @Test

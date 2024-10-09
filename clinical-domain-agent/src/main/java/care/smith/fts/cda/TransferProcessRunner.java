@@ -7,14 +7,13 @@ import reactor.core.publisher.Mono;
 public interface TransferProcessRunner {
   String start(TransferProcessDefinition process, @NotNull List<String> pids);
 
-  Mono<Status> status(String processId);
-
-  record Status(String processId, Phase phase, long bundlesSentCount, long bundlesSkippedCount) {}
+  Mono<TransferProcessStatus> status(String processId);
 
   enum Phase {
     QUEUED,
     RUNNING,
     COMPLETED,
-    ERROR
+    COMPLETED_WITH_ERROR,
+    FATAL
   }
 }

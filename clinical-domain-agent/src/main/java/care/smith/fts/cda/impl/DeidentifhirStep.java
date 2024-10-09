@@ -50,17 +50,24 @@ class DeidentifhirStep implements Deidentificator {
     var patient = bundle.consentedPatient();
     var idatScraper = new IDATScraper(scraperConfig, patient);
     var ids = idatScraper.gatherIDs(bundle.bundle());
-    return fetchTransportMapping(patient.id(), ids)
-        .map(
-            response -> {
-              var transportMapping = response.transportMapping();
-              var dateShiftValue = response.dateShiftValue();
-              var registry = generateRegistry(patient.id(), transportMapping, dateShiftValue);
-              var deidentified =
-                  DeidentifhirUtils.deidentify(
-                      deidentifhirConfig, registry, bundle.bundle(), patient.id(), meterRegistry);
-              return new TransportBundle(deidentified, response.transferId());
-            });
+
+    return !ids.isEmpty()
+        ? fetchTransportMapping(patient.id(), ids)
+            .map(
+                response -> {
+                  var transportMapping = response.transportMapping();
+                  var dateShiftValue = response.dateShiftValue();
+                  var registry = generateRegistry(patient.id(), transportMapping, dateShiftValue);
+                  var deidentified =
+                      DeidentifhirUtils.deidentify(
+                          deidentifhirConfig,
+                          registry,
+                          bundle.bundle(),
+                          patient.id(),
+                          meterRegistry);
+                  return new TransportBundle(deidentified, response.transferId());
+                })
+        : Mono.empty();
   }
 
   private Mono<TransportMappingResponse> fetchTransportMapping(String patientId, Set<String> ids) {

@@ -5,8 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 import care.smith.fts.cda.ClinicalDomainAgent;
+import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
-import care.smith.fts.cda.TransferProcessRunner.Status;
 import care.smith.fts.cda.rest.it.mock.MockBundleSender;
 import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
 import care.smith.fts.cda.rest.it.mock.MockDataSelector;
@@ -97,11 +97,11 @@ public class TransferProcessControllerIT extends BaseIT {
 
 
 
-  protected FirstStep<Status> startProcess(Duration timeout) {
+  protected FirstStep<TransferProcessStatus> startProcess(Duration timeout) {
     return startProcess(timeout, s -> s.phase() != RUNNING);
   }
 
-  protected FirstStep<Status> startProcess(Duration timeout, Predicate<Status> until) {
+  protected FirstStep<TransferProcessStatus> startProcess(Duration timeout, Predicate<TransferProcessStatus> until) {
     return client
         .post()
         .uri("/api/v2/process/test/start")
@@ -120,12 +120,12 @@ public class TransferProcessControllerIT extends BaseIT {
         .as(StepVerifier::create);
   }
 
-  protected FirstStep<Status> startProcessForIds(Duration timeout, List<String> ids) {
+  protected FirstStep<TransferProcessStatus> startProcessForIds(Duration timeout, List<String> ids) {
     return startProcessForIds(timeout, s -> s.phase() != RUNNING, ids);
   }
 
-  protected FirstStep<Status> startProcessForIds(
-      Duration timeout, Predicate<Status> until, List<String> ids) {
+  protected FirstStep<TransferProcessStatus> startProcessForIds(
+      Duration timeout, Predicate<TransferProcessStatus> until, List<String> ids) {
     return client
         .post()
         .uri("/api/v2/process/test/start")
@@ -145,21 +145,21 @@ public class TransferProcessControllerIT extends BaseIT {
         .as(StepVerifier::create);
   }
 
-  private Mono<Status> retrieveStatus(List<String> r) {
-    return client.get().uri(r.getFirst()).retrieve().bodyToMono(Status.class);
+  private Mono<TransferProcessStatus> retrieveStatus(List<String> r) {
+    return client.get().uri(r.getFirst()).retrieve().bodyToMono(TransferProcessStatus.class);
   }
 
-  protected static void completedWithBundles(int expectedBundlesSent, Status r) {
+  protected static void completedWithBundles(int expectedBundlesSent, TransferProcessStatus r) {
     expectPhase(r, Phase.COMPLETED);
-    assertThat(r.bundlesSentCount()).isEqualTo(expectedBundlesSent);
+    assertThat(r.sentBundles()).isEqualTo(expectedBundlesSent);
   }
 
-  protected static void errored(Status r) {
-    expectPhase(r, Phase.ERROR);
-    assertThat(r.bundlesSkippedCount()).isEqualTo(1);
+  protected static void errored(TransferProcessStatus r) {
+    expectPhase(r, Phase.COMPLETED_WITH_ERROR);
+    assertThat(r.skippedBundles()).isEqualTo(1);
   }
 
-  protected static void expectPhase(Status r, Phase phase) {
+  protected static void expectPhase(TransferProcessStatus r, Phase phase) {
     assertThat(r.phase()).isEqualTo(phase);
   }
 }

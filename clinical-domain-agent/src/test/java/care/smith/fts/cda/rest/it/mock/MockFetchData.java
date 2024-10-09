@@ -70,6 +70,6 @@ public class MockFetchData {
   }
 
   public void respondWithEmptyBundle() {
-    hds.when(mockRequestSpec).respond(successResponse(200, new Bundle()));
+    hds.when(mockRequestSpec).respond(response().withStatusCode(404));
   }
 }
