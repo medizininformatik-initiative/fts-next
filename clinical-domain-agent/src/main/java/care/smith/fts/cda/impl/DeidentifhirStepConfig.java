@@ -5,7 +5,7 @@ import java.io.File;
 import java.time.Duration;
 
 public record DeidentifhirStepConfig(
-    TCAConfig tca, Duration dateShift, File deidentifhirConfig, File scraperConfig) {
+    TCAConfig tca, Duration maxDateShift, File deidentifhirConfig, File scraperConfig) {
 
   public record TCAConfig(HttpClientConfig server, String domain) {}
 }

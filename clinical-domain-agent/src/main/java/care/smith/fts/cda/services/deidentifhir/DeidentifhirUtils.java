@@ -1,5 +1,6 @@
 package care.smith.fts.cda.services.deidentifhir;
 
+import care.smith.fts.util.deidentifhir.DateShiftingProvider;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;

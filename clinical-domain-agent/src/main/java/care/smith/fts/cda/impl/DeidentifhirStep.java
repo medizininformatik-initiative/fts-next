@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 class DeidentifhirStep implements Deidentificator {
   private final WebClient httpClient;
   private final String domain;
-  private final Duration dateShift;
+  private final Duration maxDateShift;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
   private final MeterRegistry meterRegistry;
@@ -32,13 +32,13 @@ class DeidentifhirStep implements Deidentificator {
   public DeidentifhirStep(
       WebClient httpClient,
       String domain,
-      Duration dateShift,
+      Duration maxDateShift,
       com.typesafe.config.Config deidentifhirConfig,
       com.typesafe.config.Config scraperConfig,
       MeterRegistry meterRegistry) {
     this.httpClient = httpClient;
     this.domain = domain;
-    this.dateShift = dateShift;
+    this.maxDateShift = maxDateShift;
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
     this.meterRegistry = meterRegistry;
@@ -64,7 +64,7 @@ class DeidentifhirStep implements Deidentificator {
 
   private Mono<PseudonymizeResponse> fetchTransportIdsAndDateShiftingValues(
       String patientId, Set<String> ids) {
-    PseudonymizeRequest request = new PseudonymizeRequest(patientId, ids, domain, dateShift);
+    PseudonymizeRequest request = new PseudonymizeRequest(patientId, ids, domain, maxDateShift);
 
     log.trace("Fetch TIDs and date shifting values for {} IDs", ids.size());
 

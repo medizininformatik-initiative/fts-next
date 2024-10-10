@@ -1,26 +1,25 @@
 package care.smith.fts.cda.services.deidentifhir;
 
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
-import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.test.TestPatientGenerator;
 import de.ume.deidentifhir.Registry;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.prometheusmetrics.PrometheusConfig;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class DeidentifhirUtilsTest {
+class DeidentifhirUtilTest {
 
-  @Autowired MeterRegistry meterRegistry;
+  MeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 
   @Test
   void deidentify() throws IOException {
@@ -33,9 +32,9 @@ class DeidentifhirUtilsTest {
 
     Registry registry = generateRegistry(patient.id(), transportIDs, Duration.ofMillis(1000));
 
-    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifhirUtilTest.class, "CDtoTransport.profile");
 
-    var bundle = generateOnePatient("id1", "2023", "identifierSystem1");
+    var bundle = TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1");
     Bundle deidentifiedBundle =
         DeidentifhirUtils.deidentify(config, registry, bundle, patient.id(), meterRegistry);
     Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
