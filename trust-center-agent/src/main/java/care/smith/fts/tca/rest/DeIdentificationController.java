@@ -40,7 +40,7 @@ public class DeIdentificationController {
             r -> {
               if (!r.ids().isEmpty()) {
                 return pseudonymProvider.retrieveTransportIds(
-                    r.patientId(), r.ids(), r.domain(), r.maxDateShift());
+                    r.patientId(), r.ids(), r.tcaDomains(), r.maxDateShift());
               } else {
                 return Mono.empty();
               }

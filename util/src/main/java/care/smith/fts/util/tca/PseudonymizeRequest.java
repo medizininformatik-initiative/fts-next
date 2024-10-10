@@ -8,5 +8,5 @@ import java.util.Set;
 public record PseudonymizeRequest(
     @NotNull(groups = PseudonymizeRequest.class) String patientId,
     @NotNull(groups = PseudonymizeRequest.class) Set<String> ids,
-    @NotBlank(groups = PseudonymizeRequest.class) String domain,
+    @NotNull(groups = PseudonymizeRequest.class) TCADomains tcaDomains,
     @NotNull(groups = PseudonymizeRequest.class) Duration maxDateShift) {}

@@ -13,6 +13,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.MockServerUtil;
+import care.smith.fts.util.tca.TCADomains;
 import com.typesafe.config.Config;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -42,7 +43,7 @@ class DeidentifhirStepTest {
     step =
         new DeidentifhirStep(
             server.createClient(WebClient.builder(), null),
-            "domain",
+            new TCADomains("domain", "domain", "domain"),
             ofDays(14),
             deidentifhirConfig,
             scraperConfig,
@@ -62,7 +63,11 @@ class DeidentifhirStepTest {
                                 {
                                   "patientId" : "id1",
                                   "ids" : [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
-                                  "domain" : "domain",
+                                  "tcaDomains": {
+                                    "pseudonym" : "domain",
+                                    "salt" : "domain",
+                                    "dateShift" : "domain"
+                                  },
                                   "maxDateShift" : 1209600.0
                                 }
                                 """,

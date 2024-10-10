@@ -19,7 +19,10 @@ deidentificator:
     tca:
       server:
         baseUrl: <tc-agent>
-      domain: MII
+      domains:
+        pseudonym: MII
+        salt: MII
+        dateShift: MII
     maxDateShift: P14D
     deidentifhirConfig: src/test/resources/care/smith/fts/cda/services/deidentifhir/CDtoTransport.profile
     scraperConfig: src/test/resources/care/smith/fts/cda/services/deidentifhir/IDScraper.profile

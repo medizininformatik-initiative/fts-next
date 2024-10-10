@@ -87,7 +87,12 @@ class DeIdentificationControllerIT extends BaseIT {
     var response =
         doPost(
             ofEntries(
-                entry("domain", "MII"),
+                entry(
+                    "tcaDomains",
+                    ofEntries(
+                        entry("pseudonym", "MII"),
+                        entry("salt", "MII"),
+                        entry("dateShift", "MII"))),
                 entry("patientId", "id-144218"),
                 entry("ids", Set.of("id-144218", "id-244194")),
                 entry("maxDateShift", ofDays(14).getSeconds())));
@@ -149,7 +154,12 @@ class DeIdentificationControllerIT extends BaseIT {
     var response =
         doPost(
             ofEntries(
-                entry("domain", "MII"),
+                entry(
+                    "tcaDomains",
+                    ofEntries(
+                        entry("pseudonym", "MII"),
+                        entry("salt", "MII"),
+                        entry("dateShift", "MII"))),
                 entry("patientId", "id-144218"),
                 entry("ids", Set.of("id-144218", "id-244194")),
                 entry("maxDateShift", ofDays(14).getSeconds())));
@@ -220,7 +230,12 @@ class DeIdentificationControllerIT extends BaseIT {
     var tIDMapName =
         doPost(
                 ofEntries(
-                    entry("domain", "MII"),
+                    entry(
+                        "tcaDomains",
+                        ofEntries(
+                            entry("pseudonym", "MII"),
+                            entry("salt", "MII"),
+                            entry("dateShift", "MII"))),
                     entry("patientId", "id-144218"),
                     entry("ids", Set.of("id-144218", "id-244194")),
                     entry("maxDateShift", ofDays(14).getSeconds())))
