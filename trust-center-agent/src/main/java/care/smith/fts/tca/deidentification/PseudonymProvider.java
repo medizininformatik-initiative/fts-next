@@ -1,6 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.util.tca.PseudonymizeResponse;
+import care.smith.fts.util.tca.TCADomains;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -10,12 +11,12 @@ public interface PseudonymProvider {
 
   /**
    * @param ids to transport ids
-   * @param domain the domain
+   * @param tcaDomains
    * @param maxDateShift
    * @return the <code>PseudonymResponse</code>
    */
   Mono<PseudonymizeResponse> retrieveTransportIds(
-      String patientId, Set<String> ids, String domain, Duration maxDateShift);
+      String patientId, Set<String> ids, TCADomains tcaDomains, Duration maxDateShift);
 
   /**
    * Retrieves the mapping of <code>transportId</code> to <code>secureId</code> using the mappings

@@ -18,6 +18,7 @@ import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.tca.TCADomains;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
@@ -118,7 +119,7 @@ class FhirPseudonymProviderTest {
     var mapName = "wSUYQUR3Y";
     create(
             pseudonymProvider.retrieveTransportIds(
-                "id1", ids, "domain", Duration.ofDays(14)))
+                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
         .assertNext(
             t2 -> {
               assertThat(t2.tIDMapName()).isEqualTo(mapName);
@@ -139,7 +140,7 @@ class FhirPseudonymProviderTest {
             pseudonymProvider.retrieveTransportIds(
                 "id1",
                 Set.of("id1"),
-                "domain",
+                new TCADomains("domain", "domain", "domain"),
                 Duration.ofDays(14)));
   }
 
@@ -182,7 +183,7 @@ class FhirPseudonymProviderTest {
     Set<String> ids = Set.of("id1");
     create(
             pseudonymProvider.retrieveTransportIds(
-                "id1", ids, "domain", Duration.ofDays(14)))
+                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
         .expectError(UnknownDomainException.class)
         .verify();
   }
@@ -204,7 +205,7 @@ class FhirPseudonymProviderTest {
     Set<String> ids = Set.of("id1");
     create(
             pseudonymProvider.retrieveTransportIds(
-                "id1", ids, "domain", Duration.ofDays(14)))
+                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
         .expectError(IllegalArgumentException.class)
         .verify();
   }

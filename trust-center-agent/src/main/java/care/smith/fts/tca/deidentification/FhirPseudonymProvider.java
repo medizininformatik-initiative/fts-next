@@ -7,6 +7,7 @@ import static reactor.function.TupleUtils.function;
 
 import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
 import care.smith.fts.util.tca.PseudonymizeResponse;
+import care.smith.fts.util.tca.TCADomains;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -53,19 +54,19 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    * Store tid:pid in the key-value-store.
    *
    * @param ids the IDs to pseudonymize
-   * @param domain the domain used in gPAS
+   * @param tcaDomains the domains used in gPAS
    * @return Map<TID, PID>
    */
   @Override
   public Mono<PseudonymizeResponse> retrieveTransportIds(
-      String patientId, Set<String> ids, String domain, Duration maxDateShift) {
+      String patientId, Set<String> ids, TCADomains tcaDomains, Duration maxDateShift) {
     log.trace("retrieveTransportIds patientId={}, ids={}", patientId, ids);
     var tIDMapName = randomStringGenerator.generate();
     var originalToTransportIDMapping =
         ids.stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
     var rMap = redisClient.reactive().getMapCache(tIDMapName);
     return rMap.expire(Duration.ofSeconds(configuration.getTransportIdTTLinSeconds()))
-        .then(fetchPseudonymAndSalts(patientId, domain, maxDateShift))
+        .then(fetchPseudonymAndSalts(patientId, tcaDomains, maxDateShift))
         .flatMap(saveTransportIDs(patientId, rMap, originalToTransportIDMapping))
         .map(salt -> generate(salt, maxDateShift))
         .map(shift -> new PseudonymizeResponse(tIDMapName, originalToTransportIDMapping, shift));
@@ -88,13 +89,13 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   }
 
   private Mono<Tuple3<String, String, String>> fetchPseudonymAndSalts(
-      String patientId, String domain, Duration maxDateShift) {
+      String patientId, TCADomains domains, Duration maxDateShift) {
     var saltKey = "Salt_" + patientId;
     var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
     return Mono.zip(
-        gpasClient.fetchOrCreatePseudonyms(domain, patientId),
-        gpasClient.fetchOrCreatePseudonyms(domain, saltKey),
-        gpasClient.fetchOrCreatePseudonyms(domain, dateShiftKey));
+        gpasClient.fetchOrCreatePseudonyms(domains.pseudonym(), patientId),
+        gpasClient.fetchOrCreatePseudonyms(domains.salt(), saltKey),
+        gpasClient.fetchOrCreatePseudonyms(domains.dateShift(), dateShiftKey));
   }
 
   private Map<String, String> generateTransportIDs(

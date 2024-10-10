@@ -6,6 +6,7 @@ import static org.mockserver.model.JsonBody.json;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.util.tca.PseudonymizeRequest;
+import care.smith.fts.util.tca.TCADomains;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
@@ -55,7 +56,9 @@ public class MockDataSelector {
     var id2 = patientId + ".Patient:" + patientId;
 
     Set<String> ids = Set.of(id1, id2);
-    var pseudonymizeRequest = new PseudonymizeRequest(patientId, ids, "MII", Duration.ofDays(14));
+    var pseudonymizeRequest =
+        new PseudonymizeRequest(
+            patientId, ids, new TCADomains("MII", "MII", "MII"), Duration.ofDays(14));
     return MockTransportIds.builder()
         .tca(tca)
         .transportIds(ids)

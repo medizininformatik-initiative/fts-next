@@ -35,7 +35,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
 
     return new DeidentifhirStep(
         httpClient,
-        implConfig.tca().domain(),
+        implConfig.tca().domains(),
         implConfig.maxDateShift(),
         parseFile(requireNonNull(implConfig.deidentifhirConfig())),
         parseFile(requireNonNull(implConfig.scraperConfig())),

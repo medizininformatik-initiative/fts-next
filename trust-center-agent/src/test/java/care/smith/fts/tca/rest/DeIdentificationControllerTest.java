@@ -9,6 +9,7 @@ import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.PseudonymizeRequest;
 import care.smith.fts.util.tca.PseudonymizeResponse;
+import care.smith.fts.util.tca.TCADomains;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import java.time.Duration;
 import java.util.Map;
@@ -37,13 +38,20 @@ class DeIdentificationControllerTest {
   void getTransportIdsAndDateShiftingValues() {
     var ids = Set.of("id1", "id2");
     var mapName = "tIDMapName";
-    given(pseudonymProvider.retrieveTransportIds("patientId1", ids, "domain", Duration.ofDays(14)))
+    given(
+            pseudonymProvider.retrieveTransportIds(
+                "patientId1",
+                ids,
+                new TCADomains("domain", "domain", "domain"),
+                Duration.ofDays(14)))
         .willReturn(
             Mono.just(
                 new PseudonymizeResponse(
                     mapName, Map.of("id1", "tid1", "id2", "tid2"), Duration.ofDays(1))));
 
-    var body = new PseudonymizeRequest("patientId1", ids, "domain", Duration.ofDays(14));
+    var body =
+        new PseudonymizeRequest(
+            "patientId1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14));
 
     create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
         .assertNext(
@@ -62,10 +70,18 @@ class DeIdentificationControllerTest {
   void getTransportIdsAndDateShiftingValuesUnknownDomain() {
     given(
             pseudonymProvider.retrieveTransportIds(
-                "id1", Set.of("id1"), "domain", Duration.ofDays(14)))
+                "id1",
+                Set.of("id1"),
+                new TCADomains("unknown domain", "unknown domain", "unknown domain"),
+                Duration.ofDays(14)))
         .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
 
-    var body = new PseudonymizeRequest("id1", Set.of("id1"), "domain", Duration.ofDays(14));
+    var body =
+        new PseudonymizeRequest(
+            "id1",
+            Set.of("id1"),
+            new TCADomains("unknown domain", "unknown domain", "unknown domain"),
+            Duration.ofDays(14));
 
     create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
         .assertNext(
@@ -79,10 +95,18 @@ class DeIdentificationControllerTest {
   void getTransportIdsAndDateShiftingValuesIllegalArgumentException() {
     given(
             pseudonymProvider.retrieveTransportIds(
-                "id1", Set.of("id1"), "domain", Duration.ofDays(14)))
+                "id1",
+                Set.of("id1"),
+                new TCADomains("domain", "domain", "domain"),
+                Duration.ofDays(14)))
         .willReturn(Mono.error(new IllegalArgumentException("Illegal argument")));
 
-    var body = new PseudonymizeRequest("id1", Set.of("id1"), "domain", Duration.ofDays(14));
+    var body =
+        new PseudonymizeRequest(
+            "id1",
+            Set.of("id1"),
+            new TCADomains("domain", "domain", "domain"),
+            Duration.ofDays(14));
 
     create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
         .assertNext(
@@ -94,7 +118,9 @@ class DeIdentificationControllerTest {
 
   @Test
   void getTransportIdsAndDateShiftingValuesEmptyIds() {
-    var body = new PseudonymizeRequest("id1", Set.of(), "domain", Duration.ofDays(14));
+    var body =
+        new PseudonymizeRequest(
+            "id1", Set.of(), new TCADomains("domain", "domain", "domain"), Duration.ofDays(14));
 
     create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body))).verifyComplete();
   }
@@ -102,10 +128,14 @@ class DeIdentificationControllerTest {
   @Test
   void getTransportIdsAndDateShiftingValuesInternalServerError() {
     var ids = Set.of("id1", "id2");
-    given(pseudonymProvider.retrieveTransportIds("id1", ids, "domain", Duration.ofDays(14)))
+    given(
+            pseudonymProvider.retrieveTransportIds(
+                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
         .willReturn(Mono.error(new InternalServerErrorException("Internal Server Error")));
 
-    var body = new PseudonymizeRequest("id1", ids, "domain", Duration.ofDays(14));
+    var body =
+        new PseudonymizeRequest(
+            "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14));
 
     create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
         .assertNext(
