@@ -1,4 +1,4 @@
-package care.smith.fts.cda.services.deidentifhir;
+package care.smith.fts.util.deidentifhir;
 
 import de.ume.deidentifhir.util.ShiftDateProvider;
 import java.time.Duration;

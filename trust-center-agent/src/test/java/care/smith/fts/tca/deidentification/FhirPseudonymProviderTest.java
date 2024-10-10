@@ -1,6 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.test.FhirGenerators.fromList;
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -51,7 +52,6 @@ import reactor.core.publisher.Mono;
 @ExtendWith(MockitoExtension.class)
 @Import(TestWebClientFactory.class)
 class FhirPseudonymProviderTest {
-  private static final Long SEED = 101620L;
 
   @Autowired WebClient.Builder httpClientBuilder;
   @MockBean RedissonClient redisClient;
@@ -68,53 +68,64 @@ class FhirPseudonymProviderTest {
 
     given(redisClient.reactive()).willReturn(redis);
 
+    var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+
     pseudonymProvider =
         new FhirPseudonymProvider(
-            httpClientBuilder.baseUrl(address).build(),
+            gpasClient,
             redisClient,
             pseudonymizationConfiguration,
-            new Random(SEED),
-            meterRegistry);
+            meterRegistry,
+            new RandomStringGenerator(new Random(0)));
   }
 
   @Test
   void retrieveTransportIds(MockServerClient mockServer) throws IOException {
     var fhirGenerator =
         FhirGenerators.gpasGetOrCreateResponse(
-            fromList(List.of("id1", "Salt_id1")), fromList(List.of("469680023", "123")));
+            fromList(List.of("id1", "Salt_id1", "PT336H_id1")),
+            fromList(List.of("469680023", "123", "12345")));
 
-    mockServer
-        .when(
-            request()
-                .withMethod("POST")
-                .withPath("/$pseudonymizeAllowCreate")
-                .withBody(
-                    json(
-                        """
+    var request = request().withMethod("POST").withPath("/$pseudonymizeAllowCreate");
+    List.of("id1", "Salt_id1", "PT336H_id1")
+        .forEach(
+            key ->
+                mockServer
+                    .when(
+                        request
+                            .withBody(
+                                json(
+                                    """
                                   { "resourceType": "Parameters",
                                     "parameter": [
                                       {"name": "target", "valueString": "domain"},
-                                      {"name": "original", "valueString": "id1"},
-                                      {"name": "original", "valueString": "Salt_id1"}]}
-                                  """,
-                        ONLY_MATCHING_FIELDS)))
-        .respond(
-            response()
-                .withBody(
-                    fhirGenerator.generateString(), MediaType.create("application", "fhir+json")));
+                                      {"name": "original", "valueString": "%s"}]}
+                                  """
+                                        .formatted(key),
+                                    ONLY_MATCHING_FIELDS))
+                            .withContentType(APPLICATION_FHIR_JSON))
+                    .respond(
+                        response()
+                            .withBody(
+                                fhirGenerator.generateString(),
+                                MediaType.create("application", "fhir+json"))));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
     given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
     var ids = Set.of("Patient.id1", "identifier.id1");
-    var mapName = "Bo1z3Z87i";
-    create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
+    var mapName = "wSUYQUR3Y";
+    create(
+            pseudonymProvider.retrieveTransportIds(
+                "id1", ids, "domain", Duration.ofDays(14)))
         .assertNext(
             t2 -> {
-              assertThat(t2.getT1()).isEqualTo(mapName);
-              assertThat(t2.getT2().keySet()).isEqualTo(ids);
-              assertThat(t2.getT2().values()).containsExactlyInAnyOrder("xLCUONMhJ", "S3DWTXcF_");
+              assertThat(t2.tIDMapName()).isEqualTo(mapName);
+              assertThat(t2.originalToTransportIDMap().keySet()).isEqualTo(ids);
+              assertThat(t2.originalToTransportIDMap().values())
+                  .containsExactlyInAnyOrder("MLfKoQoSv", "HFbzdJo87");
+              assertThat(t2.dateShiftValue()).isEqualTo(Duration.ofMillis(606851642L));
             })
         .verifyComplete();
   }
@@ -124,7 +135,12 @@ class FhirPseudonymProviderTest {
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
     assertThrows(
         RedisTimeoutException.class,
-        () -> pseudonymProvider.retrieveTransportIds("id1", Set.of("id1"), "domain"));
+        () ->
+            pseudonymProvider.retrieveTransportIds(
+                "id1",
+                Set.of("id1"),
+                "domain",
+                Duration.ofDays(14)));
   }
 
   @Test
@@ -133,12 +149,11 @@ class FhirPseudonymProviderTest {
     given(mapCache.readAllMap())
         .willReturn(Mono.just(Map.of("id1", "123456789", "id2", "987654321")));
     create(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
-        .expectNextMatches(
-            m ->
-                m.containsKey("id1")
-                    && m.containsKey("id2")
-                    && m.containsValue("123456789")
-                    && m.containsValue("987654321"))
+        .assertNext(
+            m -> {
+              assertThat(m.keySet()).containsExactlyInAnyOrder("id1", "id2");
+              assertThat(m.values()).containsExactlyInAnyOrder("123456789", "987654321");
+            })
         .verifyComplete();
   }
 
@@ -165,7 +180,9 @@ class FhirPseudonymProviderTest {
     given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
 
     Set<String> ids = Set.of("id1");
-    create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
+    create(
+            pseudonymProvider.retrieveTransportIds(
+                "id1", ids, "domain", Duration.ofDays(14)))
         .expectError(UnknownDomainException.class)
         .verify();
   }
@@ -185,7 +202,9 @@ class FhirPseudonymProviderTest {
     given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
 
     Set<String> ids = Set.of("id1");
-    create(pseudonymProvider.retrieveTransportIds("id1", ids, "domain"))
+    create(
+            pseudonymProvider.retrieveTransportIds(
+                "id1", ids, "domain", Duration.ofDays(14)))
         .expectError(IllegalArgumentException.class)
         .verify();
   }

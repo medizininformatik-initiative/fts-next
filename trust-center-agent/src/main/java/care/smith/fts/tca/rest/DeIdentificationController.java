@@ -1,7 +1,6 @@
 package care.smith.fts.tca.rest;
 
 import care.smith.fts.tca.deidentification.PseudonymProvider;
-import care.smith.fts.tca.deidentification.ShiftedDatesProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.*;
@@ -23,13 +22,10 @@ import reactor.core.publisher.Mono;
 @Validated
 public class DeIdentificationController {
   private final PseudonymProvider pseudonymProvider;
-  private final ShiftedDatesProvider shiftedDatesProvider;
 
   @Autowired
-  public DeIdentificationController(
-      PseudonymProvider pseudonymProvider, ShiftedDatesProvider shiftedDatesProvider) {
+  public DeIdentificationController(PseudonymProvider pseudonymProvider) {
     this.pseudonymProvider = pseudonymProvider;
-    this.shiftedDatesProvider = shiftedDatesProvider;
   }
 
   @PostMapping(
@@ -43,13 +39,8 @@ public class DeIdentificationController {
         requestData.flatMap(
             r -> {
               if (!r.ids().isEmpty()) {
-                var transportIds =
-                    pseudonymProvider.retrieveTransportIds(r.patientId(), r.ids(), r.domain());
-                var shiftedDate =
-                    shiftedDatesProvider.generateDateShift(r.patientId(), r.dateShift());
-                return transportIds.zipWith(
-                    shiftedDate,
-                    (t, shift) -> new PseudonymizeResponse(t.getT1(), t.getT2(), shift));
+                return pseudonymProvider.retrieveTransportIds(
+                    r.patientId(), r.ids(), r.domain(), r.maxDateShift());
               } else {
                 return Mono.empty();
               }

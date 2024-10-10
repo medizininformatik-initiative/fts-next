@@ -4,7 +4,7 @@ deidentificator:
       server:
         baseUrl: http://tc-agent:8080
       domain: MII
-    dateShift: P14D
+    maxDateShift: P14D
     deidentifhirConfig: /app/config/deidentifhir/TransportToRD.profile
 
 bundleSender:

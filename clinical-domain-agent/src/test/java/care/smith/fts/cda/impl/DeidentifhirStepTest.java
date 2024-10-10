@@ -11,7 +11,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
-import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtil;
+import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.MockServerUtil;
 import com.typesafe.config.Config;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -35,8 +35,8 @@ class DeidentifhirStepTest {
 
   @BeforeEach
   void setUp(MockServerClient mockServer) {
-    Config scraperConfig = parseResources(DeidentifhirUtil.class, "IDScraper.profile");
-    Config deidentifhirConfig = parseResources(DeidentifhirUtil.class, "CDtoTransport.profile");
+    Config scraperConfig = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
+    Config deidentifhirConfig = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var server = MockServerUtil.clientConfig(mockServer);
 
     step =
@@ -63,7 +63,7 @@ class DeidentifhirStepTest {
                                   "patientId" : "id1",
                                   "ids" : [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
                                   "domain" : "domain",
-                                  "dateShift" : 1209600.0
+                                  "maxDateShift" : 1209600.0
                                 }
                                 """,
                         ONLY_MATCHING_FIELDS)))

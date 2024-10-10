@@ -38,7 +38,7 @@ class PseudonymizeRequestTest {
                 "patientId": "patient123",
                 "ids": ["id1", "id2"],
                 "domain": "example.com",
-                "dateShift": "P30D"
+                "maxDateShift": "P30D"
             }
             """;
 
@@ -47,6 +47,6 @@ class PseudonymizeRequestTest {
     assertThat(request.patientId()).isEqualTo("patient123");
     assertThat(request.ids()).containsExactlyInAnyOrder("id1", "id2");
     assertThat(request.domain()).isEqualTo("example.com");
-    assertThat(request.dateShift()).isEqualTo(Duration.ofDays(30));
+    assertThat(request.maxDateShift()).isEqualTo(Duration.ofDays(30));
   }
 }
