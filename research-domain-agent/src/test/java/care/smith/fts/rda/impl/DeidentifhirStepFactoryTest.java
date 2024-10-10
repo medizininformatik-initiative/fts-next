@@ -38,7 +38,7 @@ class DeidentifhirStepFactoryTest {
             factory.create(
                 new Deidentificator.Config(),
                 new DeidentifhirStepConfig(
-                    new TCAConfig(new HttpClientConfig("baseUrl:1234"), "domain"),
+                    new TCAConfig(new HttpClientConfig("baseUrl:1234")),
                     ofDays(14),
                     new File("deidentifhirConfig"))))
         .isNotNull();

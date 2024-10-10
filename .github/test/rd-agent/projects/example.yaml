@@ -3,8 +3,6 @@ deidentificator:
     tca:
       server:
         baseUrl: http://tc-agent:8080
-      domain: MII
-    maxDateShift: P14D
     deidentifhirConfig: /app/config/deidentifhir/TransportToRD.profile
 
 bundleSender:

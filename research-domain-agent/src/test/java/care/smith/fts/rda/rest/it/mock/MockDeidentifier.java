@@ -5,9 +5,12 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 
+import care.smith.fts.util.tca.ResolveResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.Delay;
@@ -38,7 +41,9 @@ public class MockDeidentifier {
                 .withContentType(APPLICATION_JSON))
         .respond(
             request -> {
-              String body = getTidPidMapAsJson();
+              var tidPidMap = om.readValue(getTidPidMapAsJson(), Map.class);
+              var resolveResponse = new ResolveResponse(tidPidMap, Duration.ofMillis(12345));
+              var body = om.writeValueAsString(resolveResponse);
               return Optional.ofNullable(rs.poll())
                   .map(
                       statusCode ->

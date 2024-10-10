@@ -2,7 +2,6 @@ package care.smith.fts.rda.impl;
 
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.typesafe.config.ConfigFactory.parseResources;
-import static java.time.Duration.ofDays;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -39,8 +38,7 @@ class DeidentifhirStepTest {
     var server = MockServerUtil.clientConfig(mockServer);
 
     step =
-        new DeidentifhirStep(
-            config, server.createClient(WebClient.builder(), null), "domain", ofDays(14), meterRegistry);
+        new DeidentifhirStep(config, server.createClient(WebClient.builder(), null), meterRegistry);
   }
 
   @AfterEach
@@ -60,7 +58,7 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
+    create(step.deidentify(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
   }
 
   @Test
@@ -71,11 +69,11 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
+    create(step.deidentify(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
   }
 
   @Test
-  void replaceIdsSucceeds(MockServerClient mockServer) throws IOException {
+  void deidentifySucceeds(MockServerClient mockServer) throws IOException {
     mockServer
         .when(
             request()
@@ -87,13 +85,14 @@ class DeidentifhirStepTest {
                 .withBody(
                     json(
                         """
-                        {"tid1": "pid1"}
+                        {"tidPidMap": {"tid1": "pid1"},
+                         "dateShiftBy": "P12D"}
                         """))
                 .withStatusCode(200));
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.replaceIds(new TransportBundle(bundle, "tIDMapName")))
+    create(step.deidentify(new TransportBundle(bundle, "tIDMapName")))
         .assertNext(
             b -> {
               assertThat(b.getEntry().size()).isEqualTo(1);

@@ -1,20 +1,24 @@
 package care.smith.fts.tca.deidentification;
 
-import static java.time.Duration.ofMillis;
+import static com.google.common.hash.Hashing.sha256;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.common.hash.Hashing;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Random;
 
 public interface DateShiftUtil {
 
-  static Duration generate(@NotBlank String salt, @NotNull Duration maxDateShift) {
-    var seed = Hashing.sha256().hashString(salt, StandardCharsets.UTF_8).padToLong();
-    var random = new Random(seed);
+  static DateShifts generate(@NotBlank String seed, @NotNull Duration maxDateShift) {
+    var random = new Random(sha256().hashString(seed, UTF_8).padToLong());
     var shiftBy = maxDateShift.toMillis();
-    return ofMillis(random.nextLong(-shiftBy, shiftBy));
+
+    var cdDateShift = Duration.ofMillis(random.nextLong(-shiftBy, shiftBy));
+    var rdDateShift = Duration.ofMillis(random.nextLong(-shiftBy, shiftBy));
+
+    return new DateShifts(cdDateShift, rdDateShift.minus(cdDateShift));
   }
+
+  record DateShifts(Duration cdDateShift, Duration rdDateShift) {}
 }

@@ -1,9 +1,9 @@
 package care.smith.fts.tca.deidentification;
 
 import care.smith.fts.util.tca.PseudonymizeResponse;
+import care.smith.fts.util.tca.ResolveResponse;
 import care.smith.fts.util.tca.TCADomains;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Set;
 import reactor.core.publisher.Mono;
 
@@ -25,5 +25,5 @@ public interface PseudonymProvider {
    * @param tIDMapName the transport id map name
    * @return the mapped tid:sid
    */
-  Mono<Map<String, String>> fetchPseudonymizedIds(String tIDMapName);
+  Mono<ResolveResponse> resolveTransportData(String tIDMapName);
 }
