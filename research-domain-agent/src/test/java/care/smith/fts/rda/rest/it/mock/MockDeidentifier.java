@@ -5,7 +5,7 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.util.tca.ResolveResponse;
+import care.smith.fts.util.tca.ResearchMappingResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -37,12 +37,12 @@ public class MockDeidentifier {
     tca.when(
             request()
                 .withMethod("POST")
-                .withPath("/api/v2/rd/resolve-pseudonyms")
+                .withPath("/api/v2/rd/research-mapping")
                 .withContentType(APPLICATION_JSON))
         .respond(
             request -> {
               var tidPidMap = om.readValue(getTidPidMapAsJson(), Map.class);
-              var resolveResponse = new ResolveResponse(tidPidMap, Duration.ofMillis(12345));
+              var resolveResponse = new ResearchMappingResponse(tidPidMap, Duration.ofMillis(12345));
               var body = om.writeValueAsString(resolveResponse);
               return Optional.ofNullable(rs.poll())
                   .map(
@@ -67,7 +67,7 @@ public class MockDeidentifier {
   }
 
   public void returnsWrongContentType() {
-    tca.when(request().withMethod("POST").withPath("/api/v2/rd/resolve-pseudonyms"))
+    tca.when(request().withMethod("POST").withPath("/api/v2/rd/research-mapping"))
         .respond(
             HttpResponse.response()
                 .withStatusCode(200)

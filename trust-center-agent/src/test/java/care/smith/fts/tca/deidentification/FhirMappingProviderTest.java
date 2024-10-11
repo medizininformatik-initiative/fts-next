@@ -13,12 +13,13 @@ import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.JsonBody.json;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
+import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TransportMappingRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
@@ -52,16 +53,20 @@ import reactor.core.publisher.Mono;
 @ExtendWith(MockServerExtension.class)
 @ExtendWith(MockitoExtension.class)
 @Import(TestWebClientFactory.class)
-class FhirPseudonymProviderTest {
+class FhirMappingProviderTest {
+
+  private static final TCADomains DEFAULT_DOMAINS = new TCADomains("domain", "domain", "domain");
+  private static final TransportMappingRequest DEFAULT_REQUEST =
+      new TransportMappingRequest("id1", Set.of("id1"), DEFAULT_DOMAINS, Duration.ofDays(14));
 
   @Autowired WebClient.Builder httpClientBuilder;
   @MockBean RedissonClient redisClient;
   @Mock RedissonReactiveClient redis;
   @Mock RMapCacheReactive<Object, Object> mapCache;
-  @Autowired PseudonymizationConfiguration pseudonymizationConfiguration;
+  @Autowired TransportMappingConfiguration transportMappingConfiguration;
   @Autowired MeterRegistry meterRegistry;
 
-  private FhirPseudonymProvider pseudonymProvider;
+  private FhirMappingProvider mappingProvider;
 
   @BeforeEach
   void setUp(MockServerClient mockServer) {
@@ -71,29 +76,30 @@ class FhirPseudonymProviderTest {
 
     var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
-    pseudonymProvider =
-        new FhirPseudonymProvider(
+    mappingProvider =
+        new FhirMappingProvider(
             gpasClient,
             redisClient,
-            pseudonymizationConfiguration,
+            transportMappingConfiguration,
             meterRegistry,
             new RandomStringGenerator(new Random(0)));
   }
 
   @Test
-  void retrieveTransportIds(MockServerClient mockServer) throws IOException {
+  void generateTransportMapping(MockServerClient mockServer) throws IOException {
     var fhirGenerator =
         FhirGenerators.gpasGetOrCreateResponse(
             fromList(List.of("id1", "Salt_id1", "PT336H_id1")),
             fromList(List.of("469680023", "123", "12345")));
 
-    var request = request().withMethod("POST").withPath("/$pseudonymizeAllowCreate");
     List.of("id1", "Salt_id1", "PT336H_id1")
         .forEach(
             key ->
                 mockServer
                     .when(
-                        request
+                        request()
+                            .withMethod("POST")
+                            .withPath("/$pseudonymizeAllowCreate")
                             .withBody(
                                 json(
                                     """
@@ -117,14 +123,13 @@ class FhirPseudonymProviderTest {
 
     var ids = Set.of("Patient.id1", "identifier.id1");
     var mapName = "wSUYQUR3Y";
-    create(
-            pseudonymProvider.retrieveTransportIds(
-                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
+    var request = new TransportMappingRequest("id1", ids, DEFAULT_DOMAINS, Duration.ofDays(14));
+    create(mappingProvider.generateTransportMapping(request))
         .assertNext(
             r -> {
-              assertThat(r.tIDMapName()).isEqualTo(mapName);
-              assertThat(r.originalToTransportIDMap().keySet()).isEqualTo(ids);
-              assertThat(r.originalToTransportIDMap().values())
+              assertThat(r.transferId()).isEqualTo(mapName);
+              assertThat(r.transportMapping().keySet()).isEqualTo(ids);
+              assertThat(r.transportMapping().values())
                   .containsExactlyInAnyOrder("MLfKoQoSv", "HFbzdJo87");
               assertThat(r.dateShiftValue()).isLessThanOrEqualTo(Duration.ofMillis(606851642L));
             })
@@ -132,25 +137,20 @@ class FhirPseudonymProviderTest {
   }
 
   @Test
-  void retrieveTransportIdsWhenRedisDown() {
+  void generateTransportMappingWhenRedisDown() {
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
     assertThrows(
         RedisTimeoutException.class,
-        () ->
-            pseudonymProvider.retrieveTransportIds(
-                "id1",
-                Set.of("id1"),
-                new TCADomains("domain", "domain", "domain"),
-                Duration.ofDays(14)));
+        () -> mappingProvider.generateTransportMapping(DEFAULT_REQUEST));
   }
 
   @Test
-  void fetchPseudonymIDs() {
+  void fetchResearchMapping() {
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.readAllMap())
         .willReturn(
             Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "12345")));
-    create(pseudonymProvider.resolveTransportData("tIDMapName"))
+    create(mappingProvider.fetchResearchMapping("transferId"))
         .assertNext(
             m -> {
               assertThat(m.tidPidMap().keySet()).containsExactlyInAnyOrder("id1", "id2");
@@ -162,15 +162,15 @@ class FhirPseudonymProviderTest {
   }
 
   @Test
-  void fetchPseudonymIDsWhenRedisDown() {
+  void fetchResearchMappingWhenRedisDown() {
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
-    create(pseudonymProvider.resolveTransportData("tIDMapName"))
+    create(mappingProvider.fetchResearchMapping("transferId"))
         .expectError(RedisTimeoutException.class)
         .verify();
   }
 
   @Test
-  void fetchPseudonymIDsWithUnknownDomainException(MockServerClient mockServer) {
+  void fetchResearchMappingWithUnknownDomainException(MockServerClient mockServer) {
     mockServer
         .when(request().withMethod("POST").withPath("/$pseudonymizeAllowCreate"))
         .respond(
@@ -178,21 +178,22 @@ class FhirPseudonymProviderTest {
                 .withStatusCode(400)
                 .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
                 .withBody(
-                    "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"error\",\"code\":\"processing\",\"diagnostics\":\"Unknown domain\"}]}"));
+                    """
+                       {"resourceType": "OperationOutcome",
+                        "issue": [{"severity": "error", "code": "processing",
+                                   "diagnostics": "Unknown domain"}]}
+                       """));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
 
-    Set<String> ids = Set.of("id1");
-    create(
-            pseudonymProvider.retrieveTransportIds(
-                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
+    create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(UnknownDomainException.class)
         .verify();
   }
 
   @Test
-  void fetchPseudonymIDsWithUnknownError(MockServerClient mockServer) {
+  void fetchResearchMappingWithUnknownError(MockServerClient mockServer) {
     mockServer
         .when(request().withMethod("POST").withPath("/$pseudonymizeAllowCreate"))
         .respond(
@@ -200,15 +201,16 @@ class FhirPseudonymProviderTest {
                 .withStatusCode(400)
                 .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
                 .withBody(
-                    "{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"severity\":\"error\",\"code\":\"processing\",\"diagnostics\":\"Unknown error\"}]}"));
+                    """
+                       {"resourceType":"OperationOutcome",
+                        "issue": [{"severity": "error", "code": "processing",
+                                   "diagnostics": "Unknown error"}]}
+                       """));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
 
-    Set<String> ids = Set.of("id1");
-    create(
-            pseudonymProvider.retrieveTransportIds(
-                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
+    create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(IllegalArgumentException.class)
         .verify();
   }

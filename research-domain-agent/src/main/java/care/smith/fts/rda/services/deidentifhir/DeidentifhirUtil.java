@@ -17,9 +17,9 @@ import org.hl7.fhir.r4.model.Bundle;
 public interface DeidentifhirUtil {
 
   static Registry generateRegistry(
-      Map<String, String> transportIdToPseudonym, Duration dateShiftValue) {
+      Map<String, String> researchMapping, Duration dateShiftValue) {
     var keyCreator = NamespacingReplacementProvider.withoutNamespacing();
-    var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIdToPseudonym);
+    var replacementProvider = NamespacingReplacementProvider.of(keyCreator, researchMapping);
     DateShiftingProvider dsp = new DateShiftingProvider(dateShiftValue);
     Registry registry = new Registry();
     registry.addHander(
@@ -52,7 +52,7 @@ public interface DeidentifhirUtil {
     var sample = Timer.start(meterRegistry);
     var deidentifhir = Deidentifhir.apply(config, registry);
     var deidentified = (Bundle) deidentifhir.deidentify(bundle);
-    sample.stop(meterRegistry.timer("replaceIDs"));
+    sample.stop(meterRegistry.timer("deidentify"));
     return deidentified;
   }
 }

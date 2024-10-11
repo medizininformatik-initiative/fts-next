@@ -31,7 +31,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
-      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
       mockDataSelector
           .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
           .resolveId(patientId);
@@ -61,7 +61,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockCohortSelector.consentForNPatientsWithPaging(idPrefix, totalPatients, pageSize);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
-      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
       mockDataSelector
           .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
           .resolveId(patientId);
@@ -90,7 +90,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
-      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
       mockDataSelector
           .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
           .resolveId(patientId);
@@ -135,7 +135,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     mockCohortSelector.consentForNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
-      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
       mockDataSelector
           .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
           .resolveId(patientId);

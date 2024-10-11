@@ -3,7 +3,6 @@ package care.smith.fts.cda.rest.it;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.TransferProcessRunner.Phase;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
@@ -67,7 +66,7 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   @Test
   void hdsFirstRequestFails() throws IOException {
     var patient = generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
-    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+    mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
     mockDataSelector
         .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
         .resolveId(patientId, List.of(500));

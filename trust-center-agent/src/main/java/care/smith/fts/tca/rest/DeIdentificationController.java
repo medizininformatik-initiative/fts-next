@@ -1,6 +1,6 @@
 package care.smith.fts.tca.rest;
 
-import care.smith.fts.tca.deidentification.PseudonymProvider;
+import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.*;
@@ -20,56 +20,50 @@ import reactor.core.publisher.Mono;
 @RequestMapping(value = "api/v2")
 @Validated
 public class DeIdentificationController {
-  private final PseudonymProvider pseudonymProvider;
+  private final MappingProvider mappingProvider;
 
   @Autowired
-  public DeIdentificationController(PseudonymProvider pseudonymProvider) {
-    this.pseudonymProvider = pseudonymProvider;
+  public DeIdentificationController(MappingProvider mappingProvider) {
+    this.mappingProvider = mappingProvider;
   }
 
   @PostMapping(
-      value = "/cd/transport-ids-and-date-shifting-values",
+      value = "/cd/transport-mapping",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   @ExceptionHandler(UnknownDomainException.class)
-  public Mono<ResponseEntity<PseudonymizeResponse>> getTransportIdsAndDateShiftingValues(
-      @Valid @RequestBody Mono<PseudonymizeRequest> requestData) {
-    var response =
-        requestData.flatMap(
-            r -> {
-              if (!r.ids().isEmpty()) {
-                return pseudonymProvider.retrieveTransportIds(
-                    r.patientId(), r.ids(), r.tcaDomains(), r.maxDateShift());
-              } else {
-                return Mono.empty();
-              }
-            });
-    return response
+  public Mono<ResponseEntity<TransportMappingResponse>> transportMapping(
+      @Valid @RequestBody Mono<TransportMappingRequest> requestData) {
+    return requestData
+        .filter(r -> !r.resourceIds().isEmpty())
+        .flatMap(mappingProvider::generateTransportMapping)
         .map(ResponseEntity::ok)
-        .onErrorResume(
-            e -> {
-              if (e instanceof UnknownDomainException || e instanceof IllegalArgumentException) {
-                return ErrorResponseUtil.badRequest(e);
-              } else {
-                log.error("Internal error", e);
-                return ErrorResponseUtil.internalServerError(e);
-              }
-            });
+        .onErrorResume(DeIdentificationController::handleGenerateError);
+  }
+
+  private static Mono<ResponseEntity<TransportMappingResponse>> handleGenerateError(Throwable e) {
+    if (e instanceof UnknownDomainException || e instanceof IllegalArgumentException) {
+      return ErrorResponseUtil.badRequest(e);
+    } else {
+      log.error("Internal error", e);
+      return ErrorResponseUtil.internalServerError(e);
+    }
   }
 
   @PostMapping(
-      value = "/rd/resolve-pseudonyms",
+      value = "/rd/research-mapping",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<ResolveResponse>> fetchPseudonymizedIds(
-      @RequestBody @NotNull @Pattern(regexp = "^[\\w-]+$") String transportIDMapName) {
-    log.trace("Resolve pseudonyms of map: {} ", transportIDMapName);
-    return pseudonymProvider
-        .resolveTransportData(transportIDMapName)
-        .doOnError(
-            e ->
-                log.error(
-                    "Could not fetch pseudonyms of map {}: {}", transportIDMapName, e.getMessage()))
+  public Mono<ResponseEntity<ResearchMappingResponse>> researchMapping(
+      @RequestBody @NotNull @Pattern(regexp = "^[\\w-]+$") String transferId) {
+    log.trace("Resolve pseudonyms of map: {} ", transferId);
+    return mappingProvider
+        .fetchResearchMapping(transferId)
+        .doOnError(e -> handleFetchError(transferId, e))
         .map(ResponseEntity::ok);
+  }
+
+  private static void handleFetchError(String transferId, Throwable e) {
+    log.error("Could not fetch pseudonyms of map {}: {}", transferId, e.getMessage());
   }
 }

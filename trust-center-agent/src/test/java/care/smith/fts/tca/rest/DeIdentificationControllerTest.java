@@ -1,16 +1,17 @@
 package care.smith.fts.tca.rest;
 
+import static java.time.Duration.ofDays;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.tca.deidentification.PseudonymProvider;
+import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.PseudonymizeRequest;
-import care.smith.fts.util.tca.PseudonymizeResponse;
-import care.smith.fts.util.tca.ResolveResponse;
+import care.smith.fts.util.tca.ResearchMappingResponse;
 import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TransportMappingRequest;
+import care.smith.fts.util.tca.TransportMappingResponse;
 import com.github.dockerjava.api.exception.InternalServerErrorException;
 import java.time.Duration;
 import java.util.Map;
@@ -27,64 +28,48 @@ import reactor.core.publisher.Mono;
 @ExtendWith(MockitoExtension.class)
 class DeIdentificationControllerTest {
 
-  @Mock PseudonymProvider pseudonymProvider;
+  private static final TCADomains DEFAULT_DOMAINS = new TCADomains("domain", "domain", "domain");
+
+  @Mock MappingProvider mappingProvider;
   private DeIdentificationController controller;
 
   @BeforeEach
   void setUp() {
-    this.controller = new DeIdentificationController(pseudonymProvider);
+    this.controller = new DeIdentificationController(mappingProvider);
   }
 
   @Test
-  void getTransportIdsAndDateShiftingValues() {
+  void transportMapping() {
     var ids = Set.of("id1", "id2");
-    var mapName = "tIDMapName";
-    given(
-            pseudonymProvider.retrieveTransportIds(
-                "patientId1",
-                ids,
-                new TCADomains("domain", "domain", "domain"),
-                Duration.ofDays(14)))
+    var mapName = "transferId";
+    var request = new TransportMappingRequest("patientId1", ids, DEFAULT_DOMAINS, ofDays(14));
+    given(mappingProvider.generateTransportMapping(request))
         .willReturn(
             Mono.just(
-                new PseudonymizeResponse(
-                    mapName, Map.of("id1", "tid1", "id2", "tid2"), Duration.ofDays(1))));
+                new TransportMappingResponse(
+                    mapName, Map.of("id1", "tid1", "id2", "tid2"), ofDays(1))));
 
-    var body =
-        new PseudonymizeRequest(
-            "patientId1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14));
-
-    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+    create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
               assertThat(r.getBody().dateShiftValue()).isEqualTo(Duration.ofSeconds(86400));
-              assertThat(r.getBody().originalToTransportIDMap())
+              assertThat(r.getBody().transportMapping())
                   .containsEntry("id1", "tid1")
                   .containsEntry("id2", "tid2");
-              assertThat(r.getBody().tIDMapName()).isEqualTo("tIDMapName");
+              assertThat(r.getBody().transferId()).isEqualTo("transferId");
             })
         .verifyComplete();
   }
 
   @Test
-  void getTransportIdsAndDateShiftingValuesUnknownDomain() {
-    given(
-            pseudonymProvider.retrieveTransportIds(
-                "id1",
-                Set.of("id1"),
-                new TCADomains("unknown domain", "unknown domain", "unknown domain"),
-                Duration.ofDays(14)))
+  void transportMappingUnknownDomain() {
+    var domains = new TCADomains("unknown domain", "unknown domain", "unknown domain");
+    var request = new TransportMappingRequest("id1", Set.of("id1"), domains, ofDays(14));
+    given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
 
-    var body =
-        new PseudonymizeRequest(
-            "id1",
-            Set.of("id1"),
-            new TCADomains("unknown domain", "unknown domain", "unknown domain"),
-            Duration.ofDays(14));
-
-    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+    create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is4xxClientError()).isTrue();
@@ -93,23 +78,13 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void getTransportIdsAndDateShiftingValuesIllegalArgumentException() {
-    given(
-            pseudonymProvider.retrieveTransportIds(
-                "id1",
-                Set.of("id1"),
-                new TCADomains("domain", "domain", "domain"),
-                Duration.ofDays(14)))
+  void transportMappingIllegalArgumentException() {
+    var request = new TransportMappingRequest("id1", Set.of("id1"), DEFAULT_DOMAINS, ofDays(14));
+
+    given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new IllegalArgumentException("Illegal argument")));
 
-    var body =
-        new PseudonymizeRequest(
-            "id1",
-            Set.of("id1"),
-            new TCADomains("domain", "domain", "domain"),
-            Duration.ofDays(14));
-
-    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+    create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is4xxClientError()).isTrue();
@@ -118,27 +93,20 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void getTransportIdsAndDateShiftingValuesEmptyIds() {
-    var body =
-        new PseudonymizeRequest(
-            "id1", Set.of(), new TCADomains("domain", "domain", "domain"), Duration.ofDays(14));
+  void transportMappingEmptyIds() {
+    var body = new TransportMappingRequest("id1", Set.of(), DEFAULT_DOMAINS, ofDays(14));
 
-    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body))).verifyComplete();
+    create(controller.transportMapping(Mono.just(body))).verifyComplete();
   }
 
   @Test
-  void getTransportIdsAndDateShiftingValuesInternalServerError() {
+  void transportMappingInternalServerError() {
     var ids = Set.of("id1", "id2");
-    given(
-            pseudonymProvider.retrieveTransportIds(
-                "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
+    var request = new TransportMappingRequest("id1", ids, DEFAULT_DOMAINS, ofDays(14));
+    given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new InternalServerErrorException("Internal Server Error")));
 
-    var body =
-        new PseudonymizeRequest(
-            "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14));
-
-    create(controller.getTransportIdsAndDateShiftingValues(Mono.just(body)))
+    create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is5xxServerError()).isTrue();
@@ -147,14 +115,14 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void fetchPseudonymizedIds() {
-    given(pseudonymProvider.resolveTransportData("tIDMapName"))
+  void researchMapping() {
+    given(mappingProvider.fetchResearchMapping("transferId"))
         .willReturn(
             Mono.just(
-                new ResolveResponse(
+                new ResearchMappingResponse(
                     Map.of("tid-1", "pid1", "tid-2", "pid2"), Duration.ofMillis(12345))));
 
-    create(controller.fetchPseudonymizedIds("tIDMapName"))
+    create(controller.researchMapping("transferId"))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
@@ -168,18 +136,18 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void fetchPseudonymizedIdsEmptyIds() {
-    given(pseudonymProvider.resolveTransportData("tIDMapName")).willReturn(Mono.empty());
+  void researchMappingEmpty() {
+    given(mappingProvider.fetchResearchMapping("transferId")).willReturn(Mono.empty());
 
-    create(controller.fetchPseudonymizedIds("tIDMapName")).verifyComplete();
+    create(controller.researchMapping("transferId")).verifyComplete();
   }
 
   @Test
-  void fetchPseudonymizedWithAnyException() {
-    given(pseudonymProvider.resolveTransportData("tIDMapName"))
+  void researchMappingWithAnyException() {
+    given(mappingProvider.fetchResearchMapping("transferId"))
         .willReturn(Mono.error(new TransferProcessException("")));
 
-    create(controller.fetchPseudonymizedIds("tIDMapName"))
+    create(controller.researchMapping("transferId"))
         .expectError(TransferProcessException.class)
         .verify();
   }

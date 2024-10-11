@@ -4,5 +4,5 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.Map;
 
-public record ResolveResponse(
+public record ResearchMappingResponse(
     @NotNull Map<String, String> tidPidMap, @NotNull Duration dateShiftBy) {}

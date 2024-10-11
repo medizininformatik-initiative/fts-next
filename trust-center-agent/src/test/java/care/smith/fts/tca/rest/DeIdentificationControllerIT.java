@@ -18,8 +18,8 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.tca.BaseIT;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
-import care.smith.fts.util.tca.PseudonymizeResponse;
-import care.smith.fts.util.tca.ResolveResponse;
+import care.smith.fts.util.tca.ResearchMappingResponse;
+import care.smith.fts.util.tca.TransportMappingResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -96,7 +96,7 @@ class DeIdentificationControllerIT extends BaseIT {
                         entry("salt", "MII"),
                         entry("dateShift", "MII"))),
                 entry("patientId", "id-144218"),
-                entry("ids", Set.of("id-144218", "id-244194")),
+                entry("resourceIds", Set.of("id-144218", "id-244194")),
                 entry("maxDateShift", ofDays(14).getSeconds())));
 
     create(response)
@@ -104,7 +104,7 @@ class DeIdentificationControllerIT extends BaseIT {
             res -> {
               assertThat(res).isNotNull();
               assertThat(res.dateShiftValue().toDays()).isBetween(-140L, 140L);
-              assertThat(res.originalToTransportIDMap()).containsKeys("id-144218", "id-244194");
+              assertThat(res.transportMapping()).containsKeys("id-144218", "id-244194");
             })
         .verifyComplete();
   }
@@ -163,7 +163,7 @@ class DeIdentificationControllerIT extends BaseIT {
                         entry("salt", "MII"),
                         entry("dateShift", "MII"))),
                 entry("patientId", "id-144218"),
-                entry("ids", Set.of("id-144218", "id-244194")),
+                entry("resourceIds", Set.of("id-144218", "id-244194")),
                 entry("maxDateShift", ofDays(14).getSeconds())));
 
     create(response)
@@ -171,7 +171,7 @@ class DeIdentificationControllerIT extends BaseIT {
             res -> {
               assertThat(res).isNotNull();
               assertThat(res.dateShiftValue().toDays()).isBetween(-140L, 140L);
-              assertThat(res.originalToTransportIDMap()).containsKeys("id-144218", "id-244194");
+              assertThat(res.transportMapping()).containsKeys("id-144218", "id-244194");
             })
         .verifyComplete();
   }
@@ -181,7 +181,7 @@ class DeIdentificationControllerIT extends BaseIT {
     var response =
         rdClient
             .post()
-            .uri("/api/v2/rd/resolve-pseudonyms")
+            .uri("/api/v2/rd/research-mapping")
             .contentType(APPLICATION_JSON)
             .body(fromValue(Set.of("username=Guest'%0AUser:'Admin")))
             .accept(APPLICATION_JSON)
@@ -199,7 +199,7 @@ class DeIdentificationControllerIT extends BaseIT {
   }
 
   @Test
-  void getTransportIdsAndDateShiftingValuesAndFetchPseudonyms() throws IOException {
+  void transportMappingIdsAndDateShiftingValuesAndFetchPseudonyms() throws IOException {
     var fhirGenerator =
         FhirGenerators.gpasGetOrCreateResponse(
             fromList(List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")),
@@ -229,7 +229,7 @@ class DeIdentificationControllerIT extends BaseIT {
                                 fhirGenerator.generateString(),
                                 MediaType.create("application", "fhir+json"))));
 
-    var tIDMapName =
+    var transferId =
         doPost(
                 ofEntries(
                     entry(
@@ -239,20 +239,20 @@ class DeIdentificationControllerIT extends BaseIT {
                             entry("salt", "MII"),
                             entry("dateShift", "MII"))),
                     entry("patientId", "id-144218"),
-                    entry("ids", Set.of("id-144218", "id-244194")),
+                    entry("resourceIds", Set.of("id-144218", "id-244194")),
                     entry("maxDateShift", ofDays(14).getSeconds())))
             .block()
-            .tIDMapName();
+            .transferId();
 
     var response =
         rdClient
             .post()
-            .uri("/api/v2/rd/resolve-pseudonyms")
+            .uri("/api/v2/rd/research-mapping")
             .contentType(APPLICATION_JSON)
-            .body(fromValue(tIDMapName))
+            .body(fromValue(transferId))
             .accept(APPLICATION_JSON)
             .retrieve()
-            .toEntity(ResolveResponse.class);
+            .toEntity(ResearchMappingResponse.class);
 
     create(response)
         .assertNext(
@@ -266,15 +266,15 @@ class DeIdentificationControllerIT extends BaseIT {
         .verifyComplete();
   }
 
-  private static Mono<PseudonymizeResponse> doPost(Map<String, Object> body) {
+  private static Mono<TransportMappingResponse> doPost(Map<String, Object> body) {
     return cdClient
         .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
+        .uri("/api/v2/cd/transport-mapping")
         .contentType(APPLICATION_JSON)
         .accept(APPLICATION_JSON)
         .bodyValue(body)
         .retrieve()
-        .bodyToMono(PseudonymizeResponse.class);
+        .bodyToMono(TransportMappingResponse.class);
   }
 
   @AfterEach

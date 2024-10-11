@@ -22,8 +22,8 @@ deIdentification:
   gpas:
     fhir:
       baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas
-  pseudonymization:
-    transportIdTTLinSeconds: 300
+  transport:
+    ttlSeconds: 1000
 
 consent:
   gics:

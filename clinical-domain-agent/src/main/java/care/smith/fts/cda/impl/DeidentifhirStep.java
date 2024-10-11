@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -49,47 +50,42 @@ class DeidentifhirStep implements Deidentificator {
     var patient = bundle.consentedPatient();
     var idatScraper = new IDATScraper(scraperConfig, patient);
     var ids = idatScraper.gatherIDs(bundle.bundle());
-    return fetchTransportIdsAndDateShiftingValues(patient.id(), ids)
+    return fetchTransportMapping(patient.id(), ids)
         .map(
             response -> {
-              var transportIDs = response.originalToTransportIDMap();
+              var transportMapping = response.transportMapping();
               var dateShiftValue = response.dateShiftValue();
-              var registry = generateRegistry(patient.id(), transportIDs, dateShiftValue);
+              var registry = generateRegistry(patient.id(), transportMapping, dateShiftValue);
               var deidentified =
                   DeidentifhirUtils.deidentify(
                       deidentifhirConfig, registry, bundle.bundle(), patient.id(), meterRegistry);
-              return new TransportBundle(deidentified, response.tIDMapName());
+              return new TransportBundle(deidentified, response.transferId());
             });
   }
 
-  private Mono<PseudonymizeResponse> fetchTransportIdsAndDateShiftingValues(
-      String patientId, Set<String> ids) {
-    PseudonymizeRequest request =
-        new PseudonymizeRequest(
-            patientId,
-            ids,
-            new TCADomains(domains.pseudonym(), domains.salt(), domains.dateShift()),
-            maxDateShift);
+  private Mono<TransportMappingResponse> fetchTransportMapping(String patientId, Set<String> ids) {
+    var request = new TransportMappingRequest(patientId, ids, domains, maxDateShift);
 
-    log.trace("Fetch TIDs and date shifting values for {} IDs", ids.size());
-
+    log.trace("Fetch transport mapping for {} IDs", ids.size());
     return httpClient
         .post()
-        .uri("/api/v2/cd/transport-ids-and-date-shifting-values")
+        .uri("/api/v2/cd/transport-mapping")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(request)
         .retrieve()
-        .onStatus(
-            r -> r.equals(HttpStatus.BAD_REQUEST),
-            s ->
-                s.bodyToMono(ProblemDetail.class)
-                    .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail()))))
-        .bodyToMono(PseudonymizeResponse.class)
+        .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), DeidentifhirStep::handleBadRequest)
+        .bodyToMono(TransportMappingResponse.class)
         .timeout(Duration.ofSeconds(30))
-        .retryWhen(defaultRetryStrategy(meterRegistry, "transport-ids-and-date-shifting-values"))
-        .doOnError(
-            e ->
-                log.error(
-                    "Cannot fetch transport deidentification data from TCA: {}", e.getMessage()));
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchTransportMapping"))
+        .doOnError(DeidentifhirStep::handleError);
+  }
+
+  private static Mono<Throwable> handleBadRequest(ClientResponse s) {
+    return s.bodyToMono(ProblemDetail.class)
+        .flatMap(b -> Mono.error(new TransferProcessException(b.getDetail())));
+  }
+
+  private static void handleError(Throwable e) {
+    log.error("Cannot fetch transport mapping from TCA: {}", e.getMessage());
   }
 }

@@ -44,22 +44,22 @@ class TCACohortSelectorTest {
 
   @Mock ClientResponse response;
 
-  private TCACohortSelectorConfig config;
+  private TCACohortSelector cohortSelector;
 
   @BeforeEach
   void setUp() {
     var address = "http://localhost";
     var server = new HttpClientConfig(address, NONE);
-    config = new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
+    var client = builder().exchangeFunction(req -> just(response));
+    var config = new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
+    cohortSelector =
+        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
   }
 
   @Test
   void responseInvalidErrors() {
-    var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     given(response.bodyToMono(String.class)).willReturn(Mono.just(""));
-    var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort(List.of())).expectError().verify();
   }
@@ -68,16 +68,12 @@ class TCACohortSelectorTest {
   void badRequestErrors() {
     given(response.bodyToMono(ProblemDetail.class))
         .willReturn(Mono.just(ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Some TCA Error")));
-    var client = builder().exchangeFunction(req -> just(response));
-    var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort(List.of())).expectError().verify();
   }
 
   @Test
   void consentBundleSucceeds() {
-    var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     Bundle inner =
         Stream.of(
@@ -88,15 +84,12 @@ class TCACohortSelectorTest {
             .collect(toBundle());
     Bundle outer = Stream.of(inner).collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
-    var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
   }
 
   @Test
   void consentBundleForIdsSucceeds() {
-    var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     Bundle inner =
         Stream.of(
@@ -107,8 +100,6 @@ class TCACohortSelectorTest {
             .collect(toBundle());
     Bundle outer = Stream.of(inner).collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
-    var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort(List.of("patient-122651")))
         .expectNextCount(1)
@@ -117,24 +108,18 @@ class TCACohortSelectorTest {
 
   @Test
   void emptyOuterBundleGivesEmptyResult() {
-    var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     Bundle outer = Stream.<Resource>of().collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
-    var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
   @Test
   void emptyInnerBundleGivesEmptyResult() {
-    var client = builder().exchangeFunction(req -> just(response));
     given(response.statusCode()).willReturn(OK);
     Bundle outer = Stream.of(Stream.<Resource>of().collect(toBundle())).collect(toBundle());
     given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(outer));
-    var cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
 
     create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }

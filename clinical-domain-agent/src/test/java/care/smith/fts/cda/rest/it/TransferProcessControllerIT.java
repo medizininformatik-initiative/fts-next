@@ -38,7 +38,7 @@ import reactor.test.StepVerifier.FirstStep;
  *   a. Filter ConsentedPatients by date range
  * 2. Request FhirId from HDS
  * 3. Request everything from HDS
- * 4. Request transport ids from TCA
+ * 4. Request transport resourceIds from TCA
  *   a. Deidentify Patient
  * 5. Send Patient to RDA
  *

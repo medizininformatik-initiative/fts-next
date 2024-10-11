@@ -5,7 +5,7 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.JsonBody.json;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.util.tca.PseudonymizeRequest;
+import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TCADomains;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,14 +50,14 @@ public class MockDataSelector {
         .build();
   }
 
-  public MockTransportIds whenTransportIds(String patientId, String identifierSystem)
+  public MockTransportIds whenTransportMapping(String patientId, String identifierSystem)
       throws JsonProcessingException {
     var id1 = patientId + ".identifier." + identifierSystem + ":" + patientId;
     var id2 = patientId + ".Patient:" + patientId;
 
     Set<String> ids = Set.of(id1, id2);
     var pseudonymizeRequest =
-        new PseudonymizeRequest(
+        new TransportMappingRequest(
             patientId, ids, new TCADomains("MII", "MII", "MII"), Duration.ofDays(14));
     return MockTransportIds.builder()
         .tca(tca)
@@ -67,7 +67,7 @@ public class MockDataSelector {
             request()
                 .withMethod("POST")
                 .withContentType(APPLICATION_JSON)
-                .withPath("/api/v2/cd/transport-ids-and-date-shifting-values")
+                .withPath("/api/v2/cd/transport-mapping")
                 .withBody(json(om.writeValueAsString(pseudonymizeRequest))))
         .build();
   }

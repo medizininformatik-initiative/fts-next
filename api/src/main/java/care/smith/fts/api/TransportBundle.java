@@ -7,5 +7,5 @@ public record TransportBundle(
     /* Bundle of Patient and (some of) their Resources */
     @NotNull Bundle bundle,
 
-    /* Name of the original ID -> transport ID lookup table */
-    String tIDMapName) {}
+    /* Name of the transport ID -> research ID lookup table */
+    String transferId) {}

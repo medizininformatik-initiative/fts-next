@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class PseudonymizeRequestTest {
+class TransportMappingRequestTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().registerModule(new JavaTimeModule());
@@ -17,7 +17,7 @@ class PseudonymizeRequestTest {
   @Test
   void serialize() throws JsonProcessingException {
     var request =
-        new PseudonymizeRequest(
+        new TransportMappingRequest(
             "patient123",
             Set.of("id1", "id2"),
             new TCADomains("pDomain", "sDomain", "dDomain"),
@@ -41,7 +41,7 @@ class PseudonymizeRequestTest {
         """
             {
                 "patientId": "patient123",
-                "ids": ["id1", "id2"],
+                "resourceIds": ["id1", "id2"],
                 "tcaDomains": {
                   "pseudonym" : "pDomain",
                   "salt" : "sDomain",
@@ -51,10 +51,10 @@ class PseudonymizeRequestTest {
             }
             """;
 
-    PseudonymizeRequest request = objectMapper.readValue(json, PseudonymizeRequest.class);
+    TransportMappingRequest request = objectMapper.readValue(json, TransportMappingRequest.class);
 
     assertThat(request.patientId()).isEqualTo("patient123");
-    assertThat(request.ids()).containsExactlyInAnyOrder("id1", "id2");
+    assertThat(request.resourceIds()).containsExactlyInAnyOrder("id1", "id2");
     assertThat(request.tcaDomains().pseudonym()).isEqualTo("pDomain");
     assertThat(request.tcaDomains().salt()).isEqualTo("sDomain");
     assertThat(request.tcaDomains().dateShift()).isEqualTo("dDomain");

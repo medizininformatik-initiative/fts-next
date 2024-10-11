@@ -7,10 +7,11 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toMap;
 import static reactor.function.TupleUtils.function;
 
-import care.smith.fts.tca.deidentification.configuration.PseudonymizationConfiguration;
-import care.smith.fts.util.tca.PseudonymizeResponse;
-import care.smith.fts.util.tca.ResolveResponse;
+import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
+import care.smith.fts.util.tca.ResearchMappingResponse;
 import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TransportMappingRequest;
+import care.smith.fts.util.tca.TransportMappingResponse;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
@@ -21,7 +22,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RMapCacheReactive;
+import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
 import org.springframework.stereotype.Component;
@@ -30,19 +31,19 @@ import reactor.util.function.Tuple3;
 
 @Slf4j
 @Component
-public class FhirPseudonymProvider implements PseudonymProvider {
+public class FhirMappingProvider implements MappingProvider {
   private final GpasClient gpasClient;
-  private final PseudonymizationConfiguration configuration;
+  private final TransportMappingConfiguration configuration;
   private final RedissonClient redisClient;
 
   private final MeterRegistry meterRegistry;
   private final RandomStringGenerator randomStringGenerator;
   private final HashFunction hashFn;
 
-  public FhirPseudonymProvider(
+  public FhirMappingProvider(
       GpasClient gpasClient,
       RedissonClient redisClient,
-      PseudonymizationConfiguration configuration,
+      TransportMappingConfiguration configuration,
       MeterRegistry meterRegistry,
       RandomStringGenerator randomStringGenerator) {
     this.gpasClient = gpasClient;
@@ -57,36 +58,35 @@ public class FhirPseudonymProvider implements PseudonymProvider {
    * For all provided IDs fetch the id:pid pairs from gPAS. Then create TransportIDs (id:tid pairs).
    * Store tid:pid in the key-value-store.
    *
-   * @param ids the IDs to pseudonymize
-   * @param tcaDomains the domains used in gPAS
+   * @param r the transport mapping request
    * @return Map<TID, PID>
    */
   @Override
-  public Mono<PseudonymizeResponse> retrieveTransportIds(
-      String patientId, Set<String> ids, TCADomains tcaDomains, Duration maxDateShift) {
-    log.trace("retrieveTransportIds patientId={}, ids={}", patientId, ids);
-    var tIDMapName = randomStringGenerator.generate();
-    var transportMap =
-        ids.stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
-    var rMap = redisClient.reactive().<String, String>getMapCache(tIDMapName);
-    return rMap.expire(Duration.ofSeconds(configuration.getTransportIdTTLinSeconds()))
-        .then(fetchPseudonymAndSalts(patientId, tcaDomains, maxDateShift))
-        .flatMap(saveResolveMap(patientId, maxDateShift, transportMap, rMap))
-        .map(cdShift -> new PseudonymizeResponse(tIDMapName, transportMap, cdShift));
+  public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
+    log.trace("retrieveTransportIds patientId={}, resourceIds={}", r.patientId(), r.resourceIds());
+    var transferId = randomStringGenerator.generate();
+    var transportMapping =
+        r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
+    var rMap = redisClient.reactive().<String, String>getMapCache(transferId);
+    return rMap.expire(configuration.Ttl())
+        .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
+        .flatMap(saveResearchMapping(r.patientId(), r.maxDateShift(), transportMapping, rMap))
+        .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
   }
 
-  private Function<Tuple3<String, String, String>, Mono<Duration>> saveResolveMap(
+  /** Saves the research mapping in redis for later use by the rda. */
+  private Function<Tuple3<String, String, String>, Mono<Duration>> saveResearchMapping(
       String patientId,
       Duration maxDateShift,
-      Map<String, String> transportMap,
-      RMapCacheReactive<String, String> rMap) {
+      Map<String, String> transportMapping,
+      RMapReactive<String, String> rMap) {
     return function(
         (patientIdPseudonym, salt, dateShiftSalt) -> {
           var dateShifts = generate(dateShiftSalt, maxDateShift);
           var resolveMap =
               ImmutableMap.<String, String>builder()
-                  .putAll(generateTransportIDs(salt, transportMap))
-                  .putAll(patientIdPseudonyms(patientId, patientIdPseudonym, transportMap))
+                  .putAll(generateResearchMapping(salt, transportMapping))
+                  .putAll(patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping))
                   .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
                   .build();
           return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
@@ -103,12 +103,14 @@ public class FhirPseudonymProvider implements PseudonymProvider {
         gpasClient.fetchOrCreatePseudonyms(domains.dateShift(), dateShiftKey));
   }
 
-  private Map<String, String> generateTransportIDs(
-      String transportSalt, Map<String, String> originalToTransportIDMapping) {
-    return originalToTransportIDMapping.entrySet().stream()
+  /** generate ids for all entries in the transport mapping */
+  private Map<String, String> generateResearchMapping(
+      String transportSalt, Map<String, String> transportMapping) {
+    return transportMapping.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));
   }
 
+  /** hash a transport id using the salt */
   private String transportHash(String transportSalt, String id) {
     return hashFn.hashString(transportSalt + id, StandardCharsets.UTF_8).toString();
   }
@@ -116,34 +118,27 @@ public class FhirPseudonymProvider implements PseudonymProvider {
   /**
    * With this function we make sure that the patient's ID in the RDA is the de-identified ID stored
    * in gPAS. This ensures that we can re-identify patients.
-   *
-   * @return
    */
   private static Map<String, String> patientIdPseudonyms(
-      String patientId,
-      String patientIdPseudonym,
-      Map<String, String> originalToTransportIDMapping) {
-    return originalToTransportIDMapping.keySet().stream()
+      String patientId, String patientIdPseudonym, Map<String, String> transportMapping) {
+    return transportMapping.keySet().stream()
         .filter(id -> id.endsWith("Patient." + patientId))
         .collect(toMap(id -> id, id -> patientIdPseudonym));
   }
 
   @Override
-  public Mono<ResolveResponse> resolveTransportData(String resolveMapName) {
+  public Mono<ResearchMappingResponse> fetchResearchMapping(String transferId) {
     RedissonReactiveClient redis = redisClient.reactive();
-    return Mono.just(resolveMapName)
-        .flatMap(name -> redis.getMapCache(name).readAllMap())
-        .map(
-            m ->
-                m.entrySet().stream()
-                    .collect(toMap(e -> (String) e.getKey(), e -> (String) e.getValue())))
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchPseudonymizedIds"))
-        .map(FhirPseudonymProvider::buildResolveResponse);
+    return Mono.just(transferId)
+        .flatMap(name -> redis.<String, String>getMapCache(name).readAllMap())
+        .map(m -> m.entrySet().stream().collect(toMap(Entry::getKey, Entry::getValue)))
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchResearchMapping"))
+        .map(FhirMappingProvider::buildResolveResponse);
   }
 
-  private static ResolveResponse buildResolveResponse(Map<String, String> map) {
+  private static ResearchMappingResponse buildResolveResponse(Map<String, String> map) {
     var mutableMap = new HashMap<>(map);
     var dateShiftValue = Duration.ofMillis(Long.parseLong(mutableMap.remove("dateShiftMillis")));
-    return new ResolveResponse(copyOf(mutableMap), dateShiftValue);
+    return new ResearchMappingResponse(copyOf(mutableMap), dateShiftValue);
   }
 }

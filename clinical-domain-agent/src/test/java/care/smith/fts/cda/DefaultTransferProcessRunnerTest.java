@@ -34,7 +34,7 @@ class DefaultTransferProcessRunnerTest {
             "test",
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> Mono.just(new Result()));
 
     var processId = runner.start(process, List.of());
