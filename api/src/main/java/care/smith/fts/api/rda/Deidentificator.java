@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 
 public interface Deidentificator extends TransferProcessStep {
 
-  Mono<Bundle> replaceIds(TransportBundle bundle);
+  Mono<Bundle> deidentify(TransportBundle bundle);
 
   interface Factory<C> extends TransferProcessStepFactory<Deidentificator, Config, C> {}
 

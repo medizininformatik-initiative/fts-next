@@ -1,5 +1,6 @@
 package care.smith.fts.cda.services.deidentifhir;
 
+import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.deidentify;
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,7 +23,7 @@ class DeidentifhirUtilTest {
   MeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 
   @Test
-  void deidentify() throws IOException {
+  void deidentifySucceeds() throws IOException {
     ConsentedPatient patient = new ConsentedPatient("id1");
 
     Map<String, String> transportIDs =
@@ -35,8 +36,7 @@ class DeidentifhirUtilTest {
     var config = parseResources(DeidentifhirUtilTest.class, "CDtoTransport.profile");
 
     var bundle = TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1");
-    Bundle deidentifiedBundle =
-        DeidentifhirUtils.deidentify(config, registry, bundle, patient.id(), meterRegistry);
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, patient.id(), meterRegistry);
     Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
 
     Patient p = (Patient) b.getEntryFirstRep().getResource();

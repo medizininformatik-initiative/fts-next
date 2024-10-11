@@ -19,7 +19,9 @@ import care.smith.fts.tca.BaseIT;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.tca.PseudonymizeResponse;
+import care.smith.fts.util.tca.ResolveResponse;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -250,13 +252,16 @@ class DeIdentificationControllerIT extends BaseIT {
             .body(fromValue(tIDMapName))
             .accept(APPLICATION_JSON)
             .retrieve()
-            .toBodilessEntity();
+            .toEntity(ResolveResponse.class);
 
     create(response)
         .assertNext(
             res -> {
               assertThat(res).isNotNull();
               assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+              var body = res.getBody();
+              assertThat(body).isNotNull();
+              assertThat(body.dateShiftBy()).isLessThanOrEqualTo(Duration.ofMillis(-470961186L));
             })
         .verifyComplete();
   }

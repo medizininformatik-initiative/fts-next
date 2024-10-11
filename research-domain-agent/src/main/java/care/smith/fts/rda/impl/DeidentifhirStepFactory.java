@@ -5,7 +5,6 @@ import static java.util.Objects.requireNonNull;
 import care.smith.fts.api.rda.Deidentificator;
 import com.typesafe.config.ConfigFactory;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -35,7 +34,6 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
 
     var httpClient = implConfig.tca().server().createClient(builder, ssl);
     var config = ConfigFactory.parseFile(requireNonNull(implConfig.deidentifhirConfig()));
-    return new DeidentifhirStep(
-        config, httpClient, implConfig.tca().domain(), implConfig.dateShift(), meterRegistry);
+    return new DeidentifhirStep(config, httpClient, meterRegistry);
   }
 }

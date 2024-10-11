@@ -6,5 +6,5 @@ import java.time.Duration;
 
 public record DeidentifhirStepConfig(TCAConfig tca, Duration dateShift, File deidentifhirConfig) {
 
-  record TCAConfig(HttpClientConfig server, String domain) {}
+  record TCAConfig(HttpClientConfig server) {}
 }

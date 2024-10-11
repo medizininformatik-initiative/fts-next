@@ -7,7 +7,6 @@ import care.smith.fts.util.tca.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -62,11 +61,11 @@ public class DeIdentificationController {
       value = "/rd/resolve-pseudonyms",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<Map<String, String>>> fetchPseudonymizedIds(
+  public Mono<ResponseEntity<ResolveResponse>> fetchPseudonymizedIds(
       @RequestBody @NotNull @Pattern(regexp = "^[\\w-]+$") String transportIDMapName) {
     log.trace("Resolve pseudonyms of map: {} ", transportIDMapName);
     return pseudonymProvider
-        .fetchPseudonymizedIds(transportIDMapName)
+        .resolveTransportData(transportIDMapName)
         .doOnError(
             e ->
                 log.error(

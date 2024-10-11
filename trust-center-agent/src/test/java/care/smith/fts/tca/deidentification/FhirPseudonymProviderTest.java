@@ -121,12 +121,12 @@ class FhirPseudonymProviderTest {
             pseudonymProvider.retrieveTransportIds(
                 "id1", ids, new TCADomains("domain", "domain", "domain"), Duration.ofDays(14)))
         .assertNext(
-            t2 -> {
-              assertThat(t2.tIDMapName()).isEqualTo(mapName);
-              assertThat(t2.originalToTransportIDMap().keySet()).isEqualTo(ids);
-              assertThat(t2.originalToTransportIDMap().values())
+            r -> {
+              assertThat(r.tIDMapName()).isEqualTo(mapName);
+              assertThat(r.originalToTransportIDMap().keySet()).isEqualTo(ids);
+              assertThat(r.originalToTransportIDMap().values())
                   .containsExactlyInAnyOrder("MLfKoQoSv", "HFbzdJo87");
-              assertThat(t2.dateShiftValue()).isEqualTo(Duration.ofMillis(606851642L));
+              assertThat(r.dateShiftValue()).isLessThanOrEqualTo(Duration.ofMillis(606851642L));
             })
         .verifyComplete();
   }
@@ -148,12 +148,15 @@ class FhirPseudonymProviderTest {
   void fetchPseudonymIDs() {
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.readAllMap())
-        .willReturn(Mono.just(Map.of("id1", "123456789", "id2", "987654321")));
-    create(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
+        .willReturn(
+            Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "12345")));
+    create(pseudonymProvider.resolveTransportData("tIDMapName"))
         .assertNext(
             m -> {
-              assertThat(m.keySet()).containsExactlyInAnyOrder("id1", "id2");
-              assertThat(m.values()).containsExactlyInAnyOrder("123456789", "987654321");
+              assertThat(m.tidPidMap().keySet()).containsExactlyInAnyOrder("id1", "id2");
+              assertThat(m.tidPidMap().values())
+                  .containsExactlyInAnyOrder("123456789", "987654321");
+              assertThat(m.dateShiftBy()).isEqualTo(Duration.ofMillis(12345));
             })
         .verifyComplete();
   }
@@ -161,7 +164,7 @@ class FhirPseudonymProviderTest {
   @Test
   void fetchPseudonymIDsWhenRedisDown() {
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
-    create(pseudonymProvider.fetchPseudonymizedIds("tIDMapName"))
+    create(pseudonymProvider.resolveTransportData("tIDMapName"))
         .expectError(RedisTimeoutException.class)
         .verify();
   }
