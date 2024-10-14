@@ -14,7 +14,6 @@ import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.util.tca.TCADomains;
-import com.typesafe.config.Config;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import org.junit.jupiter.api.AfterEach;
@@ -36,18 +35,14 @@ class DeidentifhirStepTest {
 
   @BeforeEach
   void setUp(MockServerClient mockServer) {
-    Config scraperConfig = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
-    Config deidentifhirConfig = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
+    var scraperConfig = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
+    var deidentifhirConfig = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var server = MockServerUtil.clientConfig(mockServer);
-
+    var domains = new TCADomains("domain", "domain", "domain");
+    var client = server.createClient(WebClient.builder(), null);
     step =
         new DeidentifhirStep(
-            server.createClient(WebClient.builder(), null),
-            new TCADomains("domain", "domain", "domain"),
-            ofDays(14),
-            deidentifhirConfig,
-            scraperConfig,
-            meterRegistry);
+            client, domains, ofDays(14), deidentifhirConfig, scraperConfig, meterRegistry);
   }
 
   @Test
@@ -56,13 +51,13 @@ class DeidentifhirStepTest {
         .when(
             request()
                 .withMethod("POST")
-                .withPath("/api/v2/cd/transport-ids-and-date-shifting-values")
+                .withPath("/api/v2/cd/transport-mapping")
                 .withBody(
                     json(
                         """
                                 {
                                   "patientId" : "id1",
-                                  "ids" : [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
+                                  "resourceIds" : [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
                                   "tcaDomains": {
                                     "pseudonym" : "domain",
                                     "salt" : "domain",
@@ -84,10 +79,7 @@ class DeidentifhirStepTest {
   @Test
   void emptyTCAResponseYieldsEmptyResult(MockServerClient mockServer) throws IOException {
     mockServer
-        .when(
-            request()
-                .withMethod("POST")
-                .withPath("/api/v2/cd/transport-ids-and-date-shifting-values"))
+        .when(request().withMethod("POST").withPath("/api/v2/cd/transport-mapping"))
         .respond(response().withStatusCode(200));
 
     var consentedPatient = new ConsentedPatient("id1");
@@ -100,18 +92,19 @@ class DeidentifhirStepTest {
   @Test
   void deidentifySucceeds(MockServerClient mockServer) throws IOException {
     mockServer
-        .when(
-            request()
-                .withMethod("POST")
-                .withPath("/api/v2/cd/transport-ids-and-date-shifting-values"))
+        .when(request().withMethod("POST").withPath("/api/v2/cd/transport-mapping"))
         .respond(
             response()
                 .withBody(
                     json(
                         """
-                                {"tIDMapName": "tIDMapName", "originalToTransportIDMap":{"id1.identifier.identifierSystem:id1":"tident1",
-                                 "id1.Patient:id1":"tid1"},"dateShiftValue":1209600.000000000}
-                                """))
+                            {
+                              "resarchMappingName": "resarchMappingName",
+                              "transportMapping": { "id1.identifier.identifierSystem:id1": "tident1",
+                                                    "id1.Patient:id1": "tid1" },
+                              "dateShiftValue": 1209600.000000000
+                            }
+                            """))
                 .withStatusCode(200));
 
     var consentedPatient = new ConsentedPatient("id1");

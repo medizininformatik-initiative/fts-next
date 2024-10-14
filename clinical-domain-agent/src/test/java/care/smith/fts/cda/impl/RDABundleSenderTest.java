@@ -72,7 +72,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
-    create(bundleSender.send(new TransportBundle(new Bundle(), "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(new Bundle(), "transferId")))
         .expectError(WebClientResponseException.class)
         .verify();
   }
@@ -87,7 +87,7 @@ class RDABundleSenderTest {
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectErrorMessage("Missing Content-Location")
         .verify();
   }
@@ -102,7 +102,7 @@ class RDABundleSenderTest {
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectErrorMessage("Missing Content-Location")
         .verify();
   }
@@ -122,7 +122,7 @@ class RDABundleSenderTest {
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectNext(new BundleSender.Result())
         .verifyComplete();
   }
@@ -138,7 +138,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectErrorMessage("Require ACCEPTED status")
         .verify();
   }
@@ -164,7 +164,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectNext(new BundleSender.Result())
         .verifyComplete();
   }
@@ -190,7 +190,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectNext(new BundleSender.Result())
         .verifyComplete();
   }
@@ -209,7 +209,7 @@ class RDABundleSenderTest {
 
     var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "tIDMapName")))
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectError(TransferProcessException.class)
         .verify();
   }

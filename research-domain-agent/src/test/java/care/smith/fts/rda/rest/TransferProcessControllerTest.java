@@ -54,12 +54,13 @@ class TransferProcessControllerTest {
 
   @Test
   void startExistingProjectSucceeds() {
-    Parameters transportIdMap = new Parameters();
-    transportIdMap.setId("transport-id-map");
-    transportIdMap.addParameter("transport-id-map-name", "tIDMapName");
 
     Bundle bundle =
-        concat(Stream.of(transportIdMap), resourceStream(new Bundle())).collect(toBundle());
+        concat(
+                Stream.of(
+                    new Parameters().addParameter("id", "transfer-142601").setId("transfer-id")),
+                resourceStream(new Bundle()))
+            .collect(toBundle());
     var start =
         api.start(
             "example",
@@ -98,12 +99,12 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("transport-id-map-name", new StringType("tIDMapName"))
-                    .setId("transport-id-map"))
+                    .addParameter("id", new StringType("transfer-142411"))
+                    .setId("transfer-id"))
             .collect(toBundle());
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
-    assertThat(transportBundle.tIDMapName()).isEqualTo("tIDMapName");
+    assertThat(transportBundle.transferId()).isEqualTo("transfer-142411");
     assertThat(transportBundle.bundle().getEntry()).hasSize(0);
   }
 
@@ -112,14 +113,14 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("transport-id-map-name", new StringType("tIDMapName"))
-                    .setId("transport-id-map"),
+                    .addParameter("id", new StringType("transfer-142431"))
+                    .setId("transfer-id"),
                 new Patient(),
                 new Observation())
             .collect(toBundle());
 
     TransportBundle transportBundle = fromPlainBundle(bundle);
-    assertThat(transportBundle.tIDMapName()).isEqualTo("tIDMapName");
+    assertThat(transportBundle.transferId()).isEqualTo("transfer-142431");
     assertThat(transportBundle.bundle().getEntry()).hasSize(2);
   }
 
@@ -128,8 +129,8 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("unknown", new StringType("tIDMapName"))
-                    .setId("transport-id-map"))
+                    .addParameter("unknown", new StringType("transfer-142437"))
+                    .setId("transfer-id"))
             .collect(toBundle());
 
     assertThrows(IllegalArgumentException.class, () -> fromPlainBundle(bundle));
@@ -140,7 +141,7 @@ class TransferProcessControllerTest {
     Bundle bundle =
         Stream.of(
                 new Parameters()
-                    .addParameter("transport-id-map-name", new StringType("tIDMapName"))
+                    .addParameter("id", new StringType("transfer-142448"))
                     .setId("unknown"))
             .collect(toBundle());
 

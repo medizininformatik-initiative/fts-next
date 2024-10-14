@@ -5,11 +5,11 @@
     {
       "resource": {
         "resourceType": "Parameters",
-        "id": "transport-id-map",
+        "id": "transfer-id",
         "parameter": [
           {
-            "name": "transport-id-map-name",
-            "valueString": "mapName"
+            "name": "id",
+            "valueString": "transfer-141958"
           }
         ]
       }

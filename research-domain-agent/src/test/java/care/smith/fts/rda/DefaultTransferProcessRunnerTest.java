@@ -37,7 +37,7 @@ class DefaultTransferProcessRunnerTest {
             process,
             Mono.just(
                 new TransportBundle(
-                    new Bundle().addEntry(new Bundle().getEntryFirstRep()), "tIDMapName")));
+                    new Bundle().addEntry(new Bundle().getEntryFirstRep()), "transferId")));
     sleep(500L);
     create(runner.status(processId))
         .assertNext(

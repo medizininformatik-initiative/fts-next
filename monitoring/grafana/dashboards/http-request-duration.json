@@ -1061,7 +1061,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by(le) (rate(http_client_requests_seconds_bucket{job=\"cda\", uri=\"/api/v2/cd/transport-ids-and-date-shifting-values\"}[1m]))",
+          "expr": "sum by(le) (rate(http_client_requests_seconds_bucket{job=\"cda\", uri=\"/api/v2/cd/transport-mapping\"}[1m]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1071,7 +1071,7 @@
           "useBackend": false
         }
       ],
-      "title": "fetchTransportIdsAndDateShiftingValues",
+      "title": "fetchTransportMapping",
       "type": "heatmap"
     },
     {
@@ -1136,7 +1136,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by(le) (http_client_requests_seconds_bucket{job=\"cda\", uri=\"/api/v2/cd/transport-ids-and-date-shifting-values\"})",
+          "expr": "sum by(le) (http_client_requests_seconds_bucket{job=\"cda\", uri=\"/api/v2/cd/transport-mapping\"})",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1146,7 +1146,7 @@
           "useBackend": false
         }
       ],
-      "title": "fetchTransportIdsAndDateShiftingValues",
+      "title": "fetchTransportMapping",
       "type": "bargauge"
     },
     {
@@ -1898,7 +1898,7 @@
           "useBackend": false
         }
       ],
-      "title": "fetchPseudonymsForTransportIds",
+      "title": "fetchResearchMapping",
       "type": "heatmap"
     },
     {
@@ -1972,7 +1972,7 @@
           "useBackend": false
         }
       ],
-      "title": "fetchPseudonymsForTransportIds",
+      "title": "fetchResearchMapping",
       "type": "bargauge"
     },
     {
@@ -2047,7 +2047,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by(le) (rate(replaceIDs_seconds_bucket[1m]))",
+          "expr": "sum by(le) (rate(deidentify_seconds_bucket[1m]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -2057,7 +2057,7 @@
           "useBackend": false
         }
       ],
-      "title": "replaceIDs",
+      "title": "deidentify",
       "type": "heatmap"
     },
     {
@@ -2121,7 +2121,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by(le) (replaceIDs_seconds_bucket)",
+          "expr": "sum by(le) (deidentify_seconds_bucket)",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -2131,7 +2131,7 @@
           "useBackend": false
         }
       ],
-      "title": "replaceIDs",
+      "title": "deidentify",
       "type": "bargauge"
     },
     {

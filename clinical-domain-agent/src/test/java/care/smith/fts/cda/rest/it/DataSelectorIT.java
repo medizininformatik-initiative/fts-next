@@ -56,7 +56,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   @Test
   void hdsFirstRequestFails() throws IOException {
     var patient = generateOnePatient(patientId, "2025", DEFAULT_IDENTIFIER_SYSTEM);
-    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+    mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector
         .whenFetchData(patientId)

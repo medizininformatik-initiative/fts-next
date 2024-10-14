@@ -48,8 +48,8 @@ final class RDABundleSender implements BundleSender {
 
   private static Bundle toPlainBundle(TransportBundle transportBundle) {
     Parameters transportIdMap = new Parameters();
-    transportIdMap.setId("transport-id-map");
-    transportIdMap.addParameter("transport-id-map-name", transportBundle.tIDMapName());
+    transportIdMap.setId("transfer-id");
+    transportIdMap.addParameter("id", transportBundle.transferId());
     return concat(of(transportIdMap), resourceStream(transportBundle.bundle())).collect(toBundle());
   }
 

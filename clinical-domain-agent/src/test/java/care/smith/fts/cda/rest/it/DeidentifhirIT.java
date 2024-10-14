@@ -30,7 +30,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
 
   @Test
   void tcaDown() throws JsonProcessingException {
-    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
+    mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
 
     startProcess(Duration.ofSeconds(3))
         .assertNext(TransferProcessControllerIT::errored)
@@ -39,7 +39,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
 
   @Test
   void tcaTimeout() throws JsonProcessingException {
-    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
+    mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).timeout();
 
     startProcess(Duration.ofMinutes(1))
         .assertNext(TransferProcessControllerIT::errored)
@@ -48,7 +48,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
 
   @Test
   void unknownDomain() throws IOException {
-    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).unknownDomain(om);
+    mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).unknownDomain(om);
 
     startProcess(Duration.ofSeconds(3))
         .assertNext(TransferProcessControllerIT::errored)
@@ -58,7 +58,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
   @Test
   void firstRequestToGetTransportIdFails() throws IOException {
     mockDataSelector
-        .whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+        .whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM)
         .successWithStatusCode(List.of(500));
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector

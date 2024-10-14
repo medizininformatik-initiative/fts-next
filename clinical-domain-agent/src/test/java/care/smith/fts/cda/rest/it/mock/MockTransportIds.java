@@ -4,7 +4,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.util.tca.PseudonymizeResponse;
+import care.smith.fts.util.tca.TransportMappingResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
@@ -44,8 +44,8 @@ public class MockTransportIds {
   }
 
   public void success() throws JsonProcessingException {
-    var tidMap = transportIds.stream().collect(toMap(Function.identity(), Function.identity()));
-    var pseudonymizeResponse = new PseudonymizeResponse("tIDMapName", tidMap, Duration.ofDays(1));
+    var transportMapping = transportIds.stream().collect(toMap(Function.identity(), Function.identity()));
+    var pseudonymizeResponse = new TransportMappingResponse("transferId", transportMapping, Duration.ofDays(1));
     tca.when(mockRequestSpec)
         .respond(successResponse(200, om.writeValueAsString(pseudonymizeResponse)));
   }
@@ -71,7 +71,7 @@ public class MockTransportIds {
   public void successWithStatusCode(List<Integer> statusCodes) throws JsonProcessingException {
     var tidMap = transportIds.stream().collect(toMap(Function.identity(), Function.identity()));
     var pseudonymizeResponse =
-        om.writeValueAsString(new PseudonymizeResponse("tIDMapName", tidMap, Duration.ofDays(1)));
+        om.writeValueAsString(new TransportMappingResponse("transferId", tidMap, Duration.ofDays(1)));
     var rs = new LinkedList<>(statusCodes);
     tca.when(mockRequestSpec)
         .respond(

@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class PseudonymizeResponseTest {
+class TransportMappingResponseTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().registerModule(new JavaTimeModule());
@@ -17,10 +17,10 @@ class PseudonymizeResponseTest {
   @Test
   void serialize() throws JsonProcessingException {
     Map<String, String> idMap = Map.of("original", "pseudonym");
-    var response = new PseudonymizeResponse("tIDMapName", idMap, Duration.ofDays(14));
+    var response = new TransportMappingResponse("transferId", idMap, Duration.ofDays(14));
 
     assertThat(objectMapper.writeValueAsString(response))
-        .contains("tIDMapName")
+        .contains("transferId")
         .contains("original")
         .contains("pseudonym")
         .contains("1209600");
@@ -31,11 +31,11 @@ class PseudonymizeResponseTest {
     var response =
         objectMapper.readValue(
             """
-                    {"tIDMapName": "tIDMapName", "originalToTransportIDMap":{"original":"pseudonym"},"dateShiftValue":1209600.000000000}
+                    {"transferId": "transferId", "transportMapping":{"original":"pseudonym"},"dateShiftValue":1209600.000000000}
                     """,
-            PseudonymizeResponse.class);
+            TransportMappingResponse.class);
 
     assertThat(response.dateShiftValue()).isEqualTo(Duration.ofDays(14));
-    assertThat(response.originalToTransportIDMap()).isEqualTo(Map.of("original", "pseudonym"));
+    assertThat(response.transportMapping()).isEqualTo(Map.of("original", "pseudonym"));
   }
 }

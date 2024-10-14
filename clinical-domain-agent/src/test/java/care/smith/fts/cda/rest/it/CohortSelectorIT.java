@@ -70,7 +70,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
     mockCohortSelector.consentForNPatients(idPrefix, total, List.of(500));
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
-      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
       mockDataSelector
           .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
           .resolveId(patientId);
@@ -102,7 +102,7 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
         idPrefix, total, maxPageSize, List.of(200, 500, 500, 200, 200, 500, 200));
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
-      mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
       mockDataSelector
           .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
           .resolveId(patientId);

@@ -2,6 +2,7 @@ package care.smith.fts.tca.deidentification.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -12,14 +13,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
-class PseudonymizationConfigurationTest {
-  @Autowired private PseudonymizationConfiguration configuration;
+class TransportMappingConfigurationTest {
+  @Autowired private TransportMappingConfiguration configuration;
 
   @MockBean
   RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start
 
   @Test
   void configEntriesExist() {
-    assertThat(configuration.getTransportIdTTLinSeconds()).isEqualTo(1000);
+    assertThat(configuration.Ttl()).isEqualTo(Duration.ofSeconds(1000));
   }
 }

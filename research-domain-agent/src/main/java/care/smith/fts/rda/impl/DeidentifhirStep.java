@@ -6,7 +6,7 @@ import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
-import care.smith.fts.util.tca.ResolveResponse;
+import care.smith.fts.util.tca.ResearchMappingResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -31,7 +31,7 @@ class DeidentifhirStep implements Deidentificator {
 
   @Override
   public Mono<Bundle> deidentify(TransportBundle bundle) {
-    return fetchPseudonymsForTransportIds(bundle.tIDMapName())
+    return fetchResearchMapping(bundle.transferId())
         .map(
             p ->
                 DeidentifhirUtil.deidentify(
@@ -42,15 +42,15 @@ class DeidentifhirStep implements Deidentificator {
         .doOnNext(b -> log.trace("Total bundle entries: {}", b.getEntry().size()));
   }
 
-  private Mono<ResolveResponse> fetchPseudonymsForTransportIds(String transportIDMapName) {
+  private Mono<ResearchMappingResponse> fetchResearchMapping(String transferId) {
     return httpClient
         .post()
-        .uri("/api/v2/rd/resolve-pseudonyms")
+        .uri("/api/v2/rd/research-mapping")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
-        .bodyValue(transportIDMapName)
+        .bodyValue(transferId)
         .retrieve()
-        .bodyToMono(ResolveResponse.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchPseudonymsForTransportIds"))
+        .bodyToMono(ResearchMappingResponse.class)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchResearchMapping"))
         .doOnError(e -> log.error("Unable to resolve transport IDs: {}", e.getMessage()));
   }
 }

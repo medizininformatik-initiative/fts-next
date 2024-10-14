@@ -22,7 +22,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
     mockCohortSelector.consentForOnePatient(patientId);
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector.whenFetchData(patientId).respondWith(patient);
-    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+    mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
   }
 
   @Test
@@ -45,7 +45,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
 
   @Test
   void firstTryToSendBundleFails() throws IOException {
-    mockDataSelector.whenTransportIds(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+    mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector
         .whenFetchData(patientId)

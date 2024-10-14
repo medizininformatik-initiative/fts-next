@@ -92,21 +92,21 @@ public class TransferProcessController {
                 not(
                     and(
                         Parameters.class::isInstance,
-                        p -> p.getIdPart().equals("transport-id-map"))))
+                        p -> p.getIdPart().equals("transfer-id"))))
             .collect(toBundle());
-    var transportIdMapName =
+    var transferId =
         resourceStream(bundle)
             .filter(Parameters.class::isInstance)
-            .filter(p -> p.getIdPart().equals("transport-id-map"))
+            .filter(p -> p.getIdPart().equals("transfer-id"))
             .map(Parameters.class::cast)
             .findFirst()
-            .map(resource -> resource.getParameter("transport-id-map-name"))
+            .map(resource -> resource.getParameter("id"))
             .map(ParametersParameterComponent::getValue)
             .map(StringType.class::cast)
             .map(PrimitiveType::getValue)
             .orElseThrow(
-                () -> new IllegalArgumentException("Parameters 'transport-id-map' not found"));
-    return new TransportBundle(bundleWithoutParameters, transportIdMapName);
+                () -> new IllegalArgumentException("Parameters 'transfer-id/id' not found"));
+    return new TransportBundle(bundleWithoutParameters, transferId);
   }
 
   private Optional<TransferProcessDefinition> findProcess(String project) {

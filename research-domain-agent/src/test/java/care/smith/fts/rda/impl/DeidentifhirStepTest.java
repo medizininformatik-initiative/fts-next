@@ -52,24 +52,24 @@ class DeidentifhirStepTest {
         .when(
             request()
                 .withMethod("POST")
-                .withPath("/api/v2/rd/resolve-pseudonyms")
-                .withBody("tIDMapName"))
+                .withPath("/api/v2/rd/research-mapping")
+                .withBody("transferId"))
         .respond(response().withStatusCode(200));
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.deidentify(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
+    create(step.deidentify(new TransportBundle(bundle, "transferId"))).verifyComplete();
   }
 
   @Test
   void emptyTCAResponseYieldsEmptyResult(MockServerClient mockServer) throws IOException {
     mockServer
-        .when(request().withMethod("POST").withPath("/api/v2/rd/resolve-pseudonyms"))
+        .when(request().withMethod("POST").withPath("/api/v2/rd/research-mapping"))
         .respond(response().withStatusCode(200));
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.deidentify(new TransportBundle(bundle, "tIDMapName"))).verifyComplete();
+    create(step.deidentify(new TransportBundle(bundle, "transferId"))).verifyComplete();
   }
 
   @Test
@@ -78,8 +78,8 @@ class DeidentifhirStepTest {
         .when(
             request()
                 .withMethod("POST")
-                .withPath("/api/v2/rd/resolve-pseudonyms")
-                .withBody("tIDMapName"))
+                .withPath("/api/v2/rd/research-mapping")
+                .withBody("transferId"))
         .respond(
             response()
                 .withBody(
@@ -92,7 +92,7 @@ class DeidentifhirStepTest {
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
-    create(step.deidentify(new TransportBundle(bundle, "tIDMapName")))
+    create(step.deidentify(new TransportBundle(bundle, "transferId")))
         .assertNext(
             b -> {
               assertThat(b.getEntry().size()).isEqualTo(1);
