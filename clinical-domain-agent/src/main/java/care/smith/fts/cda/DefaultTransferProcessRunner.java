@@ -58,7 +58,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     }
 
     public void execute(List<String> pids) {
-      status.updateAndGet(s -> s.withPhase(Phase.RUNNING));
+      status.updateAndGet(s -> s.setPhase(Phase.RUNNING));
       selectCohort(pids)
           .transform(this::selectData)
           .transform(this::deidentify)
@@ -72,7 +72,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .cohortSelector()
           .selectCohort(pids)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalPatients))
-          .doOnError(e -> status.updateAndGet(s -> s.withPhase(Phase.FATAL)))
+          .doOnError(e -> status.updateAndGet(s -> s.setPhase(Phase.FATAL)))
           .onErrorComplete();
     }
 
@@ -101,8 +101,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private TransferProcessStatus checkCompletion(TransferProcessStatus s) {
       return s.skippedBundles() == 0
-          ? s.withPhase(Phase.COMPLETED)
-          : s.withPhase(Phase.COMPLETED_WITH_ERROR);
+          ? s.setPhase(Phase.COMPLETED)
+          : s.setPhase(Phase.COMPLETED_WITH_ERROR);
     }
 
     public TransferProcessStatus status() {
