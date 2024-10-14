@@ -1,6 +1,6 @@
 {
-  "bundlesSentCount": 100,
-  "bundlesSkippedCount": 0,
+  "sentBundles": 100,
+  "skippedBundles": 0,
   "count": {
     "total": 21,
     "Patient": 100,

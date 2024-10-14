@@ -1,14 +1,18 @@
 package care.smith.fts.cda;
 
+import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.ConsentedPatientBundle;
+import care.smith.fts.api.TransportBundle;
+import care.smith.fts.api.cda.BundleSender.Result;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -25,17 +29,18 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     var processId = UUID.randomUUID().toString();
     log.info("Run process with processId: {}", processId);
     log.debug("Using a sendConcurrency of {}", sendConcurrency);
-    TransferProcessInstance transferProcessInstance = new TransferProcessInstance(process);
+    TransferProcessInstance transferProcessInstance =
+        new TransferProcessInstance(process, processId);
     transferProcessInstance.execute(pids);
     instances.put(processId, transferProcessInstance);
     return processId;
   }
 
   @Override
-  public Mono<Status> status(String processId) {
+  public Mono<TransferProcessStatus> status(String processId) {
     TransferProcessInstance transferProcessInstance = instances.get(processId);
     if (transferProcessInstance != null) {
-      return Mono.just(transferProcessInstance.status(processId));
+      return Mono.just(transferProcessInstance.status());
     } else {
       return Mono.error(new IllegalArgumentException());
     }
@@ -45,38 +50,63 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private final TransferProcessDefinition process;
 
-    private final AtomicLong skippedBundles = new AtomicLong();
-    private final AtomicLong sentBundles = new AtomicLong();
-    private final AtomicReference<Phase> phase = new AtomicReference<>(Phase.QUEUED);
+    private final AtomicReference<TransferProcessStatus> status;
 
-    public TransferProcessInstance(TransferProcessDefinition process) {
+    public TransferProcessInstance(TransferProcessDefinition process, String processId) {
       this.process = process;
+      status = new AtomicReference<>(TransferProcessStatus.create(processId));
     }
 
     public void execute(List<String> pids) {
-      phase.set(Phase.RUNNING);
-      process
+      status.updateAndGet(s -> s.withPhase(Phase.RUNNING));
+      selectCohort(pids)
+          .transform(this::selectData)
+          .transform(this::deidentify)
+          .transform(this::sendBundles)
+          .doOnComplete(this::updateStatus)
+          .subscribe();
+    }
+
+    private Flux<ConsentedPatient> selectCohort(List<String> pids) {
+      return process
           .cohortSelector()
           .selectCohort(pids)
+          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalPatients))
+          .doOnError(e -> status.updateAndGet(s -> s.withPhase(Phase.FATAL)))
+          .onErrorComplete();
+    }
+
+    private Flux<ConsentedPatientBundle> selectData(Flux<ConsentedPatient> cohortSelection) {
+      return cohortSelection
           .flatMap(process.dataSelector()::select)
+          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalBundles));
+    }
+
+    private Flux<TransportBundle> deidentify(Flux<ConsentedPatientBundle> dataSelection) {
+      return dataSelection
           .flatMap(process.deidentificator()::deidentify)
-          .limitRate(sendConcurrency * 2)
-          .onBackpressureBuffer(sendConcurrency * 2)
+          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles));
+    }
+
+    private Flux<Result> sendBundles(Flux<TransportBundle> deidentification) {
+      return deidentification
           .flatMap(b -> process.bundleSender().send(b), sendConcurrency)
-          .subscribe(
-              r -> sentBundles.incrementAndGet(),
-              this::handleBundleError,
-              () -> phase.compareAndSet(Phase.RUNNING, Phase.COMPLETED));
+          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles))
+          .onErrorContinue((e, r) -> status.updateAndGet(TransferProcessStatus::incSkippedBundles));
     }
 
-    private void handleBundleError(Throwable e) {
-      skippedBundles.incrementAndGet();
-      log.error("Skipping bundle: {}", e.getMessage());
-      phase.set(Phase.ERROR);
+    private void updateStatus() {
+      status.updateAndGet(s -> s.phase() != Phase.FATAL ? checkCompletion(s) : s);
     }
 
-    public Status status(String processId) {
-      return new Status(processId, phase.get(), sentBundles.get(), skippedBundles.get());
+    private TransferProcessStatus checkCompletion(TransferProcessStatus s) {
+      return s.skippedBundles() == 0
+          ? s.withPhase(Phase.COMPLETED)
+          : s.withPhase(Phase.COMPLETED_WITH_ERROR);
+    }
+
+    public TransferProcessStatus status() {
+      return status.get();
     }
   }
 }

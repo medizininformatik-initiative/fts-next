@@ -52,7 +52,7 @@ class TCACohortSelector implements CohortSelector {
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
-        .onErrorResume(WebClientException.class, TCACohortSelector::handleError)
+        .onErrorResume(WebClientException.class, TCACohortSelector::handleWebClientException)
         .flatMap(this::extractConsentedPatients);
   }
 
@@ -119,7 +119,7 @@ class TCACohortSelector implements CohortSelector {
             config.policies()));
   }
 
-  private static Mono<Bundle> handleError(WebClientException e) {
+  private static Mono<Bundle> handleWebClientException(WebClientException e) {
     return Mono.error(
         new TransferProcessException("Error communicating with trust center agent", e));
   }

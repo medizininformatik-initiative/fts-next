@@ -35,7 +35,6 @@ public class DeIdentificationController {
   public Mono<ResponseEntity<TransportMappingResponse>> transportMapping(
       @Valid @RequestBody Mono<TransportMappingRequest> requestData) {
     return requestData
-        .filter(r -> !r.resourceIds().isEmpty())
         .flatMap(mappingProvider::generateTransportMapping)
         .map(ResponseEntity::ok)
         .onErrorResume(DeIdentificationController::handleGenerateError);

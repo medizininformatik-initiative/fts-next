@@ -9,10 +9,12 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender.Result;
+import care.smith.fts.cda.TransferProcessRunner.Phase;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 class DefaultTransferProcessRunnerTest {
@@ -42,8 +44,30 @@ class DefaultTransferProcessRunnerTest {
     create(runner.status(processId))
         .assertNext(
             r -> {
-              assertThat(r.bundlesSentCount()).isEqualTo(1);
-              assertThat(r.bundlesSkippedCount()).isEqualTo(0);
+              assertThat(r.sentBundles()).isEqualTo(1);
+              assertThat(r.skippedBundles()).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void errorInCohortSelector() throws InterruptedException {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            pids -> Flux.error(new Throwable("Error fetching consented patients")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
+            b -> Mono.just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    sleep(500L);
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.FATAL);
+              assertThat(r.sentBundles()).isEqualTo(0);
+              assertThat(r.skippedBundles()).isEqualTo(0);
             })
         .verifyComplete();
   }

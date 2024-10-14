@@ -8,8 +8,8 @@ fi
 
 function printStatus() {
   phase="$(echo "${1}" | jq -r '.phase')"
-  sent="$(echo "${1}" | jq -r '.bundlesSentCount')"
-  skipped="$(echo "${1}" | jq -r '.bundlesSkippedCount')"
+  sent="$(echo "${1}" | jq -r '.sentBundles')"
+  skipped="$(echo "${1}" | jq -r '.skippedBundles')"
   printf "· %-14s transferred: %-5d skipped: %-5d\n" "${phase}" "${sent}" "${skipped}"
 }
 
@@ -21,6 +21,6 @@ done
 
 printStatus "${response}"
 
-if [ "$(echo "${response}" | jq -r '.phase')" == "ERROR" ]; then
+if [ "$(echo "${response}" | jq -r '.phase')" == "FATAL" ]; then
   exit 1
 fi

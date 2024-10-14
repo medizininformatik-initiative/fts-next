@@ -16,6 +16,7 @@ import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.util.tca.TCADomains;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
+import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,6 +113,13 @@ class DeidentifhirStepTest {
     var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
 
     create(step.deidentify(consentedPatientBundle)).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void emptyIdsYieldEmptyMono() {
+    create(step.deidentify(new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1"))))
+        .expectNextCount(0)
+        .verifyComplete();
   }
 
   @AfterEach

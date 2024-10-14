@@ -3,9 +3,9 @@ package care.smith.fts.cda.rest;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
 
+import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
-import care.smith.fts.cda.TransferProcessRunner.Status;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import java.net.URI;
 import java.util.List;
@@ -61,18 +61,19 @@ public class TransferProcessController {
   }
 
   @GetMapping("/status/{processId:[\\w-]+}")
-  Mono<ResponseEntity<Status>> status(@PathVariable("processId") String processId) {
+  Mono<ResponseEntity<TransferProcessStatus>> status(@PathVariable("processId") String processId) {
     return processRunner
         .status(processId)
         .map(s -> responseForStatus(s).body(s))
         .onErrorResume(ErrorResponseUtil::notFound);
   }
 
-  private static BodyBuilder responseForStatus(Status s) {
+  private static BodyBuilder responseForStatus(TransferProcessStatus s) {
     return switch (s.phase()) {
       case QUEUED -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS, "Queued"));
       case RUNNING -> ResponseEntity.accepted().headers(h -> h.add(X_PROGRESS, "Running"));
-      case COMPLETED, ERROR -> ResponseEntity.ok();
+      case COMPLETED, COMPLETED_WITH_ERROR -> ResponseEntity.ok();
+      case FATAL -> ResponseEntity.internalServerError();
     };
   }
 
