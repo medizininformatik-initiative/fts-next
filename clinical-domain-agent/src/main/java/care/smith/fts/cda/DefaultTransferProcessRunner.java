@@ -4,6 +4,8 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -25,12 +27,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   private final Queue<TransferProcessInstance> queued = new ConcurrentLinkedQueue<>();
   private final TransferProcessRunnerConfig config;
-  private final int sendConcurrency;
 
   public DefaultTransferProcessRunner(@Autowired TransferProcessRunnerConfig config) {
     this.config = config;
-    this.sendConcurrency = config.maxConcurrency / config.maxProcesses;
-    log.debug("Using a sendConcurrency of {}", sendConcurrency);
   }
 
   @Override
@@ -45,10 +44,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   private void startOrQueue(String processId, TransferProcessInstance transferProcessInstance) {
+    garbageCollect();
     instances.compute(
         processId,
         (k, v) -> {
-          if (runningInstances() < config.maxProcesses) {
+          if (runningInstances() < config.maxConcurrentProcesses) {
             transferProcessInstance.execute();
             return transferProcessInstance;
           } else {
@@ -62,13 +62,25 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     return instances.values().stream().filter(TransferProcessInstance::isRunning).count();
   }
 
+  private void garbageCollect() {
+    instances.values().stream()
+        .filter(
+            p ->
+                p.status
+                    .get()
+                    .finishedAt()
+                    .isBefore(
+                        LocalDateTime.now().minus(Duration.ofSeconds(config.processTtlSeconds))))
+        .forEach(p -> instances.remove(p.processId));
+  }
+
   private void onComplete() {
     var next = queued.peek();
     if (next != null) {
       instances.compute(
           next.processId,
           (k, v) -> {
-            if (runningInstances() < config.maxProcesses) {
+            if (runningInstances() < config.maxConcurrentProcesses) {
               queued.remove(next);
               next.execute();
               return next;
@@ -139,7 +151,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Flux<Result> sendBundles(Flux<TransportBundle> deidentification) {
       return deidentification
-          .flatMap(b -> process.bundleSender().send(b), sendConcurrency)
+          .flatMap(b -> process.bundleSender().send(b), config.maxSendConcurrency)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles))
           .onErrorContinue((e, r) -> status.updateAndGet(TransferProcessStatus::incSkippedBundles));
     }
