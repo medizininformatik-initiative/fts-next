@@ -21,6 +21,6 @@ class TransportMappingConfigurationTest {
 
   @Test
   void configEntriesExist() {
-    assertThat(configuration.Ttl()).isEqualTo(Duration.ofSeconds(1000));
+    assertThat(configuration.ttl()).isEqualTo(Duration.ofSeconds(1000));
   }
 }
