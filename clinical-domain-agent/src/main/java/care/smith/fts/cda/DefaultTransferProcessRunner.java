@@ -1,9 +1,14 @@
 package care.smith.fts.cda;
 
+import static java.util.Objects.nonNull;
+import static java.util.stream.Stream.concat;
+
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -25,12 +30,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   private final Queue<TransferProcessInstance> queued = new ConcurrentLinkedQueue<>();
   private final TransferProcessRunnerConfig config;
-  private final int sendConcurrency;
 
   public DefaultTransferProcessRunner(@Autowired TransferProcessRunnerConfig config) {
     this.config = config;
-    this.sendConcurrency = config.maxConcurrency / config.maxProcesses;
-    log.debug("Using a sendConcurrency of {}", sendConcurrency);
   }
 
   @Override
@@ -45,10 +47,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   private void startOrQueue(String processId, TransferProcessInstance transferProcessInstance) {
+    removeOldProcesses();
     instances.compute(
         processId,
         (k, v) -> {
-          if (runningInstances() < config.maxProcesses) {
+          if (runningInstances() < config.maxConcurrentProcesses) {
             transferProcessInstance.execute();
             return transferProcessInstance;
           } else {
@@ -62,13 +65,54 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     return instances.values().stream().filter(TransferProcessInstance::isRunning).count();
   }
 
+  private void removeOldProcesses() {
+    instances.values().stream()
+        .filter(p -> nonNull(p.status.get().finishedAt()))
+        .filter(
+            p ->
+                p.status
+                    .get()
+                    .finishedAt()
+                    .isBefore(
+                        LocalDateTime.now().minus(Duration.ofSeconds(config.processTtlSeconds))))
+        .forEach(p -> instances.remove(p.processId()));
+  }
+
+  @Override
+  public Mono<List<TransferProcessStatus>> statuses() {
+    removeOldProcesses();
+    var statuses =
+        concat(
+                instances.values().stream().map(TransferProcessInstance::status),
+                queued.stream().map(TransferProcessInstance::status))
+            .toList();
+    return Mono.just(statuses);
+  }
+
+  @Override
+  public Mono<TransferProcessStatus> status(String processId) {
+    var transferProcessInstance = instances.get(processId);
+    if (transferProcessInstance != null) {
+      return Mono.just(transferProcessInstance.status());
+    } else {
+      var queuedProcessInstance =
+          queued.stream().filter(q -> q.processId().equals(processId)).findFirst().orElse(null);
+      if (queuedProcessInstance != null) {
+        return Mono.just(queuedProcessInstance.status());
+      } else {
+        return Mono.error(
+            new IllegalStateException("No transfer process with processId: " + processId));
+      }
+    }
+  }
+
   private void onComplete() {
     var next = queued.peek();
     if (next != null) {
       instances.compute(
-          next.processId,
+          next.processId(),
           (k, v) -> {
-            if (runningInstances() < config.maxProcesses) {
+            if (runningInstances() < config.maxConcurrentProcesses) {
               queued.remove(next);
               next.execute();
               return next;
@@ -94,14 +138,12 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private final TransferProcessDefinition process;
 
     private final AtomicReference<TransferProcessStatus> status;
-    private final String processId;
     private final List<String> pids;
 
     public TransferProcessInstance(
         TransferProcessDefinition process, String processId, List<String> pids) {
       this.process = process;
       status = new AtomicReference<>(TransferProcessStatus.create(processId));
-      this.processId = processId;
       this.pids = pids;
     }
 
@@ -139,7 +181,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Flux<Result> sendBundles(Flux<TransportBundle> deidentification) {
       return deidentification
-          .flatMap(b -> process.bundleSender().send(b), sendConcurrency)
+          .flatMap(b -> process.bundleSender().send(b), config.maxSendConcurrency)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles))
           .onErrorContinue((e, r) -> status.updateAndGet(TransferProcessStatus::incSkippedBundles));
     }
@@ -156,6 +198,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     public TransferProcessStatus status() {
       return status.get();
+    }
+
+    private String processId() {
+      return status.get().processId();
     }
 
     public Boolean isRunning() {
