@@ -14,6 +14,7 @@ import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -24,9 +25,15 @@ class DefaultTransferProcessRunnerTest {
 
   private DefaultTransferProcessRunner runner;
 
+  private final TransferProcessRunnerConfig config;
+
+  DefaultTransferProcessRunnerTest(@Autowired TransferProcessRunnerConfig config) {
+    this.config = config;
+  }
+
   @BeforeEach
   void setUp() {
-    runner = new DefaultTransferProcessRunner();
+    runner = new DefaultTransferProcessRunner(config);
   }
 
   @Test

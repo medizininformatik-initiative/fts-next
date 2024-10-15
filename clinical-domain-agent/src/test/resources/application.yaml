@@ -15,6 +15,12 @@ spring:
           truststore:
             certificate: target/test-classes/ca.crt
 
+runner:
+  maxConcurrency: 128
+  maxProcesses: 4
+  processTtlSeconds: 86400
+
+
 server:
   ssl:
     bundle: server
