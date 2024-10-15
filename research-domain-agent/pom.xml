@@ -110,12 +110,6 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>de.ume</groupId>
-      <artifactId>deidentifhir</artifactId>
-      <version>0.2.11</version>
-    </dependency>
-
   </dependencies>
 
   <build>
