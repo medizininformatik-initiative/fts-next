@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.4_7-jre@sha256:e63addd757814eed22b40786e941770b6f8333e38273f88402ab71281eb8d38b
+FROM eclipse-temurin:21.0.4_7-jre-alpine@sha256:8cc1202a100e72f6e91bf05ab274b373a5def789ab6d9e3e293a61236662ac27
 
 COPY --chown=nobody:nobody target/clinical-domain-agent.jar /app/clinical-domain-agent.jar
 COPY --chown=nobody:nobody application.yaml                 /app/application.yaml
