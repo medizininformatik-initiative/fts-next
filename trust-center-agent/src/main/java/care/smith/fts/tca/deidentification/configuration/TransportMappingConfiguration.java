@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties("de-identification.transport")
 @Setter
 public class TransportMappingConfiguration {
-  @NotNull Long TtlSeconds;
+  @NotNull Long ttlSeconds;
 
-  public Duration Ttl() {
-    return Duration.ofSeconds(TtlSeconds);
+  public Duration ttl() {
+    return Duration.ofSeconds(ttlSeconds);
   }
 }
