@@ -6,11 +6,13 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -21,19 +23,60 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   private final Map<String, TransferProcessInstance> instances = new ConcurrentHashMap<>();
 
-  @Value("${transfer.sendConcurrency:32}")
-  private int sendConcurrency = 32;
+  private final Queue<TransferProcessInstance> queued = new ConcurrentLinkedQueue<>();
+  private final TransferProcessRunnerConfig config;
+  private final int sendConcurrency;
+
+  public DefaultTransferProcessRunner(@Autowired TransferProcessRunnerConfig config) {
+    this.config = config;
+    this.sendConcurrency = config.maxConcurrency / config.maxProcesses;
+    log.debug("Using a sendConcurrency of {}", sendConcurrency);
+  }
 
   @Override
   public String start(TransferProcessDefinition process, List<String> pids) {
     var processId = UUID.randomUUID().toString();
     log.info("Run process with processId: {}", processId);
-    log.debug("Using a sendConcurrency of {}", sendConcurrency);
-    TransferProcessInstance transferProcessInstance =
-        new TransferProcessInstance(process, processId);
-    transferProcessInstance.execute(pids);
-    instances.put(processId, transferProcessInstance);
+    var transferProcessInstance = new TransferProcessInstance(process, processId, pids);
+
+    startOrQueue(processId, transferProcessInstance);
+
     return processId;
+  }
+
+  private void startOrQueue(String processId, TransferProcessInstance transferProcessInstance) {
+    instances.compute(
+        processId,
+        (k, v) -> {
+          if (runningInstances() < config.maxProcesses) {
+            transferProcessInstance.execute();
+            return transferProcessInstance;
+          } else {
+            queued.add(transferProcessInstance);
+            return null;
+          }
+        });
+  }
+
+  private long runningInstances() {
+    return instances.values().stream().filter(TransferProcessInstance::isRunning).count();
+  }
+
+  private void onComplete() {
+    var next = queued.peek();
+    if (next != null) {
+      instances.compute(
+          next.processId,
+          (k, v) -> {
+            if (runningInstances() < config.maxProcesses) {
+              queued.remove(next);
+              next.execute();
+              return next;
+            } else {
+              return null;
+            }
+          });
+    }
   }
 
   @Override
@@ -51,19 +94,25 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private final TransferProcessDefinition process;
 
     private final AtomicReference<TransferProcessStatus> status;
+    private final String processId;
+    private final List<String> pids;
 
-    public TransferProcessInstance(TransferProcessDefinition process, String processId) {
+    public TransferProcessInstance(
+        TransferProcessDefinition process, String processId, List<String> pids) {
       this.process = process;
       status = new AtomicReference<>(TransferProcessStatus.create(processId));
+      this.processId = processId;
+      this.pids = pids;
     }
 
-    public void execute(List<String> pids) {
+    public void execute() {
       status.updateAndGet(s -> s.setPhase(Phase.RUNNING));
       selectCohort(pids)
           .transform(this::selectData)
           .transform(this::deidentify)
           .transform(this::sendBundles)
           .doOnComplete(this::updateStatus)
+          .doOnComplete(DefaultTransferProcessRunner.this::onComplete)
           .subscribe();
     }
 
@@ -107,6 +156,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     public TransferProcessStatus status() {
       return status.get();
+    }
+
+    public Boolean isRunning() {
+      return status().phase() == Phase.RUNNING;
     }
   }
 }
