@@ -22,6 +22,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -156,10 +159,28 @@ class DeIdentificationControllerTest {
   @Test
   void researchMappingWithAnyException() {
     given(mappingProvider.fetchResearchMapping("transferId"))
-        .willReturn(Mono.error(new TransferProcessException("")));
+        .willReturn(Mono.error(new TransferProcessException("error message")));
 
     create(controller.researchMapping("transferId"))
-        .expectError(TransferProcessException.class)
-        .verify();
+        .expectNext(
+            ResponseEntity.of(
+                    ProblemDetail.forStatusAndDetail(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "error message"))
+                .build())
+        .verifyComplete();
+  }
+
+  @Test
+  void researchMappingInvalidDateShiftValueFromKeyValueStore() {
+    given(mappingProvider.fetchResearchMapping("transferId"))
+        .willReturn(Mono.error(new NumberFormatException("Invalid dateShiftMillis value.")));
+
+    create(controller.researchMapping("transferId"))
+        .expectNext(
+            ResponseEntity.of(
+                    ProblemDetail.forStatusAndDetail(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "Invalid dateShiftMillis value."))
+                .build())
+        .verifyComplete();
   }
 }

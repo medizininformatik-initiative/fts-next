@@ -2,8 +2,9 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static com.google.common.collect.ImmutableMap.copyOf;
+import static java.lang.Long.parseLong;
 import static java.lang.String.valueOf;
+import static java.time.Duration.ofMillis;
 import static java.util.stream.Collectors.toMap;
 import static reactor.function.TupleUtils.function;
 
@@ -74,6 +75,16 @@ public class FhirMappingProvider implements MappingProvider {
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
   }
 
+  private Mono<Tuple3<String, String, String>> fetchPseudonymAndSalts(
+      String patientId, TCADomains domains, Duration maxDateShift) {
+    var saltKey = "Salt_" + patientId;
+    var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
+    return Mono.zip(
+        gpasClient.fetchOrCreatePseudonyms(domains.pseudonym(), patientId),
+        gpasClient.fetchOrCreatePseudonyms(domains.salt(), saltKey),
+        gpasClient.fetchOrCreatePseudonyms(domains.dateShift(), dateShiftKey));
+  }
+
   /** Saves the research mapping in redis for later use by the rda. */
   private Function<Tuple3<String, String, String>, Mono<Duration>> saveResearchMapping(
       String patientId,
@@ -91,16 +102,6 @@ public class FhirMappingProvider implements MappingProvider {
                   .build();
           return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
         });
-  }
-
-  private Mono<Tuple3<String, String, String>> fetchPseudonymAndSalts(
-      String patientId, TCADomains domains, Duration maxDateShift) {
-    var saltKey = "Salt_" + patientId;
-    var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
-    return Mono.zip(
-        gpasClient.fetchOrCreatePseudonyms(domains.pseudonym(), patientId),
-        gpasClient.fetchOrCreatePseudonyms(domains.salt(), saltKey),
-        gpasClient.fetchOrCreatePseudonyms(domains.dateShift(), dateShiftKey));
   }
 
   /** generate ids for all entries in the transport mapping */
@@ -131,14 +132,24 @@ public class FhirMappingProvider implements MappingProvider {
     RedissonReactiveClient redis = redisClient.reactive();
     return Mono.just(transferId)
         .flatMap(name -> redis.<String, String>getMapCache(name).readAllMap())
-        .map(m -> m.entrySet().stream().collect(toMap(Entry::getKey, Entry::getValue)))
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchResearchMapping"))
         .map(FhirMappingProvider::buildResolveResponse);
   }
 
   private static ResearchMappingResponse buildResolveResponse(Map<String, String> map) {
     var mutableMap = new HashMap<>(map);
-    var dateShiftValue = Duration.ofMillis(Long.parseLong(mutableMap.remove("dateShiftMillis")));
-    return new ResearchMappingResponse(copyOf(mutableMap), dateShiftValue);
+    var dateShiftValue = getDateShiftMillis(mutableMap);
+    return new ResearchMappingResponse(mutableMap, dateShiftValue);
+  }
+
+  private static Duration getDateShiftMillis(HashMap<String, String> mutableMap) {
+    long dateShiftMillis;
+    try {
+      dateShiftMillis = parseLong(mutableMap.remove("dateShiftMillis"));
+    } catch (NumberFormatException e) {
+      log.error("Failed to parse dateShiftMillis", e);
+      throw new NumberFormatException("Invalid dateShiftMillis value.");
+    }
+    return ofMillis(dateShiftMillis);
   }
 }
