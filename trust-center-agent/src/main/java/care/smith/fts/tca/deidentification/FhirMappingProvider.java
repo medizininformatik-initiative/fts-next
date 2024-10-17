@@ -2,7 +2,6 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static com.google.common.collect.ImmutableMap.copyOf;
 import static java.lang.Long.parseLong;
 import static java.lang.String.valueOf;
 import static java.time.Duration.ofMillis;
@@ -140,6 +139,6 @@ public class FhirMappingProvider implements MappingProvider {
   private static ResearchMappingResponse buildResolveResponse(Map<String, String> map) {
     var mutableMap = new HashMap<>(map);
     var dateShiftValue = ofMillis(parseLong(mutableMap.remove("dateShiftMillis")));
-    return new ResearchMappingResponse(copyOf(mutableMap), dateShiftValue);
+    return new ResearchMappingResponse(mutableMap, dateShiftValue);
   }
 }
