@@ -60,7 +60,7 @@ public class TransferProcessController {
     return uriBuilder.replacePath("api/v2/process/status/{id}").build(id);
   }
 
-  @GetMapping({"/status", "/status/{processId:[\\w-]+}"})
+  @GetMapping({"/statuses", "/status/{processId:[\\w-]+}"})
   Mono<ResponseEntity<TransferProcessStatus>> status(
       @PathVariable(value = "processId", required = false) String processId) {
     if (processId != null) {
@@ -69,7 +69,7 @@ public class TransferProcessController {
           .map(s -> responseForStatus(s).body(s))
           .onErrorResume(ErrorResponseUtil::notFound);
     } else {
-      processRunner.statusSummary().map(s -> ResponseEntity.ok());
+      return processRunner.statuses().map(s -> ResponseEntity.ok().build());
     }
   }
 

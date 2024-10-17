@@ -1,5 +1,8 @@
 package care.smith.fts.cda;
 
+import static java.util.Objects.nonNull;
+import static java.util.stream.Stream.concat;
+
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
@@ -64,6 +67,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   private void removeOldProcesses() {
     instances.values().stream()
+        .filter(p -> nonNull(p.status.get().finishedAt()))
         .filter(
             p ->
                 p.status
@@ -75,17 +79,29 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   @Override
-  public Mono<List<TransferProcessStatus>> status() {
-    var status = instances.values().forEach(TransferProcessInstance::status);
+  public Mono<List<TransferProcessStatus>> statuses() {
+    removeOldProcesses();
+    var statuses =
+        concat(
+                instances.values().stream().map(TransferProcessInstance::status),
+                queued.stream().map(TransferProcessInstance::status))
+            .toList();
+    return Mono.just(statuses);
   }
 
   @Override
   public Mono<TransferProcessStatus> status(String processId) {
-    TransferProcessInstance transferProcessInstance = instances.get(processId);
+    var transferProcessInstance = instances.get(processId);
     if (transferProcessInstance != null) {
       return Mono.just(transferProcessInstance.status());
     } else {
-      return Mono.error(new IllegalArgumentException());
+      var queuedProcessInstance =
+          queued.stream().filter(q -> q.processId.equals(processId)).findFirst().orElse(null);
+      if (queuedProcessInstance != null) {
+        return Mono.just(queuedProcessInstance.status());
+      } else {
+        return Mono.error(new IllegalArgumentException());
+      }
     }
   }
 

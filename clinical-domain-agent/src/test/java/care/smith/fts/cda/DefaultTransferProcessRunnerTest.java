@@ -10,11 +10,11 @@ import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
+import java.time.Duration;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,8 +27,11 @@ class DefaultTransferProcessRunnerTest {
 
   private final TransferProcessRunnerConfig config;
 
-  DefaultTransferProcessRunnerTest(@Autowired TransferProcessRunnerConfig config) {
-    this.config = config;
+  DefaultTransferProcessRunnerTest() {
+    config = new TransferProcessRunnerConfig();
+    config.setMaxSendConcurrency(64);
+    config.setMaxConcurrentProcesses(2);
+    config.setProcessTtlSeconds(3);
   }
 
   @BeforeEach
@@ -80,22 +83,51 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void startMultipleProcesses() {
+  void startMultipleProcessesWithQueueing() throws InterruptedException {
     var process =
         new TransferProcessDefinition(
             "test",
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
-            b -> Mono.just(new Result()));
+            b ->
+                just(new TransportBundle(new Bundle(), "transferId"))
+                    .delayElement(Duration.ofSeconds(2)),
+            b -> just(new Result()));
 
-    var processId = runner.start(process, List.of());
-    sleep(500L);
-    create(runner.status(processId))
+    var processId1 = runner.start(process, List.of());
+    var processId2 = runner.start(process, List.of());
+    sleep(1000L);
+    var processId3 = runner.start(process, List.of());
+
+    create(runner.statuses())
         .assertNext(
             r -> {
-              assertThat(r.sentBundles()).isEqualTo(1);
-              assertThat(r.skippedBundles()).isEqualTo(0);
+              assertThat(r.size()).isEqualTo(3);
+              assertThat(r.stream().map(TransferProcessStatus::phase))
+                  .containsExactlyInAnyOrder(Phase.RUNNING, Phase.RUNNING, Phase.QUEUED);
+            })
+        .verifyComplete();
+
+    sleep(1500L);
+
+    create(runner.statuses())
+        .assertNext(
+            r -> {
+              assertThat(r.size()).isEqualTo(3);
+              assertThat(r.stream().map(TransferProcessStatus::phase))
+                  .containsExactlyInAnyOrder(Phase.RUNNING, Phase.COMPLETED, Phase.COMPLETED);
+            })
+        .verifyComplete();
+
+    sleep(3000L);
+    create(runner.statuses())
+        .assertNext(
+            r -> {
+              assertThat(r.size()).isEqualTo(1);
+              assertThat(r.stream().map(TransferProcessStatus::phase))
+                  .isEqualTo(List.of(Phase.COMPLETED));
+              assertThat(r.stream().map(TransferProcessStatus::processId))
+                  .isEqualTo(List.of(processId3));
             })
         .verifyComplete();
   }
