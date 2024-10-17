@@ -44,7 +44,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   private void startOrQueue(String processId, TransferProcessInstance transferProcessInstance) {
-    garbageCollect();
+    removeOldProcesses();
     instances.compute(
         processId,
         (k, v) -> {
@@ -62,7 +62,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     return instances.values().stream().filter(TransferProcessInstance::isRunning).count();
   }
 
-  private void garbageCollect() {
+  private void removeOldProcesses() {
     instances.values().stream()
         .filter(
             p ->
@@ -72,6 +72,21 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
                     .isBefore(
                         LocalDateTime.now().minus(Duration.ofSeconds(config.processTtlSeconds))))
         .forEach(p -> instances.remove(p.processId));
+  }
+
+  @Override
+  public Mono<List<TransferProcessStatus>> status() {
+    var status = instances.values().forEach(TransferProcessInstance::status);
+  }
+
+  @Override
+  public Mono<TransferProcessStatus> status(String processId) {
+    TransferProcessInstance transferProcessInstance = instances.get(processId);
+    if (transferProcessInstance != null) {
+      return Mono.just(transferProcessInstance.status());
+    } else {
+      return Mono.error(new IllegalArgumentException());
+    }
   }
 
   private void onComplete() {
@@ -88,16 +103,6 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
               return null;
             }
           });
-    }
-  }
-
-  @Override
-  public Mono<TransferProcessStatus> status(String processId) {
-    TransferProcessInstance transferProcessInstance = instances.get(processId);
-    if (transferProcessInstance != null) {
-      return Mono.just(transferProcessInstance.status());
-    } else {
-      return Mono.error(new IllegalArgumentException());
     }
   }
 

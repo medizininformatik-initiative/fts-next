@@ -78,4 +78,25 @@ class DefaultTransferProcessRunnerTest {
             })
         .verifyComplete();
   }
+
+  @Test
+  void startMultipleProcesses() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            pids -> fromIterable(List.of(PATIENT)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> Mono.just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    sleep(500L);
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.sentBundles()).isEqualTo(1);
+              assertThat(r.skippedBundles()).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
 }
