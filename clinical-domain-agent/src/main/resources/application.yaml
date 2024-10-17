@@ -15,3 +15,8 @@ security:
   endpoints:
   - path: /api/v2/**
     role: client
+
+runner:
+  maxSendConcurrency: 32
+  maxConcurrentProcesses: 4
+  processTtlSeconds: 86400

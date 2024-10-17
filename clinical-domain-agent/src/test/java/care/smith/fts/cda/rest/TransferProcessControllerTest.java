@@ -3,10 +3,10 @@ package care.smith.fts.cda.rest;
 import static java.util.List.of;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
+import care.smith.fts.cda.TransferProcessStatus;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,17 +20,23 @@ class TransferProcessControllerTest {
 
   private static final String processId = "processId";
   private static final TransferProcessStatus PATIENT_SUMMARY_RESULT =
-      TransferProcessStatus.create(processId).withPhase(Phase.RUNNING);
+      TransferProcessStatus.create(processId);
   private TransferProcessController api;
 
   @BeforeEach
   void setUp() {
+    PATIENT_SUMMARY_RESULT.setPhase(Phase.RUNNING);
     api =
         new TransferProcessController(
             new TransferProcessRunner() {
               @Override
               public String start(TransferProcessDefinition process, List<String> pids) {
                 return "processId";
+              }
+
+              @Override
+              public Mono<List<TransferProcessStatus>> statuses() {
+                return Mono.just(List.of(PATIENT_SUMMARY_RESULT));
               }
 
               @Override

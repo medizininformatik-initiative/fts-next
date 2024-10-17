@@ -1,12 +1,13 @@
 package care.smith.fts.cda.rest.it;
 
+import static care.smith.fts.cda.TransferProcessRunner.Phase.QUEUED;
 import static care.smith.fts.cda.TransferProcessRunner.Phase.RUNNING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 import care.smith.fts.cda.ClinicalDomainAgent;
-import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
+import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.cda.rest.it.mock.MockBundleSender;
 import care.smith.fts.cda.rest.it.mock.MockCohortSelector;
 import care.smith.fts.cda.rest.it.mock.MockDataSelector;
@@ -98,7 +99,7 @@ public class TransferProcessControllerIT extends BaseIT {
 
 
   protected FirstStep<TransferProcessStatus> startProcess(Duration timeout) {
-    return startProcess(timeout, s -> s.phase() != RUNNING);
+    return startProcess(timeout, s -> s.phase() != RUNNING && s.phase() != QUEUED);
   }
 
   protected FirstStep<TransferProcessStatus> startProcess(Duration timeout, Predicate<TransferProcessStatus> until) {
@@ -121,7 +122,7 @@ public class TransferProcessControllerIT extends BaseIT {
   }
 
   protected FirstStep<TransferProcessStatus> startProcessForIds(Duration timeout, List<String> ids) {
-    return startProcessForIds(timeout, s -> s.phase() != RUNNING, ids);
+    return startProcessForIds(timeout, s -> s.phase() != RUNNING && s.phase() != QUEUED, ids);
   }
 
   protected FirstStep<TransferProcessStatus> startProcessForIds(

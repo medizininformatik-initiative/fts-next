@@ -3,9 +3,9 @@ package care.smith.fts.cda.rest;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
 
-import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
+import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import java.net.URI;
 import java.util.List;
@@ -60,12 +60,17 @@ public class TransferProcessController {
     return uriBuilder.replacePath("api/v2/process/status/{id}").build(id);
   }
 
-  @GetMapping("/status/{processId:[\\w-]+}")
-  Mono<ResponseEntity<TransferProcessStatus>> status(@PathVariable("processId") String processId) {
-    return processRunner
-        .status(processId)
-        .map(s -> responseForStatus(s).body(s))
-        .onErrorResume(ErrorResponseUtil::notFound);
+  @GetMapping({"/statuses", "/status/{processId:[\\w-]+}"})
+  Mono<ResponseEntity<TransferProcessStatus>> status(
+      @PathVariable(value = "processId", required = false) String processId) {
+    if (processId != null) {
+      return processRunner
+          .status(processId)
+          .map(s -> responseForStatus(s).body(s))
+          .onErrorResume(ErrorResponseUtil::notFound);
+    } else {
+      return processRunner.statuses().map(s -> ResponseEntity.ok().build());
+    }
   }
 
   private static BodyBuilder responseForStatus(TransferProcessStatus s) {

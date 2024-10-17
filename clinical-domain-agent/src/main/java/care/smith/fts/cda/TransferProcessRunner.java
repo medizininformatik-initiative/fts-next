@@ -7,6 +7,8 @@ import reactor.core.publisher.Mono;
 public interface TransferProcessRunner {
   String start(TransferProcessDefinition process, @NotNull List<String> pids);
 
+  Mono<List<TransferProcessStatus>> statuses();
+
   Mono<TransferProcessStatus> status(String processId);
 
   enum Phase {
