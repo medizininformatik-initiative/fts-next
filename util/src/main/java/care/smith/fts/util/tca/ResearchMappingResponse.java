@@ -1,6 +1,7 @@
 package care.smith.fts.util.tca;
 
 import static java.util.Map.copyOf;
+import static java.util.Objects.requireNonNull;
 
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -11,8 +12,6 @@ public record ResearchMappingResponse(
 
   public ResearchMappingResponse {
     tidPidMap = copyOf(tidPidMap);
-    if (dateShiftBy == null) {
-      throw new NullPointerException("dateShiftBy cannot be null");
-    }
+    requireNonNull(dateShiftBy, "dateShiftBy cannot be null");
   }
 }

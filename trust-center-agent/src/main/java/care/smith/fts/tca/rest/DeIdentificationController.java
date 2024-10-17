@@ -58,11 +58,13 @@ public class DeIdentificationController {
     log.trace("Resolve pseudonyms of map: {} ", transferId);
     return mappingProvider
         .fetchResearchMapping(transferId)
-        .doOnError(e -> handleFetchError(transferId, e))
-        .map(ResponseEntity::ok);
+        .map(ResponseEntity::ok)
+        .onErrorResume(e -> handleFetchError(transferId, e));
   }
 
-  private static void handleFetchError(String transferId, Throwable e) {
+  private static Mono<ResponseEntity<ResearchMappingResponse>> handleFetchError(
+      String transferId, Throwable e) {
     log.error("Could not fetch pseudonyms of map {}: {}", transferId, e.getMessage());
+    return ErrorResponseUtil.internalServerError(e);
   }
 }

@@ -222,7 +222,7 @@ class FhirMappingProviderTest {
         .willReturn(
             Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "nan")));
     create(mappingProvider.fetchResearchMapping("transferId"))
-        .expectError(NumberFormatException.class)
+        .expectErrorMessage("Invalid dateShiftMillis value.")
         .verify();
   }
 

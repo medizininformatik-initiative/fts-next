@@ -138,7 +138,18 @@ public class FhirMappingProvider implements MappingProvider {
 
   private static ResearchMappingResponse buildResolveResponse(Map<String, String> map) {
     var mutableMap = new HashMap<>(map);
-    var dateShiftValue = ofMillis(parseLong(mutableMap.remove("dateShiftMillis")));
+    var dateShiftValue = getDateShiftMillis(mutableMap);
     return new ResearchMappingResponse(mutableMap, dateShiftValue);
+  }
+
+  private static Duration getDateShiftMillis(HashMap<String, String> mutableMap) {
+    long dateShiftMillis;
+    try {
+      dateShiftMillis = parseLong(mutableMap.remove("dateShiftMillis"));
+    } catch (NumberFormatException e) {
+      log.error("Failed to parse dateShiftMillis", e);
+      throw new NumberFormatException("Invalid dateShiftMillis value.");
+    }
+    return ofMillis(dateShiftMillis);
   }
 }
