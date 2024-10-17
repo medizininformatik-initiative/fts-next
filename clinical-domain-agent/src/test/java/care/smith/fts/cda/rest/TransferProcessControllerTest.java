@@ -35,6 +35,11 @@ class TransferProcessControllerTest {
               }
 
               @Override
+              public Mono<List<TransferProcessStatus>> statuses() {
+                return Mono.just(List.of(PATIENT_SUMMARY_RESULT));
+              }
+
+              @Override
               public Mono<TransferProcessStatus> status(String processId) {
                 return Mono.just(PATIENT_SUMMARY_RESULT);
               }

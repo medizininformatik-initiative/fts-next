@@ -1,6 +1,5 @@
 package care.smith.fts.cda;
 
-import static java.util.Objects.nonNull;
 import static java.util.stream.Stream.concat;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -66,16 +65,12 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   private void removeOldProcesses() {
-    instances.values().stream()
-        .filter(p -> nonNull(p.status.get().finishedAt()))
-        .filter(
-            p ->
-                p.status
-                    .get()
-                    .finishedAt()
-                    .isBefore(
-                        LocalDateTime.now().minus(Duration.ofSeconds(config.processTtlSeconds))))
-        .forEach(p -> instances.remove(p.processId()));
+    var removeBefore = LocalDateTime.now().minus(Duration.ofSeconds(config.processTtlSeconds));
+    var forRemoval =
+        instances.values().stream()
+            .filter(inst -> inst.status().mayBeRemoved(removeBefore))
+            .toList();
+    forRemoval.forEach(p -> instances.remove(p.processId()));
   }
 
   @Override
@@ -95,14 +90,12 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     if (transferProcessInstance != null) {
       return Mono.just(transferProcessInstance.status());
     } else {
-      var queuedProcessInstance =
-          queued.stream().filter(q -> q.processId().equals(processId)).findFirst().orElse(null);
-      if (queuedProcessInstance != null) {
-        return Mono.just(queuedProcessInstance.status());
-      } else {
-        return Mono.error(
-            new IllegalStateException("No transfer process with processId: " + processId));
-      }
+      return Mono.justOrEmpty(
+              queued.stream().filter(q -> q.processId().equals(processId)).findFirst())
+          .map(TransferProcessInstance::status)
+          .switchIfEmpty(
+              Mono.error(
+                  new IllegalStateException("No transfer process with processId: " + processId)));
     }
   }
 
@@ -123,20 +116,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     }
   }
 
-  @Override
-  public Mono<TransferProcessStatus> status(String processId) {
-    TransferProcessInstance transferProcessInstance = instances.get(processId);
-    if (transferProcessInstance != null) {
-      return Mono.just(transferProcessInstance.status());
-    } else {
-      return Mono.error(new IllegalArgumentException());
-    }
-  }
-
   public class TransferProcessInstance {
 
     private final TransferProcessDefinition process;
-
     private final AtomicReference<TransferProcessStatus> status;
     private final List<String> pids;
 

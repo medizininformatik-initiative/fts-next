@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties("runner")
 @Setter
 public class TransferProcessRunnerConfig {
-  @NotNull int maxSendConcurrency;
-  @NotNull int maxConcurrentProcesses;
-  @NotNull int processTtlSeconds;
+  @NotNull int maxSendConcurrency = 128;
+  @NotNull int maxConcurrentProcesses = 4;
+  @NotNull int processTtlSeconds = 84600;
 }

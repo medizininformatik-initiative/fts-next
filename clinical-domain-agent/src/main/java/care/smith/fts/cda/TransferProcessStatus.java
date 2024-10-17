@@ -22,23 +22,23 @@ public record TransferProcessStatus(
   }
 
   public TransferProcessStatus incTotalPatients() {
-    return withTotalPatients(totalPatients() + 1);
+    return withTotalPatients(totalPatients + 1);
   }
 
   public TransferProcessStatus incTotalBundles() {
-    return withTotalBundles(totalBundles() + 1);
+    return withTotalBundles(totalBundles + 1);
   }
 
   public TransferProcessStatus incDeidentifiedBundles() {
-    return withDeidentifiedBundles(deidentifiedBundles() + 1);
+    return withDeidentifiedBundles(deidentifiedBundles + 1);
   }
 
   public TransferProcessStatus incSentBundles() {
-    return withSentBundles(sentBundles() + 1);
+    return withSentBundles(sentBundles + 1);
   }
 
   public TransferProcessStatus incSkippedBundles() {
-    return withSkippedBundles(skippedBundles() + 1);
+    return withSkippedBundles(skippedBundles + 1);
   }
 
   /**
@@ -49,16 +49,20 @@ public record TransferProcessStatus(
    * @return TransferProcessStatus
    */
   public TransferProcessStatus setPhase(Phase phase) {
-    return !anyCompleted(this.phase) ? setAnyCompleted(phase) : this;
+    return !isCompleted(this.phase) ? setAnyCompleted(phase) : this;
   }
 
   private TransferProcessStatus setAnyCompleted(Phase phase) {
-    return anyCompleted(phase)
+    return isCompleted(phase)
         ? withPhase(phase).withFinishedAt(LocalDateTime.now())
         : withPhase(phase);
   }
 
-  public Boolean anyCompleted(Phase phase) {
+  public Boolean isCompleted(Phase phase) {
     return phase == Phase.COMPLETED || phase == Phase.COMPLETED_WITH_ERROR || phase == Phase.FATAL;
+  }
+
+  public Boolean mayBeRemoved(LocalDateTime before) {
+    return finishedAt != null && finishedAt.isBefore(before);
   }
 }

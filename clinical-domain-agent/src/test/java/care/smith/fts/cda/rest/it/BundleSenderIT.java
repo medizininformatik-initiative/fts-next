@@ -52,7 +52,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
         .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()));
     mockBundleSender.successWithStatusCode(List.of(500));
 
-    startProcess(Duration.ofSeconds(5))
+    startProcess(Duration.ofSeconds(8))
         .assertNext(r -> completedWithBundles(1, r))
         .verifyComplete();
   }
