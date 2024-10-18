@@ -6,9 +6,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import care.smith.fts.cda.TransferProcessStatus;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.WebClientResponseException.NotFound;
@@ -165,5 +167,47 @@ public class GeneralIT extends TransferProcessControllerIT {
                     .expectError(NotFound.class)
                     .verifyThenAssertThat()
                     .hasOperatorErrors());
+  }
+
+  @Test
+  void statuses() throws IOException {
+    var idPrefix = "patientId";
+    var patientsAndIds = generateNPatients(idPrefix, "2025", DEFAULT_IDENTIFIER_SYSTEM, 3);
+    var patients = patientsAndIds.bundle();
+    var ids = patientsAndIds.ids();
+
+    mockCohortSelector.consentForNPatients(idPrefix, 3);
+    for (var i = 0; i < patients.getTotal(); i++) {
+      var patientId = ids.get(i);
+      mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
+      mockDataSelector
+          .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
+          .resolveId(patientId);
+      mockDataSelector
+          .whenFetchData(patientId)
+          .respondWith(new Bundle().addEntry(patients.getEntry().get(i)));
+    }
+    mockBundleSender.success();
+
+    client
+        .post()
+        .uri("/api/v2/process/test/start")
+        .retrieve()
+        .toBodilessEntity()
+        .mapNotNull(r -> r.getHeaders().get("Content-Location"))
+        .doOnNext(r -> assertThat(r).isNotEmpty())
+        .doOnNext(r -> assertThat(r.getFirst()).contains("/api/v2/process/status/"))
+        .flatMap(
+            r ->
+                client
+                    .get()
+                    .uri("/api/v2/process/statuses")
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<TransferProcessStatus>>() {}))
+        .as(
+            response ->
+                StepVerifier.create(response)
+                    .assertNext(r -> assertThat(r.size()).isGreaterThanOrEqualTo(1))
+                    .verifyComplete());
   }
 }
