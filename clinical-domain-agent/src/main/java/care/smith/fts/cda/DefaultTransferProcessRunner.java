@@ -8,12 +8,12 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +25,8 @@ import reactor.core.publisher.Mono;
 @Component
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
-  private final Map<String, TransferProcessInstance> instances = new ConcurrentHashMap<>();
-
-  private final Queue<TransferProcessInstance> queued = new ConcurrentLinkedQueue<>();
+  private final Map<String, TransferProcessInstance> instances = new HashMap<>();
+  private final Queue<TransferProcessInstance> queued = new LinkedList<>() {};
   private final TransferProcessRunnerConfig config;
 
   public DefaultTransferProcessRunner(@Autowired TransferProcessRunnerConfig config) {
@@ -45,26 +44,22 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     return processId;
   }
 
-  private void startOrQueue(String processId, TransferProcessInstance transferProcessInstance) {
+  private synchronized void startOrQueue(
+      String processId, TransferProcessInstance transferProcessInstance) {
     removeOldProcesses();
-    instances.compute(
-        processId,
-        (k, v) -> {
-          if (runningInstances() < config.maxConcurrentProcesses) {
-            transferProcessInstance.execute();
-            return transferProcessInstance;
-          } else {
-            queued.add(transferProcessInstance);
-            return null;
-          }
-        });
+    if (runningInstances() < config.maxConcurrentProcesses) {
+      transferProcessInstance.execute();
+      instances.put(processId, transferProcessInstance);
+    } else {
+      queued.add(transferProcessInstance);
+    }
   }
 
-  private long runningInstances() {
+  private synchronized long runningInstances() {
     return instances.values().stream().filter(TransferProcessInstance::isRunning).count();
   }
 
-  private void removeOldProcesses() {
+  private synchronized void removeOldProcesses() {
     var removeBefore = LocalDateTime.now().minus(Duration.ofSeconds(config.processTtlSeconds));
     var forRemoval =
         instances.values().stream()
@@ -74,7 +69,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   @Override
-  public Mono<List<TransferProcessStatus>> statuses() {
+  public synchronized Mono<List<TransferProcessStatus>> statuses() {
     removeOldProcesses();
     var statuses =
         concat(
@@ -85,7 +80,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   @Override
-  public Mono<TransferProcessStatus> status(String processId) {
+  public synchronized Mono<TransferProcessStatus> status(String processId) {
     var transferProcessInstance = instances.get(processId);
     if (transferProcessInstance != null) {
       return Mono.just(transferProcessInstance.status());
@@ -99,20 +94,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     }
   }
 
-  private void onComplete() {
-    var next = queued.peek();
+  private synchronized void onComplete() {
+    var next = queued.poll();
     if (next != null) {
-      instances.compute(
-          next.processId(),
-          (k, v) -> {
-            if (runningInstances() < config.maxConcurrentProcesses) {
-              queued.remove(next);
-              next.execute();
-              return next;
-            } else {
-              return null;
-            }
-          });
+      next.execute();
+      instances.put(next.processId(), next);
     }
   }
 
