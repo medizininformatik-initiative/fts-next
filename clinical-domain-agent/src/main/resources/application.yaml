@@ -19,4 +19,4 @@ security:
 runner:
   maxSendConcurrency: 32
   maxConcurrentProcesses: 4
-  processTtlSeconds: 86400
+  processTtl: P1D

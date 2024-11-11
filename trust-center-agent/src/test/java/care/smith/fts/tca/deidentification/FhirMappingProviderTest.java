@@ -118,7 +118,7 @@ class FhirMappingProviderTest {
                                 MediaType.create("application", "fhir+json"))));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
+    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
     given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
     var ids = Set.of("Patient.id1", "identifier.id1");
@@ -185,7 +185,7 @@ class FhirMappingProviderTest {
                        """));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
+    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(UnknownDomainException.class)
@@ -208,7 +208,7 @@ class FhirMappingProviderTest {
                        """));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofSeconds(1000))).willReturn(Mono.just(false));
+    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(IllegalArgumentException.class)

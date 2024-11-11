@@ -31,7 +31,7 @@ class DefaultTransferProcessRunnerTest {
     config = new TransferProcessRunnerConfig();
     config.setMaxSendConcurrency(64);
     config.setMaxConcurrentProcesses(2);
-    config.setProcessTtlSeconds(3);
+    config.setProcessTtl(Duration.ofSeconds(3));
   }
 
   @BeforeEach

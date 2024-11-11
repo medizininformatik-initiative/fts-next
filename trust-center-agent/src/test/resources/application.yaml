@@ -21,7 +21,7 @@ deIdentification:
       auth:
         none: { }
   transport:
-    ttlSeconds: 1000
+    ttl: PT10M
 
 logging:
   level:
