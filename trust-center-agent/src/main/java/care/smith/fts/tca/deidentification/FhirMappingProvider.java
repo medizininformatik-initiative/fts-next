@@ -69,7 +69,7 @@ public class FhirMappingProvider implements MappingProvider {
     var transportMapping =
         r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
     var rMap = redisClient.reactive().<String, String>getMapCache(transferId);
-    return rMap.expire(configuration.ttl())
+    return rMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
         .flatMap(saveResearchMapping(r.patientId(), r.maxDateShift(), transportMapping, rMap))
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));

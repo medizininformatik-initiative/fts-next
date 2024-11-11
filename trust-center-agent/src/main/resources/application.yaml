@@ -23,7 +23,7 @@ deIdentification:
     fhir:
       baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas
   transport:
-    ttlSeconds: 1000
+    ttl: PT10M
 
 consent:
   gics:

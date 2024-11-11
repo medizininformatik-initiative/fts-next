@@ -1,6 +1,7 @@
 package care.smith.fts.cda;
 
 import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -11,5 +12,5 @@ import org.springframework.context.annotation.Configuration;
 public class TransferProcessRunnerConfig {
   @NotNull int maxSendConcurrency = 128;
   @NotNull int maxConcurrentProcesses = 4;
-  @NotNull int processTtlSeconds = 84600;
+  @NotNull Duration processTtl = Duration.ofDays(1);
 }

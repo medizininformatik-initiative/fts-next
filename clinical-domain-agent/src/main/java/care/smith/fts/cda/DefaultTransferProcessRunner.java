@@ -6,7 +6,6 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -60,7 +59,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   private synchronized void removeOldProcesses() {
-    var removeBefore = LocalDateTime.now().minus(Duration.ofSeconds(config.processTtlSeconds));
+    var removeBefore = LocalDateTime.now().minus(config.processTtl);
     var forRemoval =
         instances.values().stream()
             .filter(inst -> inst.status().mayBeRemoved(removeBefore))
