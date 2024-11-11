@@ -11,8 +11,8 @@ export default defineConfig({
     outline: false,
 
     editLink: {
-      pattern: 'https://github.com/medizininformatik-initiative/fts-next/edit/master/docs/:path',
-      text: 'Edit this page on GitHub'
+      pattern: 'https://github.com/medizininformatik-initiative/fts-next/edit/main/docs/:path',
+      text: 'Edit'
     },
 
     socialLinks: [
