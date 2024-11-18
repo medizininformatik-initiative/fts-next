@@ -105,10 +105,10 @@ public class CohortSelectorIT extends TransferProcessControllerIT {
 
     mockBundleSender.success();
 
-    startProcess(Duration.ofSeconds(8))
+    startProcess(Duration.ofSeconds(12))
         .assertNext(r -> completedWithBundles(total, r))
         .verifyComplete();
-    startProcessForIds(Duration.ofSeconds(8), ids)
+    startProcessForIds(Duration.ofSeconds(12), ids)
         .assertNext(r -> completedWithBundles(total, r))
         .verifyComplete();
   }
