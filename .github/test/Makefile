@@ -11,6 +11,9 @@ start:
 download:
 	../scripts/download-test-data.sh ${TEST_SET_SIZE}
 
+upload-consents:
+	../scripts/upload-consents.sh ${TEST_SET_SIZE}
+
 upload:
 	../scripts/upload-data.sh ${TEST_SET_SIZE}
 
