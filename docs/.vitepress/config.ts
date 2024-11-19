@@ -75,9 +75,14 @@ export default defineConfig({
         link: '/development',
       },
     ],
+
     footer: {
       message: 'Released under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>',
       copyright: 'Copyright 2024',
     },
+
+    search: {
+      provider: 'local'
+    }
   },
 })
