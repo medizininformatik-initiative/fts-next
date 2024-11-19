@@ -29,7 +29,3 @@ consent:
   gics:
     fhir:
       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
-
-spring:
-  codec:
-    max-in-memory-size: 10MB
