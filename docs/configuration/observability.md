@@ -73,8 +73,18 @@ The `slo` field defines Service Level Objectives for various types of operations
 
 * **`deidentify`**:  
   * **Available in**: <Badge type="tip" text="Clinical Domain Agent" /><Badge type="tip" text="Research Domain Agent" />
-  * **Description**: SLOs for deidentify operation response times.
+  * **Description**: SLOs for deidentify operation times.
   * **Example Values**: `25,100,250,500,1000,10000`
+
+* **`fetchResearchMapping`**:  
+  * **Available in**: <Badge type="tip" text="Research Domain Agent" />
+  * **Description**: SLOs for fetching mappings from TCA.
+  * **Example Values**: `5,10,25,100,250,500,1000,5000,10000`
+
+* **`sendBundleToHds`**:  
+  * **Available in**: <Badge type="tip" text="Research Domain Agent" />
+  * **Description**: SLOs for sending bundles to research domain HDS.
+  * **Example Values**: `5,10,25,100,250,500,1000,5000,10000`
 
 ### Notes
 * **Management Endpoints**: Ensure only necessary endpoints are exposed for security purposes.
