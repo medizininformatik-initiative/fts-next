@@ -43,31 +43,39 @@ export default defineConfig({
         ]
       },
       {
-        text: 'Usage',
-        link: '/usage',
+        text: 'Usage', link: '/usage',
+        items: [
+          {text: 'Prerequisites', link: '/usage/prerequisites'},
+          {text: 'Installation', link: '/usage/installation'},
+          {text: 'Configuration', link: '/usage/configuration'},
+          {text: 'Execution', link: '/usage/execution'},
+        ]
       },
       {
-        text: 'Agent Configuration',
+        text: 'Agent Configuration', link: '/configuration',
         items: [
           {text: 'Projects', link: '/configuration/projects'},
           {text: 'Runner', link: '/configuration/runner'},
           {text: 'Logging', link: '/configuration/logging'},
           {text: 'SSL', link: '/configuration/ssl-bundles'},
           {text: 'Server', link: '/configuration/server'},
-          {text: 'Security', link: '/configuration/security',
+          {
+            text: 'Security', link: '/configuration/security',
             items: [
-                {text: 'Basic Auth', link: '/configuration/security/basic'},
-                {text: 'Client Certs', link: '/configuration/security/client-certs'},
-            ]},
+              {text: 'Basic Auth', link: '/configuration/security/basic'},
+              {text: 'Client Certs', link: '/configuration/security/client-certs'},
+            ]
+          },
           {text: 'Observability', link: '/configuration/observability'},
           {text: 'De-Identification', link: '/configuration/de-identification'},
           {text: 'Consent', link: '/configuration/consent'},
         ]
       },
       {
-        text: 'Project Configuration',
+        text: 'Project Configuration', link: '/project',
         items: [
-          {text: 'Project', link: '/cda/project'},
+          {text: 'Clinical Domain', link: '/cd-agent/project'},
+          {text: 'Research Domain', link: '/cd-agent/project'},
         ]
       },
       {
