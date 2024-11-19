@@ -1,3 +1,98 @@
-logging.level:
-  care.smith.fts: DEBUG
-  care.smith.fts.cda.*: TRACE
+### FTS Process Runner Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/runner
+# runner:
+#   # Maximum number of concurrent messages sent in parallel
+#   maxSendConcurrency: 32
+#   # Maximum number of processes that can run concurrently
+#   maxConcurrentProcesses: 4
+#   # Time-to-live for a process, specified as an ISO-8601 duration (e.g., P1D means 1 day)
+#   # see https://de.wikipedia.org/wiki/ISO_8601
+#   processTtl: P1D
+
+### FTS Project Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/projects
+# projects:
+#   # Directory where the project files are located
+#   directory: "./projects"
+
+### Spring Logging Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/logging
+# logging.level:
+#   # Log level for the care.smith.fts package
+#   care.smith.fts: INFO
+
+### Spring SSL Bundle Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/ssl-bundles
+# spring.ssl.bundle:
+#   pem:
+#     server:
+#       keystore:
+#         # Path to the server's SSL certificate and corresponding private key
+#         certificate: target/test-classes/server.crt
+#         private-key: target/test-classes/server.key
+#       truststore:
+#         # Path to the certificate authority (CA) certificate for server-side trust
+#         certificate: target/test-classes/ca.crt
+#     client:
+#       keystore:
+#         # Path to the client's SSL certificate and corresponding private key
+#         certificate: target/test-classes/client-default.crt
+#         private-key: target/test-classes/client-default.key
+#       truststore:
+#         # Path to the certificate authority (CA) certificate for client-side trust
+#         certificate: target/test-classes/ca.crt
+
+### Spring Server Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/server
+# server:
+#   ssl:
+#     # Use the server SSL bundle configuration defined above
+#     bundle: server
+#     # Specify client authentication requirement: 'want' means optional
+#     client-auth: want
+#     # Specify client authentication requirement: 'need' means required
+#     client-auth: need
+
+### FTS Server Security Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security
+# security:
+#   endpoints:
+#   # Define secured endpoint paths and their required roles
+#   - path: /api/v2/**
+#     role: client
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security/basic
+#   auth.basic:
+#     users:
+#     - # Define basic authentication user
+#       username: client
+#       # BCrypt hashed password for the user
+#       password: "{bcrypt}$2a$10$4i1TQpnBlcKOdUYO9O850.jJ8yGO8x9fQuu/l3Ki3HXgv0t9NOr4y"
+#       # Optionally include an unencrypted password
+#       password: "{noop}2mXA742aw7CGaLU6"
+#       # Role assigned to the user
+#       role: client
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security/client-certs
+#   auth.clientCert:
+#     users:
+#     - # Define client certificate-based authentication user
+#       username: default
+#       # Role assigned to the user
+#       role: client
+
+### Monitoring
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/observability
+# management:
+#   endpoints:
+#     web:
+#       exposure:
+#         # Define which management endpoints are accessible via web
+#         include: [ "health", "info", "prometheus" ]
+#   metrics:
+#     distribution:
+#       slo:
+#         # Service Level Objectives (SLO) for server-side HTTP request response times (in milliseconds)
+#         http.server.requests: 25,100,250,500,1000,10000
+#         # Service Level Objectives (SLO) for client-side HTTP request response times (in milliseconds)
+#         http.client.requests: 25,100,250,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
+#         # Service Level Objectives (SLO) for deidentify operations (in milliseconds)
+#         deidentify: 25,100,250,500,1000,10000

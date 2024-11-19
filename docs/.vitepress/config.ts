@@ -47,6 +47,28 @@ export default defineConfig({
         link: '/usage',
       },
       {
+        text: 'Agent Configuration',
+        items: [
+          {text: 'Projects', link: '/configuration/projects'},
+          {text: 'Runner', link: '/configuration/runner'},
+          {text: 'Logging', link: '/configuration/logging'},
+          {text: 'SSL', link: '/configuration/ssl-bundles'},
+          {text: 'Server', link: '/configuration/server'},
+          {text: 'Security', link: '/configuration/security',
+            items: [
+                {text: 'Basic Auth', link: '/configuration/security/basic'},
+                {text: 'Client Certs', link: '/configuration/security/client-certs'},
+            ]},
+          {text: 'Observability', link: '/configuration/observability'},
+        ]
+      },
+      {
+        text: 'Project Configuration',
+        items: [
+          {text: 'Project', link: '/cda/project'},
+        ]
+      },
+      {
         text: 'Development',
         link: '/development',
       },

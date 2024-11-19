@@ -38,4 +38,5 @@ security:
 
 logging.level:
   org.mockserver.log: WARN
+  care.smith.fts: DEBUG
   care.smith.fts.cda: TRACE
