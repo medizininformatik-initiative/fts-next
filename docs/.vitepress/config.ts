@@ -60,6 +60,8 @@ export default defineConfig({
                 {text: 'Client Certs', link: '/configuration/security/client-certs'},
             ]},
           {text: 'Observability', link: '/configuration/observability'},
+          {text: 'De-Identification', link: '/configuration/de-identification'},
+          {text: 'Consent', link: '/configuration/consent'},
         ]
       },
       {
