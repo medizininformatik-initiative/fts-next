@@ -1,6 +1,8 @@
 # Consent <Badge type="tip" text="Trust Center Agent" />
 
-This document outlines the **consent** configuration structure, its fields, and additional notes for proper usage. The configuration is critical for connecting with the GICS FHIR gateway for consent management.
+This document outlines the **consent** configuration structure, its fields, and additional notes for
+proper usage. The configuration is critical for connecting with the GICS FHIR gateway for consent
+management.
 
 ## Configuration Structure
 
@@ -16,12 +18,12 @@ consent:
 
 ### `gics.fhir`
 
-*  `baseUrl`
+* `baseUrl`
   * **Description**: Defines the base URL for the GICS FHIR gateway used for consent management.
   * **Default Value**: `http://gics:8080/ttp-fhir/fhir/gics`
   * **Notes**:
     * This URL serves as the primary endpoint for interactions with the GICS FHIR service.
-    *Ensure the endpoint is accessible and conforms to the GICS FHIR gateway specifications.
+      *Ensure the endpoint is accessible and conforms to the GICS FHIR gateway specifications.
 
 ## Notes
 

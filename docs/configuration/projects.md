@@ -5,6 +5,7 @@ This document describes the configuration options available for managing project
 agent contains configuration parameters for a data transfer
 
 Also See
+
 * [cda/projects](cd-agent/projects)
 * [rda/projects](rd-agent/projects)
 
@@ -19,23 +20,20 @@ projects:
   directory: "./projects"
 ```
 
-### Fields
+## Fields
 
-#### `directory`
+### `directory`
 
-- **Description**: Specifies the directory path where the project files are stored.
-- **Type**: String
-- **Default**: `"./projects"`
-- **Example**:
+* **Description**: Specifies the directory path where the project files are stored.
+* **Type**: String
+* **Default**: `"./projects"`
+* **Example**:
   ```yaml
   projects:
     directory: "./my-custom-projects"
   ```
 
-### Notes
+## Notes
 
-- The `directory` field must be a valid relative or absolute path pointing to the desired directory.
-- Ensure the specified path exists and has the necessary read/write permissions.
-
-This simple configuration allows you to customize the location of your project files based on your
-requirements.
+* The `directory` field must be a valid relative or absolute path pointing to the desired directory.
+* Ensure the specified path exists and has the necessary read/write permissions.

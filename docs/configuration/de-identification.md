@@ -1,7 +1,7 @@
 # De-Identification <Badge type="tip" text="Trust Center Agent" />
 
-This document provides an overview of the **deIdentification** configuration structure, the fields 
-it contains, and additional notes to clarify its usage. This configuration is essential for managing 
+This document provides an overview of the **deIdentification** configuration structure, the fields
+it contains, and additional notes to clarify its usage. This configuration is essential for managing
 de-identification processes and integration with mosaic services.
 
 ## Configuration Structure
@@ -19,13 +19,16 @@ deIdentification:
 ## Fields
 
 ### `keystoreUrl`
-* **Description**: Specifies the URL for the keystore service used for secure storage and retrieval of keys.
+
+* **Description**: Specifies the URL for the keystore service used for secure storage and retrieval
+  of keys.
 * **Default Value**: `redis://keystore:6379`
 * **Notes**:
   * The default value assumes the use of the provided compose file configuration.
   * Ensure the Redis service at the specified URL is properly configured and running.
 
 ### `gpas.fhir`
+
 * `baseUrl`
   * **Description**: Defines the base URL for the GPAS FHIR gateway.
   * **Default Value**: `http://gpas:8080/ttp-fhir/fhir/gpas`
@@ -34,6 +37,7 @@ deIdentification:
     * The endpoint should be accessible and compliant with the GPAS FHIR gateway specifications.
 
 ### `transport.ttl`
+
 * **Description**: Specifies the Time-To-Live (TTL) duration for transport pseudonyms.
 * **Default Value**: `PT10M` (10 minutes in ISO-8601 duration format)
 * **Notes**:
@@ -48,8 +52,10 @@ deIdentification:
 
 * **Validation**:
   *Use YAML validation tools to verify the integrity of the configuration file.
-  *Confirm that all referenced services (e.g., Redis, GPAS FHIR gateway) are available and properly authenticated.
+  *Confirm that all referenced services (e.g., Redis, GPAS FHIR gateway) are available and properly
+  authenticated.
 
 * **Security Considerations**:
   * Secure access to the keystore and FHIR gateway endpoints to prevent unauthorized access.
-  * Regularly review and update the `transport.ttl` setting to align with your data retention policies.
+  * Regularly review and update the `transport.ttl` setting to align with your data retention
+    policies.

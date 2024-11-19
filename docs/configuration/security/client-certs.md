@@ -1,27 +1,29 @@
-# Client Certificate Authentication <Badge type="tip" text="Clinical Domain Agent" /><Badge type="tip" text="Research Domain Agent" /><Badge type="tip" text="Trust Center Agent" />
+# Client Certificate Authentication <Badge type="tip" text="All Agents" />
 
-Client certificate authentication validates users based on their SSL/TLS certificates.
+Client certificate authentication validates users based on their SSL/TLS certificates and associates
+the extract cn ([username](#username)) with an application [role](#role).
 
 #### Configuration
 
 ```yaml
 clientCert:
   users:
-    - username: default
-      # Role assigned to the user
-      role: client
+  - username: default
+    # Role assigned to the user
+    role: client
 ```
-
----
 
 #### Fields
 
-- **`clientCert`**:  
-  Configuration section for client certificate authentication.
+### `users` _(list)_
 
-    - **`users`** *(list)*:  
-      A list of users authenticated via client certificates.
-        - **`username`** *(string)*:  
-          The username associated with the client certificate. Example: `default`.
-        - **`role`** *(string)*:  
-          The role assigned to the user for access control. Example: `client`.
+* #### `username`
+  * **Description**: Username for the user, which is extracted from the client certificate.
+  * **Type**: String
+  * **Example**: `client`
+
+* #### `role`
+  * **Description**: R assigned to the user, which defines access permissions.
+    R are referenced in the [endpoints list](./index.md#endpoints-list)
+  * **Type**: String
+  * **Example**: `client`
