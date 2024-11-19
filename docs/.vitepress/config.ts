@@ -74,8 +74,22 @@ export default defineConfig({
       {
         text: 'Project Configuration', link: '/project',
         items: [
-          {text: 'Clinical Domain', link: '/cd-agent/project'},
-          {text: 'Research Domain', link: '/cd-agent/project'},
+          {
+            text: 'Clinical Domain', link: '/cd-agent/project', collapsed: true,
+            items: [
+              {text: 'Cohort Selector', link: '/cd-agent/cohort-selector'},
+              {text: 'Data Selector', link: '/cd-agent/data-selector'},
+              {text: 'Deidentificator', link: '/cd-agent/deidentificator'},
+              {text: 'Bundle Sender', link: '/cd-agent/bundle-sender'},
+            ]
+          },
+          {
+            text: 'Research Domain', link: '/rd-agent/project', collapsed: true,
+            items: [
+              {text: 'Deidentificator', link: '/rd-agent/deidentificator'},
+              {text: 'Bundle Sender', link: '/rd-agent/bundle-sender'},
+            ]
+          },
         ]
       },
       {

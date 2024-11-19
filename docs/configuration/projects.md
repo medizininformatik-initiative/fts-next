@@ -4,10 +4,7 @@ This document describes the configuration options available for managing project
 `projects` section of the configuration file. A project in the scope of clinical and research domain
 agent contains configuration parameters for a data transfer
 
-Also See
-
-* [cda/projects](cd-agent/projects)
-* [rda/projects](rd-agent/projects)
+_Also, See [Project Configuration](/project)_
 
 ## Configuration Structure
 
