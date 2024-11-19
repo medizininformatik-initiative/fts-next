@@ -31,11 +31,11 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
   @Override
   public Deidentificator create(
       Deidentificator.Config commonConfig, DeidentifhirStepConfig implConfig) {
-    var httpClient = implConfig.tca().server().createClient(builder, ssl);
+    var httpClient = implConfig.trustCenterAgent().server().createClient(builder, ssl);
 
     return new DeidentifhirStep(
         httpClient,
-        implConfig.tca().domains(),
+        implConfig.trustCenterAgent().domains(),
         implConfig.maxDateShift(),
         parseFile(requireNonNull(implConfig.deidentifhirConfig())),
         parseFile(requireNonNull(implConfig.scraperConfig())),

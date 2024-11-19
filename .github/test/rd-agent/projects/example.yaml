@@ -1,6 +1,6 @@
 deidentificator:
   deidentifhir:
-    tca:
+    trustCenterAgent:
       server:
         baseUrl: http://tc-agent:8080
     deidentifhirConfig: /app/config/deidentifhir/TransportToRD.profile

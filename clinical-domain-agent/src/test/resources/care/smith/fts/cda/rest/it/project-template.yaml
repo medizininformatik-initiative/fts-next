@@ -16,7 +16,7 @@ dataSelector:
 
 deidentificator:
   deidentifhir:
-    tca:
+    trustCenterAgent:
       server:
         baseUrl: <tc-agent>
       domains:
