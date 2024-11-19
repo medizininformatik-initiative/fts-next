@@ -1,18 +1,17 @@
 # FHIR Transfer Services Usage Guide
 
 Welcome to the FHIR Transfer Services user guide! This guide will help you get started with running
-the FHIR Transfer Services
-components: [Clinical Domain Agent (CDA)](clinical-domain-agent), [Research Domain Agent (RDA)](research-domain-agent),
-and [Trust Center Agent (TCA)](trustcenter-agent).
-As the three components are intended to be run in different "domains" of a data integration center,
-running and configuring each component will be described in respective documents.
+the FHIR Transfer Services components: [Clinical Domain Agent (CDA)](clinical-domain-agent),
+[Research Domain Agent (RDA)](research-domain-agent), and
+[Trust Center Agent (TCA)](trustcenter-agent). As the three components are intended to be run in
+different "domains" of a data integration center, running and configuring each component will be
+described in respective documents.
 
 ## Overview
 
 FTS is built for the transfer of FHIR data from the clinical domain to the research domain
-while ensuring the Patients' anonymity.
-Therefore, the data are de-identified by removing specific data,
-replacing IDs with pseudonymized IDs, and shifting the dates by a random value.
+while ensuring the Patients' anonymity. Therefore, the data are de-identified by removing specific
+data, replacing IDs with pseudonymized IDs, and shifting the dates by a random value.
 
 The following sequence diagram gives an overview of FTSnext's functionality.
 
@@ -69,9 +68,8 @@ cd-agent/
 ```
 
 In the `application.yml` are server related settings e.g. SSL certificates or the path to the
-project
-setting files.
-The `projects/example.yml` shows the settings for an exemplary transfer project.
+project setting files. The `projects/example.yml` shows the settings for an exemplary transfer
+project.
 
 **Note**:
 Only CDA and RDA have projects.
@@ -102,11 +100,10 @@ spring:
             certificate: path/to/ca.crt # path to the client's truststore certificate (CA certificate) in PEM format
 ```
 
-
 ## Authentication & Authorization
 
-FTSnext offers several authentication & authorization methods: None, Basic, and Certificates.
-The configuration is defined in the security section of the agents' `application.yml`.
+FTSnext offers several authentication & authorization methods: None, Basic, and Certificates. The
+configuration is defined in the security section of the agents' `application.yml`.
 
 ### None
 
@@ -122,10 +119,10 @@ security:
   auth:
     basic:
       users:
-        - username: client
-          password: "{bcrypt}$2a$10$4i1TQpnBlcKOdUYO9O850.jJ8yGO8x9fQuu/l3Ki3HXgv0t9NOr4y"
-          # password: "{noop}2mXA742aw7CGaLU6"
-          role: client
+      - username: client
+        password: "{bcrypt}$2a$10$4i1TQpnBlcKOdUYO9O850.jJ8yGO8x9fQuu/l3Ki3HXgv0t9NOr4y"
+        # password: "{noop}2mXA742aw7CGaLU6"
+        role: client
 ```
 
 The TCA connects with both CDA and RDA, thus it needs to allow both agents:
@@ -135,14 +132,14 @@ security:
   auth:
     basic:
       users:
-        - username: cd-agent
-          password: "{bcrypt}$2a$10$S7FXGqbbci2YOjBAAaeC9.KaTP8sZ2Hyi5d3aub1L..oe3L2kqv/K"
-          # password: "{noop}Aj6cloJYsTpu+op+"
-          role: cd
-        - username: rd-agent
-          password: "{bcrypt}$2a$10$m0kteW3J47snneNzGTzkzeAtGo8FfODkmPP0uLXOz8uRvkc5Lqwme"
-          # password: "{noop}1J5MhEhhiGh33dgt"
-          role: rd
+      - username: cd-agent
+        password: "{bcrypt}$2a$10$S7FXGqbbci2YOjBAAaeC9.KaTP8sZ2Hyi5d3aub1L..oe3L2kqv/K"
+        # password: "{noop}Aj6cloJYsTpu+op+"
+        role: cd
+      - username: rd-agent
+        password: "{bcrypt}$2a$10$m0kteW3J47snneNzGTzkzeAtGo8FfODkmPP0uLXOz8uRvkc5Lqwme"
+        # password: "{noop}1J5MhEhhiGh33dgt"
+        role: rd
 ```
 
 The password can be specified in different formats:
@@ -164,7 +161,7 @@ security:
   auth:
     basic:
       users:
-        - username: cd-agent
+      - username: cd-agent
       password: "{bcrypt}$2a$10$kUT57nDMEPtigO3BtsD/UeQMLsBDsOwu4iFVAEcgucPbD1zGaHI5y"
       # password: "{noop}bdfXkmQQIQLEkvVq"
       role: cd-agent

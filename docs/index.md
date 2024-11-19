@@ -7,8 +7,10 @@ hero:
   actions:
   - theme: brand
     text: Installation
-    link: /installation
-  
+    link: /usage/installation
+  - theme: alt
+    text: Configuration
+    link: /usage/configuration
   - theme: alt
     text: View on GitHub
     link: https://github.com/medizininformatik-initiative/fts-next
