@@ -32,7 +32,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
   public Deidentificator create(
       Deidentificator.Config commonConfig, DeidentifhirStepConfig implConfig) {
 
-    var httpClient = implConfig.tca().server().createClient(builder, ssl);
+    var httpClient = implConfig.trustCenterAgent().server().createClient(builder, ssl);
     var config = ConfigFactory.parseFile(requireNonNull(implConfig.deidentifhirConfig()));
     return new DeidentifhirStep(config, httpClient, meterRegistry);
   }

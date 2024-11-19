@@ -1,6 +1,6 @@
 deidentificator:
   deidentifhir:
-    tca:
+    trustCenterAgent:
       server:
         baseUrl: <tc-agent>
       domain: MII
