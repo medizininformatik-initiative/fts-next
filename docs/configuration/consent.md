@@ -18,12 +18,8 @@ consent:
 
 ### `gics.fhir`
 
-* `baseUrl`
-  * **Description**: Defines the base URL for the GICS FHIR gateway used for consent management.
-  * **Default Value**: `http://gics:8080/ttp-fhir/fhir/gics`
-  * **Notes**:
-    * This URL serves as the primary endpoint for interactions with the GICS FHIR service.
-      *Ensure the endpoint is accessible and conforms to the GICS FHIR gateway specifications.
+* **Description**: Defines settings for connecting to GICS
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
 
 ## Notes
 

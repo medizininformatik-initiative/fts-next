@@ -29,12 +29,11 @@ deIdentification:
 
 ### `gpas.fhir`
 
-* `baseUrl`
-  * **Description**: Defines the base URL for the GPAS FHIR gateway.
-  * **Default Value**: `http://gpas:8080/ttp-fhir/fhir/gpas`
-  * **Notes**:
-    * This URL is used for interacting with the FHIR service.
-    * The endpoint should be accessible and compliant with the GPAS FHIR gateway specifications.
+* **Description**: Defines connection settings for the GPAS FHIR gateway.
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
+* **Notes**:
+  * This URL is used for interacting with the FHIR service.
+  * The endpoint should be accessible and compliant with the GPAS FHIR gateway specifications.
 
 ### `transport.ttl`
 

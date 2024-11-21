@@ -29,13 +29,13 @@ deidentificator:
 ### `deidentifhir`
 
 This implementation uses [deidentifhir](https://github.com/UMEssen/DeidentiFHIR) to accomplish 
-deidentification of fhir bundles.
+deidentification of FHIR bundles.
 
-#### `trustCenterAgent.server.baseUrl`
+#### `trustCenterAgent.server`
 
-* **Description**: Specifies the base URL of the Trust Center Agent (TCA) server used for
+* **Description**: Specifies connection settings for the Trust Center Agent (TCA) server used for
   deidentification operations.
-* **Type**: String
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
 * **Example**:
   ```yaml
     trustCenterAgent:

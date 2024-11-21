@@ -24,11 +24,11 @@ dataSelector:
 
 The "everything" data selector uses the FHIR servers `patient/$everything` operation to fetch data.
 
-#### `fhirServer.baseUrl`
+#### `fhirServer`
 
-* **Description**: Specifies the base URL of the FHIR server endpoint used for fetching patient
-  records.
-* **Type**: String
+* **Description**: Specifies connection settings of the  FHIR server endpoint used for fetching 
+  patient resources.
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
 * **Example**:
   ```yaml
     fhirServer:
@@ -48,7 +48,6 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
 
 ## Notes
 
-* The `baseUrl` field must be a valid URL pointing to a compliant FHIR server capable of handling
   the `$everything` operation.
 * The `patientIdentifierSystem` field must be a valid system URL used for resolving patient
   identifiers in the FHIR server.

@@ -27,10 +27,10 @@ cohortSelector:
 The TCA based implementation uses the connection to the trust center to select patient IDs for
 transfer.
 
-#### `server.baseUrl`
+#### `server`
 
-* **Description**: Specifies the base URL of the Trust Center Agent server.
-* **Type**: String
+* **Description**: Specifies connection settings for the Trust Center Agent server.
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
 * **Example**:
   ```yaml
     server:
@@ -51,7 +51,7 @@ transfer.
 
 * **Description**: Filters patients based on their identifier system. Only patients with identifiers
   from this system will be included.
-* **Type**: String (URL)
+* **Type**: String
 * **Example**:
   ```yaml
     patientIdentifierSystem: "https://example.org/fhir/identifiers/Patient"
@@ -61,7 +61,7 @@ transfer.
 
 * **Description**: Filters policies based on their system identifier. Only policies from this system
   will be considered valid.
-* **Type**: String (URL)
+* **Type**: String
 * **Example**:
   ```yaml
     policySystem: "https://example.org/fhir/CodeSystem/Policy"
@@ -79,7 +79,6 @@ transfer.
 
 ## Notes
 
-* Ensure that the `baseUrl` field points to a valid and accessible Trust Center Agent server.
 * The `domain` field should be chosen carefully to avoid overlapping data between namespaces.
 * The `patientIdentifierSystem` and `policySystem` fields must reference valid FHIR-based system
   URLs.

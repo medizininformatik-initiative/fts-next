@@ -6,8 +6,8 @@ processed by the CDA.
 
 ## Configuration Structure
 
-The `cohortSelector` section allows different implementations to be used for selecting the transfer
-cohort, at the moment there is only one implementation available out-of-the-box: 
+The `bundleSender` section allows different implementations to be used for sending processed
+bundles, at the moment there is only one implementation available out-of-the-box: 
 `researchDomainAgent`.
 
 ```yaml
@@ -23,22 +23,12 @@ bundleSender:
 ### `researchDomainAgent`
 
 This implementation sends processed bundles to the RDA, where another deidentification is realized 
-and data is stored in a fhir server.
+and data is stored in a FHIR server.
 
 #### `server`
 
 * **Description**: Contains settings for connecting to the RDA server.
-* **Type**: Object
-
-##### `baseUrl`
-
-* **Description**: Specifies the base URL of the RDA server.
-* **Type**: String
-* **Example**:
-  ```yaml
-      server:
-        baseUrl: "http://custom-rda-server:9090"
-  ```
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
 
 #### `project`
 
@@ -51,6 +41,5 @@ and data is stored in a fhir server.
 
 ## Notes
 
-* The `baseUrl` field must be a valid URL pointing to the RDA server.
 * The `project` field must match a valid project configuration as defined in the RDA setup. For more
   details, refer to the [Project Configuration documentation](../rd-agent/project).
