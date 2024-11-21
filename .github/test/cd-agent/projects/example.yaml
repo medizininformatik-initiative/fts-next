@@ -49,9 +49,9 @@ deidentificator:
       domains:
         # TCA domain to store pseudonyms in
         pseudonym: MII
-        # TCA domain to store salts in
+        # TCA domain to store peudonym salts in
         salt: MII
-        # TCA domain to store dateshift values in
+        # TCA domain to store dateshift salts in
         dateShift: MII
     # Dates should be shifted a maximum of this amount
     # specified as an ISO-8601 duration (e.g., P1D means 1 day)

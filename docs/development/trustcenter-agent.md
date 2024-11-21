@@ -46,7 +46,8 @@ Since we have no influence about the ids' length we add salt to the hash functio
 Therefore, we send the concatenation of "Salt_" + oPID to gPAS to create a pseudonym that is used as
 salt.
 
-Next we create a transport ID for all original IDs and return Map<oRID, tRID> and oPID ➙ tPID to
+Next we generate a random transport ID (tPID) for each original ID and return Map<oRID, tRID> and
+oPID ➙ tPID to
 the CDA.
 The CDA replaces the original IDs with the transport IDs and sends the Bundle to the RDA.
 
@@ -65,5 +66,3 @@ sequenceDiagram
     Keystore ->> TCA: idMap: Map<tRID, sRID> & sPID
     TCA ->> RDA: idMap: Map<tRID, sRID> & sPID
 ```
-
-### Shifted Dates Provider

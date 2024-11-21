@@ -1,6 +1,6 @@
 # Project <Badge type="tip" text="Clinical Domain Agent" /><Badge type="tip" text="Research Domain Agent" />
 
-In the context of "FTSnext," a "project" represents a cohesive collection of settings that
+In the context of FTSnext a *project* represents a cohesive collection of settings that
 collectively define a transfer process. This process is executed by the FTSnext agents working
 together.
 
