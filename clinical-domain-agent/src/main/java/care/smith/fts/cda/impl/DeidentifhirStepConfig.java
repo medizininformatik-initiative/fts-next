@@ -12,5 +12,4 @@ public record DeidentifhirStepConfig(
     File scraperConfig) {
 
   public record TCAConfig(HttpClientConfig server, TCADomains domains) {}
-
 }
