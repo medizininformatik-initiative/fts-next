@@ -1,3 +1,7 @@
+---
+aside: false
+---
+
 # FTS Development
 
 Welcome to the developer documentation for the FHIR Transfer Services project! This document is
