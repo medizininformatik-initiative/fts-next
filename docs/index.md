@@ -12,6 +12,9 @@ hero:
     text: Configuration
     link: /usage/configuration
   - theme: alt
+    text: Contributing
+    link: /contributing/overview
+  - theme: alt
     text: View on GitHub
     link: https://github.com/medizininformatik-initiative/fts-next
 
