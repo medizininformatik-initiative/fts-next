@@ -33,14 +33,10 @@ It will provide the following directory structure:
 
 ```shell
 cd-agent/
-├── application.yml
-├── compose.yml
-└── projects
-├── example
-│   └── deidentifhir
-└── example.yml
+├── application.yml        # server-related configurations, such as SSL, file paths, etc.
+├── compose.yml            # container image reference, network settings, healthcheck
+└── projects/              # project configuration directory
+    ├── example.yml        # example project configuration  
+    └── example/           # other files needed for the example project to function
+        └── deidentifhir/  # deidentifhir configuration used in the example project
 ```
-
-In the `application.yml` are server related settings e.g. SSL certificates or the path to the
-project setting files.  
-The `projects/example.yml` shows the settings for an exemplary transfer project.
