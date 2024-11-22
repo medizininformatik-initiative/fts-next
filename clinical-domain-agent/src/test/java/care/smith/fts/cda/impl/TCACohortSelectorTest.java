@@ -124,16 +124,16 @@ class TCACohortSelectorTest {
     create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
-  private static Consent.provisionComponent denyProvision() {
-    return new Consent.provisionComponent()
+  private static Consent.ProvisionComponent denyProvision() {
+    return new Consent.ProvisionComponent()
         .setType(Consent.ConsentProvisionType.DENY)
         .addProvision(permitProvision());
   }
 
-  private static Consent.provisionComponent permitProvision() {
+  private static Consent.ProvisionComponent permitProvision() {
     var policy =
         new CodeableConcept().addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode("any"));
-    return new Consent.provisionComponent()
+    return new Consent.ProvisionComponent()
         .setType(Consent.ConsentProvisionType.PERMIT)
         .setCode(List.of(policy))
         .setPeriod(new Period().setStart(new Date(1)).setEnd(new Date(2)));

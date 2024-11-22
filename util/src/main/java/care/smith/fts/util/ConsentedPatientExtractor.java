@@ -121,9 +121,9 @@ public interface ConsentedPatientExtractor {
       String policySystem, Bundle bundle, Set<String> policiesToCheck) {
     return getPermitProvisionsStream(bundle)
         .map(
-            (provisionComponent) ->
+            (ProvisionComponent) ->
                 getConsentedPoliciesFromProvision(
-                    policySystem, provisionComponent, policiesToCheck))
+                    policySystem, ProvisionComponent, policiesToCheck))
         .reduce(
             new ConsentedPolicies(),
             (a, b) -> {
@@ -138,7 +138,7 @@ public interface ConsentedPatientExtractor {
    * @param bundle the bundle containing the consent resources
    * @return a stream of permit provision components
    */
-  private static Stream<Consent.provisionComponent> getPermitProvisionsStream(Bundle bundle) {
+  private static Stream<Consent.ProvisionComponent> getPermitProvisionsStream(Bundle bundle) {
     return typedResourceStream(bundle, Consent.class)
         .flatMap(c -> c.getProvision().getProvision().stream());
   }
@@ -147,18 +147,18 @@ public interface ConsentedPatientExtractor {
    * Retrieves the consented policies from the given provision component.
    *
    * @param policySystem the system used for policy codes
-   * @param provisionComponent the provision component to process
+   * @param ProvisionComponent the provision component to process
    * @param policiesToCheck the set of policies to check for consent
    * @return the consented policies
    */
   private static ConsentedPolicies getConsentedPoliciesFromProvision(
       String policySystem,
-      Consent.provisionComponent provisionComponent,
+      Consent.ProvisionComponent ProvisionComponent,
       Set<String> policiesToCheck) {
-    String start = provisionComponent.getPeriod().getStartElement().asStringValue();
-    String end = provisionComponent.getPeriod().getEndElement().asStringValue();
+    String start = ProvisionComponent.getPeriod().getStartElement().asStringValue();
+    String end = ProvisionComponent.getPeriod().getEndElement().asStringValue();
 
-    var code = provisionComponent.getCode();
+    var code = ProvisionComponent.getCode();
     var consentedPolicies = new ConsentedPolicies();
     code.stream()
         .flatMap(c -> extractPolicyFromCodeableConcept(policySystem, policiesToCheck, c))
