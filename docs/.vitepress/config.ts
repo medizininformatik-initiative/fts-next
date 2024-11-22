@@ -21,8 +21,8 @@ export default withMermaid({
     ],
 
     nav: [
-      {text: 'User Guide', link: '/usage'},
-      {text: 'Contributing', link: '/contributing/overview'},
+      {text: 'User Guide', link: '/usage', activeMatch: '^/(?!contributing)'},
+      {text: 'Contributing', link: '/contributing/overview', activeMatch: '^/contributing'},
       {
         text: "v5", link: "https://github.com/medizininformatik-initiative/fts-next/releases",
         items: [
