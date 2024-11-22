@@ -43,28 +43,13 @@ curl "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c0eafb
 
 The status response looks like this:
 
+<!--@formatter:off-->
 ```json
 {
   "processId": "e17d319e-d967-467e-8c8a-0c464bb14951",
   "phase": "COMPLETED",
-  "createdAt": [
-    2024,
-    11,
-    13,
-    8,
-    35,
-    35,
-    262354492
-  ],
-  "finishedAt": [
-    2024,
-    11,
-    13,
-    8,
-    36,
-    17,
-    358171815
-  ],
+  "createdAt": [ 2024, 11, 13, 8, 35, 35, 262354492 ],
+  "finishedAt": [ 2024, 11, 13, 8, 36, 17, 358171815 ],
   "totalPatients": 100,
   "totalBundles": 119,
   "deidentifiedBundles": 118,
@@ -72,37 +57,20 @@ The status response looks like this:
   "skippedBundles": 0
 }
 ```
+<!--@formatter:on-->
 
-processId
-: process ID
+| Field                 | Description                                                                              |
+|-----------------------|------------------------------------------------------------------------------------------|
+| `processId`           | Process ID                                                                               |
+| `phase`               | Status of the process (`QUEUED`, `RUNNING`, `COMPLETED`)                                 |
+| `createdAt`           | Point in time when the process was created                                               |
+| `finishedAt`          | Point in time when the process finished                                                  |
+| `totalPatients`       | Total number of patients to be processed, may change while the process is running        |
+| `totalBundles`        | Total number of bundles to be processed                                                  |
+| `deidentifiedBundles` | Number of bundles after deidentification                                                 |
+| `sentBundles`         | Number of bundles sent to RDA                                                            |
+| `skippedBundles`      | Number of skipped bundles; if greater than zero, investigate logs to determine the cause |
 
-phase
-: QUEUED, RUNNING, COMPLETED
-
-createdAt
-: point in time when the process was created
-
-finishedAt
-: point in time when the process finished
-
-totalPatients
-: Total number of patients to be processed,
-may change while the process is running
-
-totalBundles
-: Total number of bundles to be processed
-
-deidentifiedBundles
-: Number of bundles after deidentification
-
-sentBundles
-: Number of bundles sent to RDA
-
-skippedBundles
-: Number of skipped bundles
-
-If the number of skippedBundles is greater than zero one should take a look
-into the logs to find the cause.
 
 ## Monitoring
 
