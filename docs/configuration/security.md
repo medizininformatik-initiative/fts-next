@@ -36,6 +36,6 @@ Defines the API paths requiring security and their associated roles.
 Contains the authentication mechanisms for securing endpoints.
 
 * #### `basic`
-  Configuration for [basic authentication](./basic).
+  Configuration for [basic authentication](./security/basic).
 * #### `clientCert`
-  Configuration for [client certificate authentication](./client-certs).
+  Configuration for [client certificate authentication](./security/client-certs).

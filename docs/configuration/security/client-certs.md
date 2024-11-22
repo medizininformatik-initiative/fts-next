@@ -24,6 +24,6 @@ clientCert:
 
 * #### `role`
   * **Description**: R assigned to the user, which defines access permissions.
-    R are referenced in the [endpoints list](./index#endpoints-list)
+    R are referenced in the [endpoints list](../security#endpoints-list)
   * **Type**: String
   * **Example**: `client`

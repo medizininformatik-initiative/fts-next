@@ -1,18 +1,18 @@
 # FHIR Transfer Services Usage Guide
 
 Welcome to the FHIR Transfer Services user guide! This guide will help you get started with running
-the FHIR Transfer Services components: [Clinical Domain Agent (CDA)](clinical-domain-agent),
-[Research Domain Agent (RDA)](research-domain-agent), and
-[Trust Center Agent (TCA)](trustcenter-agent). As the three components are intended to be run in
+the FHIR Transfer Services components: [Clinical Domain Agent (CDA)](./usage/clinical-domain-agent),
+[Research Domain Agent (RDA)](./usage/research-domain-agent), and
+[Trust Center Agent (TCA)](./usage/trust-center-agent). As the three components are intended to be run in
 different "domains" of a data integration center, running and configuring each component will be
 described in respective documents.
 
 ## Getting Started
 
-1. [Prerequisites](prerequisites)
-2. [Installation](installation)
-3. [Configuration](configuration)
-4. [Execution](execution)
+1. [Prerequisites](./usage/prerequisites)
+2. [Installation](./usage/installation)
+3. [Configuration](./usage/configuration)
+4. [Execution](./usage/execution)
 
 ## Overview
 
