@@ -1,4 +1,4 @@
-# De-identification
+# De-Identification
 
 The de-identification process maps the original ids (oID) from the clinical domain to
 pseudonyms (sID) in the research domain and shifts all dates by a random (but for each patient
