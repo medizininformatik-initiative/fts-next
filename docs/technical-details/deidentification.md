@@ -1,15 +1,4 @@
-# Trustcenter Agent (TCA)
-
-## Overview
-
-The TCA is required to ensure that
-
-## Consent
-
-The TCA offers an endpoint to receive a cohort of consented patients
-from [gICS](https://www.ths-greifswald.de/forscher/gics/).
-
-## De-Identification
+# De-identification
 
 The de-identification process maps the original ids (oID) from the clinical domain to
 pseudonyms (sID) in the research domain and shifts all dates by a random (but for each patient

@@ -92,6 +92,12 @@ export default withMermaid({
         text: 'Development',
         link: '/development',
       },
+      {
+        text: 'Technical Details', link: 'technical-details',
+        items: [
+          {text: 'De-Identification', link: '/technical-details/deidentification'}
+        ]
+      }
     ],
 
     footer: {
