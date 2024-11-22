@@ -31,6 +31,6 @@ basic:
 
 * #### `role`
   * **Description**: The role assigned to the user, which defines access permissions.
-    The roles are referenced in the [endpoints list](./index.md#endpoints-list)
+    The roles are referenced in the [endpoints list](./index#endpoints-list)
   * **Type**: String
   * **Example**: `client`

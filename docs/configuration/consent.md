@@ -19,7 +19,7 @@ consent:
 ### `gics.fhir`
 
 * **Description**: Defines settings for connecting to GICS
-* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 
 ## Notes
 

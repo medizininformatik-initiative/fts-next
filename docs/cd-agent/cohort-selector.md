@@ -30,7 +30,7 @@ transfer.
 #### `server`
 
 * **Description**: Specifies connection settings for the Trust Center Agent server.
-* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 * **Example**:
   ```yaml
     server:

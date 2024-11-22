@@ -68,7 +68,7 @@ The project follows a structured organization to enhance readability and maintai
   Java code, Dockerfile, CI config snippets, and Maven configuration (`pom.xml`) for the Research
   Domain Agent.
 
-- [trustcenter-agent/](trustcenter-agent.md)  
+- [trustcenter-agent/](trustcenter-agent)  
   Java code, Dockerfile, CI config snippets, and Maven configuration (`pom.xml`) for the Trust
   Center Agent.
 

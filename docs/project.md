@@ -10,5 +10,5 @@ clinical domain health data store, transformation (such as deidentification, or 
 upload to the research domains health data store.
 
 See
-* [Clinical Domain Project](./cd-agent/project.md)
-* [Research Domain Project](./rd-agent/project.md)
+* [Clinical Domain Project](./cd-agent/project)
+* [Research Domain Project](./rd-agent/project)

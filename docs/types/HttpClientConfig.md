@@ -31,9 +31,9 @@
 
 ### SSL
 
-| Field Name | Type     | Required | Default | Description                                                                                                             |
-|------------|----------|----------|---------|-------------------------------------------------------------------------------------------------------------------------|
-| `bundle`   | `String` | Yes      |         | Name of the spring ssl bundle to use for ssl connection. See [Agent Configuration/SSL](../configuration/ssl-bundles.md) |
+| Field Name | Type     | Required | Default | Description                                                                                                          |
+|------------|----------|----------|---------|----------------------------------------------------------------------------------------------------------------------|
+| `bundle`   | `String` | Yes      |         | Name of the spring ssl bundle to use for ssl connection. See [Agent Configuration/SSL](../configuration/ssl-bundles) |
 
 ### HttpClientBasicAuth
 

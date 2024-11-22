@@ -28,7 +28,7 @@ and data is stored in a FHIR server.
 #### `server`
 
 * **Description**: Contains settings for connecting to the RDA server.
-* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 
 #### `project`
 

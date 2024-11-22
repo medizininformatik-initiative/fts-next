@@ -28,7 +28,7 @@ deidentification of FHIR bundles.
 #### `trustCenterAgent.server`
 
 * **Description**: Contains settings for connecting to the Trust Center Agent (TCA).
-* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 * **Example**:
   ```yaml
     trustCenterAgent:

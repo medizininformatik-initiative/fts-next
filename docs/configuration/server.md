@@ -30,7 +30,7 @@ the client and the server by encrypting data.
   * **Default**: `server`
   * **Usage**: The name of the SSL bundle, which contains the SSL certificates and key
     configurations.
-  * See [ssl-bundles](./ssl-bundles.md) for declaring ssl bundles
+  * See [ssl-bundles](./ssl-bundles) for declaring ssl bundles
 
 * #### `client-auth`
   * **Description**: Defines the client authentication requirement for SSL communication.

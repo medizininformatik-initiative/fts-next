@@ -28,7 +28,7 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
 
 * **Description**: Specifies connection settings of the  FHIR server endpoint used for fetching 
   patient resources.
-* **Type**: [`HttpClientConfig`](../types/HttpClientConfig.md)
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 * **Example**:
   ```yaml
     fhirServer:
