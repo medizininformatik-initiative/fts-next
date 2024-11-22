@@ -10,23 +10,23 @@ The FTSnext setup consists of three agents that must be deployed.
 
 For each agent, we offer a template docker setup for download.
 
-| Agent |      Download Link       |
-|:------|:------------------------:|
-| CDA   | [cd-agent.zip][cd-agent] |
-| TCA   | [tc-agent.zip][tc-agent] |
-| RDA   | [rd-agent.zip][rd-agent] |
+| Agent |        Download Link        |
+|:------|:---------------------------:|
+| CDA   | [cd-agent.tar.gz][cd-agent] |
+| TCA   | [tc-agent.tar.gz][tc-agent] |
+| RDA   | [rd-agent.tar.gz][rd-agent] |
 
-[cd-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/cd-agent.zip
+[cd-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/cd-agent.tar.gz
 
-[tc-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/tc-agent.zip
+[tc-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/tc-agent.tar.gz
 
-[rd-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/rd-agent.zip
+[rd-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/rd-agent.tar.gz
 
 For example, to download and unpack the cd-agent template:
 
 ```shell
-wget https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/cd-agent.zip
-unzip cd-agent-template.zip
+wget https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/cd-agent.tar.gz
+tar -xvf cd-agent.tar.gz
 ```
 
 It will provide the following directory structure:
