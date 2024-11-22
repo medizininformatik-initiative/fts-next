@@ -35,7 +35,7 @@ class ConsentedPatientExtractorTest {
 
     Consent consent = new Consent();
     consent.setProvision(
-        new Consent.provisionComponent()
+        new Consent.ProvisionComponent()
             .setType(Consent.ConsentProvisionType.DENY)
             .addProvision(permittedProvisionComponent("POLICY_A"))
             .addProvision(permittedProvisionComponent("POLICY_B")));
@@ -46,8 +46,8 @@ class ConsentedPatientExtractorTest {
     return bundle;
   }
 
-  private static Consent.provisionComponent permittedProvisionComponent(String policy) {
-    return new Consent.provisionComponent()
+  private static Consent.ProvisionComponent permittedProvisionComponent(String policy) {
+    return new Consent.ProvisionComponent()
         .setType(Consent.ConsentProvisionType.PERMIT)
         .setCode(
             List.of(
