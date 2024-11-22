@@ -1,34 +1,31 @@
+---
+aside: false
+---
+
 # Installation
 
 The FTSnext setup consists of three agents that must be deployed.
-
-## Docker
-
-The agents are available as docker images:
-
-| Agent    |                         URL |
-|:---------|----------------------------:|
-| CDA      | docker-registry-24/cd-agent |
-| TCA      | docker-registry-24/tc-agent |
-| RDA      | docker-registry-24/rd-agent |
-| **TODO** |               **Fix paths** |
 
 ### Templates
 
 For each agent, we offer a template docker setup for download.
 
-| Agent    |                                  URL |
-|:---------|-------------------------------------:|
-| CDA      | https://fts-download-24/cd-agent.zip |
-| TCA      | https://fts-download-24/tc-agent.zip |
-| RDA      | https://fts-download-24/rd-agent.zip |
-| **TODO** |               **Fix download paths** |
+| Agent |      Download Link       |
+|:------|:------------------------:|
+| CDA   | [cd-agent.zip][cd-agent] |
+| TCA   | [tc-agent.zip][tc-agent] |
+| RDA   | [rd-agent.zip][rd-agent] |
+
+[cd-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/cd-agent.zip
+
+[tc-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/tc-agent.zip
+
+[rd-agent]: https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/rd-agent.zip
 
 For example, to download and unpack the cd-agent template:
 
 ```shell
-TODO
-curl download-link-to/cd-agent-template.zip
+wget https://github.com/medizininformatik-initiative/fts-next/releases/download/v5.0.0/cd-agent.zip
 unzip cd-agent-template.zip
 ```
 
@@ -44,6 +41,6 @@ cd-agent/
 └── example.yml
 ```
 
-In the `application.yml` are server related settings e.g. SSL certificates
-or the path to the project setting files.
+In the `application.yml` are server related settings e.g. SSL certificates or the path to the
+project setting files.  
 The `projects/example.yml` shows the settings for an exemplary transfer project.
