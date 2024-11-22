@@ -1,6 +1,7 @@
-import {defineConfig} from 'vitepress'
+import {withMermaid} from "vitepress-plugin-mermaid";
 
-export default defineConfig({
+
+export default withMermaid({
   title: "FTSnext",
   description: "SMITH FHIR Transfer Services",
 
@@ -37,11 +38,6 @@ export default defineConfig({
     ],
 
     sidebar: [
-      {
-        items: [
-          {text: "Overview", link: "/"},
-        ]
-      },
       {
         text: 'Usage', link: '/usage',
         items: [
