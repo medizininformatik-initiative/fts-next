@@ -18,7 +18,7 @@ spring:
 runner:
   maxConcurrency: 128
   maxProcesses: 4
-  processTtlSeconds: 86400
+  processTtl: P1D
 
 
 server:
