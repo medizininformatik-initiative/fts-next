@@ -3,7 +3,7 @@ deidentificator:
     trustCenterAgent:
       server:
         baseUrl: http://tc-agent:8080
-    deidentifhirConfig: /app/config/deidentifhir/TransportToRD.profile
+    deidentifhirConfig: /app/projects/example/deidentifhir/TransportToRD.profile
 
 bundleSender:
   fhirStore:

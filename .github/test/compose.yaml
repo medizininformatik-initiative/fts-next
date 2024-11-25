@@ -8,24 +8,13 @@ networks:
   gics:
   gpas:
 
+include:
+- cd-agent/compose.yaml
+- rd-agent/compose.yaml
+- tc-agent/compose.yaml
+
 services:
   # Clinical Domain
-  cd-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/clinical-domain-agent:latest
-    ports: [ ":8080" ]
-    networks: [ "agents", "clinical-domain" ]
-    volumes:
-    - ./cd-agent/projects:/app/projects
-    - ./deidentifhir/:/app/config/deidentifhir
-    depends_on:
-      cd-hds:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
   cd-hds:
     image: samply/blaze:0.30.2@sha256:e0f2649accb3d6478dc6855f10c3c2f84459160b8a9f3cbc195d5497c74d6a69
     ports: [ ":8080" ]
@@ -40,22 +29,6 @@ services:
       start_period: 90s
 
   # Research Domain
-  rd-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/research-domain-agent:latest
-    ports: [ ":8080" ]
-    networks: [ "agents", "research-domain" ]
-    volumes:
-    - ./rd-agent/projects:/app/projects
-    - ./deidentifhir/:/app/config/deidentifhir
-    depends_on:
-      rd-hds:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
   rd-hds:
     image: samply/blaze:0.30.2@sha256:e0f2649accb3d6478dc6855f10c3c2f84459160b8a9f3cbc195d5497c74d6a69
     ports: [ ":8080" ]
@@ -71,32 +44,6 @@ services:
       start_period: 90s
 
   # Trust Center
-  tc-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:latest
-    ports: [ ":8080" ]
-    networks: [ "agents", "trust-center" ]
-    depends_on:
-      keystore:
-        condition: service_started
-      gics:
-        condition: service_healthy
-      gpas:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
-  keystore:
-    image: valkey/valkey:8.0.1-alpine@sha256:75010b6854cb5ba6a0b1540d1bd3238541a31e3f8018cd31f9e5b92bb3192fa6
-    networks: [ "trust-center" ]
-    healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
   gics:
     image: ghcr.io/knoppiks/mosaic-gics:2024.1.1@sha256:e17c49726a6c311407c1ffc598e1fd778ba83a4b0ebc8813a1deaa85e34e8c22
     ports: [ ":8080" ]

@@ -1,0 +1,35 @@
+name: fts-tc-agent
+
+networks:
+  tc-agent:
+
+services:
+  tc-agent:
+    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:latest
+    ports: [ ":8080" ]
+    networks:
+    - tc-agent
+    - agents                                                                               # CI_ONLY
+    - trust-center                                                                         # CI_ONLY
+    depends_on:
+      keystore:
+        condition: service_healthy
+      gics:                                                                                # CI_ONLY
+        condition: service_healthy                                                         # CI_ONLY
+      gpas:                                                                                # CI_ONLY
+        condition: service_healthy                                                         # CI_ONLY
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+  keystore:
+    image: valkey/valkey:8.0.1-alpine@sha256:75010b6854cb5ba6a0b1540d1bd3238541a31e3f8018cd31f9e5b92bb3192fa6
+    networks: [ "tc-agent" ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

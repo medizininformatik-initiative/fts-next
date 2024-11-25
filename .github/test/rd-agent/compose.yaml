@@ -1,0 +1,19 @@
+name: fts-rd-agent
+
+services:
+  rd-agent:
+    image: ghcr.io/medizininformatik-initiative/fts/research-domain-agent:latest
+    ports: [ ":8080" ]
+    networks: [ "agents", "research-domain" ]                                              # CI_ONLY
+    volumes:
+    - ./projects:/app/projects
+    - ../deidentifhir/:/app/projects/example/deidentifhir                                  # CI_ONLY
+    depends_on:                                                                            # CI_ONLY
+      rd-hds:                                                                              # CI_ONLY
+        condition: service_healthy                                                         # CI_ONLY
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

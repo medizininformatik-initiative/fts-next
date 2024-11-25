@@ -298,3 +298,52 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+
+  create-release:
+    needs: push-image
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: .github/release
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+    - name: Create Release Archives
+      env:
+        COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
+      run: make cd-agent tc-agent rd-agent
+
+    - name: Upload Archives
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
+      with:
+        path: |
+          .github/release/cd-agent.tar.gz
+          .github/release/tc-agent.tar.gz
+          .github/release/rd-agent.tar.gz
+        if-no-files-found: error
+
+    - name: Recognize Prerelease
+      env:
+        GITHUB_REF: ${{ github.ref_name }}
+      # In SemVer 2.0, a prerelease version is always indicated by the presence of a hyphen
+      run: |
+        if [[ "${GITHUB_REF}" == *-* ]]; then
+          echo "is_prerelease=true" >>$GITHUB_ENV
+        fi
+
+    - name: Release
+      if: github.ref_type == 'tag'
+      uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2
+      with:
+        files: |
+          .github/release/cd-agent.tar.gz
+          .github/release/tc-agent.tar.gz
+          .github/release/rd-agent.tar.gz
+        draft: false
+        prerelease: ${{ env.is_prerelease }}
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
