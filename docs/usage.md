@@ -17,7 +17,7 @@ described in respective documents.
 ## Overview
 
 FTS is built for the transfer of FHIR data from the clinical domain to the research domain
-while ensuring the Patients' anonymity. Therefore, the data are de-identified by removing specific
+while ensuring the Patients' privacy. Therefore, the data are de-identified by removing specific
 data, replacing IDs with pseudonymized IDs, and shifting the dates by a random value.
 
 The following sequence diagram gives an overview of FTSnext's functionality.

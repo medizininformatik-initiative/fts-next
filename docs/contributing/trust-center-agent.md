@@ -25,7 +25,7 @@ This leads to a uniform distribution (w.r.t. all patients) of the date shift val
 
 The de-identification process works by generating a pseudonym for the patientID, which can be used
 to re-identify patients.
-The other ids are hashed with sha256.
+The other ids are hashed with SHA256.
 Therefore, a second pseudonym is generated that is used as salt for the hashing algorithm.
 Next, for each id a random transport id (tID) is generated and a Map of the oIDs to
 
@@ -41,7 +41,7 @@ We distinguish between the Patient ID (PID) and other Resource IDs (RID)s.
 The original PID (oPID) from the CDA domain is sent
 to [gPAS](https://www.ths-greifswald.de/forscher/gpas/) where a pseudonym or secure PID (sPID)
 is created.
-The oRIDs are hashed with sha256 to create secure RIDs (sRID)s.
+The oRIDs are hashed with SHA256 to create secure RIDs (sRID)s.
 Since we have no influence about the ids' length we add salt to the hash function.
 Therefore, we send the concatenation of "Salt_" + oPID to gPAS to create a pseudonym that is used as
 salt.
