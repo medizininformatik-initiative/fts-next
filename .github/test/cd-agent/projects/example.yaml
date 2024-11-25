@@ -24,8 +24,8 @@ deidentificator:
         salt: MII
         dateShift: MII
     maxDateShift: P14D
-    deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
-    scraperConfig: /app/config/deidentifhir/IDScraper.profile
+    deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
+    scraperConfig: /app/projects/example/deidentifhir/IDScraper.profile
 
 bundleSender:
   researchDomainAgent:
