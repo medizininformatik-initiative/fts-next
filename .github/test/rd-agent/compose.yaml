@@ -2,7 +2,7 @@ name: fts-rd-agent
 
 services:
   rd-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/research-domain-agent:latest
+    image: ghcr.io/medizininformatik-initiative/fts/research-domain-agent:latest@sha256:f2082b71ff9200f2fe4acc93c630977fecb42079cb4affbed06c480b450f6a91
     ports: [ ":8080" ]
     networks: [ "agents", "research-domain" ]                                              # CI_ONLY
     volumes:
