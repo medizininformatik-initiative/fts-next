@@ -10,7 +10,7 @@ Assuming that cd-agent points to the IP address of the CDA then the endpoint is
 
 ## Transfer Modes
 
-FTSnext has two transfer modes.
+FTSnext has two transfer modes:
 
 ### All Consented Patients
 
@@ -21,16 +21,16 @@ and all patients with consent are transferred.
 For example, to start the transfer of the template's example project run:
 
 ```shell
-curl -X POST -w "%header{Content-Location}" "https://cd-agent:8080/api/v2/process/example/start"
+curl -X POST https://cd-agent:8080/api/v2/process/example/start
 ```
 
-### Manual
+### Manual Cohort
 
 The other option is to have a list of IDs as payload with the start request, e.g.
 
 ```shell
 curl -X POST --data '["id1", "id2", "id3"]' -H "Content-Type: application/json" \
--w "%header{Content-Location}" "https://cd-agent:8080/api/v2/process/example/start"
+  https://cd-agent:8080/api/v2/process/example/start
 ```
 
 ## Transfer Status
