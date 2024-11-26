@@ -8,10 +8,5 @@ confidentiality.
 
 ## Documentation
 
-Detailed documentation is available to help users and developers understand and utilize the FHIR
-Transfer Services effectively:
-
-- [User Guide](../documentation/users/rda.md): Guide for users on how to interact with the system,
-  deploy it locally, and perform common tasks.
-- [Developer Guide](../documentation/developers/README.md): In-depth guide for developers
-  contributing to the project, covering setup, building, testing, and contributing guidelines.
+Detailed [documentation](https://medizininformatik-initiative.github.io/fts-next/) is available to
+help users and developers understand and utilize the FHIR Transfer Services.

@@ -1,34 +1,75 @@
+### FTS Project Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/project
+
+### Cohort Selection Configuration
+##! Specify which cohort selection implementation should be used.
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/cohort-selector
 cohortSelector:
+  # Configuration for fetching consent from the Trust Center Agent
   trustCenterAgent:
     server:
+      # Base URL of the Trust Center Agent server.
       baseUrl: http://tc-agent:8080
+    # Domain to search for consent. This acts as a namespace for data segregation.
     domain: MII
+    # Identifier system filter. Only patients with identifiers from this system will be included in the cohort.
     patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
+    # Policy system filter. Only policies with identifiers from this system will be considered valid.
     policySystem: "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy"
+    # List of required policies. The consent must explicitly document approval for all these policies.
     policies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
 
+### Data Selection Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/data-selector
+##! Specify which data selection implementation should be used.
 dataSelector:
+  # Uses FHIR server's $everything operation to fetch complete patient records
+  # See: https://www.hl7.org/fhir/operation-patient-everything.html
   everything:
     fhirServer:
+      # Base URL of the FHIR server endpoint
       baseUrl: http://cd-hds:8080/fhir
+    # Patient identifier resolution configuration
     resolve:
+      # System URL for patient identifier lookup
       patientIdentifierSystem: http://fts.smith.care
 
+### Deidentificator Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/deidentificator
 deidentificator:
+  # Deidentifhir is used to anonymize bundles
+  # See https://github.com/UMEssen/DeidentiFHIR
   deidentifhir:
     trustCenterAgent:
       server:
+        # Base URL of the Trust Center Agent server.
         baseUrl: http://tc-agent:8080
+      # Deidentification parameters can be store in different or in the same TCA domain
+      # When the same domain is used, key collisions are prevented using prefixes
       domains:
+        # TCA domain to store pseudonyms in
         pseudonym: MII
+        # TCA domain to store peudonym salts in
         salt: MII
+        # TCA domain to store dateshift salts in
         dateShift: MII
+    # Dates should be shifted a maximum of this amount
+    # specified as an ISO-8601 duration (e.g., P1D means 1 day)
+    # see https://de.wikipedia.org/wiki/ISO_8601
     maxDateShift: P14D
+    # Deidentifhir needs additional configuration, which must be available within the agent's
+    # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
     deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
     scraperConfig: /app/projects/example/deidentifhir/IDScraper.profile
 
+### Bundle Sender Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/bundle-sender
 bundleSender:
+  # Send bundles to the RDA
   researchDomainAgent:
     server:
+      # Base URL of the Research Domain Agent server
       baseUrl: http://rd-agent:8080
+    # What project configuration to use in the research domain
+    # See https://medizininformatik-initiative.github.io/fts-next/configuration/rd-agent/project
     project: example

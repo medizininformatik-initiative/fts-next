@@ -1,11 +1,25 @@
+### FTS Project Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/rd-agent/project
+
+### Deidentificator Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/deidentificator
 deidentificator:
+  # Deidentifhir is used to anonymize bundles
+  # See https://github.com/UMEssen/DeidentiFHIR
   deidentifhir:
     trustCenterAgent:
       server:
+        # Base URL of the Trust Center Agent server.
         baseUrl: http://tc-agent:8080
+    # Deidentifhir needs additional configuration, which must be available within the agent's
+    # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
     deidentifhirConfig: /app/projects/example/deidentifhir/TransportToRD.profile
 
+### Bundle Sender Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/rd-agent/bundle-sender
 bundleSender:
+  # Send bundles to a FHIR store
   fhirStore:
     server:
+      # Base URL of the FHIR store
       baseUrl: http://rd-hds:8080/fhir

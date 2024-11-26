@@ -1,4 +1,70 @@
-logging.level:
-  web: TRACE
-  care.smith.fts: DEBUG
-  care.smith.fts.tca.*: TRACE
+### Spring Logging Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/logging
+# logging.level:
+  # Log level for the care.smith.fts package
+  # care.smith.fts: INFO
+
+### De-Identification Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/de-identification
+# deIdentification:
+#   # Keystore URL, when using the default compose file the default should suffice
+#   keystoreUrl: redis://keystore:6379
+#   # GPAS FHIR gateway configuration
+#   gpas.fhir:
+#     baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas
+#   # Time-To-Live for transport pseudonyms
+#   transport.ttl: PT10M
+
+### Consent Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/consent
+# consent:
+### GICS FHIR gateway configuration
+#   gics.fhir:
+#       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
+
+### Spring SSL Bundle Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/ssl-bundles
+# spring.ssl.bundle:
+#   pem:
+#     server:
+#       keystore:
+#         # Path to the server's SSL certificate and corresponding private key
+#         certificate: target/test-classes/server.crt
+#         private-key: target/test-classes/server.key
+#       truststore:
+#         # Path to the certificate authority (CA) certificate for server-side trust
+#         certificate: target/test-classes/ca.crt
+#     client:
+#       keystore:
+#         # Path to the client's SSL certificate and corresponding private key
+#         certificate: target/test-classes/client-default.crt
+#         private-key: target/test-classes/client-default.key
+#       truststore:
+#         # Path to the certificate authority (CA) certificate for client-side trust
+#         certificate: target/test-classes/ca.crt
+
+### FTS Server Security Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security
+# security:
+#   endpoints:
+#   # Define secured endpoint paths and their required roles
+#   - path: /api/v2/cd/**
+#     role: cd
+#   - path: /api/v2/rd/**
+#     role: rd
+
+### Monitoring
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/observability
+# management:
+#   endpoints:
+#     web:
+#       exposure:
+#         # Define which management endpoints are accessible via web
+#         include: [ "health", "info", "prometheus" ]
+#   metrics:
+#     distribution:
+#       slo:
+#         # Service Level Objectives (SLO) for server-side HTTP request response times (in milliseconds)
+#         http.server.requests: 25,100,250,500,1000,10000
+#         # Service Level Objectives (SLO) for client-side HTTP request response times (in milliseconds)
+#         http.client.requests: 25,100,250,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
