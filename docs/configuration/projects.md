@@ -1,19 +1,14 @@
 # Projects <Badge type="tip" text="Clinical Domain Agent" /><Badge type="tip" text="Research Domain Agent" />
 
-This document describes the configuration options available for managing project settings in the
-`projects` section of the configuration file. A project in the scope of clinical and research domain
-agent contains configuration parameters for a data transfer
+This page documents the `projects` section of the FTSnext agent configuration file 
+(`application.yaml`), which is used to define the settings related to project files 
 
-_Also, See [Project Configuration](../project)_
+_For what **project** means in this context, please see [Project Configuration](../project)_
 
-## Configuration Structure
-
-The `projects` section is used to define the settings related to project files. Below is the
-structure and explanation of the available options:
+## Configuration Example
 
 ```yaml
 projects:
-  # Directory where the project files are located
   directory: "./projects"
 ```
 

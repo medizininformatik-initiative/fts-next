@@ -3,25 +3,19 @@
 This document describes the configuration options available for exposing metrics and other status
 endpoints.
 
-## Configuration Structure
-
-Below is the structure and explanation of the available options:
+## Configuration Example
 
 ```yaml
 management:
   endpoints:
     web:
       exposure:
-        # Define which management endpoints are accessible via web
         include: [ "health", "info", "prometheus" ]
   metrics:
     distribution:
       slo:
-        # Service Level Objectives (SLO) for server-side HTTP request response times (in milliseconds)
         http.server.requests: 25,100,250,500,1000,10000
-        # Service Level Objectives (SLO) for client-side HTTP request response times (in milliseconds)
         http.client.requests: 25,100,250,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
-        # Service Level Objectives (SLO) for deidentify operations (in milliseconds)
         deidentify: 25,100,250,500,1000,10000
 ```
 

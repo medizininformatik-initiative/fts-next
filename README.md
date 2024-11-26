@@ -1,9 +1,9 @@
-# SMITH FHIR Transfer Services (FTS)
+# SMITH FHIR Transfer Services (FTSnext)
 
 [![Build](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml/badge.svg)](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml)
 [![Code Coverage](https://codecov.io/gh/medizininformatik-initiative/fts-next/branch/main/graph/badge.svg)](https://codecov.io/gh/medizininformatik-initiative/fts-next)
 
-The FHIR Transfer Services (FTS) facilitate the transfer of
+The FHIR Transfer Services (FTSnext) facilitate the transfer of
 FHIR ([Fast Healthcare Interoperability Resources][fhir]) resources between FHIR servers, inhabiting
 different domains of the [SMITH][smith] architecture, namely clinical and research domain.
 

@@ -1,13 +1,11 @@
-# SSL <Badge type="tip" text="All Agents" />
+# SSL Bundles <Badge type="tip" text="All Agents" />
 
-This document provides an overview of the `spring.ssl.bundle` configuration options, which allow for
-the setup of PEM-based SSL certificate and trust management for both server and client
-communication.
-
-## Configuration Structure
-
-The `spring.ssl.bundle` configuration block is structured to define SSL certificates and private
+This page documents the `spring.ssl.bundle` section of the FTSnext agent configuration file
+(`application.yaml`), which allows for the setup of PEM-based SSL certificate and trust management 
+for both server and client communication. It is structured to define SSL certificates and private
 keys for server and client keystores, as well as certificate authorities (CAs) for truststores.
+
+## Configuration Example
 
 ```yaml
 spring.ssl.bundle:

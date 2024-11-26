@@ -2,7 +2,7 @@
 aside: false
 ---
 
-# FTS Development
+# FTSnext Development
 
 Welcome to the developer documentation for the FHIR Transfer Services project! This document is
 intended to guide developers through the codebase, architecture, and development practices.

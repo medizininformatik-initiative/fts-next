@@ -1,12 +1,12 @@
 # Consent <Badge type="tip" text="Trust Center Agent" />
 
-This document outlines the **consent** configuration structure, its fields, and additional notes for
-proper usage. The configuration is critical for connecting with the GICS FHIR gateway for consent
+This document provides an overview of the `consent` section of the FTSnext
+Trust Center Agent configuration file (`application.yaml`), the fields it contains, and
+additional notes to clarify its usage.
+The configuration is critical for connecting with the gICS FHIR gateway for consent
 management.
 
-## Configuration Structure
-
-The configuration is defined in YAML format as follows:
+## Configuration Example
 
 ```yaml
 consent:
