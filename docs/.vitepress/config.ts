@@ -1,5 +1,6 @@
 import {withMermaid} from "vitepress-plugin-mermaid";
 
+const shortVersion = process.env.VITE_LATEST_RELEASE.split(".")[0];
 
 export default withMermaid({
   title: "FTSnext",
@@ -24,7 +25,7 @@ export default withMermaid({
       {text: 'User Guide', link: '/usage', activeMatch: '^/(?!contributing)'},
       {text: 'Contributing', link: '/contributing/overview', activeMatch: '^/contributing'},
       {
-        text: "v5", link: "https://github.com/medizininformatik-initiative/fts-next/releases",
+        text: shortVersion,
         items: [
           {
             text: 'Issues',
