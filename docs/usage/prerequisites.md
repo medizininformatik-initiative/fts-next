@@ -10,7 +10,7 @@ One for the mappings:
 
 - patient ID to pseudonyms (PID -> sPID)
 - resource IDs to salt values for hashing (RID -> salt)
-- patient ID to date shift salt values (PID -> date shift salt)
+- patient ID to date shift seed value (PID -> date shift seed)
 
 As the keys are namespaced, it is possible to use **one** domain for all mappings.
 
