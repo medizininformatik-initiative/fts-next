@@ -14,4 +14,4 @@ One for the mappings:
 
 However, hence the keys are namespaced, it is possible to use domain for all mappings.
 
-Please see [here](../technical-details/deidentification) for further explanation. 
+Please see [here](../details/deidentification) for further explanation. 

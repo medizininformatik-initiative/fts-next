@@ -94,9 +94,9 @@ export default withMermaid({
               ],
         },
         {
-          text: 'Technical Details', link: 'technical-details',
+          text: 'Technical Details', link: 'details',
           items: [
-            {text: 'De-Identification', link: '/technical-details/deidentification'}
+            {text: 'De-Identification', link: '/details/deidentification'}
           ]
         },
       ],
