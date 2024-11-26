@@ -67,7 +67,7 @@ deidentification of FHIR bundles.
 
 #### `trustCenterAgent.domains.dateShift`
 
-* **Description**: The TCA domain where date shift values are stored.
+* **Description**: The TCA domain where the seeds for generating date shift values are stored.
 * **Type**: String
 * **Example**:
   ```yaml

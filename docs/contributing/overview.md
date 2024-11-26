@@ -39,7 +39,7 @@ sequenceDiagram
     CDA ->> TCA: cd/transport-mapping(Patient ID, [ID])
     TCA ->> gPAS: generate Secure ID
     TCA ->> gPAS: generate ID Salt
-    TCA ->> gPAS: generate Date Shift Salt
+      TCA ->> gPAS: generate Date Shift Seed
     TCA ->> TCA: generate [Transport ID] and Date Shift
     TCA ->> CDA: mapName, [ID -> Transport ID] and Date Shift
     CDA ->> RDA: process/{project}/patient(PatientBundle, mapName)

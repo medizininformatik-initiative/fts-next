@@ -92,8 +92,8 @@ public class FhirMappingProvider implements MappingProvider {
       Map<String, String> transportMapping,
       RMapReactive<String, String> rMap) {
     return function(
-        (patientIdPseudonym, salt, dateShiftSalt) -> {
-          var dateShifts = generate(dateShiftSalt, maxDateShift);
+        (patientIdPseudonym, salt, dateShiftSeed) -> {
+          var dateShifts = generate(dateShiftSeed, maxDateShift);
           var resolveMap =
               ImmutableMap.<String, String>builder()
                   .putAll(generateResearchMapping(salt, transportMapping))
