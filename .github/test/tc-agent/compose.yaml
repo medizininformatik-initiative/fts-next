@@ -5,7 +5,7 @@ networks:
 
 services:
   tc-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:latest
+    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:local
     ports: [ ":8080" ]
     networks:
     - tc-agent
