@@ -24,7 +24,7 @@ jobs:
 
     - name: Get Latest Release Tag using GitHub Script
       id: gh_latest_tag
-      uses: actions/github-script@v6
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
       with:
         script: |
           const latestRelease = await github.rest.repos.getLatestRelease({
