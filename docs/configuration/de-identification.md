@@ -29,11 +29,11 @@ deIdentification:
 
 ### `gpas.fhir`
 
-* **Description**: Defines connection settings for the GPAS FHIR gateway.
+* **Description**: Defines connection settings for the gPAS FHIR gateway.
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 * **Notes**:
   * This URL is used for interacting with the FHIR service.
-  * The endpoint should be accessible and compliant with the GPAS FHIR gateway specifications.
+  * The endpoint should be accessible and compliant with the gPAS FHIR gateway specifications.
 
 ### `transport.ttl`
 
@@ -51,7 +51,7 @@ deIdentification:
 
 * **Validation**:
   *Use YAML validation tools to verify the integrity of the configuration file.
-  *Confirm that all referenced services (e.g., Redis, GPAS FHIR gateway) are available and properly
+  *Confirm that all referenced services (e.g., Redis, gPAS FHIR gateway) are available and properly
   authenticated.
 
 * **Security Considerations**:
