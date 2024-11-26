@@ -1,4 +1,4 @@
-# GPAS Database Dumps
+# gPAS Database Dumps
 
 * 01_ddl.sql is copied from official gics
   deployment https://www.ths-greifswald.de/gpas/communitydownload

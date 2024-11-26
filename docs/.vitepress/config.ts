@@ -57,7 +57,7 @@ export default withMermaid({
                 {text: 'Projects', link: '/configuration/projects'},
                 {text: 'Runner', link: '/configuration/runner'},
                 {text: 'Logging', link: '/configuration/logging'},
-                {text: 'SSL', link: '/configuration/ssl-bundles'},
+                {text: 'SSL Bundles', link: '/configuration/ssl-bundles'},
                 {text: 'Server', link: '/configuration/server'},
                 {
                   text: 'Security', link: '/configuration/security',

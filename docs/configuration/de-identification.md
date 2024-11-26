@@ -1,12 +1,12 @@
 # De-Identification <Badge type="tip" text="Trust Center Agent" />
 
-This document provides an overview of the **deIdentification** configuration structure, the fields
-it contains, and additional notes to clarify its usage. This configuration is essential for managing
-de-identification processes and integration with mosaic services.
+This document provides an overview of the `deIdentification` section of the FTSnext 
+Trust Center Agent configuration file (`application.yaml`), the fields it contains, and 
+additional notes to clarify its usage. 
+This configuration is essential for managing de-identification processes and integration with 
+mosaic services.
 
-## Configuration Structure
-
-The configuration is defined in YAML format and consists of the following main components:
+## Configuration Example
 
 ```yaml
 deIdentification:
@@ -29,11 +29,11 @@ deIdentification:
 
 ### `gpas.fhir`
 
-* **Description**: Defines connection settings for the GPAS FHIR gateway.
+* **Description**: Defines connection settings for the gPAS FHIR gateway.
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 * **Notes**:
   * This URL is used for interacting with the FHIR service.
-  * The endpoint should be accessible and compliant with the GPAS FHIR gateway specifications.
+  * The endpoint should be accessible and compliant with the gPAS FHIR gateway specifications.
 
 ### `transport.ttl`
 
@@ -51,7 +51,7 @@ deIdentification:
 
 * **Validation**:
   *Use YAML validation tools to verify the integrity of the configuration file.
-  *Confirm that all referenced services (e.g., Redis, GPAS FHIR gateway) are available and properly
+  *Confirm that all referenced services (e.g., Redis, gPAS FHIR gateway) are available and properly
   authenticated.
 
 * **Security Considerations**:

@@ -2,7 +2,7 @@
 
 Basic authentication uses predefined username and password pairs for user access control.
 
-## Configuration
+## Configuration Example
 
 ```yaml
 basic:

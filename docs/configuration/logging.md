@@ -1,20 +1,17 @@
 # Logging <Badge type="tip" text="All Agents" />
 
-This documentation provides guidance on configuring the logging levels for various application
-components, using the provided YAML snippet as an example.
+This page documents the `logging` section of the FTSnext agent configuration file
+(`application.yaml`). It is used to define logging behaviour of the agents, and allows
+for fine-grained configuration, relying upon [Spring Boot logging][spring-logging].
 
-## YAML Configuration Example
-
-Below is the sample YAML snippet:
+## Configuration Example
 
 ```yaml
 logging.level:
-  # Log level for the care.smith.fts package
   care.smith.fts: INFO
 ```
 
-### Explanation
-
+### Explanation:
 * `logging.level`: This is the main configuration key used to define the log levels for specific
   application components or packages.
 * `care.smith.fts`: A specific logging prefix for the `care.smith.fts` package. The log level
@@ -64,4 +61,6 @@ For additional details, refer to the application's logging framework documentati
 
 ## References
 
-* [Spring Boot Logging](https://docs.spring.io/spring-boot/reference/features/logging.html)
+* [Spring Boot Logging][spring-logging]
+
+[spring-logging]: https://docs.spring.io/spring-boot/reference/features/logging.html

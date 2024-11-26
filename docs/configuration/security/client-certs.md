@@ -3,13 +3,12 @@
 Client certificate authentication validates users based on their SSL/TLS certificates and associates
 the extract cn ([username](#username)) with an application [role](#role).
 
-#### Configuration
+#### Configuration Example
 
 ```yaml
 clientCert:
   users:
   - username: default
-    # Role assigned to the user
     role: client
 ```
 

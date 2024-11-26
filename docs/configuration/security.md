@@ -1,9 +1,9 @@
 # Security <Badge type="tip" text="All Agents" />
 
 The `security` configuration is used to define secure endpoint paths and authentication methods for
-the application.
+FTSnext agents.
 
-## Configuration
+## Configuration Example
 
 ```yaml
 security:

@@ -1,10 +1,9 @@
 # Server <Badge type="tip" text="All Agents" />
 
-This documentation outlines the configuration options available for the server section of your YAML
-configuration. Below is a structured explanation of the fields, their meanings, and additional
-references.
+This page documents the `server` section of the FTSnext agent configuration file
+(`application.yaml`). 
 
-## Configuration Structure
+## Configuration Example
 
 ```yaml
 server:
@@ -19,7 +18,7 @@ server:
 
 ## Fields
 
-### `server.ssl`
+### `ssl`
 
 This section manages the SSL configuration of the server. SSL ensures secure communication between
 the client and the server by encrypting data.
