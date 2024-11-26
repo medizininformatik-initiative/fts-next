@@ -1,20 +1,25 @@
 # Configuration
 
-The configuration is split in two parts, one for the agents  
-and one the transfer processes.
+The configuration is split in two parts:
 
-## Agent
+## Agent Configuration
 
-The agents are configured via their `application.yml` files.
-Please consult the [agent configuration](configuration)
-for a detailed description.
+Agent configuration in the context of FTSnext means the configuration of the server components,
+like ports, certificates, logging, etc. Please see the [Agent Configuration](../agent) section for
+more information. 
 
-## Transfer Project
+_Note: You can mainly use the provided `application.yaml` as-is, but we highly recommend configuring
+https using the [ssl-bundles](../configuration/ssl-bundles) and [server](../configuration/server) 
+sections._
 
-The transfer processes are represented by projects.
-The project configuration files are placed in the path set by
-`projects.directory` in the agents' `application.yml`.
-Note that only CDA and RDA have projects.
+## Transfer Project Configuration
 
-The `projects/example.yml` in the cd-agent and rd-agent templates
+The transfer processes are represented by projects. The project configuration files are placed in
+the path set by `projects.directory` in the agents' `application.yaml`. Note that only CDA and RDA
+have projects.
+
+The `projects/example.yaml` in the cd-agent and rd-agent templates 
 show the settings for an exemplary transfer project.
+**This cannot be used as-is, as hostnames and ports differ from dic to dic**, 
+_unless you run FTSnext on a single machine using docker compose only, 
+which we would only recommend for development or testing purposes._
