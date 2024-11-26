@@ -12,6 +12,6 @@ One for the mappings:
 - resource IDs to salt values for hashing (RID -> salt)
 - patient ID to date shift salt values (PID -> date shift salt)
 
-However, hence the keys are namespaced, it is possible to use domain for all mappings.
+As the keys are namespaced, it is possible to use **one** domain for all mappings.
 
 Please see [here](../details/deidentification) for further explanation. 
