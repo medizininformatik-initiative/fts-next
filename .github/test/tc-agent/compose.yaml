@@ -5,7 +5,7 @@ networks:
 
 services:
   tc-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:latest
+    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:latest@sha256:c73880f6856c317c41f125640c926df8b05177c1826e67cb355f3aea33b5e090
     ports: [ ":8080" ]
     networks:
     - tc-agent

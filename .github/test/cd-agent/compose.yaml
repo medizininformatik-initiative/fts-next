@@ -2,7 +2,7 @@ name: fts-cd-agent
 
 services:
   cd-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/clinical-domain-agent:latest
+    image: ghcr.io/medizininformatik-initiative/fts/clinical-domain-agent:latest@sha256:1e52e12512ea384b62ee2e3c6baeda861912f4a89b34a287f9759408a4e2835a
     ports: [ ":8080" ]
     networks: [ "agents", "clinical-domain" ]                                              # CI_ONLY
     volumes:
