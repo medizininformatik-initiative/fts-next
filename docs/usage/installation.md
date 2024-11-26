@@ -41,24 +41,24 @@ tar -xvf rd-agent.tar.gz
 
 :::
 
-# It will provide the following directory structure:
+It will provide the following directory structure:
 
 ::: code-group
 
 ```shell [CD Agent]
 cd-agent/
-├── application.yaml        # server-related configurations, such as SSL, file paths, etc.
-├── compose.yaml            # container image reference, network settings, healthcheck
+├── application.yaml       # server-related configurations, such as SSL, file paths, etc.
+├── compose.yaml           # container image reference, network settings, healthcheck
 └── projects/              # project configuration directory
-    ├── example.yaml        # example project configuration  
+    ├── example.yaml       # example project configuration  
     └── example/           # other files needed for the example project to function
         └── deidentifhir/  # deidentifhir configuration used in the example project
 ```
 
 ```shell [TC Agent]
 tc-agent/
-├── application.yaml        # server-related configurations, such as SSL, file paths, etc.
-└── compose.yaml            # container image reference, network settings, healthcheck
+├── application.yaml       # server-related configurations, such as SSL, file paths, etc.
+└── compose.yaml           # container image reference, network settings, healthcheck
 
 
 
@@ -67,10 +67,10 @@ tc-agent/
 
 ```shell [RD Agent]
 rd-agent/
-├── application.yaml        # server-related configurations, such as SSL, file paths, etc.
-└── compose.yaml            # container image reference, network settings, healthcheck
+├── application.yaml       # server-related configurations, such as SSL, file paths, etc.
+└── compose.yaml           # container image reference, network settings, healthcheck
 └── projects/              # project configuration directory
-    ├── example.yaml        # example project configuration  
+    ├── example.yaml       # example project configuration  
     └── example/           # other files needed for the example project to function
         └── deidentifhir/  # deidentifhir configuration used in the example project
 ```
