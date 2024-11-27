@@ -7,13 +7,13 @@ spring:
       pem:
         server:
           keystore:
-            certificate: target/test-classes/server.crt
-            private-key: target/test-classes/server.key
+            certificate: classpath:/server.crt
+            private-key: classpath:/server.key
           truststore:
-            certificate: target/test-classes/ca.crt
+            certificate: classpath:/ca.crt
         client:
           truststore:
-            certificate: target/test-classes/ca.crt
+            certificate: classpath:/ca.crt
 
 runner:
   maxConcurrency: 128

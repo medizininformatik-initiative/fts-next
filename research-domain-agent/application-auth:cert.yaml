@@ -4,10 +4,10 @@ spring:
       pem:
         client:
           keystore:
-            certificate: target/test-classes/client-default.crt
-            private-key: target/test-classes/client-default.key
+            certificate: classpath:/client-default.crt
+            private-key: classpath:/client-default.key
           truststore:
-            certificate: target/test-classes/ca.crt
+            certificate: classpath:/ca.crt
 
 server:
   ssl:

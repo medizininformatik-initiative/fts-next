@@ -4,16 +4,16 @@ spring:
       pem:
         cd-agent:
           keystore:
-            certificate: target/test-classes/client-cd-agent.crt
-            private-key: target/test-classes/client-cd-agent.key
+            certificate: classpath:/client-cd-agent.crt
+            private-key: classpath:/client-cd-agent.key
           truststore:
-            certificate: target/test-classes/ca.crt
+            certificate: classpath:/ca.crt
         rd-agent:
           keystore:
-            certificate: target/test-classes/client-rd-agent.crt
-            private-key: target/test-classes/client-rd-agent.key
+            certificate: classpath:/client-rd-agent.crt
+            private-key: classpath:/client-rd-agent.key
           truststore:
-            certificate: target/test-classes/ca.crt
+            certificate: classpath:/ca.crt
 
 server:
   ssl:
