@@ -19,7 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Data
 public class GpasFhirDeIdentificationConfiguration {
   @NotBlank String baseUrl;
-  @NotNull HttpClientAuthMethod.AuthMethod auth;
+  @NotNull HttpClientAuthMethod.AuthMethod auth = HttpClientAuthMethod.AuthMethod.NONE;
 
   @Bean
   public ObjectMapper objectMapper() {
