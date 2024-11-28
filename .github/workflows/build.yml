@@ -52,6 +52,7 @@ jobs:
     env:
       MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
+      COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -70,7 +71,7 @@ jobs:
         cache: 'maven'
 
     - name: Build Agent
-      run: mvn ${MAVEN_ARGS} -DskipTests package
+      run: mvn ${MAVEN_ARGS} -DskipTests package ${COMMIT_TAG:+-Drevision=${COMMIT_TAG#v}}
 
     - name: Upload Jar
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
