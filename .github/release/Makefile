@@ -24,8 +24,8 @@ rd-agent:
 	mkdir ./rd-agent/projects/example
 	cp -r ../test/deidentifhir ./rd-agent/projects/example
 	find ./rd-agent/projects/example/deidentifhir \
-		-type f \( -name "TransportToRD.profile" -o -name "TransportToRD.conf" \) -delete
-	find ./cd-agent/projects/example/deidentifhir \
+		-type f \( -name "CDtoTransport.profile" -o -name "CDtoTransport.conf" \) -delete
+	find ./rd-agent/projects/example/deidentifhir \
 		-type f \( -name "IDScraper.profile" -o -name "IDScraper.conf" \) -delete
 	tar -czf rd-agent.tar.gz ./rd-agent/
 
