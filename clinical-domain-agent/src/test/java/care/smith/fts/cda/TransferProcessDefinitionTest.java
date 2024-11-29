@@ -21,6 +21,7 @@ class TransferProcessDefinitionTest {
     TransferProcessDefinition process =
         new TransferProcessDefinition(
             "test",
+            new TransferProcessConfig(null, null, null, null),
             new MockCohortSelector()
                 .create(new CohortSelector.Config(), new MockCohortSelector.Config("some")),
             new MockDataSelector()

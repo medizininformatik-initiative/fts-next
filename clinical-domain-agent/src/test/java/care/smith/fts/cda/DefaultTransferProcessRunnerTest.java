@@ -26,6 +26,7 @@ class DefaultTransferProcessRunnerTest {
   private DefaultTransferProcessRunner runner;
 
   private final TransferProcessRunnerConfig config;
+  private final TransferProcessConfig rawConfig = new TransferProcessConfig(null, null, null, null);
 
   DefaultTransferProcessRunnerTest() {
     config = new TransferProcessRunnerConfig();
@@ -44,6 +45,7 @@ class DefaultTransferProcessRunnerTest {
     var process =
         new TransferProcessDefinition(
             "test",
+            rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
@@ -65,6 +67,7 @@ class DefaultTransferProcessRunnerTest {
     var process =
         new TransferProcessDefinition(
             "test",
+            rawConfig,
             pids -> Flux.error(new Throwable("Error fetching consented patients")),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
@@ -87,6 +90,7 @@ class DefaultTransferProcessRunnerTest {
     var process =
         new TransferProcessDefinition(
             "test",
+            rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b ->

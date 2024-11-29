@@ -12,6 +12,7 @@ import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.rda.TransferProcessConfig;
 import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
 import care.smith.fts.rda.TransferProcessRunner.Phase;
@@ -150,7 +151,10 @@ class TransferProcessControllerTest {
 
   private static TransferProcessDefinition mockTransferProcess() {
     return new TransferProcessDefinition(
-        "example", (transportBundle) -> null, (patientBundle) -> null);
+        "example",
+        new TransferProcessConfig(null, null),
+        (transportBundle) -> null,
+        (patientBundle) -> null);
   }
 
   @Test

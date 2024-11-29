@@ -38,6 +38,13 @@ check-resources:
 show-status:
 	curl -sf "$(shell cat process.url)"
 
+list-projects:
+	../scripts/list-projects.sh
+
+show-project:
+	../scripts/show-project.sh
+
+
 show-hds:
 	../scripts/show-hds.sh
 

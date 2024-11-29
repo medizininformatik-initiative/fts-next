@@ -45,7 +45,12 @@ class ProjectReaderTest {
   void testDirYieldsBeans() throws Exception {
     TransferProcessDefinition process =
         new TransferProcessDefinition(
-            "example", pids -> null, c -> null, b -> null, b -> null);
+            "example",
+            new TransferProcessConfig(null, null, null, null),
+            pids -> null,
+            c -> null,
+            b -> null,
+            b -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
     var factory = new ProjectReader(processFactory, objectMapper, testDirectory);

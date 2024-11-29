@@ -2,7 +2,9 @@ package care.smith.fts.cda.rest;
 
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
+import care.smith.fts.cda.TransferProcessConfig;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessStatus;
@@ -11,6 +13,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +22,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v2/process")
+@RequestMapping("/api/v2")
 public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
@@ -31,7 +34,7 @@ public class TransferProcessController {
     this.processes = processes;
   }
 
-  @PostMapping(value = "/{project:[\\w-]+}/start")
+  @PostMapping(value = "/process/{project:[\\w-]+}/start")
   Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project,
       UriComponentsBuilder uriBuilder,
@@ -60,7 +63,7 @@ public class TransferProcessController {
     return uriBuilder.replacePath("api/v2/process/status/{id}").build(id);
   }
 
-  @GetMapping("/status/{processId:[\\w-]+}")
+  @GetMapping("/process/status/{processId:[\\w-]+}")
   Mono<ResponseEntity<TransferProcessStatus>> status(
       @PathVariable(value = "processId") String processId) {
     return processRunner
@@ -69,7 +72,7 @@ public class TransferProcessController {
         .onErrorResume(ErrorResponseUtil::notFound);
   }
 
-  @GetMapping("/statuses")
+  @GetMapping("/process/statuses")
   Mono<ResponseEntity<List<TransferProcessStatus>>> statuses() {
     return processRunner.statuses().map(s -> ResponseEntity.ok().body(s));
   }
@@ -85,5 +88,25 @@ public class TransferProcessController {
 
   private Optional<TransferProcessDefinition> findProcess(String project) {
     return processes.stream().filter(p -> p.project().equalsIgnoreCase(project)).findFirst();
+  }
+
+  @GetMapping("/projects")
+  ResponseEntity<List<String>> projects() {
+    return ResponseEntity.ok()
+        .body(processes.stream().map(TransferProcessDefinition::project).toList());
+  }
+
+  @GetMapping(value = "projects/{project:[\\w-]+}")
+  ResponseEntity<TransferProcessConfig> project(@PathVariable("project") String project) {
+    var process = findProcess(project);
+    if (process.isPresent()) {
+      return ResponseEntity.ok().body(process.get().rawConfig());
+    } else {
+      log.warn("Project '{}' does not exist", project);
+      return ResponseEntity.of(
+              ProblemDetail.forStatusAndDetail(
+                  NOT_FOUND, "Project '%s' does not exist".formatted(project)))
+          .build();
+    }
   }
 }

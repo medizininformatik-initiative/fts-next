@@ -1,8 +1,10 @@
 package care.smith.fts.cda.rest;
 
 import static java.util.List.of;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.cda.TransferProcessConfig;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
@@ -10,7 +12,6 @@ import care.smith.fts.cda.TransferProcessStatus;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -74,7 +75,7 @@ class TransferProcessControllerTest {
         .expectNext(
             ResponseEntity.of(
                     ProblemDetail.forStatusAndDetail(
-                        HttpStatus.NOT_FOUND, "Project 'non-existent' could not be found"))
+                        NOT_FOUND, "Project 'non-existent' could not be found"))
                 .build())
         .verifyComplete();
   }
@@ -82,6 +83,7 @@ class TransferProcessControllerTest {
   private static TransferProcessDefinition mockTransferProcess() {
     return new TransferProcessDefinition(
         "example",
+        new TransferProcessConfig(null, null, null, null),
         pids -> null,
         consentedPatient -> null,
         patientBundle -> null,
