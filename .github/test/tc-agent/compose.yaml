@@ -7,6 +7,8 @@ services:
   tc-agent:
     image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:local
     ports: [ ":8080" ]
+    #volumes:
+    #    - ./application.yaml:/app/application.yaml
     networks:
     - tc-agent
     - agents                                                                               # CI_ONLY

@@ -6,6 +6,7 @@ services:
     ports: [ ":8080" ]
     networks: [ "agents", "research-domain" ]                                              # CI_ONLY
     volumes:
+#    - ./application.yaml:/app/application.yaml
     - ./projects:/app/projects
     - ../deidentifhir/:/app/projects/example/deidentifhir                                  # CI_ONLY
     depends_on:                                                                            # CI_ONLY
