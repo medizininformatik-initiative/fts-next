@@ -308,6 +308,7 @@ jobs:
         working-directory: .github/release
     permissions:
       contents: write
+      actions: write
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -348,3 +349,11 @@ jobs:
         generate_release_notes: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Trigger Pages Build
+      if: github.ref_type == 'tag'
+      # We have to build the pages after the release,
+      # so that the Pages workflow can find the latest release tag
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh workflow run Pages --ref main --repo ${{ github.repository }}
