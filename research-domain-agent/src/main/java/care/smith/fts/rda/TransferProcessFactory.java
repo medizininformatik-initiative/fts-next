@@ -36,21 +36,21 @@ public class TransferProcessFactory {
   }
 
   @SuppressWarnings("unchecked")
-  public TransferProcessDefinition create(TransferProcessConfig processDefinition, String project) {
-    log.debug("Create TransferProcess from definition: {}", processDefinition);
+  public TransferProcessDefinition create(TransferProcessConfig rawConfig, String project) {
+    log.debug("Create TransferProcess from definition: {}", rawConfig);
     Deidentificator deidentificator =
         instantiateImpl(
             Deidentificator.class,
             Deidentificator.Factory.class,
             Deidentificator.Config.class,
-            processDefinition.deidentificator());
+            rawConfig.deidentificator());
     BundleSender bundleSender =
         instantiateImpl(
             BundleSender.class,
             BundleSender.Factory.class,
             BundleSender.Config.class,
-            processDefinition.bundleSender());
-    return new TransferProcessDefinition(project, deidentificator, bundleSender);
+            rawConfig.bundleSender());
+    return new TransferProcessDefinition(project, rawConfig, deidentificator, bundleSender);
   }
 
   private <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>

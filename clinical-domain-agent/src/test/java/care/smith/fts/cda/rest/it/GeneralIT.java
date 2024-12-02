@@ -2,6 +2,8 @@ package care.smith.fts.cda.rest.it;
 
 import static care.smith.fts.test.TestPatientGenerator.generateNPatients;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import care.smith.fts.cda.TransferProcessStatus;
 import java.io.IOException;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClientResponseException.NotFound;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -109,7 +112,7 @@ public class GeneralIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void invalidProject() {
+  void startProcessWithInvalidProject() {
     StepVerifier.create(
             client
                 .post()
@@ -209,5 +212,46 @@ public class GeneralIT extends TransferProcessControllerIT {
                 StepVerifier.create(response)
                     .assertNext(r -> assertThat(r.size()).isGreaterThanOrEqualTo(1))
                     .verifyComplete());
+  }
+
+  @Test
+  void projects() {
+    StepVerifier.create(client.get().uri("/api/v2/projects").retrieve().bodyToMono(String.class))
+        .assertNext(
+            transferProcessDefinitions -> {
+              assertThat(transferProcessDefinitions).isEqualTo("[\"test\"]");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void project() {
+    StepVerifier.create(
+            client.get().uri("/api/v2/projects/test").retrieve().bodyToMono(String.class))
+        .assertNext(
+            transferProcessDefinitions -> {
+              assertThat(transferProcessDefinitions).contains("trustCenterAgent");
+              assertThat(transferProcessDefinitions)
+                  .contains(
+                      "\"policies\":[\"IDAT_erheben\",\"IDAT_speichern_verarbeiten\",\"MDAT_erheben\",\"MDAT_speichern_verarbeiten\"]");
+              assertThat(transferProcessDefinitions).contains("everything");
+              assertThat(transferProcessDefinitions).contains("MII");
+              assertThat(transferProcessDefinitions)
+                  .contains("https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym");
+              assertThat(transferProcessDefinitions).contains("researchDomainAgent");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void projectReturns404() {
+    StepVerifier.create(
+            client.get().uri("/api/v2/projects/doesNotExist").retrieve().bodyToMono(String.class))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error)
+                  .asInstanceOf(type(WebClientResponseException.class))
+                  .satisfies(e -> assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND));
+            });
   }
 }

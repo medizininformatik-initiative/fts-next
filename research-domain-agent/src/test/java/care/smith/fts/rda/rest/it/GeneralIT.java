@@ -1,6 +1,9 @@
 package care.smith.fts.rda.rest.it;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import care.smith.fts.rda.TransferProcessRunner.Status;
 import care.smith.fts.test.FhirGenerators;
@@ -11,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClientResponseException.NotFound;
 import org.springframework.web.reactive.function.client.WebClientResponseException.UnsupportedMediaType;
 import reactor.core.publisher.Mono;
@@ -34,7 +38,7 @@ public class GeneralIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void invalidProject() {
+  void startProcessWithInvalidProject() {
     StepVerifier.create(
             client
                 .post()
@@ -135,5 +139,41 @@ public class GeneralIT extends TransferProcessControllerIT {
                     .expectError(NotFound.class)
                     .verifyThenAssertThat()
                     .hasOperatorErrors());
+  }
+
+  @Test
+  void projects() {
+    StepVerifier.create(client.get().uri("/api/v2/projects").retrieve().bodyToMono(String.class))
+        .assertNext(
+            transferProcessDefinitions -> {
+              assertThat(transferProcessDefinitions).isEqualTo("[\"test\"]");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void project() {
+    StepVerifier.create(
+            client.get().uri("/api/v2/projects/test").retrieve().bodyToMono(String.class))
+        .assertNext(
+            transferProcessDefinitions -> {
+              assertThat(transferProcessDefinitions).contains("trustCenterAgent");
+              assertThat(transferProcessDefinitions).contains("MII");
+              assertThat(transferProcessDefinitions).contains("fhirStore");
+            })
+        .verifyComplete();
+  }
+
+
+  @Test
+  void projectReturns404() {
+    StepVerifier.create(
+            client.get().uri("/api/v2/projects/doesNotExist").retrieve().bodyToMono(String.class))
+        .verifyErrorSatisfies(
+            error -> {
+              assertThat(error)
+                  .asInstanceOf(type(WebClientResponseException.class))
+                  .satisfies(e -> assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND));
+            });
   }
 }

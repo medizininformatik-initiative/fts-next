@@ -51,14 +51,17 @@ import reactor.test.StepVerifier.FirstStep;
 @Import(TestWebClientFactory.class)
 public class TransferProcessControllerIT extends BaseIT {
   protected WebClient client;
+  protected int port;
 
   protected final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
   protected final MockDeidentifier mockDeidentifier = new MockDeidentifier(om, tca);
   protected final MockBundleSender mockBundleSender = new MockBundleSender(hds);
 
+
   @BeforeEach
   void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+    this.port = port;
     client = factory.webClient().baseUrl("https://localhost:" + port).build();
   }
 

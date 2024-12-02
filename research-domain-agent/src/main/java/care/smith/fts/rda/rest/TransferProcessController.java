@@ -9,8 +9,10 @@ import static com.google.common.base.Predicates.and;
 import static java.util.function.Predicate.not;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.rda.TransferProcessConfig;
 import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
 import care.smith.fts.rda.TransferProcessRunner.Status;
@@ -26,6 +28,7 @@ import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.r4.model.PrimitiveType;
 import org.hl7.fhir.r4.model.StringType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.validation.annotation.Validated;
@@ -35,7 +38,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v2/process")
+@RequestMapping("/api/v2")
 @Validated
 public class TransferProcessController {
 
@@ -49,7 +52,7 @@ public class TransferProcessController {
   }
 
   @PostMapping(
-      value = "/{project:[\\w-]+}/patient",
+      value = "/process/{project:[\\w-]+}/patient",
       consumes = APPLICATION_FHIR_JSON_VALUE,
       produces = APPLICATION_FHIR_JSON_VALUE)
   Mono<ResponseEntity<Object>> start(
@@ -117,7 +120,7 @@ public class TransferProcessController {
     return uriBuilder.replacePath("api/v2/process/status/{id}").build(id);
   }
 
-  @GetMapping("/status/{processId:[\\w-]+}")
+  @GetMapping("/process/status/{processId:[\\w-]+}")
   Mono<ResponseEntity<Status>> status(@PathVariable("processId") String processId) {
     log.trace("Process ID: {}", processId);
     return processRunner
@@ -138,5 +141,25 @@ public class TransferProcessController {
       case COMPLETED -> ResponseEntity.ok();
       case ERROR -> ResponseEntity.internalServerError();
     };
+  }
+
+  @GetMapping("/projects")
+  ResponseEntity<List<String>> projects() {
+    return ResponseEntity.ok()
+        .body(processes.stream().map(TransferProcessDefinition::project).toList());
+  }
+
+  @GetMapping(value = "projects/{project:[\\w-]+}")
+  ResponseEntity<TransferProcessConfig> project(@PathVariable("project") String project) {
+    var process = findProcess(project);
+    if (process.isPresent()) {
+      return ResponseEntity.ok().body(process.get().rawConfig());
+    } else {
+      log.warn("Project '{}' does not exist", project);
+      return ResponseEntity.of(
+              ProblemDetail.forStatusAndDetail(
+                  NOT_FOUND, "Project '%s' does not exist".formatted(project)))
+          .build();
+    }
   }
 }

@@ -29,6 +29,7 @@ class DefaultTransferProcessRunnerTest {
     TransferProcessDefinition process =
         new TransferProcessDefinition(
             "test",
+            new TransferProcessConfig(null, null),
             (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
             (b) -> just(result));
 

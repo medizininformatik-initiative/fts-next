@@ -46,7 +46,8 @@ class ProjectsFactoryTest {
   @Test
   void testDirYieldsBeans() throws Exception {
     TransferProcessDefinition process =
-        new TransferProcessDefinition("example", (b) -> null, (b) -> null);
+        new TransferProcessDefinition(
+            "example", new TransferProcessConfig(null, null), (b) -> null, (b) -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
     var factory = new ProjectsFactory(processFactory, objectMapper, testDirectory);
