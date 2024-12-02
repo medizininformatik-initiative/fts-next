@@ -1,11 +1,13 @@
 package care.smith.fts.cda;
 
+import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static java.util.stream.Stream.concat;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -27,8 +29,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   private final Map<String, TransferProcessInstance> instances = new HashMap<>();
   private final Queue<TransferProcessInstance> queued = new LinkedList<>() {};
   private final TransferProcessRunnerConfig config;
+  private final ObjectMapper om;
 
-  public DefaultTransferProcessRunner(@Autowired TransferProcessRunnerConfig config) {
+  public DefaultTransferProcessRunner(
+      @Autowired ObjectMapper om, @Autowired TransferProcessRunnerConfig config) {
+    this.om = om;
     this.config = config;
   }
 
@@ -36,6 +41,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   public String start(TransferProcessDefinition process, List<String> pids) {
     var processId = UUID.randomUUID().toString();
     log.info("Run process with processId: {}", processId);
+    log.info("Project configuration: {}", asJson(om, process.rawConfig()));
     var transferProcessInstance = new TransferProcessInstance(process, processId, pids);
 
     startOrQueue(processId, transferProcessInstance);

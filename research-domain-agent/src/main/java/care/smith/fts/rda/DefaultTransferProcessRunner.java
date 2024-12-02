@@ -1,14 +1,18 @@
 package care.smith.fts.rda;
 
+import static care.smith.fts.util.JsonLogFormatter.asJson;
+
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.Deidentificator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -17,11 +21,17 @@ import reactor.core.publisher.Mono;
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   private final Map<String, TransferProcessInstance> instances = new ConcurrentHashMap<>();
+  private final ObjectMapper om;
+
+  public DefaultTransferProcessRunner(@Autowired ObjectMapper om) {
+    this.om = om;
+  }
 
   @Override
   public String start(TransferProcessDefinition process, Mono<TransportBundle> data) {
     var processId = UUID.randomUUID().toString();
     log.info("Run process with processId: {}", processId);
+    log.info("Project configuration: {}", asJson(om, process.rawConfig()));
     TransferProcessInstance transferProcessInstance = new TransferProcessInstance(process);
     transferProcessInstance.execute(data);
     instances.put(processId, transferProcessInstance);
