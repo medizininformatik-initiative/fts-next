@@ -15,7 +15,7 @@ tc-agent:
 	sed -i '/# CI_ONLY/d' ./tc-agent/compose.yaml
 	grep ":local" ./tc-agent/compose.yaml
 	sed -i "s/:local/:$${COMMIT_TAG#v}/g" ./tc-agent/compose.yaml
-	cp ../../trust-center-agent/application.yaml ./cd-agent/
+	cp ../../trust-center-agent/application.yaml ./tc-agent/
 	tar -czf tc-agent.tar.gz ./tc-agent/
 
 rd-agent:
@@ -29,7 +29,7 @@ rd-agent:
 		-type f \( -name "CDtoTransport.profile" -o -name "CDtoTransport.conf" \) -delete
 	find ./rd-agent/projects/example/deidentifhir \
 		-type f \( -name "IDScraper.profile" -o -name "IDScraper.conf" \) -delete
-	cp ../../research-domain-agent/application.yaml ./cd-agent/
+	cp ../../research-domain-agent/application.yaml ./rd-agent/
 	tar -czf rd-agent.tar.gz ./rd-agent/
 
 clean:
