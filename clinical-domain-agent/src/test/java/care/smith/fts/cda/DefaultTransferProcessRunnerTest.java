@@ -10,6 +10,7 @@ import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
@@ -37,7 +38,7 @@ class DefaultTransferProcessRunnerTest {
 
   @BeforeEach
   void setUp() {
-    runner = new DefaultTransferProcessRunner(config);
+    runner = new DefaultTransferProcessRunner(new ObjectMapper(), config);
   }
 
   @Test

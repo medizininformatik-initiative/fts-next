@@ -9,6 +9,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.rda.TransferProcessRunner.Phase;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ class DefaultTransferProcessRunnerTest {
 
   @BeforeEach
   void setUp() {
-    runner = new DefaultTransferProcessRunner();
+    runner = new DefaultTransferProcessRunner(new ObjectMapper());
   }
 
   @Test
