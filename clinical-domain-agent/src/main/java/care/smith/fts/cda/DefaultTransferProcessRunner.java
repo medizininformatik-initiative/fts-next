@@ -1,6 +1,7 @@
 package care.smith.fts.cda;
 
 import static care.smith.fts.util.JsonLogFormatter.asJson;
+import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -14,7 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +39,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   @Override
   public String start(TransferProcessDefinition process, List<String> pids) {
-    var processId = UUID.randomUUID().toString();
+    var processId = nanoId(6);
     log.info("[Process {}] Created, config: {}", processId, asJson(om, process.rawConfig()));
     var transferProcessInstance = new TransferProcessInstance(process, processId, pids);
 
