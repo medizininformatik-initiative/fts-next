@@ -1,6 +1,7 @@
 package care.smith.fts.cda;
 
 import static care.smith.fts.util.JsonLogFormatter.asJson;
+import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -14,7 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,9 +39,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   @Override
   public String start(TransferProcessDefinition process, List<String> pids) {
-    var processId = UUID.randomUUID().toString();
-    log.info("Run process with processId: {}", processId);
-    log.info("Project configuration: {}", asJson(om, process.rawConfig()));
+    var processId = nanoId(6);
+    log.info("[Process {}] Created, config: {}", processId, asJson(om, process.rawConfig()));
     var transferProcessInstance = new TransferProcessInstance(process, processId, pids);
 
     startOrQueue(processId, transferProcessInstance);
@@ -56,6 +55,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       transferProcessInstance.execute();
       instances.put(processId, transferProcessInstance);
     } else {
+      log.info("[Process {}] Queued", processId);
       queued.add(transferProcessInstance);
     }
   }
@@ -126,9 +126,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .transform(this::selectData)
           .transform(this::deidentify)
           .transform(this::sendBundles)
-          .doOnComplete(this::updateStatus)
+          .doOnComplete(this::onComplete)
           .doOnComplete(DefaultTransferProcessRunner.this::onComplete)
           .subscribe();
+      log.info("[Process {}] Started", processId());
     }
 
     private Flux<ConsentedPatient> selectCohort(List<String> pids) {
@@ -159,8 +160,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .onErrorContinue((e, r) -> status.updateAndGet(TransferProcessStatus::incSkippedBundles));
     }
 
-    private void updateStatus() {
-      status.updateAndGet(s -> s.phase() != Phase.FATAL ? checkCompletion(s) : s);
+    private void onComplete() {
+      var status = this.status.updateAndGet(s -> s.phase() != Phase.FATAL ? checkCompletion(s) : s);
+      log.info("[Process {}] Finished with: {}", processId(), status.phase());
     }
 
     private TransferProcessStatus checkCompletion(TransferProcessStatus s) {
