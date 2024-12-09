@@ -1,6 +1,30 @@
 import {withMermaid} from "vitepress-plugin-mermaid";
 
-const shortVersion = process.env.VITE_LATEST_RELEASE.split(".")[0];
+import {useSidebar} from 'vitepress-openapi'
+import spec from '../open-api/openapi.json'
+import cdSpec from '../open-api/cd-agent-openapi.json'
+import tcSpec from '../open-api/tc-agent-openapi.json'
+import rdSpec from '../open-api/rd-agent-openapi.json'
+
+const shortVersion = (process.env.VITE_LATEST_RELEASE || "local").split(".")[0];
+
+const sidebar = useSidebar({
+  spec,
+  linkPrefix: '/open-api/operations/'
+})
+
+const cdSidebar = useSidebar({
+  spec: cdSpec,
+  linkPrefix: '/open-api/cd-operations/'
+})
+const tcSidebar = useSidebar({
+  spec: tcSpec,
+  linkPrefix: '/open-api/tc-operations/'
+})
+const rdSidebar = useSidebar({
+  spec: rdSpec,
+  linkPrefix: '/open-api/rd-operations/'
+})
 
 export default withMermaid({
   title: "FTSnext",
@@ -98,6 +122,30 @@ export default withMermaid({
           items: [
             {text: 'De-Identification', link: '/details/deidentification'}
           ]
+        },
+        {
+          text: 'EndpointsTest',
+          items: [
+            ...sidebar.generateSidebarGroups(),
+
+          ],
+        },
+        {
+          text: 'Endpoints',
+          items: [{
+            text: 'Clinical Domain Agent', collapsed: true, items: [
+              ...cdSidebar.generateSidebarGroups(),
+            ]
+          }, {
+            text: 'Trust Center Domain Agent', collapsed: true, items: [
+              ...tcSidebar.generateSidebarGroups(),
+            ]
+          }, {
+            text: 'Research Domain Agent', collapsed: true, items: [
+              ...rdSidebar.generateSidebarGroups(),
+            ]
+          },
+          ],
         },
       ],
       '/contributing/': [

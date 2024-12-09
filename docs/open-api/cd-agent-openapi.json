@@ -1,0 +1,298 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://cd-agent",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/api/v2/process/{project}/start": {
+      "post": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "start",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/projects": {
+      "get": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "projects",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/projects/{project}": {
+      "get": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "project",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferProcessConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/process/statuses": {
+      "get": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "statuses",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransferProcessStatus"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/process/status/{processId}": {
+      "get": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "status",
+        "parameters": [
+          {
+            "name": "processId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferProcessStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TransferProcessConfig": {
+        "required": [
+          "bundleSender",
+          "cohortSelector",
+          "dataSelector",
+          "deidentificator"
+        ],
+        "type": "object",
+        "properties": {
+          "cohortSelector": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "dataSelector": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "deidentificator": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "bundleSender": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "TransferProcessStatus": {
+        "type": "object",
+        "properties": {
+          "processId": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETED",
+              "COMPLETED_WITH_ERROR",
+              "FATAL"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalPatients": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalBundles": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deidentifiedBundles": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sentBundles": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "skippedBundles": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}
