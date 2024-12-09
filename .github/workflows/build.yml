@@ -187,6 +187,20 @@ jobs:
     - name: Start Test Environment
       run: make start
 
+    - name: Get OpenAPI Specifications
+      run: |
+        make openapi-spec AGENT=cd-agent
+        make openapi-spec AGENT=tc-agent
+        make openapi-spec AGENT=rd-agent
+        tar czf /tmp/openapi-specs.tar.gz cd-agent-openapi.json tc-agent-openapi.json rd-agent-openapi.json
+
+    - name: Upload OpenAPI Specifications
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
+      with:
+        name: openapi-specs
+        path: /tmp/openapi-specs.tar.gz
+        if-no-files-found: error
+
     - name: Cache Test Data
       id: cache-test-data
       uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
@@ -351,9 +365,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Trigger Pages Build
-      if: github.ref_type == 'tag'
-      # We have to build the pages after the release,
-      # so that the Pages workflow can find the latest release tag
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh workflow run Pages --ref main --repo ${{ github.repository }}
+      run: gh workflow run Pages --ref ${{ github.ref_name }} --repo ${{ github.repository }}

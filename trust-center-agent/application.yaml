@@ -68,3 +68,6 @@
 #         http.server.requests: 25,100,250,500,1000,10000
 #         # Service Level Objectives (SLO) for client-side HTTP request response times (in milliseconds)
 #         http.client.requests: 25,100,250,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
+springdoc:
+  api-docs:
+    path: /api/v2/openapi

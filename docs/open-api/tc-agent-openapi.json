@@ -1,0 +1,492 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://tc-agent",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/api/v2/rd/research-mapping": {
+      "post": {
+        "tags": [
+          "de-identification-controller"
+        ],
+        "operationId": "researchMapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "pattern": "^[\\w-]+$",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchMappingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/cd/transport-mapping": {
+      "post": {
+        "tags": [
+          "de-identification-controller"
+        ],
+        "operationId": "transportMapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransportMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransportMappingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/cd/consented-patients/fetch-all": {
+      "post": {
+        "tags": [
+          "consent-controller"
+        ],
+        "operationId": "fetchAll",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentFetchAllRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/api/v2/cd/consented-patients/fetch": {
+      "post": {
+        "tags": [
+          "consent-controller"
+        ],
+        "operationId": "fetch",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentFetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {}
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResearchMappingResponse": {
+        "required": [
+          "dateShiftBy",
+          "tidPidMap"
+        ],
+        "type": "object",
+        "properties": {
+          "tidPidMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "dateShiftBy": {
+            "type": "object",
+            "properties": {
+              "seconds": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "zero": {
+                "type": "boolean"
+              },
+              "nano": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "negative": {
+                "type": "boolean"
+              },
+              "positive": {
+                "type": "boolean"
+              },
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "durationEstimated": {
+                      "type": "boolean"
+                    },
+                    "duration": {
+                      "type": "object",
+                      "properties": {
+                        "seconds": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "zero": {
+                          "type": "boolean"
+                        },
+                        "nano": {
+                          "type": "integer",
+                          "format": "int32"
+                        },
+                        "negative": {
+                          "type": "boolean"
+                        },
+                        "positive": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "timeBased": {
+                      "type": "boolean"
+                    },
+                    "dateBased": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "TCADomains": {
+        "type": "object",
+        "properties": {
+          "pseudonym": {
+            "type": "string"
+          },
+          "salt": {
+            "type": "string"
+          },
+          "dateShift": {
+            "type": "string"
+          }
+        }
+      },
+      "TransportMappingRequest": {
+        "required": [
+          "maxDateShift",
+          "patientId",
+          "resourceIds",
+          "tcaDomains"
+        ],
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string"
+          },
+          "resourceIds": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tcaDomains": {
+            "$ref": "#/components/schemas/TCADomains"
+          },
+          "maxDateShift": {
+            "type": "object",
+            "properties": {
+              "seconds": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "zero": {
+                "type": "boolean"
+              },
+              "nano": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "negative": {
+                "type": "boolean"
+              },
+              "positive": {
+                "type": "boolean"
+              },
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "durationEstimated": {
+                      "type": "boolean"
+                    },
+                    "duration": {
+                      "type": "object",
+                      "properties": {
+                        "seconds": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "zero": {
+                          "type": "boolean"
+                        },
+                        "nano": {
+                          "type": "integer",
+                          "format": "int32"
+                        },
+                        "negative": {
+                          "type": "boolean"
+                        },
+                        "positive": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "timeBased": {
+                      "type": "boolean"
+                    },
+                    "dateBased": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "TransportMappingResponse": {
+        "type": "object",
+        "properties": {
+          "transferId": {
+            "type": "string"
+          },
+          "transportMapping": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "dateShiftValue": {
+            "type": "object",
+            "properties": {
+              "seconds": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "zero": {
+                "type": "boolean"
+              },
+              "nano": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "negative": {
+                "type": "boolean"
+              },
+              "positive": {
+                "type": "boolean"
+              },
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "durationEstimated": {
+                      "type": "boolean"
+                    },
+                    "timeBased": {
+                      "type": "boolean"
+                    },
+                    "dateBased": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ConsentFetchAllRequest": {
+        "required": [
+          "domain",
+          "policies",
+          "policySystem"
+        ],
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "policies": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "policySystem": {
+            "type": "string"
+          }
+        }
+      },
+      "ConsentFetchRequest": {
+        "required": [
+          "domain",
+          "patientIdentifierSystem",
+          "policies",
+          "policySystem"
+        ],
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "policies": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "policySystem": {
+            "type": "string"
+          },
+          "patientIdentifierSystem": {
+            "type": "string"
+          },
+          "pids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
