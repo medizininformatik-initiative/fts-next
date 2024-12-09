@@ -1,7 +1,6 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockserver.matchers.Times.once;
 import static org.mockserver.model.HttpRequest.request;
@@ -19,6 +18,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.stream.Stream;
@@ -45,15 +45,15 @@ class RDABundleSenderTest {
   private static final String PATIENT_ID = "patient-102931";
   private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);
 
-  private final HttpClientConfig server = new HttpClientConfig("http://localhost", NONE);
+  private final HttpClientConfig server = new HttpClientConfig("http://localhost");
   private final RDABundleSenderConfig config = new RDABundleSenderConfig(server, "example");
 
   private WebClient client;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer, @Autowired WebClient.Builder builder) {
+  void setUp(MockServerClient mockServer, @Autowired WebClientFactory clientFactory) {
     var server = MockServerUtil.clientConfig(mockServer);
-    client = server.createClient(builder, null);
+    client = clientFactory.create(server);
   }
 
   @Test

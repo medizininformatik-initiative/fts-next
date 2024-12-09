@@ -47,7 +47,11 @@ import reactor.test.StepVerifier;
 
 @Slf4j
 @SpringBootTest(
-    classes = {FhirCodecConfiguration.class, WebServerFhirCodecTest.Config.class, HttpServerAuthConfig.class},
+    classes = {
+      FhirCodecConfiguration.class,
+      WebServerFhirCodecTest.Config.class,
+      HttpServerAuthConfig.class
+    },
     webEnvironment = RANDOM_PORT)
 public class WebServerFhirCodecTest {
 
@@ -164,17 +168,7 @@ public class WebServerFhirCodecTest {
 
   @SpringBootApplication
   @Import({WebServerFhirCodecTest.Controller.class, FhirCodecConfiguration.class})
-  public static class Config {
-    @Bean
-    FhirContext fhirContext() {
-      return forR4();
-    }
-
-    @Bean
-    public HttpClient httpClient() {
-      return HttpClient.newBuilder().connectTimeout(ofSeconds(10)).build();
-    }
-  }
+  public static class Config {}
 
   private ResponseSpec getRequest(String path) {
     return webClient

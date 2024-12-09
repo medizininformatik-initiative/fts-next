@@ -40,7 +40,7 @@ class FetchAllConsentControllerIT extends BaseIT {
 
   @BeforeAll
   static void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
-    client = factory.webClient("cd-agent").baseUrl("https://localhost:" + port).build();
+    client = factory.webClient("https://localhost:" + port, "cd-agent");
   }
 
   @Test

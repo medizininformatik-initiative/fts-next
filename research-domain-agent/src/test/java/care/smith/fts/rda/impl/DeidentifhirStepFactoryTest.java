@@ -6,25 +6,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.impl.DeidentifhirStepConfig.TCAConfig;
 import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.File;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootTest
 class DeidentifhirStepFactoryTest {
 
   @Autowired MeterRegistry meterRegistry;
-  @Autowired WebClientSsl ssl;
   private DeidentifhirStepFactory factory;
 
   @BeforeEach
-  void setUp() {
-    factory = new DeidentifhirStepFactory(WebClient.builder(), ssl, meterRegistry);
+  void setUp(@Autowired WebClientFactory clientFactory) {
+    factory = new DeidentifhirStepFactory(clientFactory, meterRegistry);
   }
 
   @Test

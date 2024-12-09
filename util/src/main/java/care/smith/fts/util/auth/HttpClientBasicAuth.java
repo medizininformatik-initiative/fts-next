@@ -1,17 +1,21 @@
 package care.smith.fts.util.auth;
 
+import care.smith.fts.util.auth.HttpClientBasicAuth.Config;
+import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-public record HttpClientBasicAuth(
-    /* */
-    String user,
+@Component
+public class HttpClientBasicAuth implements HttpClientAuth<Config> {
 
-    /* */
-    String password)
-    implements HttpClientAuthMethod {
+  public record Config(
+      /* */
+      String user,
+
+      /* */
+      String password) {}
 
   @Override
-  public void configure(WebClient.Builder builder) {
-    builder.defaultHeaders(headers -> headers.setBasicAuth(user, password));
+  public void configure(Config config, WebClient.Builder builder) {
+    builder.defaultHeaders(headers -> headers.setBasicAuth(config.user(), config.password()));
   }
 }
