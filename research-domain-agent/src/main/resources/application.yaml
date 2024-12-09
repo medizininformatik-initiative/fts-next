@@ -16,3 +16,7 @@ security:
   endpoints:
   - path: /api/v2/**
     role: cd-agent
+
+springdoc:
+  api-docs:
+    path: /api/v2/openapi

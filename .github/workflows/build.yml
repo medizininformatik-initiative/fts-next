@@ -352,8 +352,6 @@ jobs:
 
     - name: Trigger Pages Build
       if: github.ref_type == 'tag'
-      # We have to build the pages after the release,
-      # so that the Pages workflow can find the latest release tag
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: gh workflow run Pages --ref main --repo ${{ github.repository }}

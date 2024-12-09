@@ -1,6 +1,6 @@
 import {withMermaid} from "vitepress-plugin-mermaid";
 
-const shortVersion = process.env.VITE_LATEST_RELEASE.split(".")[0];
+const shortVersion = (process.env.VITE_LATEST_RELEASE || "local").split(".")[0];
 
 export default withMermaid({
   title: "FTSnext",
@@ -8,6 +8,16 @@ export default withMermaid({
 
   base: process.env.DOCS_BASE || "",
   lastUpdated: true,
+
+  vue: {
+    template: {
+      compilerOptions: {
+        isCustomElement: (tag: string) => {
+          return tag.indexOf('rapi-doc') >= 0;
+        }
+      }
+    }
+  },
 
   themeConfig: {
     outline: false,
@@ -99,6 +109,12 @@ export default withMermaid({
             {text: 'De-Identification', link: '/details/deidentification'}
           ]
         },
+        {
+          text: "Reference",
+          items: [
+            {text: 'API', link: '/open-api/cd-openapi.md'}
+          ]
+        },
       ],
       '/contributing/': [
         {
@@ -107,6 +123,14 @@ export default withMermaid({
             {text: 'Repository Structure', link: '/contributing/structure'},
             {text: 'Clinical Domain Agent', link: '/contributing/clinical-domain-agent'},
             {text: 'Trust Center Agent', link: '/contributing/trust-center-agent'},
+            {
+              text: 'API',
+              items: [
+                {text: 'Clinical Domain Agent', link: '/open-api/cd-openapi.md'},
+                {text: 'Trust Center Domain Agent', link: '/open-api/tc-openapi.md'},
+                {text: 'Research Domain Agent', link: '/open-api/rd-openapi.md'},
+              ],
+            },
           ]
         },
       ]

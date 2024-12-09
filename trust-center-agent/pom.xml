@@ -44,6 +44,11 @@
     </dependency>
 
     <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
@@ -152,7 +157,8 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>${project.basedir}/../util/src/main/bash/generate-certificates.sh</executable>
+              <executable>${project.basedir}/../util/src/main/bash/generate-certificates.sh
+              </executable>
               <arguments>
                 <argument>localhost</argument>
                 <argument>cd-agent</argument>

@@ -4,6 +4,11 @@ import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -32,6 +37,17 @@ public class DeIdentificationController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   @ExceptionHandler(UnknownDomainException.class)
+  @Operation(
+      summary = "Get the transport mapping",
+      requestBody =
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              content = @Content(schema = @Schema(implementation = TransportMappingRequest.class))),
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content = @Content(schema = @Schema(implementation = TransportMappingResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Bad request"),
+      })
   public Mono<ResponseEntity<TransportMappingResponse>> transportMapping(
       @Valid @RequestBody Mono<TransportMappingRequest> requestData) {
     return requestData
@@ -53,6 +69,16 @@ public class DeIdentificationController {
       value = "/rd/research-mapping",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
+  @Operation(
+      summary = "Get the research mapping",
+      requestBody =
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              content = @Content(schema = @Schema(implementation = String.class))),
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content = @Content(schema = @Schema(implementation = ResearchMappingResponse.class))),
+      })
   public Mono<ResponseEntity<ResearchMappingResponse>> researchMapping(
       @RequestBody @NotNull @Pattern(regexp = "^[\\w-]+$") String transferId) {
     log.trace("Resolve pseudonyms of map: {} ", transferId);

@@ -29,3 +29,7 @@ consent:
   gics:
     fhir:
       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
+
+springdoc:
+  api-docs:
+    path: /api/v2/openapi
