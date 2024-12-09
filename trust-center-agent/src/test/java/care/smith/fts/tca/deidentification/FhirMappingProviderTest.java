@@ -43,8 +43,8 @@ import org.redisson.api.RedissonReactiveClient;
 import org.redisson.client.RedisTimeoutException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -60,7 +60,7 @@ class FhirMappingProviderTest {
       new TransportMappingRequest("id1", Set.of("id1"), DEFAULT_DOMAINS, Duration.ofDays(14));
 
   @Autowired WebClient.Builder httpClientBuilder;
-  @MockBean RedissonClient redisClient;
+  @MockitoBean RedissonClient redisClient;
   @Mock RedissonReactiveClient redis;
   @Mock RMapCacheReactive<Object, Object> mapCache;
   @Autowired TransportMappingConfiguration transportMappingConfiguration;
