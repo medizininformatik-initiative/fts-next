@@ -1,0 +1,13 @@
+spring:
+  ssl:
+    bundle:
+      pem:
+        server:
+          keystore:
+            certificate: classpath:/server.crt
+            private-key: classpath:/server.key
+          truststore:
+            certificate: classpath:/ca.crt
+        client:
+          truststore:
+            certificate: classpath:/ca.crt

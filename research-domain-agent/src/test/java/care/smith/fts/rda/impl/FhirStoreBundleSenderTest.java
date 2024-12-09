@@ -1,5 +1,6 @@
 package care.smith.fts.rda.impl;
 
+import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -8,7 +9,7 @@ import static org.springframework.http.HttpStatus.OK;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.rda.BundleSender;
-import care.smith.fts.test.MockServerUtil;
+import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
@@ -19,10 +20,8 @@ import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClient.Builder;
 
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
@@ -32,9 +31,8 @@ class FhirStoreBundleSenderTest {
   private WebClient client;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer, @Autowired Builder builder) {
-    var server = MockServerUtil.clientConfig(mockServer);
-    client = server.createClient(builder, null);
+  void setUp(MockServerClient mockServer, @Autowired WebClientFactory clientFactory) {
+    client = clientFactory.create(clientConfig(mockServer));
   }
 
   @Test

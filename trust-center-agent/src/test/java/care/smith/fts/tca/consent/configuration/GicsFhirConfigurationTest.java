@@ -35,11 +35,6 @@ class GicsFhirConfigurationTest {
   }
 
   @Test
-  void getAuth() {
-    assertThat(gicsFhirConfiguration.getAuth()).isNotNull();
-  }
-
-  @Test
   void fhirConsentedPatientsProvider() {
     assertThat(fhirConsentProvider).isNotNull();
   }

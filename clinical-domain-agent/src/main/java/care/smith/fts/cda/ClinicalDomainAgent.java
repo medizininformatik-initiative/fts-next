@@ -7,6 +7,7 @@ import care.smith.fts.util.CustomErrorHandler;
 import care.smith.fts.util.FhirCodecConfiguration;
 import care.smith.fts.util.MetricsConfig;
 import care.smith.fts.util.WebClientDefaults;
+import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.auth.HttpServerAuthConfig;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +34,7 @@ import org.springframework.context.annotation.Primary;
   MetricsConfig.class,
   HttpServerAuthConfig.class,
   CustomErrorHandler.class,
+  WebClientFactory.class,
 })
 public class ClinicalDomainAgent {
 
