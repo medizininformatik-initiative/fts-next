@@ -7,7 +7,9 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.test.MockServerUtil;
+import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,9 +20,8 @@ import org.mockserver.junit.jupiter.MockServerExtension;
 import org.mockserver.model.Header;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.web.reactive.function.client.WebClient;
 
-@SpringBootTest
+@SpringBootTest(classes = ClinicalDomainAgent.class)
 @ExtendWith(MockServerExtension.class)
 class FhirResolveServiceTest {
 
@@ -28,14 +29,13 @@ class FhirResolveServiceTest {
   private static final Header CONTENT_JSON = new Header("Content-Type", "application/json");
   private static final String KDS_PATIENT = "https://some.example.com/pid";
 
-  @Autowired WebClient.Builder builder;
   @Autowired MeterRegistry meterRegistry;
 
   private FhirResolveService service;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer) throws Exception {
-    var client = clientConfig(mockServer).createClient(builder, null);
+  void setUp(MockServerClient mockServer, @Autowired WebClientFactory clientFactory) throws Exception {
+    var client = clientFactory.create(clientConfig(mockServer));
     this.service = new FhirResolveService(KDS_PATIENT, client, meterRegistry);
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();

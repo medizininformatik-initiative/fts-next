@@ -1,6 +1,5 @@
 package care.smith.fts.test;
 
-import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static org.mockserver.integration.ClientAndServer.startClientAndServer;
 import static org.mockserver.model.MediaType.create;
 
@@ -18,7 +17,7 @@ import org.mockserver.model.MediaType;
 public interface MockServerUtil {
   static HttpClientConfig clientConfig(MockServerClient server) {
     var address = "http://localhost:%d".formatted(server.getPort());
-    return new HttpClientConfig(address, NONE);
+    return new HttpClientConfig(address);
   }
 
   static InputStream getResourceAsStream(String resourceName) {
