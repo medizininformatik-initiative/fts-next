@@ -3,6 +3,7 @@ package care.smith.fts.util.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
+import care.smith.fts.util.auth.HttpClientAuth.Config;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -22,15 +23,16 @@ public class HTTPClientBasicAuthTest {
           password: pass-090130
         """;
 
-    assertThat(om.readValue(config, HttpClientAuthMethod.AuthMethod.class)).isNotNull();
+    assertThat(om.readValue(config, Config.class)).isNotNull();
   }
 
   @Test
   public void clientCreated() {
-    HttpClientBasicAuth config = new HttpClientBasicAuth("user-090058", "pass-090130");
+    var config = new HttpClientBasicAuth.Config("user-090058", "pass-090130");
+    var auth = new HttpClientBasicAuth();
 
     var client = WebClient.builder();
 
-    assertThatNoException().isThrownBy(() -> config.configure(client));
+    assertThatNoException().isThrownBy(() -> auth.configure(config, client));
   }
 }

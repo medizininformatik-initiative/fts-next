@@ -2,15 +2,17 @@ package care.smith.fts.util.auth;
 
 import static org.springframework.http.HttpHeaders.COOKIE;
 
-import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
+import care.smith.fts.util.auth.HttpClientCookieTokenAuth.Config;
 import org.springframework.web.reactive.function.client.WebClient;
 
-public record HttpClientCookieTokenAuth(
-    /* */
-    String token) implements HttpClientAuthMethod {
+public class HttpClientCookieTokenAuth implements HttpClientAuth<Config> {
+
+  public record Config(
+      /* */
+      String token) {}
 
   @Override
-  public void configure(WebClient.Builder builder) {
-    builder.defaultHeaders(h -> h.set(COOKIE, token));
+  public void configure(Config config, WebClient.Builder builder) {
+    builder.defaultHeaders(h -> h.set(COOKIE, config.token()));
   }
 }

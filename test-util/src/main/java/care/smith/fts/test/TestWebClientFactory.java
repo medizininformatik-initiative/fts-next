@@ -1,5 +1,7 @@
 package care.smith.fts.test;
 
+import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.WebClientFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.ClientHttpConnectorAutoConfiguration;
@@ -13,27 +15,29 @@ import org.springframework.web.reactive.function.client.WebClient;
   SslAutoConfiguration.class,
   ClientHttpConnectorAutoConfiguration.class,
   WebClientAutoConfiguration.class,
-  TestWebClientConfig.class
+  TestWebClientConfig.class,
+  WebClientFactory.class,
 })
 @TestComponent
 public class TestWebClientFactory {
 
   private final TestWebClientConfig config;
-  private final WebClient.Builder base;
+  private final WebClientFactory factory;
 
-  public TestWebClientFactory(TestWebClientConfig config, WebClient.Builder base) {
+  public TestWebClientFactory(TestWebClientConfig config, WebClientFactory factory) {
     this.config = config;
-    this.base = base;
+    this.factory = factory;
     log.info("TestWebClientFactory {}", config);
   }
 
-  public WebClient.Builder webClient() {
-    return webClient("default");
+  public WebClient webClient(String baseUrl) {
+    return webClient(baseUrl, "default");
   }
 
-  public WebClient.Builder webClient(String clientName) {
-    var builder = base.clone();
-    config.customize(builder, clientName);
-    return builder;
+  public WebClient webClient(String baseUrl, String clientName) {
+    return config
+        .findConfigurationEntry(clientName)
+        .map(c -> factory.create(new HttpClientConfig(baseUrl, c.auth(), c.ssl())))
+        .orElseThrow();
   }
 }

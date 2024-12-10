@@ -90,7 +90,7 @@ public class TransferProcessControllerIT extends BaseIT {
   @BeforeEach
   void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     this.port = port;
-    client = factory.webClient().baseUrl("https://localhost:" + port).build();
+    client = factory.webClient("https://localhost:" + port);
   }
 
   @AfterEach

@@ -51,8 +51,8 @@ class DeIdentificationControllerIT extends BaseIT {
 
   @BeforeAll
   static void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
-    cdClient = factory.webClient("cd-agent").baseUrl("https://localhost:" + port).build();
-    rdClient = factory.webClient("rd-agent").baseUrl("https://localhost:" + port).build();
+    cdClient = factory.webClient("https://localhost:" + port, "cd-agent");
+    rdClient = factory.webClient("https://localhost:" + port, "rd-agent");
   }
 
   @Test

@@ -1,7 +1,6 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod.NONE;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
@@ -10,6 +9,7 @@ import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Date;
 import java.util.List;
@@ -47,13 +47,14 @@ class TCACohortSelectorTest {
   private TCACohortSelector cohortSelector;
 
   @BeforeEach
-  void setUp() {
+  void setUp(@Autowired WebClientFactory clientFactory) {
     var address = "http://localhost";
-    var server = new HttpClientConfig(address, NONE);
+    var server = new HttpClientConfig(address);
     var client = builder().exchangeFunction(req -> just(response));
     var config = new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
     cohortSelector =
-        new TCACohortSelector(config, config.server().createClient(client, null), meterRegistry);
+        new TCACohortSelector(
+            config, clientFactory.create(client, config.server()), meterRegistry);
   }
 
   @Test
