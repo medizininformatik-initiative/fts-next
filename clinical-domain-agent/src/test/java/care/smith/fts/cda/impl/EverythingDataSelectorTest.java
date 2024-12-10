@@ -13,6 +13,7 @@ import care.smith.fts.api.Period;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
 import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
@@ -32,6 +33,7 @@ import reactor.core.publisher.Mono;
 class EverythingDataSelectorTest {
 
   @Autowired MeterRegistry meterRegistry;
+  @Autowired WebClientFactory clientFactory;
   private static final String PATIENT_ID = "patient-112348";
   private static final PatientIdResolver patient = pid -> Mono.just(new IdType("Patient", pid));
 
@@ -43,7 +45,8 @@ class EverythingDataSelectorTest {
   void noConsentErrors() {
     var client = builder();
     var dataSelector =
-        new EverythingDataSelector(common, server.createClient(client, null), patient, meterRegistry);
+        new EverythingDataSelector(
+            common, clientFactory.create(client, server), patient, meterRegistry);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).expectError().verify();
   }
@@ -53,22 +56,24 @@ class EverythingDataSelectorTest {
     var client = builder().exchangeFunction(req -> Mono.just(ClientResponse.create(OK).build()));
     DataSelector.Config common = new DataSelector.Config(true, null);
     var dataSelector =
-        new EverythingDataSelector(common, server.createClient(client, null), patient, meterRegistry);
+        new EverythingDataSelector(
+            common, clientFactory.create(client, server), patient, meterRegistry);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).verifyComplete();
   }
 
   @Test
   void selectionSucceeds() throws Exception {
-
     var client = builder().exchangeFunction(req -> just(response));
+
     given(response.statusCode()).willReturn(OK);
     try (InputStream inStream = getClass().getResourceAsStream("patient.json")) {
       var bundle = FhirContext.forR4().newJsonParser().parseResource(Bundle.class, inStream);
       given(response.bodyToMono(Bundle.class)).willReturn(Mono.just(bundle));
     }
     var dataSelector =
-        new EverythingDataSelector(common, server.createClient(client, null), patient, meterRegistry);
+        new EverythingDataSelector(
+            common, clientFactory.create(client, server), patient, meterRegistry);
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));

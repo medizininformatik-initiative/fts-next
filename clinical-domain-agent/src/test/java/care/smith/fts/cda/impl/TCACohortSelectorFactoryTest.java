@@ -3,25 +3,24 @@ package care.smith.fts.cda.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootTest
 class TCACohortSelectorFactoryTest {
 
   @Autowired MeterRegistry meterRegistry;
-  @Autowired WebClient.Builder client;
-  @Autowired WebClientSsl ssl;
+  @Autowired WebClientFactory clientFactory;
+
   private TCACohortSelectorFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new TCACohortSelectorFactory(client, ssl, meterRegistry);
+    factory = new TCACohortSelectorFactory(clientFactory, meterRegistry);
   }
 
   @Test

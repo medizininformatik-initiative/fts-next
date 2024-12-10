@@ -1,5 +1,6 @@
 package care.smith.fts.rda.impl;
 
+import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,8 +11,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
-import care.smith.fts.test.MockServerUtil;
-import com.typesafe.config.Config;
+import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
@@ -24,7 +24,6 @@ import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootTest
 @ExtendWith(MockServerExtension.class)
@@ -33,12 +32,10 @@ class DeidentifhirStepTest {
   private DeidentifhirStep step;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer) {
-    Config config = parseResources(DeidentifhirUtil.class, "TransportToRD.profile");
-    var server = MockServerUtil.clientConfig(mockServer);
-
-    step =
-        new DeidentifhirStep(config, server.createClient(WebClient.builder(), null), meterRegistry);
+  void setUp(MockServerClient mockServer, @Autowired WebClientFactory clientFactory) {
+    var config = parseResources(DeidentifhirUtil.class, "TransportToRD.profile");
+    var client = clientFactory.create(clientConfig(mockServer));
+    step = new DeidentifhirStep(config, client, meterRegistry);
   }
 
   @AfterEach

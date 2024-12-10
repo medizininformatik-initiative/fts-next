@@ -2,12 +2,10 @@ package care.smith.fts.util;
 
 import static org.assertj.core.api.Assertions.*;
 
-import care.smith.fts.util.auth.HttpClientAuthMethod.AuthMethod;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.reactive.function.client.WebClient;
 
 public class HttpClientConfigTest {
 
@@ -24,12 +22,42 @@ public class HttpClientConfigTest {
   }
 
   @Test
-  public void nullAuthDoesntThrow() {
-    assertThat(new HttpClientConfig("http://localhost").auth()).isEqualTo(AuthMethod.NONE);
+  public void emptyAuthDoesntThrow() {
+    assertThatNoException().isThrownBy(() -> new HttpClientConfig("http://localhost", null, null));
   }
 
   @Test
-  public void deserialization() throws JsonProcessingException {
+  public void emptySslDoesntThrow() {
+    assertThatNoException().isThrownBy(() -> new HttpClientConfig("http://localhost", null, null));
+  }
+
+  @Test
+  public void deserializationWithoutAuth() throws JsonProcessingException {
+    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+
+    var config =
+        """
+        baseUrl: "http://localhost"
+        """;
+
+    assertThat(om.readValue(config, HttpClientConfig.class)).isNotNull();
+  }
+
+  @Test
+  public void deserializationWithEmptyAuth() throws JsonProcessingException {
+    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+
+    var config =
+        """
+        baseUrl: "http://localhost"
+        auth: {}
+        """;
+
+    assertThat(om.readValue(config, HttpClientConfig.class)).isNotNull();
+  }
+
+  @Test
+  public void deserializationWithNoneAuth() throws JsonProcessingException {
     ObjectMapper om = new ObjectMapper(new YAMLFactory());
 
     var config =
@@ -43,10 +71,18 @@ public class HttpClientConfigTest {
   }
 
   @Test
-  public void clientCreated() {
-    HttpClientConfig config = new HttpClientConfig("http://localhost");
-    WebClient client = config.createClient(WebClient.builder(), null);
+  public void deserializationWithAuth() throws JsonProcessingException {
+    ObjectMapper om = new ObjectMapper(new YAMLFactory());
 
-    assertThat(client).isNotNull();
+    var config =
+        """
+        baseUrl: "http://localhost"
+        auth:
+          basic:
+            user: foo
+            password: bar
+        """;
+
+    assertThat(om.readValue(config, HttpClientConfig.class)).isNotNull();
   }
 }

@@ -22,6 +22,5 @@ class GpasFhirDeIdentificationConfigurationTest {
   @Test
   void configEntriesExist() {
     assertThat(gpasFhirDeIdentificationConfiguration.getBaseUrl()).isNotEmpty();
-    assertThat(gpasFhirDeIdentificationConfiguration.getAuth()).isNotNull();
   }
 }

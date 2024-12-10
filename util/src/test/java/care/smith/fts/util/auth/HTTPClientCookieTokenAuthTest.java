@@ -2,12 +2,13 @@ package care.smith.fts.util.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.springframework.web.reactive.function.client.WebClient.builder;
 
+import care.smith.fts.util.auth.HttpClientAuth.Config;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.reactive.function.client.WebClient;
 
 public class HTTPClientCookieTokenAuthTest {
 
@@ -21,13 +22,15 @@ public class HTTPClientCookieTokenAuthTest {
           token: token-090112
         """;
 
-    assertThat(om.readValue(config, HttpClientAuthMethod.AuthMethod.class)).isNotNull();
+    assertThat(om.readValue(config, Config.class)).isNotNull();
   }
 
   @Test
   public void clientCreated() {
-    HttpClientCookieTokenAuth config = new HttpClientCookieTokenAuth("token-090112");
+    var impl = new HttpClientCookieTokenAuth();
 
-    assertThatNoException().isThrownBy(() -> config.configure(WebClient.builder()));
+    assertThatNoException()
+        .isThrownBy(
+            () -> impl.configure(new HttpClientCookieTokenAuth.Config("token-090112"), builder()));
   }
 }

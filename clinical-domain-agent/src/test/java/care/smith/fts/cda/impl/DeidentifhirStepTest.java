@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
@@ -11,8 +12,9 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
+import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
-import care.smith.fts.test.MockServerUtil;
+import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TCADomains;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -25,9 +27,8 @@ import org.mockserver.client.MockServerClient;
 import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.web.reactive.function.client.WebClient;
 
-@SpringBootTest
+@SpringBootTest(classes = ClinicalDomainAgent.class)
 @ExtendWith(MockServerExtension.class)
 class DeidentifhirStepTest {
 
@@ -35,12 +36,11 @@ class DeidentifhirStepTest {
   private DeidentifhirStep step;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer) {
+  void setUp(MockServerClient mockServer, @Autowired WebClientFactory clientFactory) {
     var scraperConfig = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
     var deidentifhirConfig = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
-    var server = MockServerUtil.clientConfig(mockServer);
     var domains = new TCADomains("domain", "domain", "domain");
-    var client = server.createClient(WebClient.builder(), null);
+    var client = clientFactory.create(clientConfig(mockServer));
     step =
         new DeidentifhirStep(
             client, domains, ofDays(14), deidentifhirConfig, scraperConfig, meterRegistry);
@@ -100,7 +100,7 @@ class DeidentifhirStepTest {
                     json(
                         """
                             {
-                              "resarchMappingName": "resarchMappingName",
+                              "transferId": "transferId",
                               "transportMapping": { "id1.identifier.identifierSystem:id1": "tident1",
                                                     "id1.Patient:id1": "tid1" },
                               "dateShiftValue": 1209600.000000000
