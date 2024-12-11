@@ -1,7 +1,7 @@
 package care.smith.fts.tca.deidentification.configuration;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @ConfigurationProperties("de-identification")
-@Data
+@Setter
 public class DeIdentificationConfiguration {
   @NotBlank String keystoreUrl;
 
