@@ -10,6 +10,7 @@ public interface HttpClientAuth<T> {
 
   record Config(
       HttpClientBasicAuth.Config basic,
+      HttpClientOAuth2Auth.Config oauth2,
       HttpClientCookieTokenAuth.Config cookieToken,
       Object none) {
 

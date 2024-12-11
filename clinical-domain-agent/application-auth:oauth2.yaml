@@ -1,0 +1,31 @@
+server:
+  port: 9090
+
+projects:
+  directory: "../.github/test/cd-agent/projects"
+
+security:
+  auth:
+    oauth2:
+      issuer: http://localhost:8080/realms/master
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          agent:
+            authorizationGrantType: client_credentials
+            clientId: fts/cd-agent
+            clientSecret: eA4xj1zFxsVYZGdLah9KnkcmHYDBjojr
+            provider: keycloak
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/master
+
+test:
+  webclient:
+    default:
+      auth:
+        oauth2:
+          registration: agent
