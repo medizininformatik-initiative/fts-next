@@ -1,15 +1,15 @@
 name: Pages
 
 on:
-  push:
-    tags: [ "v*.*.*" ]
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  merge_group:
   workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: run_id of build workflow
+        required: true
+        type: string
 
 jobs:
+
   build:
     runs-on: ubuntu-24.04
     steps:
@@ -36,6 +36,24 @@ jobs:
           const latestTag = latestRelease.data.tag_name || "v0.0.0"; // Default if no release
           console.log(`Latest tag: ${latestTag}`);
           core.setOutput("latest_tag", latestTag);
+
+    - name: Download OpenAPI Specifications
+      id: download-openapi-specs
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+      with:
+        name: openapi-specs
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.build_run_id }}
+        path: docs/open-api
+
+    - name: Unpack OpenAPI Specifications
+      working-directory: docs/open-api
+      run: |
+        tar xf openapi-specs.tar.gz
+        pwd
+        ls .        
+        rm openapi-specs.tar.gz
 
     - name: Build
       working-directory: docs

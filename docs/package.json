@@ -3,6 +3,7 @@
   "devDependencies": {
     "mermaid": "11.4.1",
     "vitepress": "1.5.0",
+    "vitepress-openapi": "^0.0.3-alpha.50",
     "vitepress-plugin-mermaid": "2.0.17"
   },
   "scripts": {

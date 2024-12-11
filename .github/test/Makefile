@@ -44,7 +44,6 @@ list-projects:
 show-project:
 	../scripts/show-project.sh
 
-
 show-hds:
 	../scripts/show-hds.sh
 
@@ -55,3 +54,6 @@ clean-dbs:
 clean-rd-hds-and-gpas-db:
 	docker compose down rd-hds gpas-db
 	docker compose up --wait rd-hds gpas-db
+
+openapi-specs:
+	../scripts/openapi-specs.sh ${AGENT}

@@ -1,0 +1,223 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://rd-agent",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/api/v2/process/{project}/patient": {
+      "post": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "start",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/fhir+json": {}
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/fhir+json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/projects": {
+      "get": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "projects",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/projects/{project}": {
+      "get": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "project",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferProcessConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/process/status/{processId}": {
+      "get": {
+        "tags": [
+          "transfer-process-controller"
+        ],
+        "operationId": "status",
+        "parameters": [
+          {
+            "name": "processId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TransferProcessConfig": {
+        "required": [
+          "bundleSender",
+          "deidentificator"
+        ],
+        "type": "object",
+        "properties": {
+          "deidentificator": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "bundleSender": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "Status": {
+        "type": "object",
+        "properties": {
+          "processId": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "ERROR"
+            ]
+          },
+          "receivedResources": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sentResources": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}
