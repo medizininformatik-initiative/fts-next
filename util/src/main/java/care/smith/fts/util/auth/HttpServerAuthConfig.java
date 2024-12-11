@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import lombok.Data;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +18,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @Slf4j
 @EnableWebFluxSecurity
 @ConfigurationProperties(prefix = "security")
-@Data
+@Setter
 public class HttpServerAuthConfig {
 
   private AuthMethod auth = HttpServerAuthMethod.NONE;
