@@ -10,6 +10,7 @@ import care.smith.fts.util.HttpClientConfig.Ssl;
 import care.smith.fts.util.auth.HttpClientAuth.Config;
 import care.smith.fts.util.auth.HttpClientBasicAuth;
 import care.smith.fts.util.auth.HttpClientCookieTokenAuth;
+import care.smith.fts.util.auth.HttpClientOAuth2Auth;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -28,8 +29,9 @@ class WebClientFactoryTest {
   void setUp(
       @Autowired WebClientSsl ssl,
       @Autowired HttpClientBasicAuth basic,
+      @Autowired HttpClientOAuth2Auth oauth2,
       @Autowired HttpClientCookieTokenAuth token) {
-    factory = new WebClientFactory(builder(), ssl, basic, token);
+    factory = new WebClientFactory(builder(), ssl, basic, oauth2, token);
   }
 
   @Test
@@ -40,14 +42,14 @@ class WebClientFactoryTest {
 
   @Test
   void createWithEmptyAuth() {
-    var config = new HttpClientConfig("http://localhost", new Config(null, null));
+    var config = new HttpClientConfig("http://localhost");
     assertThat(factory.create(config)).isNotNull();
   }
 
   @Test
   void createWithBasicAuth() {
     var auth = new HttpClientBasicAuth.Config("user-144512", "pwd-144538");
-    var config = new HttpClientConfig("http://localhost", new Config(auth, null));
+    var config = new HttpClientConfig("http://localhost", new Config(auth));
     assertThat(factory.create(config)).isNotNull();
   }
 
@@ -56,7 +58,7 @@ class WebClientFactoryTest {
     var basic = Mockito.mock(HttpClientBasicAuth.class);
     var token = Mockito.mock(HttpClientCookieTokenAuth.class);
     Builder builder = builder();
-    factory = new WebClientFactory(builder, null, basic, token);
+    factory = new WebClientFactory(builder, null, basic, null, token);
 
     var basicConf = new HttpClientBasicAuth.Config("user-1505512", "pwd-15054518");
     var tokenConf = new HttpClientCookieTokenAuth.Config("token-152510");
@@ -70,10 +72,10 @@ class WebClientFactoryTest {
   @Test
   void createWithBasicAuthMissingImplementation(
       @Autowired WebClientSsl ssl, @Autowired HttpClientCookieTokenAuth token) {
-    factory = new WebClientFactory(builder(), ssl, null, token);
+    factory = new WebClientFactory(builder(), ssl, null, null, token);
 
     var auth = new HttpClientBasicAuth.Config("user-144512", "pwd-144538");
-    var config = new HttpClientConfig("http://localhost", new Config(auth, null));
+    var config = new HttpClientConfig("http://localhost", new Config(auth));
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> factory.create(config));
   }
@@ -81,30 +83,30 @@ class WebClientFactoryTest {
   @Test
   void createWithTokenAuth() {
     var auth = new HttpClientCookieTokenAuth.Config("token-146520");
-    var config = new HttpClientConfig("http://localhost", new Config(null, auth));
+    var config = new HttpClientConfig("http://localhost", new Config(auth));
     assertThat(factory.create(config)).isNotNull();
   }
 
   @Test
   void createWithTokenAuthMissingImplementation(
       @Autowired WebClientSsl ssl, @Autowired HttpClientBasicAuth basic) {
-    factory = new WebClientFactory(builder(), ssl, basic, null);
+    factory = new WebClientFactory(builder(), ssl, basic, null, null);
 
     var auth = new HttpClientCookieTokenAuth.Config("token-146520");
-    var config = new HttpClientConfig("http://localhost", new Config(null, auth));
+    var config = new HttpClientConfig("http://localhost", new Config(auth));
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> factory.create(config));
   }
 
   @Test
   void createWithSsl() {
-    var config = new HttpClientConfig("http://localhost", null, new Ssl("client"));
+    var config = new HttpClientConfig("http://localhost", new Ssl("client"));
     assertThat(factory.create(config)).isNotNull();
   }
 
   @Test
   void createWithMissingSsl() {
-    var config = new HttpClientConfig("http://localhost", null, new Ssl("missing-195151"));
+    var config = new HttpClientConfig("http://localhost", new Ssl("missing-195151"));
     assertThatExceptionOfType(NoSuchSslBundleException.class)
         .isThrownBy(() -> factory.create(config));
   }

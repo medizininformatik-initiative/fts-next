@@ -7,7 +7,8 @@ import care.smith.fts.util.auth.HttpClientAuth;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 
-public record HttpClientConfig(@NotBlank String baseUrl, @Nullable HttpClientAuth.Config auth, @Nullable Ssl ssl) {
+public record HttpClientConfig(
+    @NotBlank String baseUrl, @Nullable HttpClientAuth.Config auth, @Nullable Ssl ssl) {
 
   public HttpClientConfig(@NotBlank String baseUrl, HttpClientAuth.Config auth, Ssl ssl) {
     this.baseUrl = requireNonNull(emptyToNull(baseUrl), "Base URL must not be null");
@@ -16,11 +17,15 @@ public record HttpClientConfig(@NotBlank String baseUrl, @Nullable HttpClientAut
   }
 
   public HttpClientConfig(@NotBlank String baseUrl, HttpClientAuth.Config auth) {
-    this(baseUrl, auth, null);
+    this(requireNonNull(emptyToNull(baseUrl)), requireNonNull(auth), null);
+  }
+
+  public HttpClientConfig(@NotBlank String baseUrl, Ssl ssl) {
+    this(requireNonNull(emptyToNull(baseUrl)), null, requireNonNull(ssl));
   }
 
   public HttpClientConfig(@NotBlank String baseUrl) {
-    this(baseUrl, null, null);
+    this(requireNonNull(emptyToNull(baseUrl)), null, null);
   }
 
   public record Ssl(String bundle) {}
