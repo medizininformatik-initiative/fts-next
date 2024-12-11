@@ -2,6 +2,11 @@ name: Pages
 
 on:
   workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: run_id of build workflow
+        required: true
+        type: string
 
 jobs:
 
@@ -37,12 +42,17 @@ jobs:
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
       with:
         name: openapi-specs
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.build_run_id }}
         path: docs/open-api
 
     - name: Unpack OpenAPI Specifications
       working-directory: docs/open-api
       run: |
-        tar xf openapi-specs.tar.gz 
+        tar xf openapi-specs.tar.gz
+        pwd
+        ls .        
         rm openapi-specs.tar.gz
 
     - name: Build
