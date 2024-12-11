@@ -72,9 +72,11 @@ export default withMermaid({
                   text: 'Security', link: '/configuration/security',
                   items: [
                     {text: 'Basic Auth', link: '/configuration/security/basic'},
+                    {text: 'OAuth2', link: '/configuration/security/oauth2'},
                     {text: 'Client Certs', link: '/configuration/security/client-certs'},
                   ]
                 },
+                {text: "OAuth2 Client", link: "/configuration/oauth2-client"},
                 {text: 'Observability', link: '/configuration/observability'},
                 {text: 'De-Identification', link: '/configuration/de-identification'},
                 {text: 'Consent', link: '/configuration/consent'},

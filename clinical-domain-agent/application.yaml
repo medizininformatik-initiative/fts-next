@@ -71,6 +71,9 @@
 #       password: "{noop}2mXA742aw7CGaLU6"
 #       # Role assigned to the user
 #       role: client
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security/oauth2
+#   auth.oauth2:
+#     issuer: http://localhost:8080/realms/fts
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/security/client-certs
 #   auth.clientCert:
 #     users:
@@ -78,6 +81,20 @@
 #       username: default
 #       # Role assigned to the user
 #       role: client
+
+### Spring OAuth2 Client Security Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/oauth2
+#   spring.security.oauth2:
+#     client:
+#       registration:
+#         agent:
+#           authorization-grant-type: client_credentials
+#           client-id: cd-client
+#           client-secret: tIQfOvBuhyR1dw9OQ3E4tCeTvcHtiW84
+#           provider: keycloak
+#       provider:
+#         keycloak:
+#           issuer-uri: http://localhost:8080/realms/fts
 
 ### Monitoring
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/observability

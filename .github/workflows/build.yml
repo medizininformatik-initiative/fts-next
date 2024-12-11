@@ -25,6 +25,7 @@ jobs:
         - none
         - basic
         - cert
+        - oauth2
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -35,13 +36,18 @@ jobs:
         java-version: 21
         cache: 'maven'
 
+    - name: Setup Keycloak
+      if: matrix.auth == 'oauth2'
+      working-directory: .github/test
+      run: docker compose -f oauth2/compose.yaml up --build --wait
+
     - name: Run Tests
       run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }} -Dspring.profiles.active=auth:${{ matrix.auth }}
 
     - name: Generate Code Coverage Report
       run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
 
-    - name: Upload coverage to Codecov
+    - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}

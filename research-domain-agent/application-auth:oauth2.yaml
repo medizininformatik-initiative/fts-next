@@ -1,0 +1,25 @@
+security:
+  auth:
+    oauth2:
+      issuer: http://localhost:8080/realms/fts
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          agent:
+            authorization-grant-type: client_credentials
+            client-id: rd-client
+            client-secret: tIQfOvBuhyR1dw9OQ3E4tCeTvcHtiW84
+            provider: keycloak
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/fts
+
+test:
+  webclient:
+    default:
+      auth:
+        oauth2:
+          registration: agent

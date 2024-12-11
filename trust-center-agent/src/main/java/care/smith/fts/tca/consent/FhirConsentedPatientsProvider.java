@@ -88,7 +88,7 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
   }
 
   private static Mono<Throwable> handleGicsNotFound(ClientResponse r) {
-    log.trace("response {}", r);
+    log.trace("response headers: {}", r.headers().asHttpHeaders());
     return r.bodyToMono(OperationOutcome.class)
         .doOnNext(re -> log.info("{}", re))
         .flatMap(

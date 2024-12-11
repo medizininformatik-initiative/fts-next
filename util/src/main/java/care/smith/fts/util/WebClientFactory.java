@@ -6,6 +6,8 @@ import care.smith.fts.util.HttpClientConfig.Ssl;
 import care.smith.fts.util.auth.HttpClientAuth;
 import care.smith.fts.util.auth.HttpClientBasicAuth;
 import care.smith.fts.util.auth.HttpClientCookieTokenAuth;
+import care.smith.fts.util.auth.HttpClientOAuth2Auth;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.context.annotation.Import;
@@ -13,27 +15,32 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.Builder;
 
+@Slf4j
 @Component
-@Import({HttpClientBasicAuth.class, HttpClientCookieTokenAuth.class})
+@Import({HttpClientBasicAuth.class, HttpClientOAuth2Auth.class, HttpClientCookieTokenAuth.class})
 public class WebClientFactory {
 
   private final Builder clientBuilder;
   private final WebClientSsl ssl;
   private final HttpClientBasicAuth basic;
+  private final HttpClientOAuth2Auth oauth2;
   private final HttpClientCookieTokenAuth token;
 
   public WebClientFactory(
       WebClient.Builder clientBuilder,
       WebClientSsl ssl,
       @Autowired(required = false) HttpClientBasicAuth basic,
+      @Autowired(required = false) HttpClientOAuth2Auth oauth2,
       @Autowired(required = false) HttpClientCookieTokenAuth token) {
     this.clientBuilder = clientBuilder;
     this.ssl = ssl;
     this.basic = basic;
+    this.oauth2 = oauth2;
     this.token = token;
   }
 
   public WebClient create(HttpClientConfig config) {
+    log.debug("Webclient Config {}", config);
     return clientBuilder
         .baseUrl(config.baseUrl())
         .apply(b -> configureAuth(b, config.auth()))
@@ -53,6 +60,8 @@ public class WebClientFactory {
     if (auth != null) {
       if (auth.basic() != null) {
         configureAuth(builder, "basic", basic, auth.basic());
+      } else if (auth.oauth2() != null) {
+        configureAuth(builder, "oauth2", oauth2, auth.oauth2());
       } else if (auth.cookieToken() != null) {
         configureAuth(builder, "cookieToken", token, auth.cookieToken());
       }
