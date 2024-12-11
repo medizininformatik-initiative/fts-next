@@ -6,6 +6,7 @@ import care.smith.fts.util.HttpClientConfig.Ssl;
 import care.smith.fts.util.auth.HttpClientAuth;
 import care.smith.fts.util.auth.HttpClientBasicAuth;
 import care.smith.fts.util.auth.HttpClientCookieTokenAuth;
+import care.smith.fts.util.auth.HttpClientOAuth2Auth;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.context.annotation.Import;
@@ -14,22 +15,25 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.Builder;
 
 @Component
-@Import({HttpClientBasicAuth.class, HttpClientCookieTokenAuth.class})
+@Import({HttpClientBasicAuth.class, HttpClientOAuth2Auth.class, HttpClientCookieTokenAuth.class})
 public class WebClientFactory {
 
   private final Builder clientBuilder;
   private final WebClientSsl ssl;
   private final HttpClientBasicAuth basic;
+  private final HttpClientOAuth2Auth oauth2;
   private final HttpClientCookieTokenAuth token;
 
   public WebClientFactory(
       WebClient.Builder clientBuilder,
       WebClientSsl ssl,
       @Autowired(required = false) HttpClientBasicAuth basic,
+      @Autowired(required = false) HttpClientOAuth2Auth oauth2,
       @Autowired(required = false) HttpClientCookieTokenAuth token) {
     this.clientBuilder = clientBuilder;
     this.ssl = ssl;
     this.basic = basic;
+    this.oauth2 = oauth2;
     this.token = token;
   }
 
@@ -55,6 +59,8 @@ public class WebClientFactory {
         configureAuth(builder, "basic", basic, auth.basic());
       } else if (auth.cookieToken() != null) {
         configureAuth(builder, "cookieToken", token, auth.cookieToken());
+      } else if (auth.oauth2() != null) {
+        configureAuth(builder, "cookieToken", oauth2, auth.oauth2());
       }
     }
   }

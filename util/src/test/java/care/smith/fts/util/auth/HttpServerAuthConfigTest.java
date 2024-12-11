@@ -23,7 +23,10 @@ class HttpServerAuthConfigTest {
     var config = new HttpServerAuthConfig();
     config.setAuth(
         new AuthMethod(
-            null, new HttpServerBasicAuth(List.of()), new HttpServerNoneAuth()));
+            null,
+            new HttpServerBasicAuth(List.of()),
+            new HttpServerOAuth2Auth(""),
+            new HttpServerNoneAuth()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(config::userDetailsService)
@@ -33,7 +36,7 @@ class HttpServerAuthConfigTest {
   @Test
   void noAuthMethodDefaultsToNone() {
     var config = new HttpServerAuthConfig();
-    config.setAuth(new AuthMethod(null, null, null));
+    config.setAuth(new AuthMethod(null, null, null, null));
 
     var reactiveUserDetailsService = config.userDetailsService();
 
