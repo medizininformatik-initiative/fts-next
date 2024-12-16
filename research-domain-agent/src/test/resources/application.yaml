@@ -31,6 +31,5 @@ security:
     role: cd-agent
 
 logging.level:
-  org.mockserver.log: WARN
   care.smith.fts: DEBUG
   care.smith.fts.rda: TRACE

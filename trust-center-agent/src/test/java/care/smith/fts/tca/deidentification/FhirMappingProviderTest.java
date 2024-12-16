@@ -2,24 +2,29 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
-import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.TCADomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
@@ -34,9 +39,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.jupiter.MockServerExtension;
-import org.mockserver.model.MediaType;
 import org.redisson.api.RMapCacheReactive;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
@@ -50,7 +52,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @SpringBootTest
-@ExtendWith(MockServerExtension.class)
+@WireMockTest
 @ExtendWith(MockitoExtension.class)
 @Import(TestWebClientFactory.class)
 class FhirMappingProviderTest {
@@ -67,10 +69,12 @@ class FhirMappingProviderTest {
   @Autowired MeterRegistry meterRegistry;
 
   private FhirMappingProvider mappingProvider;
+  private WireMock wireMock;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer) {
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
+  void setUp(WireMockRuntimeInfo wireMockRuntime) {
+    var address = wireMockRuntime.getHttpBaseUrl();
+    wireMock = wireMockRuntime.getWireMock();
 
     given(redisClient.reactive()).willReturn(redis);
 
@@ -86,7 +90,7 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void generateTransportMapping(MockServerClient mockServer) throws IOException {
+  void generateTransportMapping() throws IOException {
     var fhirGenerator =
         FhirGenerators.gpasGetOrCreateResponse(
             fromList(List.of("id1", "Salt_id1", "PT336H_id1")),
@@ -95,27 +99,21 @@ class FhirMappingProviderTest {
     List.of("id1", "Salt_id1", "PT336H_id1")
         .forEach(
             key ->
-                mockServer
-                    .when(
-                        request()
-                            .withMethod("POST")
-                            .withPath("/$pseudonymizeAllowCreate")
-                            .withBody(
-                                json(
-                                    """
-                                  { "resourceType": "Parameters",
-                                    "parameter": [
-                                      {"name": "target", "valueString": "domain"},
-                                      {"name": "original", "valueString": "%s"}]}
-                                  """
-                                        .formatted(key),
-                                    ONLY_MATCHING_FIELDS))
-                            .withContentType(APPLICATION_FHIR_JSON))
-                    .respond(
-                        response()
-                            .withBody(
-                                fhirGenerator.generateString(),
-                                MediaType.create("application", "fhir+json"))));
+                wireMock.register(
+                    post(urlEqualTo("/$pseudonymizeAllowCreate"))
+                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                        .withRequestBody(
+                            equalToJson(
+                                """
+                                { "resourceType": "Parameters",
+                                  "parameter": [
+                                    {"name": "target", "valueString": "domain"},
+                                    {"name": "original", "valueString": "%s"}]}
+                                """
+                                    .formatted(key),
+                                true,
+                                true))
+                        .willReturn(fhirResponse(fhirGenerator.generateString(), 200))));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
@@ -170,19 +168,17 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void fetchResearchMappingWithUnknownDomainException(MockServerClient mockServer) {
-    mockServer
-        .when(request().withMethod("POST").withPath("/$pseudonymizeAllowCreate"))
-        .respond(
-            response()
-                .withStatusCode(400)
-                .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
-                .withBody(
+  void fetchResearchMappingWithUnknownDomainException() {
+    wireMock.register(
+        post("/$pseudonymizeAllowCreate")
+            .willReturn(
+                fhirResponse(
                     """
                        {"resourceType": "OperationOutcome",
                         "issue": [{"severity": "error", "code": "processing",
                                    "diagnostics": "Unknown domain"}]}
-                       """));
+                       """,
+                    BAD_REQUEST.value())));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
@@ -193,19 +189,17 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void fetchResearchMappingWithUnknownError(MockServerClient mockServer) {
-    mockServer
-        .when(request().withMethod("POST").withPath("/$pseudonymizeAllowCreate"))
-        .respond(
-            response()
-                .withStatusCode(400)
-                .withContentType(MediaType.parse(MediaTypes.APPLICATION_FHIR_JSON_VALUE))
-                .withBody(
+  void fetchResearchMappingWithUnknownError() {
+    wireMock.register(
+        post("/$pseudonymizeAllowCreate")
+            .willReturn(
+                fhirResponse(
                     """
-                       {"resourceType":"OperationOutcome",
-                        "issue": [{"severity": "error", "code": "processing",
-                                   "diagnostics": "Unknown error"}]}
-                       """));
+{"resourceType": "OperationOutcome",
+"issue": [{"severity": "error", "code": "processing",
+           "diagnostics": "Unknown error"}]}
+""",
+                    BAD_REQUEST.value())));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
@@ -227,7 +221,7 @@ class FhirMappingProviderTest {
   }
 
   @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+  void tearDown() {
+    wireMock.resetMappings();
   }
 }

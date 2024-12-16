@@ -3,12 +3,10 @@ package care.smith.fts.tca.consent;
 import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.util.FhirUtils.toBundle;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
-import static org.mockserver.model.MediaType.APPLICATION_JSON;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
@@ -19,6 +17,9 @@ import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentFetchRequest;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
@@ -30,13 +31,8 @@ import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.jupiter.MockServerExtension;
-import org.mockserver.model.HttpRequest;
-import org.mockserver.model.HttpResponse;
-import org.mockserver.model.JsonBody;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,9 +42,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
 @SpringBootTest
-@ExtendWith(MockServerExtension.class)
+@WireMockTest
 @Import(TestWebClientFactory.class)
 class FhirConsentedPatientsProviderFetchTest {
+
   @Autowired WebClient.Builder httpClientBuilder;
   @Autowired MeterRegistry meterRegistry;
 
@@ -74,50 +71,37 @@ class FhirConsentedPatientsProviderFetchTest {
           POLICY_SYSTEM,
           PATIENT_IDENTIFIER_SYSTEM,
           List.of("id1", "id2", "id3", "id4"));
+
+  private static final String jsonBody1 =
+      """
+            {
+              "resourceType": "Parameters",
+              "parameter": [
+                {"name": "domain", "valueString": "MII"},
+                {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id1"}},
+                {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id2"}}
+            ]}
+            """;
+
   private static String address;
+  private static WireMock wireMock;
   private static FhirGenerator<Bundle> gicsConsentGenerator;
-  private static JsonBody jsonBody1;
-  private static JsonBody jsonBody2;
 
   @BeforeAll
-  static void setUp(MockServerClient mockServer) throws IOException {
-    address = "http://localhost:%d".formatted(mockServer.getPort());
+  static void setUp(WireMockRuntimeInfo wireMockRuntime) throws IOException {
+    address = wireMockRuntime.getHttpBaseUrl();
+    wireMock = wireMockRuntime.getWireMock();
     gicsConsentGenerator =
         FhirGenerators.gicsResponse(randomUuid(), fromList(List.of("id1", "id2", "id3", "id4")));
-
-    jsonBody1 =
-        json(
-            """
-                  {
-                    "resourceType": "Parameters",
-                    "parameter": [
-                      {"name": "domain", "valueString": "MII"},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id1"}},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id2"}}
-                  ]}
-                  """,
-            ONLY_MATCHING_FIELDS);
-    jsonBody2 =
-        json(
-            """
-                  {
-                    "resourceType": "Parameters",
-                    "parameter": [
-                      {"name": "domain", "valueString": "MII"},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id3"}},
-                      {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id4"}}
-                  ]}
-                  """,
-            ONLY_MATCHING_FIELDS);
   }
 
   @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+  void tearDown() {
+    wireMock.resetMappings();
   }
 
   @Test
-  void paging(MockServerClient mockServer) {
+  void paging() {
     int pageSize = 2;
     int totalEntries = 2 * pageSize;
 
@@ -138,19 +122,24 @@ class FhirConsentedPatientsProviderFetchTest {
             .collect(toBundle())
             .setTotal(totalEntries);
 
-    var postRequest1 =
-        request().withMethod("POST").withPath("/$allConsentsForPerson").withBody(jsonBody1);
+    wireMock.register(
+        post("/$allConsentsForPerson")
+            .withRequestBody(equalToJson(jsonBody1))
+            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle1), 200)));
 
-    var httpResponse1 =
-        response().withBody(FhirUtils.fhirResourceToString(bundle1), APPLICATION_JSON);
-    mockServer.when(postRequest1).respond(httpResponse1);
-
-    var postRequest2 =
-        request().withMethod("POST").withPath("/$allConsentsForPerson").withBody(jsonBody2);
-
-    var httpResponse2 =
-        response().withBody(FhirUtils.fhirResourceToString(bundle2), APPLICATION_JSON);
-    mockServer.when(postRequest2).respond(httpResponse2);
+    String jsonBody2 = """
+        {
+          "resourceType": "Parameters",
+          "parameter": [
+            {"name": "domain", "valueString": "MII"},
+            {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id3"}},
+            {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id4"}}
+        ]}
+        """;
+    wireMock.register(
+        post("/$allConsentsForPerson")
+            .withRequestBody(equalToJson(jsonBody2))
+            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle2), 200)));
 
     var expectedNextLink =
         "http://trustcenteragent:8080/api/v2/cd/consented-patients/fetch?from=%s&count=%s"
@@ -177,7 +166,7 @@ class FhirConsentedPatientsProviderFetchTest {
   }
 
   @Test
-  void noConsents(MockServerClient mockServer) {
+  void noConsents() {
     int totalEntries = 0;
     int pageSize = 2;
 
@@ -191,11 +180,10 @@ class FhirConsentedPatientsProviderFetchTest {
             .collect(toBundle())
             .setTotal(totalEntries);
 
-    HttpRequest postRequest =
-        request().withMethod("POST").withPath("/$allConsentsForPerson").withBody(jsonBody1);
-    HttpResponse httpResponse =
-        response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON);
-    mockServer.when(postRequest).respond(httpResponse);
+    wireMock.register(
+        post("/$allConsentsForPerson")
+            .withRequestBody(equalToJson(jsonBody1))
+            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle), 200)));
 
     var expectedNextLink =
         "http://trustcenteragent:8080/api/v2/cd/consented-patients/fetch?from=%s&count=%s"
@@ -214,7 +202,7 @@ class FhirConsentedPatientsProviderFetchTest {
   }
 
   @Test
-  void unknownDomainCausesGicsNotFound(MockServerClient mockServer) {
+  void unknownDomainCausesGicsNotFound() {
     int pageSize = 2;
 
     fhirConsentProvider =
@@ -225,13 +213,10 @@ class FhirConsentedPatientsProviderFetchTest {
     var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
     issue.setDiagnostics("No consents found for domain");
 
-    var postRequest =
-        request().withMethod("POST").withPath("/$allConsentsForPerson").withBody(jsonBody1);
-    var httpResponse =
-        response()
-            .withStatusCode(404)
-            .withBody(FhirUtils.fhirResourceToString(operationOutcome), APPLICATION_JSON);
-    mockServer.when(postRequest).respond(httpResponse);
+    wireMock.register(
+        post("/$allConsentsForPerson")
+            .withRequestBody(equalToJson(jsonBody1, true, true))
+            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
 
     create(
             fhirConsentProvider.fetch(
@@ -243,7 +228,7 @@ class FhirConsentedPatientsProviderFetchTest {
   }
 
   @Test
-  void somethingElseCausesGicsNotFound(MockServerClient mockServer) {
+  void somethingElseCausesGicsNotFound() {
     int pageSize = 2;
 
     fhirConsentProvider =
@@ -254,13 +239,10 @@ class FhirConsentedPatientsProviderFetchTest {
     var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
     issue.setDiagnostics("Something's not right");
 
-    var postRequest =
-        request().withMethod("POST").withPath("/$allConsentsForPerson").withBody(jsonBody1);
-    var httpResponse =
-        response()
-            .withStatusCode(404)
-            .withBody(FhirUtils.fhirResourceToString(operationOutcome), APPLICATION_JSON);
-    mockServer.when(postRequest).respond(httpResponse);
+    wireMock.register(
+        post("/$allConsentsForPerson")
+            .withRequestBody(equalToJson(jsonBody1, true, true))
+            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
 
     create(
             fhirConsentProvider.fetch(
@@ -272,7 +254,7 @@ class FhirConsentedPatientsProviderFetchTest {
   }
 
   @Test
-  void diagnosticsIsNullInHandleGicsNotFound(MockServerClient mockServer) {
+  void diagnosticsIsNullInHandleGicsNotFound() {
     int pageSize = 2;
 
     fhirConsentProvider =
@@ -282,13 +264,10 @@ class FhirConsentedPatientsProviderFetchTest {
     var operationOutcome = new OperationOutcome();
     operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
 
-    var postRequest =
-        request().withMethod("POST").withPath("/$allConsentsForPerson").withBody(jsonBody1);
-    var httpResponse =
-        response()
-            .withStatusCode(404)
-            .withBody(FhirUtils.fhirResourceToString(operationOutcome), APPLICATION_JSON);
-    mockServer.when(postRequest).respond(httpResponse);
+    wireMock.register(
+        post("/$allConsentsForPerson")
+            .withRequestBody(equalToJson(jsonBody1, true, true))
+            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
 
     create(
             fhirConsentProvider.fetch(

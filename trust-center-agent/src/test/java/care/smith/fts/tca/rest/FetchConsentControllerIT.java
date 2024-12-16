@@ -2,12 +2,17 @@ package care.smith.fts.tca.rest;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
+import static care.smith.fts.test.MockServerUtil.FIRST;
+import static care.smith.fts.test.MockServerUtil.REST;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
@@ -15,10 +20,8 @@ import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.MediaTypes;
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -46,21 +49,16 @@ class FetchConsentControllerIT extends BaseIT {
   @Test
   void successfulRequest() throws IOException {
     var consentGenerator = FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001");
-    gics.when(
-            request()
-                .withMethod("POST")
-                .withPath("/ttp-fhir/fhir/gics/$allConsentsForPerson")
-                .withContentType(APPLICATION_FHIR_JSON))
-        .respond(
-            response()
-                .withContentType(APPLICATION_FHIR_JSON)
-                .withBody(consentGenerator.generateString()));
+    gics()
+        .register(
+            post("/ttp-fhir/fhir/gics/$allConsentsForPerson")
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                .willReturn(fhirResponse(consentGenerator.generateString(), 200)));
 
     checkResponse();
   }
 
   private static void checkResponse() {
-
     var response =
         fetch(
             ofEntries(
@@ -92,36 +90,28 @@ class FetchConsentControllerIT extends BaseIT {
   @Test
   void firstRequestToGicsFails() throws IOException {
     var consentGenerator = FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001");
-    var statusCodes = new LinkedList<>(List.of(500));
 
-    gics.when(
-            request()
-                .withMethod("POST")
-                .withPath("/ttp-fhir/fhir/gics/$allConsentsForPerson")
-                .withContentType(APPLICATION_FHIR_JSON))
-        .respond(
-            request ->
-                Optional.ofNullable(statusCodes.poll())
-                    .map(
-                        statusCode ->
-                            statusCode < 400
-                                ? response()
-                                    .withStatusCode(statusCode)
-                                    .withContentType(APPLICATION_FHIR_JSON)
-                                    .withBody(consentGenerator.generateString())
-                                : response().withStatusCode(statusCode))
-                    .orElseGet(
-                        () ->
-                            response()
-                                .withStatusCode(200)
-                                .withContentType(APPLICATION_FHIR_JSON)
-                                .withBody(consentGenerator.generateString())));
+    gics()
+        .register(
+            post("/ttp-fhir/fhir/gics/$allConsentsForPerson")
+                .inScenario("firstRequestFails")
+                .whenScenarioStateIs(FIRST)
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                .willSetStateTo(REST)
+                .willReturn(serverError()));
+    gics()
+        .register(
+            post("/ttp-fhir/fhir/gics/$allConsentsForPerson")
+                .inScenario("firstRequestFails")
+                .whenScenarioStateIs(REST)
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                .willReturn(fhirResponse(consentGenerator.generateString(), 200)));
 
     checkResponse();
   }
 
   @AfterEach
   void tearDown() {
-    gics.reset();
+    gics().resetMappings();
   }
 }

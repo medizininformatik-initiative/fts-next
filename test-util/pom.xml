@@ -44,8 +44,15 @@
     </dependency>
 
     <dependency>
-      <groupId>org.mock-server</groupId>
-      <artifactId>mockserver-junit-jupiter</artifactId>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <version>3.10.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

@@ -55,18 +55,20 @@ public class TransferProcessControllerIT extends BaseIT {
 
   protected final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
-  protected final MockDeidentifier mockDeidentifier = new MockDeidentifier(om, tca);
-  protected final MockBundleSender mockBundleSender = new MockBundleSender(hds);
-
+  protected MockDeidentifier mockDeidentifier;
+  protected MockBundleSender mockBundleSender;
 
   @BeforeEach
-  void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+  final void setUpTransferProcessControllerIT(
+      @LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     this.port = port;
     client = factory.webClient("https://localhost:" + port);
+    mockDeidentifier = new MockDeidentifier(om, tca);
+    mockBundleSender = new MockBundleSender(hds);
   }
 
   @AfterEach
-  void tearDown() {
+  final void tearDownTransferProcessControllerIT() {
     resetAll();
   }
 
@@ -74,7 +76,8 @@ public class TransferProcessControllerIT extends BaseIT {
     return startProcess(timeout, bundle, s -> s.phase() != RUNNING);
   }
 
-  protected FirstStep<Status> startProcess(Duration timeout, Bundle bundle, Predicate<Status> until) {
+  protected FirstStep<Status> startProcess(
+      Duration timeout, Bundle bundle, Predicate<Status> until) {
     return client
         .post()
         .uri("/api/v2/process/test/patient")
@@ -83,12 +86,13 @@ public class TransferProcessControllerIT extends BaseIT {
         .retrieve()
         .toBodilessEntity()
         .mapNotNull(r -> r.getHeaders().get("Content-Location"))
-        .flatMapMany(r -> Flux.interval(Duration.ofMillis(0), Duration.ofMillis(500))
-            .flatMap(i -> retrieveStatus(r))
-            .takeUntil(until)
-            .take(timeout)
-            .timeout(timeout, retrieveStatus(r))
-        )
+        .flatMapMany(
+            r ->
+                Flux.interval(Duration.ofMillis(0), Duration.ofMillis(500))
+                    .flatMap(i -> retrieveStatus(r))
+                    .takeUntil(until)
+                    .take(timeout)
+                    .timeout(timeout, retrieveStatus(r)))
         .last()
         .as(StepVerifier::create);
   }

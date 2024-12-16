@@ -33,7 +33,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
+    allCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -63,7 +63,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.consentForNPatientsWithPaging(idPrefix, totalPatients, pageSize);
+    allCohortSelector.consentForNPatientsWithPaging(idPrefix, totalPatients, pageSize);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -92,7 +92,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.consentForNPatients(idPrefix, totalPatients);
+    allCohortSelector.consentForNPatients(idPrefix, totalPatients);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -137,7 +137,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.consentForNPatients(idPrefix, 3);
+    allCohortSelector.consentForNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -179,7 +179,7 @@ public class GeneralIT extends TransferProcessControllerIT {
     var patients = patientsAndIds.bundle();
     var ids = patientsAndIds.ids();
 
-    mockCohortSelector.consentForNPatients(idPrefix, 3);
+    allCohortSelector.consentForNPatients(idPrefix, 3);
     for (var i = 0; i < patients.getTotal(); i++) {
       var patientId = ids.get(i);
       mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();

@@ -1,76 +1,74 @@
 package care.smith.fts.rda.rest.it.mock;
 
+import static care.smith.fts.test.MockServerUtil.connectionReset;
+import static care.smith.fts.test.MockServerUtil.delayedResponse;
+import static care.smith.fts.test.MockServerUtil.sequentialMock;
 import static care.smith.fts.test.TidPidMap.getTidPidMapAsJson;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.MediaType.APPLICATION_JSON;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.status;
+import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 import care.smith.fts.util.tca.ResearchMappingResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import java.io.IOException;
 import java.time.Duration;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.model.Delay;
-import org.mockserver.model.HttpError;
-import org.mockserver.model.HttpResponse;
-import org.mockserver.model.MediaType;
 
 public class MockDeidentifier {
 
+  public static final String SCENARIO_NAME = "tcaSequentialRequests";
   private final ObjectMapper om;
-  private final MockServerClient tca;
+  private final WireMock tca;
 
-  public MockDeidentifier(ObjectMapper om, MockServerClient tca) {
+  public MockDeidentifier(ObjectMapper om, WireMockServer tca) {
     this.om = om;
-    this.tca = tca;
+    this.tca = new WireMock(tca);
   }
 
-  public void success() {
+  public void success() throws IOException {
     success(List.of());
   }
 
-  public void success(List<Integer> statusCodes) {
-    var rs = new LinkedList<>(statusCodes);
-    tca.when(
-            request()
-                .withMethod("POST")
-                .withPath("/api/v2/rd/research-mapping")
-                .withContentType(APPLICATION_JSON))
-        .respond(
-            request -> {
-              var tidPidMap = om.readValue(getTidPidMapAsJson(), Map.class);
-              var resolveResponse = new ResearchMappingResponse(tidPidMap, Duration.ofMillis(12345));
-              var body = om.writeValueAsString(resolveResponse);
-              return Optional.ofNullable(rs.poll())
-                  .map(
-                      statusCode ->
-                          statusCode < 400
-                              ? successResponse(statusCode, body)
-                              : response().withStatusCode(statusCode))
-                  .orElseGet(() -> successResponse(200, body));
-            });
-  }
+  public void success(List<Integer> statusCodes) throws IOException {
+    var tidPidMap = om.readValue(getTidPidMapAsJson(), new TypeReference<Map<String, String>>() {});
+    var resolveResponse = new ResearchMappingResponse(tidPidMap, Duration.ofMillis(12345));
+    var body = om.writeValueAsString(resolveResponse);
 
-  private HttpResponse successResponse(int statusCode, String body) {
-    return response().withStatusCode(statusCode).withContentType(APPLICATION_JSON).withBody(body);
+    var request =
+        post("/api/v2/rd/research-mapping")
+            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
+    var seq = sequentialMock(tca);
+    for (int statusCode : statusCodes) {
+      ResponseDefinitionBuilder response;
+      response = statusCode < 400 ? jsonResponse(body, statusCode) : status(statusCode);
+      seq = seq.then(request, response);
+    }
+    seq.thereafter(request, jsonResponse(body, 200));
   }
 
   public void isDown() {
-    tca.when(request()).error(HttpError.error().withDropConnection(true));
+    tca.register(any(ANY).willReturn(connectionReset()));
   }
 
   public void hasTimeout() {
-    tca.when(request()).respond(request -> null, Delay.minutes(10));
+    tca.register(any(ANY).willReturn(delayedResponse()));
   }
 
   public void returnsWrongContentType() {
-    tca.when(request().withMethod("POST").withPath("/api/v2/rd/research-mapping"))
-        .respond(
-            HttpResponse.response()
-                .withStatusCode(200)
-                .withContentType(MediaType.PLAIN_TEXT_UTF_8));
+    tca.register(
+        post("/api/v2/rd/research-mapping")
+            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
+            .willReturn(ok().withHeader(CONTENT_TYPE, "text/plain")));
   }
 }

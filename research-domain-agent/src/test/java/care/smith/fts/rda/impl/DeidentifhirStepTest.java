@@ -2,16 +2,20 @@ package care.smith.fts.rda.impl;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
 import care.smith.fts.util.WebClientFactory;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
@@ -19,39 +23,35 @@ import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-@ExtendWith(MockServerExtension.class)
+@WireMockTest
 class DeidentifhirStepTest {
   @Autowired MeterRegistry meterRegistry;
   private DeidentifhirStep step;
+  private WireMock wireMock;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer, @Autowired WebClientFactory clientFactory) {
+  void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
     var config = parseResources(DeidentifhirUtil.class, "TransportToRD.profile");
-    var client = clientFactory.create(clientConfig(mockServer));
+    var client = clientFactory.create(clientConfig(wireMockRuntime));
     step = new DeidentifhirStep(config, client, meterRegistry);
+    wireMock = wireMockRuntime.getWireMock();
   }
 
   @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+  void tearDown() {
+    wireMock.resetMappings();
   }
 
   @Test
-  void correctRequestSent(MockServerClient mockServer) throws IOException {
-    mockServer
-        .when(
-            request()
-                .withMethod("POST")
-                .withPath("/api/v2/rd/research-mapping")
-                .withBody("transferId"))
-        .respond(response().withStatusCode(200));
+  void correctRequestSent() throws IOException {
+    wireMock.register(
+        WireMock.post(urlPathEqualTo("/api/v2/rd/research-mapping"))
+            .withRequestBody(equalTo("transferId"))
+            .willReturn(ok()));
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
@@ -59,10 +59,9 @@ class DeidentifhirStepTest {
   }
 
   @Test
-  void emptyTCAResponseYieldsEmptyResult(MockServerClient mockServer) throws IOException {
-    mockServer
-        .when(request().withMethod("POST").withPath("/api/v2/rd/research-mapping"))
-        .respond(response().withStatusCode(200));
+  void emptyTCAResponseYieldsEmptyResult() throws IOException {
+    wireMock.register(
+        WireMock.post(urlPathEqualTo("/api/v2/rd/research-mapping")).willReturn(ok()));
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 
@@ -70,22 +69,17 @@ class DeidentifhirStepTest {
   }
 
   @Test
-  void deidentifySucceeds(MockServerClient mockServer) throws IOException {
-    mockServer
-        .when(
-            request()
-                .withMethod("POST")
-                .withPath("/api/v2/rd/research-mapping")
-                .withBody("transferId"))
-        .respond(
-            response()
-                .withBody(
-                    json(
-                        """
-                        {"tidPidMap": {"tid1": "pid1"},
-                         "dateShiftBy": "P12D"}
-                        """))
-                .withStatusCode(200));
+  void deidentifySucceeds() throws IOException {
+    wireMock.register(
+        WireMock.post(urlPathEqualTo("/api/v2/rd/research-mapping"))
+            .withRequestBody(equalTo("transferId"))
+            .willReturn(
+                jsonResponse(
+                    """
+                          {"tidPidMap": {"tid1": "pid1"},
+                           "dateShiftBy": "P12D"}
+                          """,
+                    200)));
 
     var bundle = generateOnePatient("tid1", "2024", "identifierSystem");
 

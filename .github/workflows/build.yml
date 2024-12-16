@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     env:
-      MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN -Dfts.retryTimeout=false
+      MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
     runs-on: ubuntu-24.04
     strategy:
@@ -50,7 +50,7 @@ jobs:
   build-jar:
     needs: [ test ]
     env:
-      MAVEN_ARGS: -B -T1C -Dmockserver.logLevel=WARN -Dfts.retryTimeout=false
+      MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
       COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
     runs-on: ubuntu-24.04

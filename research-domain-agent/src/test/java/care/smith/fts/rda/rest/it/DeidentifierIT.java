@@ -45,7 +45,7 @@ public class DeidentifierIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void tcaFirstRequestFails() {
+  void tcaFirstRequestFails() throws IOException {
     mockDeidentifier.success(List.of(500));
     mockBundleSender.success();
 

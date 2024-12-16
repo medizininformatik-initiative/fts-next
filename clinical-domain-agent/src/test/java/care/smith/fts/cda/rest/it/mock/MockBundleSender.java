@@ -1,92 +1,79 @@
 package care.smith.fts.cda.rest.it.mock;
 
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
+import static care.smith.fts.test.MockServerUtil.accepted;
+import static care.smith.fts.test.MockServerUtil.connectionReset;
+import static care.smith.fts.test.MockServerUtil.delayedResponse;
+import static care.smith.fts.test.MockServerUtil.sequentialMock;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.status;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 
-import java.util.LinkedList;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import java.util.List;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.matchers.MatchType;
-import org.mockserver.matchers.Times;
-import org.mockserver.model.Delay;
-import org.mockserver.model.HttpError;
-import org.mockserver.model.HttpRequest;
-import org.mockserver.model.HttpResponse;
 
 @Slf4j
 public class MockBundleSender {
 
-  private final MockServerClient rda;
-  private final HttpRequest request;
-  private final String baseUrl;
+  private static final String BASE_PATH = "/api/v2/process";
 
-  public MockBundleSender(MockServerClient rda) {
-    this.rda = rda;
-    baseUrl = "/api/v2/process";
+  private final WireMock rda;
+  private final MappingBuilder request;
+
+  public MockBundleSender(WireMockServer rda) {
+    this.rda = new WireMock(rda);
+
     request =
-        request()
-            .withMethod("POST")
-            .withPath(baseUrl + "/test/patient")
-            .withBody(
-                json("{\"resourceType\":\"Bundle\",\"total\":2}", MatchType.ONLY_MATCHING_FIELDS));
+        post(urlPathEqualTo(BASE_PATH + "/test/patient"))
+            .withRequestBody(equalToJson("{\"resourceType\":\"Bundle\",\"total\":2}", true, true));
   }
 
   public void success() {
-    rda.when(request).respond(initialSuccessResponse());
+    rda.register(request.willReturn(initialSuccessResponse()));
 
-    rda.when(request().withMethod("GET").withPath(baseUrl + "/status/processId456"))
-        .respond(response().withStatusCode(200));
+    rda.register(get(urlPathEqualTo(BASE_PATH + "/status/processId456")).willReturn(ok()));
   }
 
   public void successWithStatusCode(List<Integer> statusCodes) {
-    var rs = new LinkedList<>(statusCodes);
+    var seq = sequentialMock(rda);
+    var butLast = statusCodes.subList(0, statusCodes.size() - 1);
+    for (var statusCode : butLast) {
+      var response = statusCode < 400 ? initialSuccessResponse() : status(statusCode);
+      seq = seq.then(request, response);
+    }
+    seq.thereafter(request, initialSuccessResponse());
 
-    rda.when(request)
-        .respond(
-            request ->
-                Optional.ofNullable(rs.poll())
-                    .map(
-                        statusCode -> {
-                          log.trace("statusCode: {}", statusCode);
-                          return statusCode < 400
-                              ? initialSuccessResponse()
-                              : response().withStatusCode(statusCode);
-                        })
-                    .orElseGet(this::initialSuccessResponse));
-
-    rda.when(request().withMethod("GET").withPath(baseUrl + "/status/processId456"))
-        .respond(response().withStatusCode(200));
+    rda.register(get(urlPathEqualTo(BASE_PATH + "/status/processId456")).willReturn(ok()));
   }
 
-  private HttpResponse initialSuccessResponse() {
+  private ResponseDefinitionBuilder initialSuccessResponse() {
     log.trace("initialSuccessResponse with statusCode 200");
-    return response()
-        .withHeader(
-            CONTENT_LOCATION,
-            ("http://localhost:%d" + baseUrl + "/status/processId456").formatted(rda.getPort()));
+    return ok().withHeader(CONTENT_LOCATION, BASE_PATH + "/status/processId456");
   }
 
   public void isDown() {
-    rda.when(request).error(HttpError.error().withDropConnection(true));
+    rda.register(request.willReturn(connectionReset()));
   }
 
   public void timeout() {
-    rda.when(request).respond(request -> null, Delay.minutes(10));
+    rda.register(request.willReturn(delayedResponse()));
   }
 
   public void successWithRetryAfter() {
-    rda.when(request).respond(initialSuccessResponse());
+    rda.register(request.willReturn(initialSuccessResponse()));
 
-    var statusRequest = request().withMethod("GET").withPath(baseUrl + "/status/processId456");
-    rda.when(statusRequest, Times.exactly(1))
-        .respond(response().withStatusCode(202).withHeader(RETRY_AFTER, "2"));
-    rda.when(statusRequest, Times.exactly(1))
-        .respond(response().withStatusCode(202).withHeader(RETRY_AFTER, "1"));
-    rda.when(statusRequest).respond(response().withStatusCode(200));
+    var statusRequest = get(urlPathEqualTo(BASE_PATH + "/status/processId456"));
+    sequentialMock(rda)
+        .then(statusRequest, accepted().withHeader(RETRY_AFTER, "2"))
+        .then(statusRequest, accepted().withHeader(RETRY_AFTER, "1"))
+        .thereafter(statusRequest, ok());
   }
 }

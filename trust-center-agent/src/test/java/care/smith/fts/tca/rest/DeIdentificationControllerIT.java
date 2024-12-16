@@ -1,22 +1,24 @@
 package care.smith.fts.tca.rest;
 
 import static care.smith.fts.test.FhirGenerators.fromList;
+import static care.smith.fts.test.FhirGenerators.gpasGetOrCreateResponse;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static java.time.Duration.ofDays;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.matchers.MatchType.ONLY_MATCHING_FIELDS;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
-import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.tca.ResearchMappingResponse;
 import care.smith.fts.util.tca.TransportMappingResponse;
@@ -25,13 +27,11 @@ import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockserver.model.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -58,20 +58,19 @@ class DeIdentificationControllerIT extends BaseIT {
   @Test
   void successfulRequest() throws IOException {
     var fhirGenerator =
-        FhirGenerators.gpasGetOrCreateResponse(
+        gpasGetOrCreateResponse(
             fromList(List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")),
             fromList(List.of("469680023", "123", "12345")));
 
     List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
         .forEach(
             key ->
-                gpas.when(
-                        request()
-                            .withMethod("POST")
-                            .withPath("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate")
-                            .withContentType(APPLICATION_FHIR_JSON)
-                            .withBody(
-                                json(
+                gpas()
+                    .register(
+                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                            .withRequestBody(
+                                equalToJson(
                                     """
                                     { "resourceType": "Parameters",
                                       "parameter": [
@@ -79,12 +78,9 @@ class DeIdentificationControllerIT extends BaseIT {
                                         {"name": "original", "valueString": "%s"}]}
                                     """
                                         .formatted(key),
-                                    ONLY_MATCHING_FIELDS)))
-                    .respond(
-                        response()
-                            .withBody(
-                                fhirGenerator.generateString(),
-                                MediaType.create("application", "fhir+json"))));
+                                    true,
+                                    true))
+                            .willReturn(fhirResponse(fhirGenerator.generateString(), 200))));
 
     var response =
         doPost(
@@ -110,48 +106,31 @@ class DeIdentificationControllerIT extends BaseIT {
   }
 
   @Test
-  void firstRequestToGpasFails() {
+  void firstRequestToGpasFails() throws IOException {
     var statusCodes = new LinkedList<>(List.of(500));
 
     var map =
         Map.of("id-144218", "469680023", "Salt_id-144218", "123", "PT336H_id-144218", "12345");
 
-    List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
-        .forEach(
-            key ->
-                gpas.when(
-                        request()
-                            .withMethod("POST")
-                            .withPath("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate")
-                            .withContentType(APPLICATION_FHIR_JSON)
-                            .withBody(
-                                json(
-                                    """
-                                    { "resourceType": "Parameters",
-                                      "parameter": [
-                                        {"name": "target", "valueString": "MII"},
-                                        {"name": "original", "valueString": "%s"}]}
-                                    """
-                                        .formatted(key),
-                                    ONLY_MATCHING_FIELDS)))
-                    .respond(
-                        request ->
-                            Optional.ofNullable(statusCodes.poll())
-                                .filter(statusCode -> statusCode >= 400)
-                                .map(statusCode -> response().withStatusCode(statusCode))
-                                .orElseGet(
-                                    () -> {
-                                      try {
-                                        return response()
-                                            .withBody(
-                                                FhirGenerators.gpasGetOrCreateResponse(
-                                                        () -> key, () -> map.get(key))
-                                                    .generateString(),
-                                                MediaType.create("application", "fhir+json"));
-                                      } catch (IOException e) {
-                                        throw new RuntimeException(e);
-                                      }
-                                    })));
+    for (String s : List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")) {
+      String body = gpasGetOrCreateResponse(() -> s, () -> map.get(s)).generateString();
+      gpas()
+          .register(
+              post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                  .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                  .withRequestBody(
+                      equalToJson(
+                          """
+                              { "resourceType": "Parameters",
+                                "parameter": [
+                                  {"name": "target", "valueString": "MII"},
+                                  {"name": "original", "valueString": "%s"}]}
+                              """
+                              .formatted(s),
+                          true,
+                          true))
+                  .willReturn(fhirResponse(body, 200)));
+    }
 
     var response =
         doPost(
@@ -201,20 +180,19 @@ class DeIdentificationControllerIT extends BaseIT {
   @Test
   void transportMappingIdsAndDateShiftingValuesAndFetchPseudonyms() throws IOException {
     var fhirGenerator =
-        FhirGenerators.gpasGetOrCreateResponse(
+        gpasGetOrCreateResponse(
             fromList(List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")),
             fromList(List.of("469680023", "123", "12345")));
 
     List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
         .forEach(
             key ->
-                gpas.when(
-                        request()
-                            .withMethod("POST")
-                            .withPath("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate")
-                            .withContentType(APPLICATION_FHIR_JSON)
-                            .withBody(
-                                json(
+                gpas()
+                    .register(
+                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                            .withRequestBody(
+                                equalToJson(
                                     """
                                     { "resourceType": "Parameters",
                                       "parameter": [
@@ -222,12 +200,9 @@ class DeIdentificationControllerIT extends BaseIT {
                                         {"name": "original", "valueString": "%s"}]}
                                     """
                                         .formatted(key),
-                                    ONLY_MATCHING_FIELDS)))
-                    .respond(
-                        response()
-                            .withBody(
-                                fhirGenerator.generateString(),
-                                MediaType.create("application", "fhir+json"))));
+                                    true,
+                                    true))
+                            .willReturn(fhirResponse(fhirGenerator.generateString(), 200))));
 
     var transferId =
         doPost(
@@ -279,7 +254,7 @@ class DeIdentificationControllerIT extends BaseIT {
 
   @AfterEach
   void tearDown() {
-    gics.reset();
-    gpas.reset();
+    gics().resetMappings();
+    gpas().resetMappings();
   }
 }
