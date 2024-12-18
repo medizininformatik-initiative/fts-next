@@ -81,30 +81,35 @@ public class TransferProcessControllerIT extends BaseIT {
 
   protected final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
-  protected final MockCohortSelector mockCohortSelector = new MockCohortSelector(tca);
-  protected final MockDataSelector mockDataSelector = new MockDataSelector(om, tca, hds);
-  protected final MockBundleSender mockBundleSender = new MockBundleSender(rda);
+  protected MockCohortSelector allCohortSelector;
+  protected MockCohortSelector listCohortSelector;
+  protected MockDataSelector mockDataSelector;
+  protected MockBundleSender mockBundleSender;
 
   protected static final String DEFAULT_IDENTIFIER_SYSTEM = "http://fts.smith.care";
 
   @BeforeEach
-  void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+  final void setUpTransferProcessControllerIT(
+      @LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     this.port = port;
     client = factory.webClient("https://localhost:" + port);
+    allCohortSelector = MockCohortSelector.fetchAll(tca);
+    listCohortSelector = MockCohortSelector.fetch(tca);
+    mockDataSelector = new MockDataSelector(om, tca, hds);
+    mockBundleSender = new MockBundleSender(rda);
   }
 
   @AfterEach
-  void tearDown() {
+  final void tearDownTransferProcessControllerIT() {
     resetAll();
   }
-
-
 
   protected FirstStep<TransferProcessStatus> startProcess(Duration timeout) {
     return startProcess(timeout, s -> s.phase() != RUNNING && s.phase() != QUEUED);
   }
 
-  protected FirstStep<TransferProcessStatus> startProcess(Duration timeout, Predicate<TransferProcessStatus> until) {
+  protected FirstStep<TransferProcessStatus> startProcess(
+      Duration timeout, Predicate<TransferProcessStatus> until) {
     return client
         .post()
         .uri("/api/v2/process/test/start")
@@ -123,7 +128,8 @@ public class TransferProcessControllerIT extends BaseIT {
         .as(StepVerifier::create);
   }
 
-  protected FirstStep<TransferProcessStatus> startProcessForIds(Duration timeout, List<String> ids) {
+  protected FirstStep<TransferProcessStatus> startProcessForIds(
+      Duration timeout, List<String> ids) {
     return startProcessForIds(timeout, s -> s.phase() != RUNNING && s.phase() != QUEUED, ids);
   }
 
@@ -153,13 +159,20 @@ public class TransferProcessControllerIT extends BaseIT {
   }
 
   protected static void completedWithBundles(int expectedBundlesSent, TransferProcessStatus r) {
+    log.debug("Status of completed process: {}", r);
     expectPhase(r, Phase.COMPLETED);
-    assertThat(r.sentBundles()).isEqualTo(expectedBundlesSent);
+    assertThat(r.sentBundles())
+        .withFailMessage(
+            "Wrong number of sent bundles %d, expected %d", r.sentBundles(), expectedBundlesSent)
+        .isEqualTo(expectedBundlesSent);
   }
 
   protected static void errored(TransferProcessStatus r) {
+    log.debug("Status of errored process: {}", r);
     expectPhase(r, Phase.COMPLETED_WITH_ERROR);
-    assertThat(r.skippedBundles()).isEqualTo(1);
+    assertThat(r.skippedBundles())
+        .withFailMessage("Wrong number of skipped bundles %d, expected %d", r.skippedBundles(), 1)
+        .isEqualTo(1);
   }
 
   protected static void expectPhase(TransferProcessStatus r, Phase phase) {

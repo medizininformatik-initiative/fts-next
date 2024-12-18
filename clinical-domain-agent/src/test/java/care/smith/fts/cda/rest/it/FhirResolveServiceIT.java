@@ -14,15 +14,15 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
   private static final String patientId = "patientId";
 
   @BeforeEach
-  void setUp() throws IOException {
-    mockCohortSelector.consentForOnePatient(patientId);
+  void setUp() {
+    allCohortSelector.consentForOnePatient(patientId);
   }
 
   @Test
   void hdsDown() {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).isDown();
 
-    startProcess(Duration.ofSeconds(3))
+    startProcess(Duration.ofMinutes(1))
         .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
@@ -69,13 +69,13 @@ public class FhirResolveServiceIT extends TransferProcessControllerIT {
     mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
     mockDataSelector
         .whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM)
-        .resolveId(patientId, List.of(500));
+        .resolveId(patientId, List.of(500, 200));
     mockDataSelector
         .whenFetchData(patientId)
         .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()));
     mockBundleSender.success();
 
-    startProcess(Duration.ofSeconds(3))
+    startProcess(Duration.ofSeconds(10))
         .assertNext(r -> completedWithBundles(1, r))
         .verifyComplete();
   }

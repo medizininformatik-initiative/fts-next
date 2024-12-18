@@ -23,7 +23,7 @@ public class DeidentifhirIT extends TransferProcessControllerIT {
 
   @BeforeEach
   void setUp() throws IOException {
-    mockCohortSelector.consentForOnePatient(patientId);
+    allCohortSelector.consentForOnePatient(patientId);
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector.whenFetchData(patientId).respondWith(patient);
   }

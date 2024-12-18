@@ -19,7 +19,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
 
   @BeforeEach
   void setUp() throws IOException {
-    mockCohortSelector.consentForOnePatient(patientId);
+    allCohortSelector.consentForOnePatient(patientId);
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector.whenFetchData(patientId).respondWith(patient);
     mockDataSelector.whenTransportMapping(patientId, DEFAULT_IDENTIFIER_SYSTEM).success();
@@ -50,7 +50,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
     mockDataSelector
         .whenFetchData(patientId)
         .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()));
-    mockBundleSender.successWithStatusCode(List.of(500));
+    mockBundleSender.successWithStatusCode(List.of(500, 200));
 
     startProcess(Duration.ofSeconds(8))
         .assertNext(r -> completedWithBundles(1, r))

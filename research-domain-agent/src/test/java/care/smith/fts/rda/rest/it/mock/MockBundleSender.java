@@ -1,31 +1,35 @@
 package care.smith.fts.rda.rest.it.mock;
 
+import static care.smith.fts.test.MockServerUtil.connectionReset;
+import static care.smith.fts.test.MockServerUtil.delayedResponse;
+import static care.smith.fts.test.MockServerUtil.sequentialMock;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.JsonBody.json;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.status;
+import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
-import java.util.LinkedList;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import java.util.List;
-import java.util.Optional;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.matchers.MatchType;
-import org.mockserver.model.Delay;
-import org.mockserver.model.HttpError;
-import org.mockserver.model.HttpRequest;
-import org.mockserver.model.MediaType;
 
 public class MockBundleSender {
-  private final MockServerClient hds;
-  private final HttpRequest request;
 
-  public MockBundleSender(MockServerClient hds) {
-    this.hds = hds;
+  public static final String SCENARIO_NAME = "hdsSequentialRequests";
+  private final WireMock hds;
+  private final MappingBuilder request;
+
+  public MockBundleSender(WireMockServer hds) {
+    this.hds = new WireMock(hds);
     request =
-        request()
-            .withMethod("POST")
-            .withContentType(MediaType.parse(APPLICATION_FHIR_JSON_VALUE))
-            .withBody(json("{\"resourceType\":\"Bundle\"}", MatchType.ONLY_MATCHING_FIELDS));
+        post(ANY)
+            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON_VALUE))
+            .withRequestBody(equalToJson("{\"resourceType\":\"Bundle\"}", true, true));
   }
 
   public void success() {
@@ -33,20 +37,18 @@ public class MockBundleSender {
   }
 
   public void success(List<Integer> statusCodes) {
-    var rs = new LinkedList<>(statusCodes);
-    hds.when(request)
-        .respond(
-            request ->
-                Optional.ofNullable(rs.poll())
-                    .map(statusCode -> response().withStatusCode(statusCode))
-                    .orElseGet(() -> response().withStatusCode(200)));
+    var seq = sequentialMock(hds);
+    for (int statusCode : statusCodes) {
+      seq = seq.then(request, status(statusCode));
+    }
+    seq.thereafter(request, ok());
   }
 
   public void isDown() {
-    hds.when(request()).error(HttpError.error().withDropConnection(true));
+    hds.register(any(ANY).willReturn(connectionReset()));
   }
 
   public void hasTimeout() {
-    hds.when(request()).respond(request -> null, Delay.minutes(10));
+    hds.register(any(ANY).willReturn(delayedResponse()));
   }
 }

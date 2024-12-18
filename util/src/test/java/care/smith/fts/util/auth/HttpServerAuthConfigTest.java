@@ -22,8 +22,7 @@ class HttpServerAuthConfigTest {
   void multipleAuthMethodsThrow() {
     var config = new HttpServerAuthConfig();
     config.setAuth(
-        new AuthMethod(
-            null, new HttpServerBasicAuth(List.of()), new HttpServerNoneAuth()));
+        new AuthMethod(null, new HttpServerBasicAuth(List.of()), new HttpServerNoneAuth()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(config::userDetailsService)

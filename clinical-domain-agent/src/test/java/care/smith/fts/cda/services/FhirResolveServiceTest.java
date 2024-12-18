@@ -1,57 +1,58 @@
 package care.smith.fts.cda.services;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.*;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
+import static org.springframework.http.HttpStatus.OK;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.util.WebClientFactory;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.jupiter.MockServerExtension;
-import org.mockserver.model.Header;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(classes = ClinicalDomainAgent.class)
-@ExtendWith(MockServerExtension.class)
+@WireMockTest
 class FhirResolveServiceTest {
 
   private static final String PATIENT_ID = "patient-141392";
-  private static final Header CONTENT_JSON = new Header("Content-Type", "application/json");
   private static final String KDS_PATIENT = "https://some.example.com/pid";
 
   @Autowired MeterRegistry meterRegistry;
 
   private FhirResolveService service;
+  private WireMock wireMock;
 
   @BeforeEach
-  void setUp(MockServerClient mockServer, @Autowired WebClientFactory clientFactory) throws Exception {
-    var client = clientFactory.create(clientConfig(mockServer));
+  void setUp(WireMockRuntimeInfo wiremockRuntime, @Autowired WebClientFactory clientFactory)
+      throws Exception {
+    var client = clientFactory.create(clientConfig(wiremockRuntime));
     this.service = new FhirResolveService(KDS_PATIENT, client, meterRegistry);
+    wireMock = wiremockRuntime.getWireMock();
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = requireNonNull(inStream).readAllBytes();
-      mockServer
-          .when(request().withMethod("GET").withPath("/metadata"))
-          .respond(response().withBody(capStatement).withHeader(CONTENT_JSON));
+      wireMock.register(get("/metadata").willReturn(jsonResponse(capStatement, OK.value())));
     }
   }
 
   @Test
-  void noPatientsErrors(MockServerClient mockServer) throws Exception {
+  void noPatientsErrors() throws Exception {
     try (var inStream = getClass().getResourceAsStream("search-0.json")) {
-      var bundle = requireNonNull(inStream).readAllBytes();
-      mockServer
-          .when(request().withMethod("GET").withPath("/Patient"))
-          .respond(response().withBody(bundle).withHeader(CONTENT_JSON));
+      byte[] bundle = requireNonNull(inStream).readAllBytes();
+      var response = jsonResponse(new String(bundle, UTF_8), 200);
+      wireMock.register(get(urlPathEqualTo("/Patient")).willReturn(response));
     }
 
     create(service.resolve("external-141392"))
@@ -62,12 +63,11 @@ class FhirResolveServiceTest {
   }
 
   @Test
-  void resolveFindsPatientId(MockServerClient mockServer) throws Exception {
+  void resolveFindsPatientId() throws Exception {
     try (var inStream = getClass().getResourceAsStream("search-1.json")) {
       var bundle = requireNonNull(inStream).readAllBytes();
-      mockServer
-          .when(request().withMethod("GET").withPath("/Patient"))
-          .respond(response().withBody(bundle).withHeader(CONTENT_JSON));
+      var response = jsonResponse(new String(bundle, UTF_8), 200);
+      wireMock.register(get(urlPathEqualTo("/Patient")).willReturn(response));
     }
 
     create(service.resolve("external-141392"))
@@ -76,12 +76,11 @@ class FhirResolveServiceTest {
   }
 
   @Test
-  void multiplePatientsError(MockServerClient mockServer) throws Exception {
+  void multiplePatientsError() throws Exception {
     try (var inStream = getClass().getResourceAsStream("search-2.json")) {
       var bundle = requireNonNull(inStream).readAllBytes();
-      mockServer
-          .when(request().withMethod("GET").withPath("/Patient"))
-          .respond(response().withBody(bundle).withHeader(CONTENT_JSON));
+      var response = jsonResponse(new String(bundle, UTF_8), 200);
+      wireMock.register(get(urlPathEqualTo("/Patient")).willReturn(response));
     }
 
     create(service.resolve("external-075521"))
@@ -106,7 +105,7 @@ class FhirResolveServiceTest {
   }
 
   @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+  void tearDown() {
+    wireMock.resetMappings();
   }
 }

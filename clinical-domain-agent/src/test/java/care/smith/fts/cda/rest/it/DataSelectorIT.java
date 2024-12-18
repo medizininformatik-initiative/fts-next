@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
 
   @BeforeEach
   void setUp() throws IOException {
-    mockCohortSelector.consentForOnePatient(patientId);
+    allCohortSelector.consentForOnePatient(patientId);
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
   }
 
@@ -22,7 +23,7 @@ public class DataSelectorIT extends TransferProcessControllerIT {
   void hdsDown() {
     mockDataSelector.whenFetchData(patientId).dropConnection();
 
-    startProcess(Duration.ofSeconds(3))
+    startProcess(Duration.ofMinutes(1))
         .assertNext(TransferProcessControllerIT::errored)
         .verifyComplete();
   }
@@ -60,10 +61,10 @@ public class DataSelectorIT extends TransferProcessControllerIT {
     mockDataSelector.whenResolvePatient(patientId, DEFAULT_IDENTIFIER_SYSTEM).resolveId(patientId);
     mockDataSelector
         .whenFetchData(patientId)
-        .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()), List.of(500));
+        .respondWith(new Bundle().addEntry(patient.getEntryFirstRep()), List.of(500, 200));
     mockBundleSender.success();
 
-    startProcess(Duration.ofSeconds(5))
+    startProcess(Duration.ofSeconds(10))
         .assertNext(r -> completedWithBundles(1, r))
         .verifyComplete();
   }

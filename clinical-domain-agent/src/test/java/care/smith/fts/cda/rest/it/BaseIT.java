@@ -4,20 +4,21 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.util.FileSystemUtils.deleteRecursively;
 
 import care.smith.fts.test.MockServerUtil;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterAll;
-import org.mockserver.client.MockServerClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 public abstract class BaseIT {
   private static final Path tempDir;
 
-  protected static final MockServerClient hds;
-  protected static final MockServerClient tca;
-  protected static final MockServerClient rda;
+  protected static final WireMockServer hds;
+  protected static final WireMockServer tca;
+  protected static final WireMockServer rda;
 
   @AfterAll
   static void afterAll() throws IOException {
@@ -30,17 +31,17 @@ public abstract class BaseIT {
   }
 
   protected static void resetAll() {
-    tca.reset();
-    hds.reset();
-    rda.reset();
+    tca.resetAll();
+    hds.resetAll();
+    rda.resetAll();
   }
 
   static {
     try {
       tempDir = Files.createTempDirectory("ftsit");
-      hds = hdsMockServer();
-      tca = tcaMockServer();
-      rda = rdaMockServer();
+      hds = MockServerUtil.onRandomPort();
+      tca = MockServerUtil.onRandomPort();
+      rda = MockServerUtil.onRandomPort();
       createProject();
     } catch (IOException e) {
       throw new IllegalStateException("Unable to create project config file", e);
@@ -54,22 +55,10 @@ public abstract class BaseIT {
         var outStream = Files.newOutputStream(projectFile)) {
       var config =
           new String(inStream.readAllBytes(), UTF_8)
-              .replace("<tc-agent>", "http://localhost:%d".formatted(tca.getPort()))
-              .replace("<hds>", "http://localhost:%d".formatted(hds.getPort()))
-              .replace("<rd-agent>", "http://localhost:%d".formatted(rda.getPort()));
+              .replace("<tc-agent>", tca.baseUrl())
+              .replace("<hds>", hds.baseUrl())
+              .replace("<rd-agent>", rda.baseUrl());
       outStream.write(config.getBytes(UTF_8));
     }
-  }
-
-  private static MockServerClient tcaMockServer() throws IOException {
-    return MockServerUtil.onRandomPort();
-  }
-
-  private static MockServerClient rdaMockServer() throws IOException {
-    return MockServerUtil.onRandomPort();
-  }
-
-  private static MockServerClient hdsMockServer() throws IOException {
-    return MockServerUtil.onRandomPort();
   }
 }

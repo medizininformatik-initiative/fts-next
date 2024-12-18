@@ -24,7 +24,6 @@ deIdentification:
     ttl: PT10M
 
 logging.level:
-  org.mockserver.log: WARN
   care.smith.fts: DEBUG
   care.smith.fts.tca: TRACE
 

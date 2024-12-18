@@ -1,22 +1,24 @@
 package care.smith.fts.util;
 
 import static ca.uhn.fhir.context.FhirContext.forR4;
+import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.FhirUtils.toBundle;
+import static com.github.tomakehurst.wiremock.client.WireMock.created;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.model.HttpRequest.request;
-import static org.mockserver.model.HttpResponse.response;
-import static org.mockserver.model.MediaType.APPLICATION_JSON;
 import static reactor.test.StepVerifier.create;
 
 import ca.uhn.fhir.context.FhirContext;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.junit.jupiter.MockServerExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -27,19 +29,19 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootTest(classes = {FhirCodecConfiguration.class, WebClientFhirCodecTest.Config.class})
-@ExtendWith(MockServerExtension.class)
+@WireMockTest
 class WebClientFhirCodecTest {
 
   @Autowired WebClient.Builder client;
 
   @Test
-  void decodeResponse(MockServerClient mockServer) {
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
+  void decodeResponse(WireMockRuntimeInfo wireMockRuntime) {
+    var address = wireMockRuntime.getHttpBaseUrl();
+    var wireMock = wireMockRuntime.getWireMock();
 
     Bundle bundle = Stream.of(new Patient().setId("patient-094857")).collect(toBundle());
-    mockServer
-        .when(request().withMethod("GET").withPath("/"))
-        .respond(response().withBody(FhirUtils.fhirResourceToString(bundle), APPLICATION_JSON));
+    wireMock.register(
+        get(urlEqualTo("/")).willReturn(jsonResponse(fhirResourceToString(bundle), 200)));
     WebClient webClient = client.baseUrl(address).build();
 
     create(webClient.get().retrieve().bodyToMono(Bundle.class))
@@ -48,13 +50,12 @@ class WebClientFhirCodecTest {
   }
 
   @Test
-  void encodeRequest(MockServerClient mockServer) {
-    var address = "http://localhost:%d".formatted(mockServer.getPort());
+  void encodeRequest(WireMockRuntimeInfo wireMockRuntime) {
+    var address = wireMockRuntime.getHttpBaseUrl();
+    var wireMock = wireMockRuntime.getWireMock();
 
     Bundle bundle = Stream.of(new Patient().setId("patient-094857")).collect(toBundle());
-    mockServer
-        .when(request().withMethod("POST").withPath("/"))
-        .respond(response().withStatusCode(201));
+    wireMock.register(post(urlEqualTo("/")).willReturn(created()));
     WebClient webClient = client.baseUrl(address).build();
 
     var response =
@@ -70,8 +71,9 @@ class WebClientFhirCodecTest {
   }
 
   @AfterEach
-  void tearDown(MockServerClient mockServer) {
-    mockServer.reset();
+  void tearDown(WireMockRuntimeInfo wireMockRuntime) {
+    var wireMock = wireMockRuntime.getWireMock();
+    wireMock.resetMappings();
   }
 
   @TestConfiguration

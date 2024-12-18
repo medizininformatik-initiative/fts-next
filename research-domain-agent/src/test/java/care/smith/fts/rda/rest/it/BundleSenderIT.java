@@ -21,7 +21,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void hdsDown() {
+  void hdsDown() throws IOException {
     mockDeidentifier.success();
     mockBundleSender.isDown();
 
@@ -31,7 +31,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void hdsTimeout() {
+  void hdsTimeout() throws IOException {
     mockDeidentifier.success();
     mockBundleSender.hasTimeout();
 
@@ -42,7 +42,7 @@ public class BundleSenderIT extends TransferProcessControllerIT {
   }
 
   @Test
-  void hdsFirstRequestFails() {
+  void hdsFirstRequestFails() throws IOException {
     mockDeidentifier.success();
     mockBundleSender.success(List.of(500));
 
