@@ -1,0 +1,23 @@
+name: fts-auth
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.6
+    command: [ "start-dev" ]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+    - "8080:8080"
+    networks: [ "clinical-domain", "research-domain", "trust-center" ]
+
+networks:
+  clinical-domain:
+    external: true
+    name: fts-test_clinical-domain
+  research-domain:
+    external: true
+    name: fts-test_research-domain
+  trust-center:
+    external: true
+    name: fts-test_trust-center
