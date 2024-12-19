@@ -1,4 +1,4 @@
-import {withMermaid} from "vitepress-plugin-mermaid";
+import {withMermaid} from 'vitepress-plugin-mermaid';
 
 const shortVersion = (process.env.VITE_LATEST_RELEASE || "local").split(".")[0];
 
@@ -18,7 +18,6 @@ export default withMermaid({
       }
     }
   },
-
   themeConfig: {
     outline: false,
 
@@ -112,7 +111,7 @@ export default withMermaid({
         {
           text: "Reference",
           items: [
-            {text: 'API', link: '/open-api/cd-openapi.md'}
+            {text: 'API', link: '/open-api/cd-openapi'}
           ]
         },
       ],
@@ -126,9 +125,9 @@ export default withMermaid({
             {
               text: 'API',
               items: [
-                {text: 'Clinical Domain Agent', link: '/open-api/cd-openapi.md'},
-                {text: 'Trust Center Domain Agent', link: '/open-api/tc-openapi.md'},
-                {text: 'Research Domain Agent', link: '/open-api/rd-openapi.md'},
+                {text: 'Clinical Domain Agent', link: '/contributing/open-api/cd-openapi'},
+                {text: 'Trust Center Domain Agent', link: '/contributing/open-api/tc-openapi'},
+                {text: 'Research Domain Agent', link: '/contributing/open-api/rd-openapi'},
               ],
             },
           ]
