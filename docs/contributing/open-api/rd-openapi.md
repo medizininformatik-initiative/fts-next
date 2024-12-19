@@ -5,7 +5,7 @@ layout: page
 
 
 <script setup>
-import RapiDoc from '../components/RapiDoc.vue';
+import RapiDoc from '../../components/RapiDoc.vue';
 import { withBase } from 'vitepress'
 </script>
 
