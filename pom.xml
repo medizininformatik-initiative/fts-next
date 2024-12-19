@@ -53,10 +53,8 @@
 
       <dependency>
         <groupId>ca.uhn.hapi.fhir</groupId>
-        <artifactId>hapi-fhir-bom</artifactId>
+        <artifactId>hapi-fhir-structures-r4</artifactId>
         <version>7.6.0</version>
-        <scope>import</scope>
-        <type>pom</type>
       </dependency>
 
       <!-- Mitigate CVE-2024-47554 -->
