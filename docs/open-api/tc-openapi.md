@@ -5,6 +5,7 @@ layout: page
 
 <script setup>
 import RapiDoc from '../components/RapiDoc.vue';
+import { withBase } from 'vitepress'
 </script>
 
-<RapiDoc specs="/tc-agent-openapi.json" />
+<RapiDoc :specs="withBase('/tc-agent-openapi.json')" />
