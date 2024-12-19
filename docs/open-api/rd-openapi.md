@@ -8,4 +8,4 @@ layout: page
 import RapiDoc from '../components/RapiDoc.vue';
 </script>
 
-<RapiDoc specs="./rd-agent-openapi.json"/>
+<RapiDoc specs="/rd-agent-openapi.json"/>

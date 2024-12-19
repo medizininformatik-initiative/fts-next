@@ -7,4 +7,4 @@ layout: page
 import RapiDoc from '../components/RapiDoc.vue';
 </script>
 
-<RapiDoc specs="./tc-agent-openapi.json" />
+<RapiDoc specs="/tc-agent-openapi.json" />
