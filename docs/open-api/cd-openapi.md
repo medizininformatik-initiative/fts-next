@@ -7,4 +7,4 @@ layout: page
 import RapiDoc from '../components/RapiDoc.vue';
 </script>
 
-<RapiDoc specs="./cd-agent-openapi.json" />
+<RapiDoc specs="/cd-agent-openapi.json" />

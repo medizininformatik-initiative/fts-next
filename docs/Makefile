@@ -6,9 +6,9 @@ build: install
 
 generate-openapi:
 	docker compose --project-name fts-docs -f ../.github/test/compose.yaml up --wait cd-agent tc-agent rd-agent keystore --no-deps
-	../.github/scripts/openapi-specs.sh cd-agent --project-name fts-docs -f ../.github/test/compose.yaml >"open-api/cd-agent-openapi.json"
-	../.github/scripts/openapi-specs.sh tc-agent --project-name fts-docs -f ../.github/test/compose.yaml >"open-api/tc-agent-openapi.json"
-	../.github/scripts/openapi-specs.sh rd-agent --project-name fts-docs -f ../.github/test/compose.yaml >"open-api/rd-agent-openapi.json"
+	../.github/scripts/openapi-specs.sh cd-agent --project-name fts-docs -f ../.github/test/compose.yaml >"public/cd-agent-openapi.json"
+	../.github/scripts/openapi-specs.sh tc-agent --project-name fts-docs -f ../.github/test/compose.yaml >"public/tc-agent-openapi.json"
+	../.github/scripts/openapi-specs.sh rd-agent --project-name fts-docs -f ../.github/test/compose.yaml >"public/rd-agent-openapi.json"
 	docker compose --project-name fts-docs -f ../.github/test/compose.yaml down
 
 .PHONY: install build
