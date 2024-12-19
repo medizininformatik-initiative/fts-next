@@ -2,6 +2,7 @@
   "type": "module",
   "devDependencies": {
     "mermaid": "11.4.1",
+    "rapidoc": "^9.3.8",
     "vitepress": "1.5.0",
     "vitepress-plugin-mermaid": "2.0.17"
   },

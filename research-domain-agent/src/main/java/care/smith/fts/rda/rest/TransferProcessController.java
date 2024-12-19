@@ -17,6 +17,13 @@ import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
 import care.smith.fts.rda.TransferProcessRunner.Status;
 import care.smith.fts.util.error.ErrorResponseUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
@@ -55,6 +62,33 @@ public class TransferProcessController {
       value = "/process/{project:[\\w-]+}/patient",
       consumes = APPLICATION_FHIR_JSON_VALUE,
       produces = APPLICATION_FHIR_JSON_VALUE)
+  @Operation(
+      summary = "Start a transfer process",
+      description = "Start the transfer of a patient's bundles",
+      parameters = {
+        @Parameter(
+            name = "project",
+            schema = @Schema(implementation = String.class),
+            description = "Project name")
+      },
+      requestBody =
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "Bundle with patient data",
+              content =
+                  @Content(
+                      mediaType = "application/fhir",
+                      schema = @Schema(implementation = Bundle.class))),
+      responses = {
+        @ApiResponse(
+            responseCode = "202",
+            headers =
+                @Header(
+                    name = "Content-Location",
+                    description = "Link to process status",
+                    schema = @Schema(implementation = URI.class)),
+            description = "The transfer has started successfully"),
+        @ApiResponse(responseCode = "404", description = "The project could not be found")
+      })
   Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project,
       @Valid @NotNull @RequestBody Mono<Bundle> data,
@@ -92,10 +126,7 @@ public class TransferProcessController {
     var bundleWithoutParameters =
         resourceStream(bundle)
             .filter(
-                not(
-                    and(
-                        Parameters.class::isInstance,
-                        p -> p.getIdPart().equals("transfer-id"))))
+                not(and(Parameters.class::isInstance, p -> p.getIdPart().equals("transfer-id"))))
             .collect(toBundle());
     var transferId =
         resourceStream(bundle)
@@ -121,6 +152,23 @@ public class TransferProcessController {
   }
 
   @GetMapping("/process/status/{processId:[\\w-]+}")
+  @Operation(
+      summary = "Transfer process status",
+      parameters = {
+        @Parameter(
+            name = "processId",
+            schema = @Schema(implementation = String.class),
+            description = "Transfer process ID")
+      },
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Status.class))),
+        @ApiResponse(responseCode = "404", description = "The project could not be found")
+      })
   Mono<ResponseEntity<Status>> status(@PathVariable("processId") String processId) {
     log.trace("Process ID: {}", processId);
     return processRunner
@@ -144,12 +192,50 @@ public class TransferProcessController {
   }
 
   @GetMapping("/projects")
+  @Operation(
+      summary = "List available projects",
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = String.class),
+                    examples = {
+                      @ExampleObject(
+                          name = "Example list of projects",
+                          value = "[\"project1\", \"project2\"]")
+                    }))
+      })
   ResponseEntity<List<String>> projects() {
     return ResponseEntity.ok()
         .body(processes.stream().map(TransferProcessDefinition::project).toList());
   }
 
   @GetMapping(value = "projects/{project:[\\w-]+}")
+  @Operation(
+      summary = "Project configuration",
+      parameters = {@Parameter(name = "project", description = "Project name")},
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = TransferProcessConfig.class),
+                    examples = {
+                      @ExampleObject(
+                          name = "Example configuration",
+                          value =
+                              """
+                    {"cohortSelector":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domain":"MII","patientIdentifierSystem":"https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym","policySystem":"https://ths-greifswald.de/fhir/CodeSystem/gics/Policy","policies":["IDAT_erheben","IDAT_speichern_verarbeiten","MDAT_erheben","MDAT_speichern_verarbeiten"]}},
+                     "dataSelector":{"everything":{"fhirServer":{"baseUrl":"http://cd-hds:8080/fhir"},"resolve":{"patientIdentifierSystem":"http://fts.smith.care"}}},
+                     "deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domains":{"pseudonym":"MII","salt":"MII","dateShift":"MII"}},"maxDateShift":"P14D","deidentifhirConfig":"/app/projects/example/deidentifhir/CDtoTransport.profile","scraperConfig":"/app/projects/example/deidentifhir/IDScraper.profile"}},
+                     "bundleSender":{"researchDomainAgent":{"server":{"baseUrl":"http://rd-agent:8080"},"project":"example"}}}
+                    """)
+                    })),
+        @ApiResponse(responseCode = "404", description = "The project does not exist")
+      })
   ResponseEntity<TransferProcessConfig> project(@PathVariable("project") String project) {
     var process = findProcess(project);
     if (process.isPresent()) {

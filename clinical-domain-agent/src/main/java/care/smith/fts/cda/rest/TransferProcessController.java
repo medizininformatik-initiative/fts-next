@@ -9,6 +9,14 @@ import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.util.error.ErrorResponseUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +31,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @RestController
 @RequestMapping("/api/v2")
+@Tag(name = "Transfer Process API", description = "API for managing transfer processes")
 public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
@@ -35,6 +44,39 @@ public class TransferProcessController {
   }
 
   @PostMapping(value = "/process/{project:[\\w-]+}/start")
+  @Operation(
+      summary = "Start a transfer process",
+      description =
+          "Start a transfer of patients with IDs given in the request body or if empty start a transfer of all consented patients.",
+      parameters = {
+        @Parameter(
+            name = "project",
+            required = true,
+            schema = @Schema(implementation = String.class),
+            description = "Project name")
+      },
+      requestBody =
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "IDs of patients to transfer",
+              content =
+                  @Content(
+                      mediaType = "application/json",
+                      schema = @Schema(implementation = String.class),
+                      examples =
+                          @ExampleObject(
+                              name = "List of three patient IDs",
+                              value = "[\"id1\", \"id2\", \"id3\"]"))),
+      responses = {
+        @ApiResponse(
+            responseCode = "202",
+            headers =
+                @Header(
+                    name = "Content-Location",
+                    description = "Link to process status",
+                    schema = @Schema(implementation = URI.class)),
+            description = "The transfer has started successfully"),
+        @ApiResponse(responseCode = "404", description = "The project could not be found")
+      })
   Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project,
       UriComponentsBuilder uriBuilder,
@@ -64,6 +106,31 @@ public class TransferProcessController {
   }
 
   @GetMapping("/process/status/{processId:[\\w-]+}")
+  @Operation(
+      summary = "Transfer process's status",
+      parameters = {
+        @Parameter(
+            name = "processId",
+            schema = @Schema(implementation = String.class),
+            description = "Transfer process ID")
+      },
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = TransferProcessStatus.class),
+                    examples = {
+                      @ExampleObject(
+                          name = "Transfer process status",
+                          value =
+                              """
+                    {"processId":"ChlblQ","phase":"RUNNING","createdAt":[2024,12,16,9,29,37,186662587],"finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
+                    """)
+                    })),
+        @ApiResponse(responseCode = "404", description = "The project could not be found")
+      })
   Mono<ResponseEntity<TransferProcessStatus>> status(
       @PathVariable(value = "processId") String processId) {
     return processRunner
@@ -73,6 +140,27 @@ public class TransferProcessController {
   }
 
   @GetMapping("/process/statuses")
+  @Operation(
+      summary = "List of all transfer process statuses",
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = TransferProcessStatus.class),
+                    examples = {
+                      @ExampleObject(
+                          name = "List of transfer process statuses",
+                          value =
+                              """
+                    [
+                      {"processId":"8R9JGu","phase":"COMPLETED","createdAt":[2024,12,16,9,28,50,772443200],"finishedAt":[2024,12,16,9,29,31,776068091],"totalPatients":100,"totalBundles":119,"deidentifiedBundles":118,"sentBundles":118,"skippedBundles":0},
+                      {"processId":"ChlblQ","phase":"RUNNING","createdAt":[2024,12,16,9,29,37,186662587],"finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
+                    ]
+                    """)
+                    })),
+      })
   Mono<ResponseEntity<List<TransferProcessStatus>>> statuses() {
     return processRunner.statuses().map(s -> ResponseEntity.ok().body(s));
   }
@@ -91,12 +179,50 @@ public class TransferProcessController {
   }
 
   @GetMapping("/projects")
+  @Operation(
+      summary = "List available projects",
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = String.class),
+                    examples = {
+                      @ExampleObject(
+                          name = "Example list of projects",
+                          value = "[\"project1\", \"project2\"]")
+                    }))
+      })
   ResponseEntity<List<String>> projects() {
     return ResponseEntity.ok()
         .body(processes.stream().map(TransferProcessDefinition::project).toList());
   }
 
   @GetMapping(value = "projects/{project:[\\w-]+}")
+  @Operation(
+      summary = "Project configuration",
+      parameters = {@Parameter(name = "project", description = "Project name")},
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = TransferProcessConfig.class),
+                    examples = {
+                      @ExampleObject(
+                          name = "Example configuration",
+                          value =
+                              """
+                    {"cohortSelector":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domain":"MII","patientIdentifierSystem":"https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym","policySystem":"https://ths-greifswald.de/fhir/CodeSystem/gics/Policy","policies":["IDAT_erheben","IDAT_speichern_verarbeiten","MDAT_erheben","MDAT_speichern_verarbeiten"]}},
+                     "dataSelector":{"everything":{"fhirServer":{"baseUrl":"http://cd-hds:8080/fhir"},"resolve":{"patientIdentifierSystem":"http://fts.smith.care"}}},
+                     "deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domains":{"pseudonym":"MII","salt":"MII","dateShift":"MII"}},"maxDateShift":"P14D","deidentifhirConfig":"/app/projects/example/deidentifhir/CDtoTransport.profile","scraperConfig":"/app/projects/example/deidentifhir/IDScraper.profile"}},
+                     "bundleSender":{"researchDomainAgent":{"server":{"baseUrl":"http://rd-agent:8080"},"project":"example"}}}
+                    """)
+                    })),
+        @ApiResponse(responseCode = "404", description = "The project does not exist")
+      })
   ResponseEntity<TransferProcessConfig> project(@PathVariable("project") String project) {
     var process = findProcess(project);
     if (process.isPresent()) {

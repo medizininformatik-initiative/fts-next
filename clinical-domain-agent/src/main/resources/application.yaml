@@ -20,3 +20,7 @@ runner:
   maxSendConcurrency: 32
   maxConcurrentProcesses: 4
   processTtl: P1D
+
+springdoc:
+  api-docs:
+    path: /api/v2/openapi

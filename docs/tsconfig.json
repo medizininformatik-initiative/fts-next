@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "rootDir": "./",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "strict": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ],
+    "outDir": "dist/types",
+    "declaration": true,
+    "types": [
+      "vite"
+    ]
+  },
+  "include": [
+    "vite.config.*",
+    "vite-env.d.ts",
+    "src/**/*",
+    "src/**/*.vue"
+  ]
+}

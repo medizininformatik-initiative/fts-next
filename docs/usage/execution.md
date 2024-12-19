@@ -33,6 +33,7 @@ curl -X POST --data '["id1", "id2", "id3"]' -H "Content-Type: application/json" 
   https://cd-agent:8080/api/v2/process/example/start
 ```
 
+[API Reference for Start Endpoint](/open-api/cd-openapi.html#post-/api/v2/process/-project-/start)
 ## Transfer Status
 
 The response's Content-Location header contains a URL with the transfer status, e.g.
@@ -71,7 +72,7 @@ The status response looks like this:
 | `sentBundles`         | Number of bundles sent to RDA                                                            |
 | `skippedBundles`      | Number of skipped bundles; if greater than zero, investigate logs to determine the cause |
 
-
+[API Reference for Status Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-)
 ## Monitoring
 
 FTSnext provides a monitoring docker container with Grafana dashboards that show some metrics.
