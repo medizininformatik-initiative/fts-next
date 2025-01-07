@@ -16,6 +16,7 @@ dataSelector:
       baseUrl: http://cd-hds:8080/fhir
     resolve:
       patientIdentifierSystem: http://fts.smith.care
+    pageSize: 500
 ```
 
 ## Fields
@@ -45,6 +46,17 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
     resolve:
       patientIdentifierSystem: http://custom.identifier.system
   ```
+
+#### `pageSize`
+
+* **Description**: Specifies the maximum number of FHIR resources to be included in a single bundle
+  when requesting data from the clinical domain health data storage (cd-hds).
+  This parameter helps control memory usage and network load by limiting the size of data transfers.
+* **Type**: Integer
+* **Default**: 500
+* **Example**:
+  ```yaml
+    pageSize: 1000
 
 ## Notes
 

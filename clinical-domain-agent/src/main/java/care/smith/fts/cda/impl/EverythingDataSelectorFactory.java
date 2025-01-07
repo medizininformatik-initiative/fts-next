@@ -31,7 +31,7 @@ public class EverythingDataSelectorFactory
   public DataSelector create(DataSelector.Config common, EverythingDataSelectorConfig config) {
     var client = clientFactory.create(config.fhirServer());
     PatientIdResolver resolver = createResolver(config, client);
-    return new EverythingDataSelector(common, client, resolver, meterRegistry);
+    return new EverythingDataSelector(common, client, resolver, meterRegistry, config.pageSize());
   }
 
   private PatientIdResolver createResolver(EverythingDataSelectorConfig config, WebClient client) {

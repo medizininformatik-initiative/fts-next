@@ -32,17 +32,19 @@ public class EverythingDataSelector implements DataSelector {
   private final WebClient client;
   private final PatientIdResolver pidResolver;
   private final MeterRegistry meterRegistry;
-  private final int defaultPageSize = 500;
+  private final int pageSize;
 
   public EverythingDataSelector(
       Config common,
       WebClient client,
       PatientIdResolver patientIdResolver,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      int pageSize) {
     this.common = common;
     this.client = client;
     this.pidResolver = patientIdResolver;
     this.meterRegistry = meterRegistry;
+    this.pageSize = pageSize;
   }
 
   @Override
@@ -81,8 +83,7 @@ public class EverythingDataSelector implements DataSelector {
   }
 
   private Function<UriBuilder, URI> withoutConsent(IIdType fhirId) {
-    return (uriBuilder) ->
-        uriBuilder.queryParam("_count", defaultPageSize).build(fhirId.getIdPart());
+    return (uriBuilder) -> uriBuilder.queryParam("_count", pageSize).build(fhirId.getIdPart());
   }
 
   private Function<UriBuilder, URI> withConsent(ConsentedPatient patient, IIdType fhirId) {
@@ -93,7 +94,7 @@ public class EverythingDataSelector implements DataSelector {
     }
     return (uriBuilder) ->
         uriBuilder
-            .queryParam("_count", defaultPageSize)
+            .queryParam("_count", pageSize)
             .queryParam("start", formatWithSystemTZ(period.get().start()))
             .queryParam("end", formatWithSystemTZ(period.get().end()))
             .build(Map.of("id", fhirId.getIdPart()));
