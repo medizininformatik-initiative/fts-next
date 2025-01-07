@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.FhirResolveConfig;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
@@ -31,10 +32,11 @@ class EverythingDataSelectorFactoryTest {
 
   @Test
   void testCreateWithoutResolver() {
-    assertThat(
-            factory.create(
-                null, new EverythingDataSelectorConfig(new HttpClientConfig("http://localhost"))))
-        .isNotNull();
+    var dataSelector =
+        factory.create(
+            null,
+            new EverythingDataSelectorConfig(new HttpClientConfig("http://localhost"), null, 500));
+    assertThat(dataSelector).isNotNull();
   }
 
   @Test
@@ -44,7 +46,8 @@ class EverythingDataSelectorFactoryTest {
                 null,
                 new EverythingDataSelectorConfig(
                     new HttpClientConfig("http://localhost"),
-                    new FhirResolveConfig("https://patient-identifier.example.com"))))
+                    new FhirResolveConfig("https://patient-identifier.example.com"),
+                    500)))
         .isNotNull();
   }
 }

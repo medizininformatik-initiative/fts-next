@@ -46,7 +46,7 @@ class EverythingDataSelectorTest {
     var client = builder();
     var dataSelector =
         new EverythingDataSelector(
-            common, clientFactory.create(client, server), patient, meterRegistry);
+            common, clientFactory.create(client, server), patient, meterRegistry, 500);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).expectError().verify();
   }
@@ -57,7 +57,7 @@ class EverythingDataSelectorTest {
     DataSelector.Config common = new DataSelector.Config(true, null);
     var dataSelector =
         new EverythingDataSelector(
-            common, clientFactory.create(client, server), patient, meterRegistry);
+            common, clientFactory.create(client, server), patient, meterRegistry, 500);
 
     create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).verifyComplete();
   }
@@ -73,7 +73,7 @@ class EverythingDataSelectorTest {
     }
     var dataSelector =
         new EverythingDataSelector(
-            common, clientFactory.create(client, server), patient, meterRegistry);
+            common, clientFactory.create(client, server), patient, meterRegistry, 500);
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
