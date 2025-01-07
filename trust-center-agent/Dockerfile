@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.5_11-jre-alpine@sha256:2a0bbb1db6d8db42c66ed00c43d954cf458066cc37be12b55144781da7864fdf
+FROM eclipse-temurin:21.0.5_11-jre-alpine@sha256:b396250d5ae52dbc6ec6ceaf78dec50c03e9866731486598def705aaa58d5cba
 
 COPY --chown=nobody:nobody target/trust-center-agent.jar /app/trust-center-agent.jar
 COPY --chown=nobody:nobody application.yaml              /app/application.yaml
