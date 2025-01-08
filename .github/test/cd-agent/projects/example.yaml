@@ -1,9 +1,9 @@
 ### FTS Project Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/project
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/project
 
 ### Cohort Selection Configuration
 ##! Specify which cohort selection implementation should be used.
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/cohort-selector
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/cohort-selector
 cohortSelector:
   # Configuration for fetching consent from the Trust Center Agent
   trustCenterAgent:
@@ -20,7 +20,7 @@ cohortSelector:
     policies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
 
 ### Data Selection Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/data-selector
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/data-selector
 ##! Specify which data selection implementation should be used.
 dataSelector:
   # Uses FHIR server's $everything operation to fetch complete patient records
@@ -37,7 +37,7 @@ dataSelector:
     pageSize: 500
 
 ### Deidentificator Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/deidentificator
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/deidentificator
 deidentificator:
   # Deidentifhir is used to anonymize bundles
   # See https://github.com/UMEssen/DeidentiFHIR
@@ -65,13 +65,13 @@ deidentificator:
     scraperConfig: /app/projects/example/deidentifhir/IDScraper.profile
 
 ### Bundle Sender Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/bundle-sender
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/bundle-sender
 bundleSender:
   # Send bundles to the RDA
   researchDomainAgent:
     server:
       # Base URL of the Research Domain Agent server
       baseUrl: http://rd-agent:8080
-    # What project configuration to use in the research domain
-    # See https://medizininformatik-initiative.github.io/fts-next/configuration/rd-agent/project
+    # Which project configuration to use in the research domain
+    # See https://medizininformatik-initiative.github.io/fts-next/rd-agent/project
     project: example

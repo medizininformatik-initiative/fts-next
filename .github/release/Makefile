@@ -1,3 +1,10 @@
+check-links:
+	../scripts/check-links.sh ../test/cd-agent/projects/example.yaml
+	../scripts/check-links.sh ../../clinical-domain-agent/application.yaml
+	../scripts/check-links.sh ../../trust-center-agent/application.yaml
+	../scripts/check-links.sh ../test/rd-agent/projects/example.yaml
+	../scripts/check-links.sh ../../research-domain-agent/application.yaml
+
 cd-agent:
 	cp -r ../test/cd-agent .
 	sed -i '/# CI_ONLY/d' ./cd-agent/compose.yaml

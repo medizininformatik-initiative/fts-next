@@ -1,8 +1,8 @@
 ### FTS Project Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/rd-agent/project
+##! https://medizininformatik-initiative.github.io/fts-next/rd-agent/project
 
 ### Deidentificator Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/cd-agent/deidentificator
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/deidentificator
 deidentificator:
   # Deidentifhir is used to anonymize bundles
   # See https://github.com/UMEssen/DeidentiFHIR
@@ -16,7 +16,7 @@ deidentificator:
     deidentifhirConfig: /app/projects/example/deidentifhir/TransportToRD.profile
 
 ### Bundle Sender Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/rd-agent/bundle-sender
+##! https://medizininformatik-initiative.github.io/fts-next/rd-agent/bundle-sender
 bundleSender:
   # Send bundles to a FHIR store
   fhirStore:
