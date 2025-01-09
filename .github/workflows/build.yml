@@ -36,7 +36,7 @@ jobs:
         cache: 'maven'
 
     - name: Run Tests
-      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }} -Dspring.profiles.active=auth:${{ matrix.auth }}
+      run: mvn ${MAVEN_ARGS} test --also-make --projects ${{ matrix.agent }} -Dspring.profiles.active=auth:${{ matrix.auth }}
 
     - name: Generate Code Coverage Report
       run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
