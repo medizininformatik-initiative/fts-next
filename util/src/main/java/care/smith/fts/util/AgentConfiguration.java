@@ -46,7 +46,7 @@ public class AgentConfiguration {
   }
 
   @Bean
-  @ConditionalOnBean(ReactiveClientRegistrationRepository.class)
+  //  @ConditionalOnBean(ReactiveClientRegistrationRepository.class)
   public ReactiveOAuth2AuthorizedClientManager authorizedClientManager(
       ReactiveClientRegistrationRepository clientRegistrationRepository,
       ReactiveOAuth2AuthorizedClientService authorizedClientService) {

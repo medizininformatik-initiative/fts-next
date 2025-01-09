@@ -7,7 +7,7 @@ projects:
 security:
   auth:
     oauth2:
-      issuer: http://localhost:8080/realms/master
+      issuer: http://localhost:8080/realms/fts
 
 spring:
   security:
@@ -15,13 +15,13 @@ spring:
       client:
         registration:
           agent:
-            authorizationGrantType: client_credentials
-            clientId: fts/cd-agent
-            clientSecret: eA4xj1zFxsVYZGdLah9KnkcmHYDBjojr
+            authorization-grant-type: client_credentials
+            client-id: FTSnext
+            client-secret: ATCYS7wR0tjRSrXBpOVZ9ibSMvcthAvo
             provider: keycloak
         provider:
           keycloak:
-            issuer-uri: http://localhost:8080/realms/master
+            issuer-uri: http://localhost:8080/realms/fts
 
 test:
   webclient:

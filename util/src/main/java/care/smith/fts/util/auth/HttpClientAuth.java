@@ -22,8 +22,8 @@ public interface HttpClientAuth<T> {
 
     public Config(
         HttpClientBasicAuth.Config basic,
-        HttpClientCookieTokenAuth.Config cookieToken,
-        HttpClientOAuth2Auth.Config oauth2) {
+        HttpClientOAuth2Auth.Config oauth2,
+        HttpClientCookieTokenAuth.Config cookieToken) {
       this(requireNonNull(basic), requireNonNull(oauth2), requireNonNull(cookieToken), of());
     }
 

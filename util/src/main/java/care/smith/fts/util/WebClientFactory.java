@@ -57,10 +57,10 @@ public class WebClientFactory {
     if (auth != null) {
       if (auth.basic() != null) {
         configureAuth(builder, "basic", basic, auth.basic());
+      } else if (auth.oauth2() != null) {
+        configureAuth(builder, "oauth2", oauth2, auth.oauth2());
       } else if (auth.cookieToken() != null) {
         configureAuth(builder, "cookieToken", token, auth.cookieToken());
-      } else if (auth.oauth2() != null) {
-        configureAuth(builder, "cookieToken", oauth2, auth.oauth2());
       }
     }
   }
