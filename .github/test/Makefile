@@ -58,3 +58,6 @@ clean-rd-hds-and-gpas-db:
 
 openapi-specs:
 	../scripts/openapi-specs.sh ${AGENT}
+
+setup-keycloak:
+	../scripts/setup-keycloak.sh
