@@ -18,27 +18,26 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import reactor.core.publisher.Mono;
 
 @Slf4j
-public record HttpServerOAuth2Auth(String issuer) implements HttpServerAuthMethod {
+public record HttpServerOAuth2Auth(String issuer, String clientId) implements HttpServerAuthMethod {
 
   @Override
   public ServerHttpSecurity configure(ServerHttpSecurity http) {
     return http.oauth2ResourceServer(
-        oauth2 -> {
-          oauth2.jwt(
-              jwt -> {
-                jwt.jwtDecoder(
-                    token ->
-                        fromIssuerLocation(issuer)
-                            .decode(token)
-                            .doOnNext(
-                                decodedJwt -> {
-                                  log.debug("JWT Headers: {}", decodedJwt.getHeaders());
-                                  log.debug("JWT Claims: {}", decodedJwt.getClaims());
-                                }));
+        oauth2 ->
+            oauth2.jwt(
+                jwt -> {
+                  jwt.jwtDecoder(
+                      token ->
+                          fromIssuerLocation(issuer)
+                              .decode(token)
+                              .doOnNext(
+                                  decodedJwt -> {
+                                    log.debug("JWT Headers: {}", decodedJwt.getHeaders());
+                                    log.debug("JWT Claims: {}", decodedJwt.getClaims());
+                                  }));
 
-                jwt.jwtAuthenticationConverter(this::keycloak2spring);
-              });
-        });
+                  jwt.jwtAuthenticationConverter(this::keycloak2spring);
+                }));
   }
 
   private Mono<AbstractAuthenticationToken> keycloak2spring(Jwt jwt) {
@@ -53,7 +52,7 @@ public record HttpServerOAuth2Auth(String issuer) implements HttpServerAuthMetho
   @SuppressWarnings("unchecked")
   private List<SimpleGrantedAuthority> extractAuthorities(Jwt jwt) {
     return Optional.ofNullable(jwt.getClaimAsMap("resource_access"))
-        .map(resourceAccess -> (Map<String, Object>) resourceAccess.get("FTSnext"))
+        .map(resourceAccess -> (Map<String, Object>) resourceAccess.get(clientId))
         .map(clientAccess -> (List<String>) clientAccess.get("roles"))
         .map(
             roles ->

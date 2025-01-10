@@ -22,9 +22,10 @@ class HttpServerAuthConfigTest {
   void multipleAuthMethodsThrow() {
     var config = new HttpServerAuthConfig();
     config.setAuth(
-        new AuthMethod(null,
+        new AuthMethod(
+            null,
             new HttpServerBasicAuth(List.of()),
-            new HttpServerOAuth2Auth(""),
+            new HttpServerOAuth2Auth("", ""),
             new HttpServerNoneAuth()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)

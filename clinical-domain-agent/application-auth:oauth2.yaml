@@ -8,6 +8,7 @@ security:
   auth:
     oauth2:
       issuer: http://localhost:8080/realms/fts
+      client-id: FTSnext
 
 spring:
   security:
@@ -17,7 +18,7 @@ spring:
           agent:
             authorization-grant-type: client_credentials
             client-id: FTSnext
-            client-secret: ATCYS7wR0tjRSrXBpOVZ9ibSMvcthAvo
+            client-secret: vX0F07OWCO83XxLTgpPrXm7eUwxxUHY5
             provider: keycloak
         provider:
           keycloak:
