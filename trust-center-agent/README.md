@@ -1,10 +1,9 @@
-# Research Domain Agent (RDA)
+# Trust Center Agent (TCA)
 
-The RDA manages the secure transfer of deidentified research-focused FHIR resources. It is
-responsible for receiving and processing deidentified data from the Clinical Domain Agent (CDA) and
-facilitating its integration into research FHIR servers. By ensuring compliance with the SMITH
-architecture, RDA supports the interoperability of research data while preserving patient
-confidentiality.
+The TCA serves as a critical component responsible for managing trust and security aspects during
+the data transfer process. It plays a central role in pseudonymization and deidentification,
+coordinating with external services such as gPAS and gics, and ensuring the secure exchange of
+pseudonyms between the Clinical Domain Agent (CDA) and Research Domain Agent (RDA).
 
 ## Documentation
 
