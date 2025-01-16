@@ -47,7 +47,7 @@ public class HttpServerAuthConfig {
 
   private static HttpServerAuthMethod authMethod(AuthMethod auth) {
     var httpServerAuthMethodStream =
-        Stream.of(auth.clientCert(), auth.basic(), auth.none())
+        Stream.of(auth.clientCert(), auth.basic(), auth.oauth2(), auth.none())
             .filter(Objects::nonNull)
             .toList();
     if (httpServerAuthMethodStream.size() == 1) {

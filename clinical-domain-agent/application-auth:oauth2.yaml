@@ -1,0 +1,32 @@
+server:
+  port: 9090
+
+projects:
+  directory: "../.github/test/cd-agent/projects"
+
+security:
+  auth:
+    oauth2:
+      issuer: http://localhost:8080/realms/fts
+      client-id: fts-client
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          agent:
+            authorization-grant-type: client_credentials
+            client-id: fts-client
+            client-secret: 5HHaaKxPoE18R3iAoEgVocTQyySdMQ7l
+            provider: keycloak
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/fts
+
+test:
+  webclient:
+    default:
+      auth:
+        oauth2:
+          registration: agent

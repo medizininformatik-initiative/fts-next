@@ -13,6 +13,7 @@ jobs:
     env:
       MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
+      KEYCLOAK_VERSION: 26.0.7
     runs-on: ubuntu-24.04
     strategy:
       max-parallel: 6
@@ -25,6 +26,7 @@ jobs:
         - none
         - basic
         - cert
+        - oauth2
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -34,6 +36,14 @@ jobs:
         distribution: 'temurin'
         java-version: 21
         cache: 'maven'
+
+    - name: Setup keycloak
+      if: matrix.auth == 'oauth2'
+      working-directory: .github/test
+      run: |
+        docker run -d -p 8080:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:${KEYCLOAK_VERSION} start-dev
+        docker ps
+        make setup-keycloak
 
     - name: Run Tests
       run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }} -Dspring.profiles.active=auth:${{ matrix.auth }}
