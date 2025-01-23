@@ -42,7 +42,7 @@ jobs:
       run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # v5
+      uses: codecov/codecov-action@5a605bd92782ce0810fa3b8acc235c921b497052 # v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
