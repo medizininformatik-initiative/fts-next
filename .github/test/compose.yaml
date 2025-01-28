@@ -75,7 +75,7 @@ services:
       retries: 3
       start_period: 120s
   gpas:
-    image: ghcr.io/knoppiks/mosaic-gpas:2024.1.0@sha256:255a099cc4113c62a96121a9f3a8916d9f48e4ca7f0b710a3036bd4134c79e72
+    image: ghcr.io/knoppiks/mosaic-gpas:2024.3.0@sha256:8837d3a5eb1d538c456debbfd9f186b50fed271c82f5959a0bc121eefd14a8d4
     ports: [ ":8080" ]
     networks: [ "trust-center", "gpas" ]
     depends_on:
