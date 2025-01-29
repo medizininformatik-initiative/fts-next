@@ -12,6 +12,8 @@ management.
 consent:
   gics.fhir:
     baseUrl: http://gics:8080/ttp-fhir/fhir/gics
+    auth: [ ... ]
+    ssl: [ ... ]
 ```
 
 ## Fields

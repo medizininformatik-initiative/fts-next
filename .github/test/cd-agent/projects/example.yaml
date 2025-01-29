@@ -10,6 +10,8 @@ cohortSelector:
     server:
       # Base URL of the Trust Center Agent server.
       baseUrl: http://tc-agent:8080
+      # auth: [ ... ]
+      # ssl: [ ... ]
     # Domain to search for consent. This acts as a namespace for data segregation.
     domain: MII
     # Identifier system filter. Only patients with identifiers from this system will be included in the cohort.
@@ -29,6 +31,8 @@ dataSelector:
     fhirServer:
       # Base URL of the FHIR server endpoint
       baseUrl: http://cd-hds:8080/fhir
+      # auth: [ ... ]
+      # ssl: [ ... ]
     # (optional) Patient identifier resolution configuration
     resolve:
       # System URL for patient identifier lookup
@@ -46,6 +50,8 @@ deidentificator:
       server:
         # Base URL of the Trust Center Agent server.
         baseUrl: http://tc-agent:8080
+        # auth: [ ... ]
+        # ssl: [ ... ]
       # Deidentification parameters can be store in different or in the same TCA domain
       # When the same domain is used, key collisions are prevented using prefixes
       domains:
@@ -72,6 +78,8 @@ bundleSender:
     server:
       # Base URL of the Research Domain Agent server
       baseUrl: http://rd-agent:8080
+      # auth: [ ... ]
+      # ssl: [ ... ]
     # Which project configuration to use in the research domain
     # See https://medizininformatik-initiative.github.io/fts-next/rd-agent/project
     project: example

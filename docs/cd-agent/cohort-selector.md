@@ -35,6 +35,8 @@ transfer.
   ```yaml
     server:
       baseUrl: http://custom-agent:9000
+      auth: [ ... ]
+      ssl: [ ... ]
   ```
 
 #### `domain`
