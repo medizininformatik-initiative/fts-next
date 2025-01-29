@@ -52,6 +52,46 @@
 #     role: cd
 #   - path: /api/v2/rd/**
 #     role: rd
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security/basic
+#   auth.basic:
+#     users:
+#     - # Define basic authentication user
+#       username: client
+#       # BCrypt hashed password for the user
+#       password: "{bcrypt}$2a$10$4i1TQpnBlcKOdUYO9O850.jJ8yGO8x9fQuu/l3Ki3HXgv0t9NOr4y"
+#       # Optionally include an unencrypted password
+#       password: "{noop}2mXA742aw7CGaLU6"
+#       # Role assigned to the user
+#       role: client
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security/oauth2
+#   auth.oauth2:
+#     issuer: http://localhost:8080/realms/fts
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/security/client-certs
+#   auth.clientCert:
+#     users:
+#     - # Define client certificate-based authentication user
+#       username: default
+#       # Role assigned to the user
+#       role: client
+
+### Spring OAuth2 Client Security Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/oauth2
+#   spring.security.oauth2:
+#     client:
+#       registration:
+#         cd-agent:
+#           authorization-grant-type: client_credentials
+#           client-id: cd-client
+#           client-secret: tIQfOvBuhyR1dw9OQ3E4tCeTvcHtiW84
+#           provider: keycloak
+#         rd-agent:
+#           authorization-grant-type: client_credentials
+#           client-id: rd-client
+#           client-secret: tIQfOvBuhyR1dw9OQ3E4tCeTvcHtiW84
+#           provider: keycloak
+#       provider:
+#         keycloak:
+#           issuer-uri: http://localhost:8080/realms/fts
 
 ### Monitoring
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/observability

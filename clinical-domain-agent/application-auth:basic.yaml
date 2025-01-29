@@ -5,7 +5,7 @@ security:
       - username: client
         password: "{bcrypt}$2a$10$4i1TQpnBlcKOdUYO9O850.jJ8yGO8x9fQuu/l3Ki3HXgv0t9NOr4y"
         # password: "{noop}2mXA742aw7CGaLU6"
-        role: client
+        role: cd-client
 
 test:
   webclient:

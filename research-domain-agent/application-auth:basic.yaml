@@ -5,7 +5,7 @@ security:
       - username: cd-agent
         password: "{bcrypt}$2a$10$kUT57nDMEPtigO3BtsD/UeQMLsBDsOwu4iFVAEcgucPbD1zGaHI5y"
         # password: "{noop}bdfXkmQQIQLEkvVq"
-        role: cd-agent
+        role: rd-client
 
 test:
   webclient:

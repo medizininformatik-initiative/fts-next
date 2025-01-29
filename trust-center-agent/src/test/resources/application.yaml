@@ -6,13 +6,6 @@ consent:
       auth:
         none: { }
 
-security:
-  endpoints:
-  - path: /api/v2/cd/**
-    role: cd
-  - path: /api/v2/rd/**
-    role: rd
-
 deIdentification:
   keystoreUrl: redis://valkey:6379
   gpas:
@@ -26,6 +19,13 @@ deIdentification:
 logging.level:
   care.smith.fts: DEBUG
   care.smith.fts.tca: TRACE
+
+security:
+  endpoints:
+    - path: /api/v2/cd/**
+      role: cd-client
+    - path: /api/v2/rd/**
+      role: rd-client
 
 spring:
   main:
@@ -49,6 +49,9 @@ server:
 
 test:
   webclient:
+    default:
+      ssl:
+        bundle: client
     cd-agent:
       ssl:
         bundle: client

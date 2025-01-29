@@ -34,7 +34,7 @@ test:
 security:
   endpoints:
   - path: /api/v2/**
-    role: client
+    role: cd-client
 
 logging.level:
   care.smith.fts: DEBUG

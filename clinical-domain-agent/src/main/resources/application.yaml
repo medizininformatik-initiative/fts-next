@@ -14,7 +14,7 @@ management:
 security:
   endpoints:
   - path: /api/v2/**
-    role: client
+    role: cd-client
 
 runner:
   maxSendConcurrency: 32

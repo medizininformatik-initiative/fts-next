@@ -35,6 +35,9 @@ public class TestWebClientFactory {
   }
 
   public WebClient webClient(String baseUrl, String clientName) {
+
+    log.debug("TestWebClientFactory baseurl: {}, clientName: {}", baseUrl, clientName);
+
     return config
         .findConfigurationEntry(clientName)
         .map(c -> factory.create(new HttpClientConfig(baseUrl, c.auth(), c.ssl())))

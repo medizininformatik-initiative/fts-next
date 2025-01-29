@@ -37,5 +37,7 @@ Contains the authentication mechanisms for securing endpoints.
 
 * #### `basic`
   Configuration for [basic authentication](./security/basic).
+* #### `oauth2`
+  Configuration for [oauth2 authentication](./security/oauth2).
 * #### `clientCert`
   Configuration for [client certificate authentication](./security/client-certs).

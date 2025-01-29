@@ -5,7 +5,6 @@ import static org.springframework.util.FileSystemUtils.deleteRecursively;
 
 import care.smith.fts.test.MockServerUtil;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

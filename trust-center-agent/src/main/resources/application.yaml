@@ -13,15 +13,16 @@ management:
 security:
   endpoints:
   - path: /api/v2/cd/**
-    role: cd
+    role: cd-client
   - path: /api/v2/rd/**
-    role: rd
+    role: rd-client
 
 deIdentification:
   keystoreUrl: redis://keystore:6379
   gpas:
     fhir:
       baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas
+
   transport:
     ttl: PT10M
 
