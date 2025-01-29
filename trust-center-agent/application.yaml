@@ -75,7 +75,7 @@
 #       role: client
 
 ### Spring OAuth2 Client Security Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/configuration/oauth2
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/oauth2-client
 #   spring.security.oauth2:
 #     client:
 #       registration:
