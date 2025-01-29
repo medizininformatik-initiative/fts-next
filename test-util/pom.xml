@@ -52,7 +52,7 @@
     <dependency>
       <groupId>com.github.dasniko</groupId>
       <artifactId>testcontainers-keycloak</artifactId>
-      <version>3.4.0</version>
+      <version>3.6.0</version>
     </dependency>
 
     <dependency>
