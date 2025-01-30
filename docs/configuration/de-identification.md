@@ -13,6 +13,8 @@ deIdentification:
   keystoreUrl: redis://keystore:6379
   gpas.fhir:
     baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas
+    auth: [ ... ]
+    ssl: [ ... ]
   transport.ttl: PT10M
 ```
 

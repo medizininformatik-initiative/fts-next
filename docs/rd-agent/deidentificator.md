@@ -34,6 +34,8 @@ deidentification of FHIR bundles.
     trustCenterAgent:
       server:
         baseUrl: http://custom-tc-agent:9000
+        auth: [ ... ]
+        ssl: [ ... ]
   ```
 
 #### `deidentifhirConfig`

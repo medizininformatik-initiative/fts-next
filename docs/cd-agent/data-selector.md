@@ -34,6 +34,8 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
   ```yaml
     fhirServer:
       baseUrl: http://my-fhir-server:8080/fhir
+      auth: [ ... ]
+      ssl: [ ... ]
   ```
 
 #### `resolve.patientIdentifierSystem`

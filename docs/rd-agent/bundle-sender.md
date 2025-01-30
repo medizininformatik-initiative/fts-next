@@ -15,6 +15,8 @@ bundleSender:
   fhirStore:
     server:
       baseUrl: http://rd-hds:8080/fhir
+      auth: [ ... ]
+      ssl: [ ... ]
 ```
 
 ## Fields

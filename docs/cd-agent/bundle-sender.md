@@ -29,6 +29,13 @@ and data is stored in a FHIR server.
 
 * **Description**: Contains settings for connecting to the RDA server.
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
+* **Example**:
+  ```yaml
+    server:
+      baseUrl: http://custom-agent:9000
+      auth: [ ... ]
+      ssl: [ ... ]
+  ```
 
 #### `project`
 

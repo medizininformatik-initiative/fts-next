@@ -11,6 +11,8 @@ deidentificator:
       server:
         # Base URL of the Trust Center Agent server.
         baseUrl: http://tc-agent:8080
+        # auth: [ ... ]
+        # ssl: [ ... ]
     # Deidentifhir needs additional configuration, which must be available within the agent's
     # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
     deidentifhirConfig: /app/projects/example/deidentifhir/TransportToRD.profile
@@ -23,3 +25,5 @@ bundleSender:
     server:
       # Base URL of the FHIR store
       baseUrl: http://rd-hds:8080/fhir
+      # auth: [ ... ]
+      # ssl: [ ... ]
