@@ -14,12 +14,14 @@ spring.ssl.bundle:
       keystore:
         certificate: <path-to-server-certificate>
         private-key: <path-to-server-private-key>
+        private-key-password: <password>
       truststore:
         certificate: <path-to-ca-certificate>
     client:
       keystore:
         certificate: <path-to-client-certificate>
-        private-key: <path-to-client-private-key>
+        private-key: <path-to-client-private-key>K
+        private-key-password: <password>
       truststore:
         certificate: <path-to-ca-certificate>
 ```
@@ -35,6 +37,10 @@ spring.ssl.bundle:
   * `private-key`
     * **Description**: Path to the private key corresponding to the server's SSL certificate.
     * **Example**: `target/test-classes/server.key`
+* `private-key-password`
+  * **Description**: Password used to protect the server's private key file. This is required if the
+    private key is encrypted.
+  * **Example**: `secret`
 
 * #### `truststore`
   * `certificate`
@@ -52,6 +58,10 @@ spring.ssl.bundle:
   * `private-key`
     * **Description**: Path to the private key corresponding to the client's SSL certificate.
     * **Example**: `target/test-classes/client-default.key`
+  * `private-key-password`
+    * **Description**: Password used to protect the server's private key file. This is required if
+      the private key is encrypted.
+    * **Example**: `secret`
 
 * #### `truststore`
   * `certificate`
