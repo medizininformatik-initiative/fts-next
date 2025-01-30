@@ -45,6 +45,17 @@
 #         # Path to the certificate authority (CA) certificate for client-side trust
 #         certificate: target/test-classes/ca.crt
 
+### Spring Server Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/server
+# server:
+#   ssl:
+#     # Use the server SSL bundle configuration defined above
+#     bundle: server
+#     # Specify client authentication requirement: 'want' means optional
+#     client-auth: want
+#     # Specify client authentication requirement: 'need' means required
+#     client-auth: need
+
 ### FTS Server Security Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/security
 # security:
