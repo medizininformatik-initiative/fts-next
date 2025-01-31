@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class DeidentifhirUtilTest {
+class DeidentifhirUtilIT {
 
   @Autowired MeterRegistry meterRegistry;
 
@@ -26,7 +26,7 @@ class DeidentifhirUtilTest {
     Map<String, String> transportIDs = Map.of("tid1", "pid1");
 
     Registry registry = generateRegistry(transportIDs, Duration.ofMillis(12345));
-    var config = parseResources(DeidentifhirUtilTest.class, "TransportToRD.profile");
+    var config = parseResources(DeidentifhirUtilIT.class, "TransportToRD.profile");
     var transportBundle = generateOnePatient("tid1", "2023", "identifierSystem1");
 
     var pseudomizedBundle =
