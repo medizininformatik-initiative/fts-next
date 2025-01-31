@@ -1,4 +1,4 @@
-# Deidentificator <Badge type="tip" text="Clinical Domain Agent" />
+# Deidentificator <Badge type="tip" text="Clinical Domain Agent" /> <Badge type="warning" text="Since 5.0" />
 
 This document describes the configuration options available for managing deidentification settings
 in the `deidentificator` section of the project configuration file.
@@ -26,12 +26,12 @@ deidentificator:
 
 ## Fields
 
-### `deidentifhir`
+### `deidentifhir` <Badge type="warning" text="Since 5.0" />
 
 This implementation uses [deidentifhir](https://github.com/UMEssen/DeidentiFHIR) to accomplish
 deidentification of FHIR bundles.
 
-#### `trustCenterAgent.server`
+#### `trustCenterAgent.server` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies connection settings for the Trust Center Agent (TCA) server used for
   deidentification operations.
@@ -45,7 +45,7 @@ deidentification of FHIR bundles.
         ssl: [ ... ]
   ```
 
-#### `trustCenterAgent.domains.pseudonym`
+#### `trustCenterAgent.domains.pseudonym` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: The TCA domain where pseudonyms are stored.
 * **Type**: String
@@ -56,7 +56,7 @@ deidentification of FHIR bundles.
         pseudonym: MII_PSEUDONYMS
   ```
 
-#### `trustCenterAgent.domains.salt`
+#### `trustCenterAgent.domains.salt` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: The TCA domain where salts are stored.
 * **Type**: String
@@ -67,7 +67,7 @@ deidentification of FHIR bundles.
         salt: MII_SALT
   ```
 
-#### `trustCenterAgent.domains.dateShift`
+#### `trustCenterAgent.domains.dateShift` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: The TCA domain where the seeds for generating date shift values are stored.
 * **Type**: String
@@ -78,7 +78,7 @@ deidentification of FHIR bundles.
         dateShift: MII_DATE_SHIFT
   ```
 
-#### `maxDateShift`
+#### `maxDateShift` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies the maximum date shift, defined as an ISO-8601 duration.
 * **Type**: String
@@ -87,7 +87,7 @@ deidentification of FHIR bundles.
     maxDateShift: P30D
   ```
 
-#### `deidentifhirConfig`
+#### `deidentifhirConfig` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Path to the DeidentiFHIR configuration file. If using a Docker container, the
   path must be mounted into the container.
@@ -97,7 +97,7 @@ deidentification of FHIR bundles.
     deidentifhirConfig: /custom/path/CDtoTransport.profile
   ```
 
-#### `scraperConfig`
+#### `scraperConfig` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Path to the scraper configuration file used by DeidentiFHIR. If using a Docker
   container, the path must be mounted into the container.

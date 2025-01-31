@@ -1,4 +1,4 @@
-# Security <Badge type="tip" text="All Agents" />
+# Security <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.0" />
 
 The `security` configuration is used to define secure endpoint paths and authentication methods for
 FTSnext agents.
@@ -21,12 +21,12 @@ security:
 
 Defines the API paths requiring security and their associated roles.
 
-* #### `path`
+* #### `path` <Badge type="warning" text="Since 5.0" />
   * **Description**: The endpoint path to secure, using glob patterns
   * **Type**: String
   * **Example**: `/api/v2/**`
 
-* #### `role` *(string)*
+* #### `role` *(string)* <Badge type="warning" text="Since 5.0" />
   * **Description**: The role required to access the path
   * **Type**: String
   * **Example**: `client`

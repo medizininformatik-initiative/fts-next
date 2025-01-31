@@ -1,4 +1,4 @@
-# Consent <Badge type="tip" text="Trust Center Agent" />
+# Consent <Badge type="tip" text="Trust Center Agent" /> <Badge type="warning" text="Since 5.0" />
 
 This document provides an overview of the `consent` section of the FTSnext
 Trust Center Agent configuration file (`application.yaml`), the fields it contains, and
@@ -18,7 +18,7 @@ consent:
 
 ## Fields
 
-### `gics.fhir`
+### `gics.fhir` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Defines settings for connecting to gICS
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)

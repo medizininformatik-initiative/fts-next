@@ -1,4 +1,4 @@
-# Bundle Sender <Badge type="tip" text="Clinical Domain Agent" />
+# Bundle Sender <Badge type="tip" text="Clinical Domain Agent" /> <Badge type="warning" text="Since 5.0" />
 
 This document describes the configuration options available for managing the `bundleSender` section
 of the configuration file. This section is responsible for defining how bundles are sent after being
@@ -20,12 +20,12 @@ bundleSender:
 
 ## Fields
 
-### `researchDomainAgent`
+### `researchDomainAgent` <Badge type="warning" text="Since 5.0" />
 
 This implementation sends processed bundles to the RDA, where another deidentification is realized
 and data is stored in a FHIR server.
 
-#### `server`
+#### `server` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Contains settings for connecting to the RDA server.
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
@@ -37,7 +37,7 @@ and data is stored in a FHIR server.
       ssl: [ ... ]
   ```
 
-#### `project`
+#### `project` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies the project configuration to use in the research domain.
 * **Type**: String

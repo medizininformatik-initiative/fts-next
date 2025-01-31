@@ -1,6 +1,15 @@
+<script setup lang="ts">
+  const release = import.meta.env.VITE_LATEST_RELEASE;
+</script>
+
 # Configuration
 
-The configuration is split in two parts:
+This documentation is generated for the main branch of FTSnext, it may document features that are
+not yet released. Therefor configuration options are annotated with a badge to indicate in which
+version the feature is or will be available, e.g. <Badge type="warning" text="Since 5.1" />
+
+The latest stable version
+is: [{{ release }}](https://github.com/medizininformatik-initiative/fts-next/releases/latest)
 
 ## Agent Configuration
 

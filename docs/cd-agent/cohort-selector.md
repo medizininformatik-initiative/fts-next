@@ -1,4 +1,4 @@
-# Cohort Selector <Badge type="tip" text="Clinical Domain Agent" />
+# Cohort Selector <Badge type="tip" text="Clinical Domain Agent" /> <Badge type="warning" text="Since 5.0" />
 
 This document describes the configuration options available for managing cohort selection settings
 in the `cohortSelector` section of the project configuration file. These settings control how
@@ -22,12 +22,12 @@ cohortSelector:
 
 ## Fields
 
-### `trustCenterAgent`
+### `trustCenterAgent` <Badge type="warning" text="Since 5.0" />
 
 The TCA based implementation uses the connection to the trust center to select patient IDs for
 transfer.
 
-#### `server`
+#### `server` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies connection settings for the Trust Center Agent server.
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
@@ -39,7 +39,7 @@ transfer.
       ssl: [ ... ]
   ```
 
-#### `domain`
+#### `domain` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Defines the domain to search for consent, serving as a namespace for data
   segregation.
@@ -49,7 +49,7 @@ transfer.
     domain: ResearchDomain
   ```
 
-#### `patientIdentifierSystem`
+#### `patientIdentifierSystem` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Filters patients based on their identifier system. Only patients with identifiers
   from this system will be included.
@@ -59,7 +59,7 @@ transfer.
     patientIdentifierSystem: "https://example.org/fhir/identifiers/Patient"
   ```
 
-#### `policySystem`
+#### `policySystem` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Filters policies based on their system identifier. Only policies from this system
   will be considered valid.
@@ -69,7 +69,7 @@ transfer.
     policySystem: "https://example.org/fhir/CodeSystem/Policy"
   ```
 
-#### `policies`
+#### `policies` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies a list of required policies. Consent must explicitly include approval
   for all these policies to qualify.

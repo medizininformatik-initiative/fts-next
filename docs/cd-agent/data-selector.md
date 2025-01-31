@@ -1,4 +1,4 @@
-# Data Selector <Badge type="tip" text="Clinical Domain Agent" />
+# Data Selector <Badge type="tip" text="Clinical Domain Agent" /> <Badge type="warning" text="Since 5.0" />
 
 This document describes the configuration options available for managing data selection in the
 `dataSelector` section of the project configuration file. The `dataSelector` section defines
@@ -21,11 +21,11 @@ dataSelector:
 
 ## Fields
 
-### `everything`
+### `everything` <Badge type="warning" text="Since 5.0" />
 
 The "everything" data selector uses the FHIR servers `patient/$everything` operation to fetch data.
 
-#### `fhirServer`
+#### `fhirServer` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies connection settings of the FHIR server endpoint used for fetching
   patient resources.
@@ -38,7 +38,7 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
       ssl: [ ... ]
   ```
 
-#### `resolve.patientIdentifierSystem`
+#### `resolve.patientIdentifierSystem` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Defines the system URL used to resolve patient identifiers within the FHIR
   server.
@@ -49,7 +49,7 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
       patientIdentifierSystem: http://custom.identifier.system
   ```
 
-#### `pageSize`
+#### `pageSize` <Badge type="warning" text="Since 5.1" />
 
 * **Description**: Specifies the maximum number of FHIR resources to be included in a single bundle
   when requesting data from the clinical domain health data storage (cd-hds).
