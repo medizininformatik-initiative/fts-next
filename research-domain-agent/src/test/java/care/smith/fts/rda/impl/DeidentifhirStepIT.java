@@ -24,7 +24,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
-import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.api.AfterEach;
@@ -46,19 +45,18 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   private Bundle bundle;
 
   @Override
-  protected Stream<TestStep<?>> createTestSteps() {
-    return Stream.of(
-        new TestStep<Bundle>() {
-          @Override
-          public MappingBuilder getBuilder() {
-            return DeidentifhirStepIT.getBuilder();
-          }
+  protected TestStep<Bundle> createTestStep() {
+    return new TestStep<>() {
+      @Override
+      public MappingBuilder getBuilder() {
+        return DeidentifhirStepIT.getBuilder();
+      }
 
-          @Override
-          public Mono<Bundle> executeStep() {
-            return step.deidentify(new TransportBundle(bundle, "transferId"));
-          }
-        });
+      @Override
+      public Mono<Bundle> executeStep() {
+        return step.deidentify(new TransportBundle(bundle, "transferId"));
+      }
+    };
   }
 
   @BeforeEach
