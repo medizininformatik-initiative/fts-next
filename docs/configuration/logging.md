@@ -12,6 +12,7 @@ logging.level:
 ```
 
 ### Explanation:
+
 * `logging.level`: This is the main configuration key used to define the log levels for specific
   application components or packages.
 * `care.smith.fts`: A specific logging prefix for the `care.smith.fts` package. The log level

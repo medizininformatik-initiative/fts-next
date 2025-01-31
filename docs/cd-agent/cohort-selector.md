@@ -1,7 +1,7 @@
 # Cohort Selector <Badge type="tip" text="Clinical Domain Agent" />
 
 This document describes the configuration options available for managing cohort selection settings
-in the `cohortSelector` section of the project configuration file. These settings control how 
+in the `cohortSelector` section of the project configuration file. These settings control how
 consent data is retrieved and filtered.
 
 ## Configuration Structure

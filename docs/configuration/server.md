@@ -1,7 +1,7 @@
 # Server <Badge type="tip" text="All Agents" />
 
 This page documents the `server` section of the FTSnext agent configuration file
-(`application.yaml`). 
+(`application.yaml`).
 
 ## Configuration Example
 

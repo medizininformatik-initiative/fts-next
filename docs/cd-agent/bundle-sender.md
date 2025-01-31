@@ -7,7 +7,7 @@ processed by the CDA.
 ## Configuration Structure
 
 The `bundleSender` section allows different implementations to be used for sending processed
-bundles, at the moment there is only one implementation available out-of-the-box: 
+bundles, at the moment there is only one implementation available out-of-the-box:
 `researchDomainAgent`.
 
 ```yaml
@@ -22,7 +22,7 @@ bundleSender:
 
 ### `researchDomainAgent`
 
-This implementation sends processed bundles to the RDA, where another deidentification is realized 
+This implementation sends processed bundles to the RDA, where another deidentification is realized
 and data is stored in a FHIR server.
 
 #### `server`

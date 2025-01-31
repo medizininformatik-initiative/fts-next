@@ -1,7 +1,7 @@
 # Projects <Badge type="tip" text="Clinical Domain Agent" /><Badge type="tip" text="Research Domain Agent" />
 
-This page documents the `projects` section of the FTSnext agent configuration file 
-(`application.yaml`), which is used to define the settings related to project files 
+This page documents the `projects` section of the FTSnext agent configuration file
+(`application.yaml`), which is used to define the settings related to project files
 
 _For what **project** means in this context, please see [Project Configuration](../project)_
 

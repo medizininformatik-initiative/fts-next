@@ -6,7 +6,7 @@ domain and its transformation and injection into the health data store.
 The following steps are conducted inside the RDA to achieve this functionality:
 
 * **Deidentification**  
-  Pseudonymized data from the clinical domain is again pseudonymized using the prepared second-level 
+  Pseudonymized data from the clinical domain is again pseudonymized using the prepared second-level
   pseudonyms and dates are shifted.
 
 * **Sending**  
@@ -19,7 +19,7 @@ configuration file.
 
 By creating a yaml configuration file inside the [projects folder](../configuration/projects) a
 project is defined. It can later be referenced in the API using the filename without extension.
-The deployment bundle (see [Installation](../usage/installation)) contains an `example.yaml` 
+The deployment bundle (see [Installation](../usage/installation)) contains an `example.yaml`
 project file that serves as a starting point for configuring a project, as it contains extensive
 documentation for the configuration options.
 

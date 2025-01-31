@@ -1,8 +1,8 @@
 # Runner <Badge type="tip" text="Clinical Domain Agent" />
 
 This page documents the `runner` section of the FTSnext agent configuration file
-(`application.yaml`). It defines parameters that control concurrency and the 
-lifecycle of processes managed by FTSnext 
+(`application.yaml`). It defines parameters that control concurrency and the
+lifecycle of processes managed by FTSnext
 
 ## Configuration Example
 

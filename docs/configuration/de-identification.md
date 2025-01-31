@@ -1,9 +1,9 @@
 # De-Identification <Badge type="tip" text="Trust Center Agent" />
 
-This document provides an overview of the `deIdentification` section of the FTSnext 
-Trust Center Agent configuration file (`application.yaml`), the fields it contains, and 
-additional notes to clarify its usage. 
-This configuration is essential for managing de-identification processes and integration with 
+This document provides an overview of the `deIdentification` section of the FTSnext
+Trust Center Agent configuration file (`application.yaml`), the fields it contains, and
+additional notes to clarify its usage.
+This configuration is essential for managing de-identification processes and integration with
 mosaic services.
 
 ## Configuration Example
