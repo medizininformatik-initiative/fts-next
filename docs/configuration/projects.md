@@ -1,4 +1,4 @@
-# Projects <Badge type="tip" text="Clinical Domain Agent" /><Badge type="tip" text="Research Domain Agent" />
+# Projects <Badge type="tip" text="Clinical Domain Agent" /><Badge type="tip" text="Research Domain Agent" /> <Badge type="warning" text="Since 5.0" />
 
 This page documents the `projects` section of the FTSnext agent configuration file
 (`application.yaml`), which is used to define the settings related to project files
@@ -14,7 +14,7 @@ projects:
 
 ## Fields
 
-### `directory`
+### `directory` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies the directory path where the project files are stored.
 * **Type**: String

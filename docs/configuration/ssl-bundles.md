@@ -1,4 +1,4 @@
-# SSL Bundles <Badge type="tip" text="All Agents" />
+# SSL Bundles <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.0" />
 
 This page documents the `spring.ssl.bundle` section of the FTSnext agent configuration file
 (`application.yaml`), which allows for the setup of PEM-based SSL certificate and trust management
@@ -28,9 +28,9 @@ spring.ssl.bundle:
 
 ## Fields
 
-### `pem.server`
+### `pem.server` <Badge type="warning" text="Since 5.0" />
 
-* #### `keystore`
+* #### `keystore` <Badge type="warning" text="Since 5.0" />
   * `certificate`
     * **Description**: Path to the server's SSL certificate file.
     * **Example**: `target/test-classes/server.crt`
@@ -42,16 +42,16 @@ spring.ssl.bundle:
     private key is encrypted.
   * **Example**: `secret`
 
-* #### `truststore`
+* #### `truststore` <Badge type="warning" text="Since 5.0" />
   * `certificate`
     * **Description**: Path to the certificate authority (CA) certificate used to validate
       incoming
       SSL connections on the server.
     * **Example**: `target/test-classes/ca.crt`
 
-### `pem.client`
+### `pem.client` <Badge type="warning" text="Since 5.0" />
 
-* #### `keystore`
+* #### `keystore` <Badge type="warning" text="Since 5.0" />
   * `certificate`
     * **Description**: Path to the client's SSL certificate file.
     * **Example**: `target/test-classes/client-default.crt`
@@ -63,7 +63,7 @@ spring.ssl.bundle:
       the private key is encrypted.
     * **Example**: `secret`
 
-* #### `truststore`
+* #### `truststore` <Badge type="warning" text="Since 5.0" />
   * `certificate`
     * **Description**: Path to the certificate authority (CA) certificate used to validate
       server

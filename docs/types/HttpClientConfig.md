@@ -1,4 +1,4 @@
-# HttpClientConfig
+# HttpClientConfig <Badge type="warning" text="Since 5.0" />
 
 ## Examples
 
@@ -14,7 +14,7 @@ ssl:
   bundle: client
 ```
 
-### OAuth2
+### OAuth2 <Badge type="warning" text="Since 5.1" />
 
 ```yaml
 baseUrl: http://rd-hds:8080/fhir
@@ -35,7 +35,7 @@ ssl:
 
 ## Other Types
 
-### AuthMethod
+### AuthMethod <Badge type="warning" text="Since 5.0" />
 
 | Field Name    | Type                                                      | Required | Default | Description                      |
 |---------------|-----------------------------------------------------------|----------|---------|----------------------------------|
@@ -43,26 +43,26 @@ ssl:
 | `oauth2`      | [`HttpClientOauth2Auth`](#HttpClientOauth2Auth)           | No       |         | OAuth2 configuration.            |
 | `cookieToken` | [`HttpClientCookieTokenAuth`](#HttpClientCookieTokenAuth) | No       |         | Cookie token auth configuration. |
 
-### SSL
+### SSL <Badge type="warning" text="Since 5.0" />
 
 | Field Name | Type     | Required | Default | Description                                                                                                          |
 |------------|----------|----------|---------|----------------------------------------------------------------------------------------------------------------------|
 | `bundle`   | `String` | Yes      |         | Name of the spring ssl bundle to use for ssl connection. See [Agent Configuration/SSL](../configuration/ssl-bundles) |
 
-### HttpClientBasicAuth
+### HttpClientBasicAuth <Badge type="warning" text="Since 5.0" />
 
 | Field Name | Type     | Required | Default | Description         |
 |------------|----------|----------|---------|---------------------|
 | `user`     | `String` | Yes      |         | Basic auth username |
 | `password` | `String` | Yes      |         | Basic auth password |
 
-### HttpClientOAuth2Auth
+### HttpClientOAuth2Auth <Badge type="warning" text="Since 5.1" />
 
 | Field Name     | Type     | Required | Default | Description                                                                                                              |
 |----------------|----------|----------|---------|--------------------------------------------------------------------------------------------------------------------------|
 | `registration` | `String` | Yes      |         | Name of the registration defined in `application.yaml`. See [Agent Configuration/OAuth2](../configuration/oauth2-client) |
 
-### HttpClientCookieTokenAuth
+### HttpClientCookieTokenAuth <Badge type="warning" text="Since 5.0" />
 
 | Field Name | Type     | Required | Default | Description             |
 |------------|----------|----------|---------|-------------------------|

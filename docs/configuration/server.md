@@ -1,4 +1,4 @@
-# Server <Badge type="tip" text="All Agents" />
+# Server <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.0" />
 
 This page documents the `server` section of the FTSnext agent configuration file
 (`application.yaml`).
@@ -18,12 +18,12 @@ server:
 
 ## Fields
 
-### `ssl`
+### `ssl` <Badge type="warning" text="Since 5.0" />
 
 This section manages the SSL configuration of the server. SSL ensures secure communication between
 the client and the server by encrypting data.
 
-* #### `bundle`
+* #### `bundle` <Badge type="warning" text="Since 5.0" />
   * **Description**: Specifies the SSL bundle to use.
   * **Type**: String
   * **Default**: `server`
@@ -31,7 +31,7 @@ the client and the server by encrypting data.
     configurations.
   * See [ssl-bundles](./ssl-bundles) for declaring ssl bundles
 
-* #### `client-auth`
+* #### `client-auth` <Badge type="warning" text="Since 5.0" />
   * **Description**: Defines the client authentication requirement for SSL communication.
   * **Type**: String
   * **Allowed Values**:

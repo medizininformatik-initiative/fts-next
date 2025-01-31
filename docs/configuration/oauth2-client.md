@@ -1,4 +1,4 @@
-# OAuth2 Client Configuration
+# OAuth2 Client Configuration <Badge type="warning" text="Since 5.1" />
 
 If an agent is supposed to authenticate at an endpoint of  (e.g. gics, rd-agent) via OAuth2 one must
 register one or more

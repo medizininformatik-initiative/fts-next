@@ -1,4 +1,4 @@
-# OAuth2 Authentication <Badge type="tip" text="All Agents" />
+# OAuth2 Authentication <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.1" />
 
 Allow access from clients authenticated by the given authority (`issuer`).
 
@@ -11,7 +11,7 @@ oauth2:
 
 ## Fields
 
-### `issuer`
+### `issuer` <Badge type="warning" text="Since 5.1" />
 
 * **Desciption**: URL of the authorization server
 * **Type**: URL

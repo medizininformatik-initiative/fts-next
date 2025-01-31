@@ -1,4 +1,4 @@
-# Runner <Badge type="tip" text="Clinical Domain Agent" />
+# Runner <Badge type="tip" text="Clinical Domain Agent" /> <Badge type="warning" text="Since 5.0" />
 
 This page documents the `runner` section of the FTSnext agent configuration file
 (`application.yaml`). It defines parameters that control concurrency and the
@@ -15,7 +15,7 @@ runner:
 
 ## Fields
 
-### `maxSendConcurrency`
+### `maxSendConcurrency` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: The maximum number of concurrent bundles that can be sent in parallel.
 * **Type**: Integer
@@ -26,7 +26,7 @@ runner:
     maxSendConcurrency: 50
   ```
 
-### `maxConcurrentProcesses`
+### `maxConcurrentProcesses` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: The maximum number of processes that can run concurrently.
 * **Type**: Integer
@@ -37,7 +37,7 @@ runner:
     maxConcurrentProcesses: 10
   ```
 
-### `processTtl`
+### `processTtl` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: The time-to-live (TTL) for a process, defined as an ISO-8601 duration (e.g.,
   `P1D` for 1 day).

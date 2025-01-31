@@ -1,4 +1,4 @@
-# Observability <Badge type="tip" text="All Agents" />
+# Observability <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.0" />
 
 This document describes the configuration options available for exposing metrics and other status
 endpoints.
@@ -21,7 +21,7 @@ management:
 
 ## Fields
 
-### `endpoints.web.exposure.include`
+### `endpoints.web.exposure.include` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies the management endpoints that should be accessible via the web.
 * **Type**: List of Strings
@@ -31,7 +31,7 @@ management:
           include: [ "health", "info", "prometheus", "metrics" ]
   ```
 
-#### Common Values:
+#### Common Values: <Badge type="warning" text="Since 5.0" />
 
 * `"health"`: Provides health status information.
 * `"info"`: Displays general application information.
@@ -51,7 +51,7 @@ milliseconds).
           deidentify: 100,300,600,1200
   ```
 
-#### Common Keys
+#### Common Keys <Badge type="warning" text="Since 5.0" />
 
 * `http.server.requests` <Badge type="tip" text="All Agents" />
   * **Description**: SLOs for server-side HTTP request response times.
