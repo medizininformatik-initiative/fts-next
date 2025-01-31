@@ -27,7 +27,7 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
 
 #### `fhirServer`
 
-* **Description**: Specifies connection settings of the  FHIR server endpoint used for fetching 
+* **Description**: Specifies connection settings of the FHIR server endpoint used for fetching
   patient resources.
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 * **Example**:
@@ -62,7 +62,6 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
 
 ## Notes
 
-  the `$everything` operation.
 * The `patientIdentifierSystem` field must be a valid system URL used for resolving patient
   identifiers in the FHIR server.
 * Ensure the FHIR server endpoint is accessible and configured correctly for data retrieval.

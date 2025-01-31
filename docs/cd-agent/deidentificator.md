@@ -5,7 +5,7 @@ in the `deidentificator` section of the project configuration file.
 
 ## Configuration Structure
 
-The `deidentificator` section allows different implementations to be used for pseudonymizing and 
+The `deidentificator` section allows different implementations to be used for pseudonymizing and
 anonymizing patient data. At the moment there is only one implementation available out-of-the-box:
 `deidentifhir`
 
@@ -28,7 +28,7 @@ deidentificator:
 
 ### `deidentifhir`
 
-This implementation uses [deidentifhir](https://github.com/UMEssen/DeidentiFHIR) to accomplish 
+This implementation uses [deidentifhir](https://github.com/UMEssen/DeidentiFHIR) to accomplish
 deidentification of FHIR bundles.
 
 #### `trustCenterAgent.server`

@@ -54,7 +54,6 @@ milliseconds).
 #### Common Keys
 
 * `http.server.requests` <Badge type="tip" text="All Agents" />
-  * **Available in**: 
   * **Description**: SLOs for server-side HTTP request response times.
   * **Example Values**: `25,100,250,500,1000,10000`
 

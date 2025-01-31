@@ -2,7 +2,7 @@
 
 Welcome to the FHIR Transfer Services user guide! This guide will help you get started with running
 the FHIR Transfer Services components: Clinical Domain Agent (CDA),
-Research Domain Agent (RDA), and Trust Center Agent (TCA). 
+Research Domain Agent (RDA), and Trust Center Agent (TCA).
 
 ## Getting Started
 
