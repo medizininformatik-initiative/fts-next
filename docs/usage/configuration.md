@@ -8,9 +8,11 @@ Agent configuration in the context of FTSnext means the configuration of the ser
 like ports, certificates, logging, etc. Please see the [Agent Configuration](../agent) section for
 more information. 
 
-_Note: You can mainly use the provided `application.yaml` as-is, but we highly recommend configuring
-https using the [ssl-bundles](../configuration/ssl-bundles) and [server](../configuration/server) 
-sections._
+_Note: For CDA and RDA you can mainly use the provided `application.yaml` as-is. For the TCA at
+least deidentification and consent backends must be configured in the `application.yaml`_
+We highly recommend configuring https using the [ssl-bundles](../configuration/ssl-bundles) and
+[server](../configuration/server) sections and have a look at the
+[security](../configuration/security) section for authentication/authorization.
 
 ## Transfer Project Configuration
 
