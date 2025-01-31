@@ -18,7 +18,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.Test;
 
-class DeidentifhirUtilTest {
+class DeidentifhirUtilsTest {
 
   MeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 
@@ -33,7 +33,7 @@ class DeidentifhirUtilTest {
 
     Registry registry = generateRegistry(patient.id(), transportIDs, Duration.ofMillis(1000));
 
-    var config = parseResources(DeidentifhirUtilTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
 
     var bundle = TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1");
     Bundle deidentifiedBundle = deidentify(config, registry, bundle, patient.id(), meterRegistry);

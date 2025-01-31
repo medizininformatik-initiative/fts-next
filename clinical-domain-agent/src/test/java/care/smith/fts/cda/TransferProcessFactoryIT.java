@@ -14,7 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 
 @SpringBootTest
-class TransferProcessFactoryTest {
+class TransferProcessFactoryIT {
 
   @Autowired private ApplicationContext context;
 

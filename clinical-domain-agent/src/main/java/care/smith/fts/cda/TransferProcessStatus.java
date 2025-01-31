@@ -58,7 +58,7 @@ public record TransferProcessStatus(
         : withPhase(phase);
   }
 
-  public Boolean isCompleted(Phase phase) {
+  public static Boolean isCompleted(Phase phase) {
     return phase == Phase.COMPLETED || phase == Phase.COMPLETED_WITH_ERROR || phase == Phase.FATAL;
   }
 

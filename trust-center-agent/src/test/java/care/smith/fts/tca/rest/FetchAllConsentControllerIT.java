@@ -6,7 +6,6 @@ import static care.smith.fts.test.MockServerUtil.FIRST;
 import static care.smith.fts.test.MockServerUtil.REST;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -26,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,10 +39,10 @@ import reactor.core.publisher.Mono;
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
 class FetchAllConsentControllerIT extends BaseIT {
-  private static WebClient client;
+  private WebClient client;
 
-  @BeforeAll
-  static void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+  @BeforeEach
+  void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     client = factory.webClient("https://localhost:" + port, "cd-agent");
   }
 
@@ -54,7 +53,7 @@ class FetchAllConsentControllerIT extends BaseIT {
         .register(
             post(urlPathEqualTo("/ttp-fhir/fhir/gics/$allConsentsForDomain"))
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                .willReturn(fhirResponse(consentGenerator.generateString(), 200)));
+                .willReturn(fhirResponse(consentGenerator.generateString())));
 
     var response =
         fetchAll(
@@ -72,7 +71,7 @@ class FetchAllConsentControllerIT extends BaseIT {
         .verifyComplete();
   }
 
-  private static Mono<String> fetchAll(Map<String, Object> body) {
+  private Mono<String> fetchAll(Map<String, Object> body) {
     return client
         .post()
         .uri("/api/v2/cd/consented-patients/fetch-all")
@@ -101,7 +100,7 @@ class FetchAllConsentControllerIT extends BaseIT {
                 .inScenario("firstRequestFails")
                 .whenScenarioStateIs(REST)
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                .willReturn(jsonResponse(consentGenerator.generateString(), 200)));
+                .willReturn(fhirResponse(consentGenerator.generateString())));
 
     var response =
         fetchAll(

@@ -12,54 +12,42 @@ class PeriodTest {
   void parseEmptyStartThrows() {
     assertThrows(
         DateTimeParseException.class,
-        () -> {
-          Period.parse("", "2007-12-03T10:15:30+01:00[Europe/Paris]");
-        });
+        () -> Period.parse("", "2007-12-03T10:15:30+01:00[Europe/Paris]"));
   }
 
   @Test
   void parseEmptyEndThrows() {
     assertThrows(
         DateTimeParseException.class,
-        () -> {
-          Period.parse("2007-12-03T10:15:30+01:00[Europe/Paris]", "");
-        });
+        () -> Period.parse("2007-12-03T10:15:30+01:00[Europe/Paris]", ""));
   }
 
   @Test
   void parseNullStartThrows() {
     assertThrows(
         NullPointerException.class,
-        () -> {
-          Period.parse(null, "2007-12-03T10:15:30+01:00[Europe/Paris]");
-        });
+        () -> Period.parse(null, "2007-12-03T10:15:30+01:00[Europe/Paris]"));
   }
 
   @Test
   void parseNullEndThrows() {
     assertThrows(
         NullPointerException.class,
-        () -> {
-          Period.parse("2007-12-03T10:15:30+01:00[Europe/Paris]", null);
-        });
+        () -> Period.parse("2007-12-03T10:15:30+01:00[Europe/Paris]", null));
   }
 
   @Test
   void parseInvalidStartThrows() {
     assertThrows(
         DateTimeParseException.class,
-        () -> {
-          Period.parse("invalid", "2007-12-03T10:15:30+01:00[Europe/Paris]");
-        });
+        () -> Period.parse("invalid", "2007-12-03T10:15:30+01:00[Europe/Paris]"));
   }
 
   @Test
   void parseInvalidEndThrows() {
     assertThrows(
         DateTimeParseException.class,
-        () -> {
-          Period.parse("2007-12-03T10:15:30+01:00[Europe/Paris]", "invalid");
-        });
+        () -> Period.parse("2007-12-03T10:15:30+01:00[Europe/Paris]", "invalid"));
   }
 
   @Test

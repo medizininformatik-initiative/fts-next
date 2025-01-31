@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,11 +46,11 @@ import reactor.core.publisher.Mono;
 @Import(TestWebClientFactory.class)
 class DeIdentificationControllerIT extends BaseIT {
 
-  private static WebClient cdClient;
-  private static WebClient rdClient;
+  private WebClient cdClient;
+  private WebClient rdClient;
 
-  @BeforeAll
-  static void setUp(
+  @BeforeEach
+  void setUp(
       @LocalServerPort int cdPort,
       @LocalServerPort int rdPort,
       @Autowired TestWebClientFactory factory) {
@@ -83,7 +83,7 @@ class DeIdentificationControllerIT extends BaseIT {
                                         .formatted(key),
                                     true,
                                     true))
-                            .willReturn(fhirResponse(fhirGenerator.generateString(), 200))));
+                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
     var response =
         doPost(
@@ -132,7 +132,7 @@ class DeIdentificationControllerIT extends BaseIT {
                               .formatted(s),
                           true,
                           true))
-                  .willReturn(fhirResponse(body, 200)));
+                  .willReturn(fhirResponse(body)));
     }
 
     var response =
@@ -205,7 +205,7 @@ class DeIdentificationControllerIT extends BaseIT {
                                         .formatted(key),
                                     true,
                                     true))
-                            .willReturn(fhirResponse(fhirGenerator.generateString(), 200))));
+                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
     var transferId =
         doPost(
@@ -244,7 +244,7 @@ class DeIdentificationControllerIT extends BaseIT {
         .verifyComplete();
   }
 
-  private static Mono<TransportMappingResponse> doPost(Map<String, Object> body) {
+  private Mono<TransportMappingResponse> doPost(Map<String, Object> body) {
     return cdClient
         .post()
         .uri("/api/v2/cd/transport-mapping")

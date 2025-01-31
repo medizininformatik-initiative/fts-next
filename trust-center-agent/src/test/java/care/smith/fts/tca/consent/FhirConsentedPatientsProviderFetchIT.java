@@ -2,11 +2,12 @@ package care.smith.fts.tca.consent;
 
 import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.FhirGenerators.randomUuid;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
@@ -30,7 +31,6 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
@@ -44,7 +44,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @SpringBootTest
 @WireMockTest
 @Import(TestWebClientFactory.class)
-class FhirConsentedPatientsProviderFetchTest {
+class FhirConsentedPatientsProviderFetchIT {
 
   @Autowired WebClient.Builder httpClientBuilder;
   @Autowired MeterRegistry meterRegistry;
@@ -83,12 +83,12 @@ class FhirConsentedPatientsProviderFetchTest {
             ]}
             """;
 
-  private static String address;
-  private static WireMock wireMock;
-  private static FhirGenerator<Bundle> gicsConsentGenerator;
+  private String address;
+  private WireMock wireMock;
+  private FhirGenerator<Bundle> gicsConsentGenerator;
 
-  @BeforeAll
-  static void setUp(WireMockRuntimeInfo wireMockRuntime) throws IOException {
+  @BeforeEach
+  void setUp(WireMockRuntimeInfo wireMockRuntime) throws IOException {
     address = wireMockRuntime.getHttpBaseUrl();
     wireMock = wireMockRuntime.getWireMock();
     gicsConsentGenerator =
@@ -125,9 +125,10 @@ class FhirConsentedPatientsProviderFetchTest {
     wireMock.register(
         post("/$allConsentsForPerson")
             .withRequestBody(equalToJson(jsonBody1))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle1), 200)));
+            .willReturn(fhirResponse(bundle1)));
 
-    String jsonBody2 = """
+    String jsonBody2 =
+        """
         {
           "resourceType": "Parameters",
           "parameter": [
@@ -139,7 +140,7 @@ class FhirConsentedPatientsProviderFetchTest {
     wireMock.register(
         post("/$allConsentsForPerson")
             .withRequestBody(equalToJson(jsonBody2))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle2), 200)));
+            .willReturn(fhirResponse(bundle2)));
 
     var expectedNextLink =
         "http://trustcenteragent:8080/api/v2/cd/consented-patients/fetch?from=%s&count=%s"
@@ -183,7 +184,7 @@ class FhirConsentedPatientsProviderFetchTest {
     wireMock.register(
         post("/$allConsentsForPerson")
             .withRequestBody(equalToJson(jsonBody1))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle), 200)));
+            .willReturn(fhirResponse(bundle)));
 
     var expectedNextLink =
         "http://trustcenteragent:8080/api/v2/cd/consented-patients/fetch?from=%s&count=%s"
@@ -216,7 +217,7 @@ class FhirConsentedPatientsProviderFetchTest {
     wireMock.register(
         post("/$allConsentsForPerson")
             .withRequestBody(equalToJson(jsonBody1, true, true))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
+            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
 
     create(
             fhirConsentProvider.fetch(
@@ -242,7 +243,7 @@ class FhirConsentedPatientsProviderFetchTest {
     wireMock.register(
         post("/$allConsentsForPerson")
             .withRequestBody(equalToJson(jsonBody1, true, true))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
+            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
 
     create(
             fhirConsentProvider.fetch(
@@ -267,7 +268,7 @@ class FhirConsentedPatientsProviderFetchTest {
     wireMock.register(
         post("/$allConsentsForPerson")
             .withRequestBody(equalToJson(jsonBody1, true, true))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
+            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
 
     create(
             fhirConsentProvider.fetch(

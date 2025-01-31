@@ -1,16 +1,17 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.lang.String.valueOf;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
@@ -33,7 +34,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +48,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @SpringBootTest
 @WireMockTest
 @Import(TestWebClientFactory.class)
-class FhirConsentedPatientsProviderFetchAllTest {
+class FhirConsentedPatientsProviderFetchAllIT {
 
   @Autowired WebClient.Builder httpClientBuilder;
   @Autowired MeterRegistry meterRegistry;
@@ -70,8 +71,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
           "MDAT_speichern_verarbeiten");
   private static final ConsentFetchAllRequest CONSENT_FETCH_ALL_REQUEST =
       new ConsentFetchAllRequest("MII", POLICIES, POLICY_SYSTEM);
-  private static String address;
-  private static FhirGenerator<Bundle> gicsConsentGenerator;
+  private String address;
+  private FhirGenerator<Bundle> gicsConsentGenerator;
   private static final String jsonBody =
       """
   {
@@ -81,8 +82,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
   """;
   private static WireMock wireMock;
 
-  @BeforeAll
-  static void setUp(WireMockRuntimeInfo wireMockRuntime) throws IOException {
+  @BeforeEach
+  void setUp(WireMockRuntimeInfo wireMockRuntime) throws IOException {
     address = wireMockRuntime.getHttpBaseUrl();
     wireMock = wireMockRuntime.getWireMock();
     gicsConsentGenerator = FhirGenerators.gicsResponse(randomUuid(), randomUuid());
@@ -114,7 +115,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
                 ofEntries(
                     entry("_offset", equalTo("0")),
                     entry("_count", equalTo(valueOf(defaultPageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle), 200)));
+            .willReturn(fhirResponse(bundle)));
     wireMock.register(
         post(urlPathEqualTo("/$allConsentsForDomain"))
             .withRequestBody(equalToJson(jsonBody))
@@ -122,7 +123,7 @@ class FhirConsentedPatientsProviderFetchAllTest {
                 ofEntries(
                     entry("_offset", equalTo(valueOf(defaultPageSize))),
                     entry("_count", equalTo(valueOf(defaultPageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle), 200)));
+            .willReturn(fhirResponse(bundle)));
 
     var expectedNextLink =
         "http://localhost:8080/api/v2/cd/consented-patients/fetch-all?from=%s&count=%s"
@@ -169,9 +170,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
             .withRequestBody(equalToJson(jsonBody))
             .withQueryParams(
                 ofEntries(
-                    entry("_offset", equalTo("0")),
-                    entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle), 200)));
+                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
+            .willReturn(fhirResponse(bundle)));
 
     create(
             fhirConsentProvider.fetchAll(
@@ -202,9 +202,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
             .withRequestBody(equalToJson(jsonBody))
             .withQueryParams(
                 ofEntries(
-                    entry("_offset", equalTo("0")),
-                    entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle), 200)));
+                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
+            .willReturn(fhirResponse(bundle)));
 
     create(
             fhirConsentProvider.fetchAll(
@@ -236,9 +235,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
             .withRequestBody(equalToJson(jsonBody))
             .withQueryParams(
                 ofEntries(
-                    entry("_offset", equalTo("0")),
-                    entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
+                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
+            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
 
     create(
             fhirConsentProvider.fetchAll(
@@ -266,9 +264,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
             .withRequestBody(equalToJson(jsonBody))
             .withQueryParams(
                 ofEntries(
-                    entry("_offset", equalTo("0")),
-                    entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
+                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
+            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
 
     create(
             fhirConsentProvider.fetchAll(
@@ -295,9 +292,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
             .withRequestBody(equalToJson(jsonBody))
             .withQueryParams(
                 ofEntries(
-                    entry("_offset", equalTo("0")),
-                    entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(operationOutcome), 404)));
+                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
+            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
 
     create(
             fhirConsentProvider.fetchAll(
@@ -329,9 +325,8 @@ class FhirConsentedPatientsProviderFetchAllTest {
             .withRequestBody(equalToJson(jsonBody))
             .withQueryParams(
                 ofEntries(
-                    entry("_offset", equalTo("0")),
-                    entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(jsonResponse(FhirUtils.fhirResourceToString(bundle), 200)));
+                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
+            .willReturn(fhirResponse(bundle)));
 
     create(
             fhirConsentProvider.fetchAll(
