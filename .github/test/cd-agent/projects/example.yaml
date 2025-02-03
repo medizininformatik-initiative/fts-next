@@ -17,9 +17,11 @@ cohortSelector:
     # Identifier system filter. Only patients with identifiers from this system will be included in the cohort.
     patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
     # Policy system filter. Only policies with identifiers from this system will be considered valid.
-    policySystem: "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy"
+    # policySystem: "MII CS Consent Policy"
+    policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3"
     # List of required policies. The consent must explicitly document approval for all these policies.
-    policies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
+    # policies: ["IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
+    policies: [ "2.16.840.1.113883.3.1937.777.24.5.3.2", "2.16.840.1.113883.3.1937.777.24.5.3.3", "2.16.840.1.113883.3.1937.777.24.5.3.6", "2.16.840.1.113883.3.1937.777.24.5.3.7" ]
 
 ### Data Selection Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/data-selector
