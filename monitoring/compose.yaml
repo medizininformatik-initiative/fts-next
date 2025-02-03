@@ -13,7 +13,7 @@ services:
     - :9090
 
   grafana:
-    image: grafana/grafana:11.5.0@sha256:0a2874cf39c6487093c682215f7c7903ed8646d78ae5f911af945d2dfcc0a447
+    image: grafana/grafana:11.5.1@sha256:5781759b3d27734d4d548fcbaf60b1180dbf4290e708f01f292faa6ae764c5e6
     volumes:
     - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
     - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml
