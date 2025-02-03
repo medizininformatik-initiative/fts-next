@@ -45,7 +45,7 @@ services:
 
   # Trust Center
   gics:
-    image: ghcr.io/knoppiks/mosaic-gics:2024.1.1@sha256:e17c49726a6c311407c1ffc598e1fd778ba83a4b0ebc8813a1deaa85e34e8c22
+    image: ghcr.io/knoppiks/mosaic-gics:2024.3.1@sha256:ae7bdfafb11f340ea91d0990b06e96301b76e9041383c5284708486cdb0865b3
     ports: [ ":8080" ]
     networks: [ "trust-center", "gics" ]
     depends_on:
