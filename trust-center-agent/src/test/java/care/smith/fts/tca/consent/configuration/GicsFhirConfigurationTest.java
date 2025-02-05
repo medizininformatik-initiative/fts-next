@@ -13,7 +13,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
-class GicsFhirConfigurationTest {
+class GicsFhirConfigurationIT {
 
   @Autowired private GicsFhirConfiguration gicsFhirConfiguration;
   @Autowired private FhirConsentedPatientsProvider fhirConsentProvider;

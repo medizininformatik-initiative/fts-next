@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.*;
-import reactor.core.publisher.Mono;
+import org.reactivestreams.Publisher;
 import reactor.test.StepVerifier.FirstStep;
 
 public abstract class AbstractConnectionScenarioIT {
@@ -18,20 +18,19 @@ public abstract class AbstractConnectionScenarioIT {
   protected interface TestStep<T> {
     MappingBuilder getBuilder();
 
-    Mono<T> executeStep();
+    Publisher<T> executeStep();
 
     default T returnValue() {
       return null;
     }
   }
 
-  protected abstract TestStep<?> createTestStep();
+  protected abstract Stream<TestStep<?>> createTestSteps();
 
   @TestTemplate
   @ExtendWith(ConnectionScenariosExtension.class)
   void testConnectionScenarios(ConnectionScenario scenario) {
-    TestStep<?> step = createTestStep();
-    scenario.execute(step);
+    createTestSteps().forEach(scenario::execute);
   }
 }
 

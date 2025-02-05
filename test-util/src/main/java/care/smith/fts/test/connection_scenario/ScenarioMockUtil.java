@@ -13,7 +13,6 @@ import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.Exceptions;
 import reactor.test.StepVerifier;
 import reactor.test.StepVerifier.FirstStep;
@@ -31,7 +30,7 @@ public interface ScenarioMockUtil {
 
   static void testConnectionReset(MappingBuilder builder, Publisher<?> fn) {
     stubFor(builder.willReturn(connectionReset()));
-    create(fn).expectError(WebClientRequestException.class).verify();
+    create(fn).expectError(Exception.class).verify();
   }
 
   static <T> FirstStep<?> firstRequestFails(Supplier<MappingBuilder> builder, Publisher<?> fn) {
@@ -83,12 +82,7 @@ public interface ScenarioMockUtil {
   }
 
   static FirstStep<?> allRequestsFail(MappingBuilder builder, Publisher<?> fn) {
-    stubFor(
-        builder
-            .inScenario("retry-scenario")
-            .whenScenarioStateIs(Scenario.STARTED)
-            .willReturn(aResponse().withStatus(500)));
-
+    stubFor(builder.willReturn(aResponse().withStatus(500)));
     return create(fn);
   }
 

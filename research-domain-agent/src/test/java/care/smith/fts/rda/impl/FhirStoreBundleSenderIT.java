@@ -6,7 +6,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static reactor.test.StepVerifier.create;
 
@@ -19,6 +18,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,23 +36,24 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
   private static FhirStoreBundleSender bundleSender;
 
   @Override
-  protected TestStep<Result> createTestStep() {
-    return new TestStep<>() {
-      @Override
-      public MappingBuilder getBuilder() {
-        return FhirStoreBundleSenderIT.getBuilder();
-      }
+  protected Stream<TestStep<?>> createTestSteps() {
+    return Stream.of(
+        new TestStep<Result>() {
+          @Override
+          public MappingBuilder getBuilder() {
+            return FhirStoreBundleSenderIT.getBuilder();
+          }
 
-      @Override
-      public Mono<Result> executeStep() {
-        return FhirStoreBundleSenderIT.bundleSender.send(new Bundle());
-      }
+          @Override
+          public Mono<Result> executeStep() {
+            return FhirStoreBundleSenderIT.bundleSender.send(new Bundle());
+          }
 
-      @Override
-      public Result returnValue() {
-        return new Result();
-      }
-    };
+          @Override
+          public Result returnValue() {
+            return new Result();
+          }
+        });
   }
 
   @BeforeEach
@@ -64,7 +65,7 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
 
   @Test
   void requestErrors() {
-    wireMock.register(post(ANY).willReturn(badRequest()));
+    wireMock.register(getBuilder().willReturn(badRequest()));
     create(bundleSender.send(new Bundle())).expectError().verify();
   }
 

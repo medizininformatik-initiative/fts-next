@@ -25,12 +25,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(classes = ClinicalDomainAgent.class)
 @WireMockTest
-class FhirResolveServiceTest {
+class FhirResolveServiceIT {
 
   private static final String PATIENT_ID = "patient-141392";
   private static final String KDS_PATIENT = "https://some.example.com/pid";
 
   @Autowired MeterRegistry meterRegistry;
+
 
   private FhirResolveService service;
   private WireMock wireMock;

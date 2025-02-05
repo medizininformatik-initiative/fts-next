@@ -2,42 +2,56 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
+import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
+import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TCADomains;
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.prometheusmetrics.PrometheusConfig;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import java.io.IOException;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import reactor.core.publisher.Mono;
 
 @SpringBootTest(classes = ClinicalDomainAgent.class)
 @WireMockTest
-class DeidentifhirStepTest {
+class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
 
-  @Autowired MeterRegistry meterRegistry;
-  private DeidentifhirStep step;
-  private WireMock wireMock;
+  private static DeidentifhirStep step;
+  private static WireMock wireMock;
+  private static ConsentedPatientBundle consentedPatientBundle;
 
-  @BeforeEach
-  void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
+  @BeforeAll
+  static void setUp(
+      WireMockRuntimeInfo wireMockRuntime,
+      @Autowired WebClientFactory clientFactory,
+      @Autowired MeterRegistry meterRegistry)
+      throws IOException {
     var scraperConfig = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
     var deidentifhirConfig = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var domains = new TCADomains("domain", "domain", "domain");
@@ -46,12 +60,37 @@ class DeidentifhirStepTest {
     step =
         new DeidentifhirStep(
             client, domains, ofDays(14), deidentifhirConfig, scraperConfig, meterRegistry);
+
+    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
+    var consentedPatient = new ConsentedPatient("id1");
+    consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
+  }
+
+  private static MappingBuilder getBuilder() {
+    return post("/api/v2/cd/transport-mapping")
+        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
+  }
+
+  @Override
+  protected Stream<TestStep<?>> createTestSteps() {
+    return Stream.of(
+        new TestStep<TransportBundle>() {
+          @Override
+          public MappingBuilder getBuilder() {
+            return DeidentifhirStepIT.getBuilder();
+          }
+
+          @Override
+          public Mono<TransportBundle> executeStep() {
+            return step.deidentify(consentedPatientBundle);
+          }
+        });
   }
 
   @Test
-  void correctRequestSent() throws IOException {
+  void correctRequestSent() {
     wireMock.register(
-        post("/api/v2/cd/transport-mapping")
+        getBuilder()
             .withRequestBody(
                 equalToJson(
                     """
@@ -70,28 +109,20 @@ class DeidentifhirStepTest {
                     true))
             .willReturn(ok()));
 
-    var consentedPatient = new ConsentedPatient("id1");
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
+    create(step.deidentify(consentedPatientBundle)).verifyComplete();
+  }
+
+  @Test
+  void emptyTCAResponseYieldsEmptyResult() {
+    wireMock.register(getBuilder().willReturn(ok()));
 
     create(step.deidentify(consentedPatientBundle)).verifyComplete();
   }
 
   @Test
-  void emptyTCAResponseYieldsEmptyResult() throws IOException {
-    wireMock.register(post("/api/v2/cd/transport-mapping").willReturn(ok()));
-
-    var consentedPatient = new ConsentedPatient("id1");
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
-
-    create(step.deidentify(consentedPatientBundle)).verifyComplete();
-  }
-
-  @Test
-  void deidentifySucceeds() throws IOException {
+  void deidentifySucceeds() {
     wireMock.register(
-        post("/api/v2/cd/transport-mapping")
+        getBuilder()
             .willReturn(
                 jsonResponse(
                     """
@@ -103,10 +134,6 @@ class DeidentifhirStepTest {
                             }
                             """,
                     200)));
-
-    var consentedPatient = new ConsentedPatient("id1");
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
 
     create(step.deidentify(consentedPatientBundle)).expectNextCount(1).verifyComplete();
   }
