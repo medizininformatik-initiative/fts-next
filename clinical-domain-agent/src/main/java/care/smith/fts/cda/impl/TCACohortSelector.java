@@ -126,8 +126,15 @@ class TCACohortSelector implements CohortSelector {
 
   private static Mono<Throwable> handleBadRequest(ClientResponse r) {
     return r.bodyToMono(ProblemDetail.class)
-        .flatMap(b -> Mono.<Throwable>error(new TransferProcessException(b.getDetail())))
         .onErrorResume(
-            e -> Mono.error(new TransferProcessException("Unable to parse ProblemDetail", e)));
+            e -> {
+              log.error("Failed to parse error response", e);
+              var problemDetail =
+                  ProblemDetail.forStatusAndDetail(
+                      HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+              return Mono.just(problemDetail);
+            })
+        .flatMap(
+            problemDetail -> Mono.error(new TransferProcessException(problemDetail.getDetail())));
   }
 }
