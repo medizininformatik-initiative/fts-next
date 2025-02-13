@@ -1,10 +1,13 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -13,9 +16,11 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.cda.impl.mock.MockCohortSelector;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
+import care.smith.fts.util.error.TransferProcessException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
@@ -23,12 +28,12 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,9 +47,10 @@ import reactor.core.publisher.Flux;
 class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
 
   @Autowired MeterRegistry meterRegistry;
+  @Autowired ObjectMapper om;
   private WireMock wireMock;
 
-  private static final Set<String> POLICIES = Set.of("any");
+  private static final Set<String> POLICIES = Set.of("MDAT_erheben");
 
   private static final String PID_SYSTEM =
       "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
@@ -52,6 +58,9 @@ class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
       "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
 
   private static TCACohortSelector cohortSelector;
+
+  private static MockCohortSelector allCohortSelector;
+  private static MockCohortSelector listCohortSelector;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
@@ -62,6 +71,8 @@ class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
         new TCACohortSelector(
             config, clientFactory.create(clientConfig(wireMockRuntime)), meterRegistry);
     wireMock = wireMockRuntime.getWireMock();
+    allCohortSelector = MockCohortSelector.fetchAll(wireMock, POLICY_SYSTEM);
+    listCohortSelector = MockCohortSelector.fetch(wireMock, POLICY_SYSTEM);
   }
 
   private static MappingBuilder getBuilderFetchAll() {
@@ -98,6 +109,11 @@ class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
           public Flux<ConsentedPatient> executeStep() {
             return TCACohortSelectorIT.cohortSelector.selectCohort(List.of("id"));
           }
+
+          @Override
+          public String acceptedContentType() {
+            return APPLICATION_JSON_VALUE;
+          }
         });
   }
 
@@ -123,81 +139,71 @@ class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
 
   @Test
   void consentBundleSucceeds() {
-    Bundle inner =
-        Stream.of(
-                new Patient()
-                    .addIdentifier(
-                        new Identifier().setSystem(PID_SYSTEM).setValue("patient-122651")),
-                new Consent().setProvision(denyProvision()))
-            .collect(toBundle());
-    Bundle outer = Stream.of(inner).collect(toBundle());
-
-    wireMock.register(
-        getBuilderFetchAll()
-            .willReturn(
-                ok().withHeader("Content-Type", "application/fhir+json")
-                    .withBody(fhirResourceToString(outer))));
-
+    allCohortSelector.consentForOnePatient("patient");
     create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
   }
 
   @Test
   void consentBundleForIdsSucceeds() {
-    Bundle inner =
-        Stream.of(
-                new Patient()
-                    .addIdentifier(
-                        new Identifier().setSystem(PID_SYSTEM).setValue("patient-122651")),
-                new Consent().setProvision(denyProvision()))
-            .collect(toBundle());
-    Bundle outer = Stream.of(inner).collect(toBundle());
-
-    wireMock.register(
-        getBuilderFetch()
-            .willReturn(
-                ok().withHeader("Content-Type", "application/fhir+json")
-                    .withBody(fhirResourceToString(outer))));
-
-    create(cohortSelector.selectCohort(List.of("patient-122651")))
-        .expectNextCount(1)
-        .verifyComplete();
+    listCohortSelector.consentForOnePatient("patient");
+    create(cohortSelector.selectCohort(List.of("patient0"))).expectNextCount(1).verifyComplete();
   }
 
   @Test
   void emptyOuterBundleGivesEmptyResult() {
-    Bundle outer = Stream.<Resource>of().collect(toBundle());
+    var outer = Stream.<Resource>of().collect(toBundle());
 
     wireMock.register(
         getBuilderFetchAll()
             .willReturn(
-                ok().withHeader("Content-Type", "application/fhir+json")
+                ok().withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(outer))));
     create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
   @Test
   void emptyInnerBundleGivesEmptyResult() {
-    Bundle outer = Stream.of(Stream.<Resource>of().collect(toBundle())).collect(toBundle());
+    var inner = Stream.of(Stream.<Resource>of().collect(toBundle())).collect(toBundle());
     wireMock.register(
         getBuilderFetchAll()
             .willReturn(
-                ok().withHeader("Content-Type", "application/fhir+json")
-                    .withBody(fhirResourceToString(outer))));
+                ok().withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+                    .withBody(fhirResourceToString(inner))));
     create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
-  private static Consent.ProvisionComponent denyProvision() {
-    return new Consent.ProvisionComponent()
-        .setType(Consent.ConsentProvisionType.DENY)
-        .addProvision(permitProvision());
+  @Test
+  void unknownDomain() throws JsonProcessingException {
+
+    allCohortSelector.unknownDomain(om);
+    create(cohortSelector.selectCohort(List.of()))
+        .expectError(TransferProcessException.class)
+        .verify();
   }
 
-  private static Consent.ProvisionComponent permitProvision() {
-    var policy =
-        new CodeableConcept().addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode("any"));
-    return new Consent.ProvisionComponent()
-        .setType(Consent.ConsentProvisionType.PERMIT)
-        .setCode(List.of(policy))
-        .setPeriod(new Period().setStart(new Date(1)).setEnd(new Date(2)));
+  @Test
+  void unknownDomainWrongError() {
+    String body = "\"Parse me if you can\"";
+    wireMock.register(getBuilderFetchAll().willReturn(jsonResponse(body, 400)));
+    create(cohortSelector.selectCohort(List.of()))
+        .expectError(TransferProcessException.class)
+        .verify();
+  }
+
+  @Test
+  void paging() {
+    var total = 7;
+    int maxPageSize = 2;
+    allCohortSelector.consentForNPatientsWithPaging("pid", total, maxPageSize);
+    create(cohortSelector.selectCohort(List.of())).expectNextCount(7).verifyComplete();
+  }
+
+  @Test
+  void pagingWithRetries() {
+    var total = 7;
+    int maxPageSize = 2;
+    allCohortSelector.consentForNPatientsWithPaging(
+        "pid", total, maxPageSize, List.of(200, 500, 500, 200, 200, 500, 200));
+    create(cohortSelector.selectCohort(List.of())).expectNextCount(7).verifyComplete();
   }
 }

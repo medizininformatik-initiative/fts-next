@@ -1,4 +1,4 @@
-package care.smith.fts.cda.rest.it.mock;
+package care.smith.fts.cda.impl.mock;
 
 import static care.smith.fts.test.MockServerUtil.connectionReset;
 import static care.smith.fts.test.MockServerUtil.delayedResponse;

@@ -3,8 +3,11 @@ package care.smith.fts.test.connection_scenario;
 import static care.smith.fts.test.MockServerUtil.connectionReset;
 import static care.smith.fts.test.MockServerUtil.delayedResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 import static reactor.test.StepVerifier.create;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
@@ -33,7 +36,7 @@ public interface ScenarioMockUtil {
     create(fn).expectError(Exception.class).verify();
   }
 
-  static <T> FirstStep<?> firstRequestFails(Supplier<MappingBuilder> builder, Publisher<?> fn) {
+  static FirstStep<?> firstRequestFails(Supplier<MappingBuilder> builder, Publisher<?> fn) {
     stubFor(
         builder
             .get()
@@ -90,5 +93,10 @@ public interface ScenarioMockUtil {
     assertThat(throwable)
         .matches(Exceptions::isRetryExhausted)
         .hasMessageContaining("Retries exhausted: 3/3");
+  }
+
+  static FirstStep<?> wrongContentType(MappingBuilder builder, Publisher<?> fn) {
+    stubFor(builder.willReturn(ok().withHeader(CONTENT_TYPE, TEXT_PLAIN_VALUE)));
+    return create(fn);
   }
 }

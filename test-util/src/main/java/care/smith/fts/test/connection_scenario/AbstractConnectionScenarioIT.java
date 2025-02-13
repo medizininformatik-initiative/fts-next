@@ -23,6 +23,10 @@ public abstract class AbstractConnectionScenarioIT {
     default T returnValue() {
       return null;
     }
+
+    default String acceptedContentType() {
+      return null;
+    }
   }
 
   protected abstract Stream<TestStep<?>> createTestSteps();
@@ -49,7 +53,8 @@ class ConnectionScenariosExtension implements TestTemplateInvocationContextProvi
         createContext("Connection Timeout", this::executeTimeout),
         createContext("First Request Fails", this::executeFirstRequestFails),
         createContext("First and Second Requests Fail", this::executeFirstAndSecondRequestsFail),
-        createContext("All Requests Fail", this::executeAllRequestsFail));
+        createContext("All Requests Fail", this::executeAllRequestsFail),
+        createContext("Response with wrong Content-Type", this::executeWrongContentType));
   }
 
   private TestTemplateInvocationContext createContext(
@@ -111,5 +116,13 @@ class ConnectionScenariosExtension implements TestTemplateInvocationContextProvi
     ScenarioMockUtil.allRequestsFail(step.getBuilder(), step.executeStep())
         .expectErrorSatisfies(ScenarioMockUtil::assertRetriesExhausted)
         .verify();
+  }
+
+  private void executeWrongContentType(TestStep<?> step) {
+    if (step.acceptedContentType() != null) {
+      ScenarioMockUtil.wrongContentType(step.getBuilder(), step.executeStep())
+          .expectError()
+          .verify();
+    }
   }
 }

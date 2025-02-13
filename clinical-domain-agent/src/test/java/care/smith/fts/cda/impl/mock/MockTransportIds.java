@@ -1,4 +1,4 @@
-package care.smith.fts.cda.rest.it.mock;
+package care.smith.fts.cda.impl.mock;
 
 import static care.smith.fts.test.MockServerUtil.connectionReset;
 import static care.smith.fts.test.MockServerUtil.delayedResponse;
@@ -45,14 +45,6 @@ public class MockTransportIds {
         new TransportMappingResponse("transferId", transportMapping, ofDays(1));
     tca.register(
         mockRequestSpec.willReturn(jsonResponse(om.writeValueAsString(pseudonymizeResponse), 200)));
-  }
-
-  public void isDown() {
-    tca.register(mockRequestSpec.willReturn(connectionReset()));
-  }
-
-  public void timeout() {
-    tca.register(mockRequestSpec.willReturn(delayedResponse()));
   }
 
   public void unknownDomain(ObjectMapper om) throws JsonProcessingException {

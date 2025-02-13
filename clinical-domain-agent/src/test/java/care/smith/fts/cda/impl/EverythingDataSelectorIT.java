@@ -1,15 +1,17 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.google.common.net.HttpHeaders.ACCEPT;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.test.StepVerifier.create;
 
-import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.ConsentedPatientBundle;
@@ -24,7 +26,6 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.io.InputStream;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.stream.Stream;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -77,11 +79,12 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
       var period = consentedPatient.consentedPolicies().maxConsentedPeriod().get();
       var start = period.start().format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
       var end = period.end().format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
-      return get(
-          "/Patient/%s/$everything?_count=%s&start=%s&end=%s"
-              .formatted(PATIENT_ID, PAGE_SIZE, start, end));
+      return get("/Patient/%s/$everything?_count=%s&start=%s&end=%s"
+              .formatted(PATIENT_ID, PAGE_SIZE, start, end))
+          .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
     } else {
-      return get("/Patient/%s/$everything?_count=%s".formatted(PATIENT_ID, PAGE_SIZE));
+      return get("/Patient/%s/$everything?_count=%s".formatted(PATIENT_ID, PAGE_SIZE))
+          .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
     }
   }
 
@@ -98,6 +101,11 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
           public Flux<ConsentedPatientBundle> executeStep() {
 
             return dataSelector.select(consentedPatient);
+          }
+
+          @Override
+          public String acceptedContentType() {
+            return APPLICATION_FHIR_JSON_VALUE;
           }
         });
   }

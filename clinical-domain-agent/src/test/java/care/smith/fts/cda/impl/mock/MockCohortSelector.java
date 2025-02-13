@@ -1,44 +1,41 @@
-package care.smith.fts.cda.rest.it.mock;
+package care.smith.fts.cda.impl.mock;
 
 import static care.smith.fts.test.FhirGenerators.withPrefix;
-import static care.smith.fts.test.MockServerUtil.connectionReset;
-import static care.smith.fts.test.MockServerUtil.delayedResponse;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.test.MockServerUtil.sequentialMock;
-import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.FhirUtils.typedResourceStream;
-import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
 import static com.google.common.collect.Lists.partition;
 import static java.lang.Math.ceilDiv;
 import static java.util.stream.IntStream.range;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.Streams;
 import java.io.IOException;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Consent;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.UriType;
@@ -48,19 +45,21 @@ import org.springframework.http.ProblemDetail;
 @Slf4j
 public class MockCohortSelector {
 
+  private static String POLICY_SYSTEM;
   private final WireMock tca;
   private final String basePath;
 
-  public static MockCohortSelector fetchAll(WireMockServer tca) {
-    return new MockCohortSelector(tca, "/api/v2/cd/consented-patients/fetch-all");
+  public static MockCohortSelector fetchAll(WireMock tca, String policy_system) {
+    return new MockCohortSelector(tca, policy_system, "/api/v2/cd/consented-patients/fetch-all");
   }
 
-  public static MockCohortSelector fetch(WireMockServer tca) {
-    return new MockCohortSelector(tca, "/api/v2/cd/consented-patients/fetch");
+  public static MockCohortSelector fetch(WireMock tca, String policy_system) {
+    return new MockCohortSelector(tca, policy_system, "/api/v2/cd/consented-patients/fetch");
   }
 
-  public MockCohortSelector(WireMockServer tca, String basePath) {
-    this.tca = new WireMock(tca);
+  public MockCohortSelector(WireMock tca, String policy_system, String basePath) {
+    POLICY_SYSTEM = policy_system;
+    this.tca = tca;
     this.basePath = basePath;
   }
 
@@ -149,7 +148,7 @@ public class MockCohortSelector {
    * The generated resources will either use the provided prefix directly or a generated prefix if
    * multiple items are required.
    */
-  private List<Bundle> generateConsents(String idPrefix, int total) {
+  public List<Bundle> generateConsents(String idPrefix, int total) {
     return validConsent(total > 1 ? withPrefix(idPrefix) : () -> idPrefix)
         .generateResources()
         .limit(total)
@@ -193,44 +192,6 @@ public class MockCohortSelector {
   }
 
   /**
-   * Simulates a scenario where the system/network connection is unavailable by responding with a
-   * connection reset fault.
-   *
-   * <p>This is used to mimic connectivity issues such as the remote server abruptly terminating the
-   * connection.
-   */
-  public void isDown() {
-    tca.register(any(ANY).willReturn(connectionReset()));
-  }
-
-  /**
-   * Simulates a timeout scenario for HTTP requests.
-   *
-   * <p>This method configures a mock server to simulate a timeout by introducing a fixed delay of
-   * 10 minutes (600,000 milliseconds) before returning an HTTP response with a status code of 204.
-   * Useful for testing timeout handling mechanisms in applications.
-   */
-  public void timeout() {
-    tca.register(post(ANY).willReturn(delayedResponse()));
-  }
-
-  /**
-   * Simulates a scenario where a response contains the wrong content type. This method registers a
-   * mocked HTTP POST request with a content type of "text/plain" instead of the expected content
-   * type, which is typically used for FHIR resources.
-   *
-   * <p>The method constructs a mock FHIR response bundled into a String and then configures the
-   * response with a 200 status code and the incorrect content type header. This setup is primarily
-   * used for testing the handling of unexpected or invalid content types in HTTP responses.
-   */
-  public void wrongContentType() {
-    var consent = Stream.of(validConsent(() -> "id1").generateResource()).collect(toBundle());
-    var response =
-        ok().withHeader(CONTENT_TYPE, TEXT_PLAIN_VALUE).withBody(fhirResourceToString(consent));
-    tca.register(post(urlPathEqualTo(basePath)).willReturn(response));
-  }
-
-  /**
    * Registers a mock POST request to simulate an HTTP 400 Bad Request error with a specific
    * ProblemDetail message indicating no consents were found for the specified domain.
    *
@@ -244,5 +205,21 @@ public class MockCohortSelector {
             ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, "No consents found for domain  'MII1234'"));
     tca.register(post(urlPathEqualTo(basePath)).willReturn(jsonResponse(body, 400)));
+  }
+
+  private static Consent.ProvisionComponent setProvision() {
+    return new Consent.ProvisionComponent()
+        .setType(Consent.ConsentProvisionType.DENY)
+        .addProvision(permitProvision());
+  }
+
+  private static Consent.ProvisionComponent permitProvision() {
+    var policy =
+        new CodeableConcept()
+            .addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode("MDAT_erheben"));
+    return new Consent.ProvisionComponent()
+        .setType(Consent.ConsentProvisionType.PERMIT)
+        .setCode(List.of(policy))
+        .setPeriod(new Period().setStart(new Date(1)).setEnd(new Date(2)));
   }
 }

@@ -1,4 +1,4 @@
-package care.smith.fts.cda.rest.it.mock;
+package care.smith.fts.cda.impl.mock;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.test.FhirGenerators.resolveSearchResponse;
@@ -33,9 +33,6 @@ public class MockFhirResolveService {
     this.mockRequestSpec = mockRequestSpec;
   }
 
-  public void resolveId(String patientId) throws IOException {
-    resolveId(patientId, List.of(200));
-  }
 
   public void resolveId(String patientId, List<Integer> statusCodes) throws IOException {
     var fhirResolveGen = resolveSearchResponse(() -> patientId, randomUuid());
@@ -54,29 +51,10 @@ public class MockFhirResolveService {
     return fhirResponse(fhirResolveGen.generateResource(), statusCode);
   }
 
-  public void isDown() {
-    hds.register(mockRequestSpec.willReturn(connectionReset()));
-  }
-
-  public void timeout() {
-    hds.register(mockRequestSpec.willReturn(delayedResponse()));
-  }
-
-  public void wrongContentType() {
-    hds.register(
-        mockRequestSpec.willReturn(
-            ok().withHeader(CONTENT_TYPE, TEXT_PLAIN_VALUE)
-                .withBody(fhirResourceToString(new Bundle()))));
-  }
-
   public void moreThanOneResult() throws IOException {
     var fhirResolveGen = resolveSearchResponse(() -> "id1", randomUuid());
 
     var bundle = fhirResolveGen.generateResources().limit(2).collect(toBundle());
     hds.register(mockRequestSpec.willReturn(fhirResponse(bundle, 200)));
-  }
-
-  public void emptyBundle() {
-    hds.register(mockRequestSpec.willReturn(fhirResponse(new Bundle(), 200)));
   }
 }
