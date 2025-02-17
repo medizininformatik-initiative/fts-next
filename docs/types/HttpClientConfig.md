@@ -30,8 +30,8 @@ ssl:
 | Field Name | Type                        | Required | Default | Description                   |
 |------------|-----------------------------|----------|---------|-------------------------------|
 | `baseUrl`  | `String`                    | Yes      |         | Server base URL.              |
-| `auth`     | [`AuthMethod`](#AuthMethod) | No       | `NONE`  | Authentication configuration. |
-| `ssl`      | [`SSL`](#SSL)               | No       |         | SSL Configuration.            |
+| `auth`     | [`AuthMethod`](#authmethod) | No       | `NONE`  | Authentication configuration. |
+| `ssl`      | [`SSL`](#ssl)               | No       |         | SSL Configuration.            |
 
 ## Other Types
 
@@ -39,9 +39,9 @@ ssl:
 
 | Field Name    | Type                                                      | Required | Default | Description                      |
 |---------------|-----------------------------------------------------------|----------|---------|----------------------------------|
-| `basic`       | [`HttpClientBasicAuth`](#HttpClientBasicAuth)             | No       |         | Basic auth configuration.        |
-| `oauth2`      | [`HttpClientOauth2Auth`](#HttpClientOauth2Auth)           | No       |         | OAuth2 configuration.            |
-| `cookieToken` | [`HttpClientCookieTokenAuth`](#HttpClientCookieTokenAuth) | No       |         | Cookie token auth configuration. |
+| `basic`       | [`HttpClientBasicAuth`](#httpclientbasicauth)             | No       |         | Basic auth configuration.        |
+| `oauth2`      | [`HttpClientOauth2Auth`](#httpclientoauth2auth)           | No       |         | OAuth2 configuration.            |
+| `cookieToken` | [`HttpClientCookieTokenAuth`](#httpclientcookietokenauth) | No       |         | Cookie token auth configuration. |
 
 ### SSL <Badge type="warning" text="Since 5.0" />
 
