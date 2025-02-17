@@ -25,35 +25,58 @@ import reactor.core.publisher.Mono;
 @Slf4j
 class TransferProcessControllerTest {
 
-  private static final String PROCESS_ID = "processId";
-  private static final TransferProcessStatus PATIENT_SUMMARY_RESULT =
-      TransferProcessStatus.create(PROCESS_ID);
+  private static final String QUEUED_PROCESS_ID = "queuedProcessId";
+  private static final TransferProcessStatus QUEUED_PATIENT_SUMMARY_RESULT =
+      TransferProcessStatus.create(QUEUED_PROCESS_ID);
+  private static final String RUNNING_PROCESS_ID = "runningProcessId";
+  private static final TransferProcessStatus RUNNING_PATIENT_SUMMARY_RESULT =
+      TransferProcessStatus.create(RUNNING_PROCESS_ID).setPhase(Phase.RUNNING);
+  private static final String COMPLETED_PROCESS_ID = "completedProcessId";
+  private static final TransferProcessStatus COMPLETED_PATIENT_SUMMARY_RESULT =
+      TransferProcessStatus.create(COMPLETED_PROCESS_ID).setPhase(Phase.COMPLETED);
+  private static final String COMPLETED_WITH_ERROR_PROCESS_ID = "completedWithErrorProcessId";
+  private static final TransferProcessStatus COMPLETED_WITH_ERROR_PATIENT_SUMMARY_RESULT =
+      TransferProcessStatus.create(COMPLETED_WITH_ERROR_PROCESS_ID)
+          .setPhase(Phase.COMPLETED_WITH_ERROR);
+  private static final String FATAL_PROCESS_ID = "fatalProcessId";
+  private static final TransferProcessStatus FATAL_PATIENT_SUMMARY_RESULT =
+      TransferProcessStatus.create(FATAL_PROCESS_ID).setPhase(Phase.FATAL);
+
   private TransferProcessController api;
 
   @BeforeEach
   void setUp() {
-    PATIENT_SUMMARY_RESULT.setPhase(Phase.RUNNING);
+    QUEUED_PATIENT_SUMMARY_RESULT.setPhase(Phase.RUNNING);
     api =
         new TransferProcessController(
             new TransferProcessRunner() {
               @Override
               public String start(TransferProcessDefinition process, List<String> pids) {
-                return "processId";
+                return QUEUED_PROCESS_ID;
               }
 
               @Override
               public Mono<List<TransferProcessStatus>> statuses() {
-                return Mono.just(List.of(PATIENT_SUMMARY_RESULT));
+                return Mono.just(List.of(QUEUED_PATIENT_SUMMARY_RESULT));
               }
 
               @Override
               public Mono<TransferProcessStatus> status(String processId) {
-                if (processId.equals(PROCESS_ID)) {
-                  return Mono.just(PATIENT_SUMMARY_RESULT);
-                } else {
-                  return Mono.error(
-                      new IllegalStateException(
-                          "No transfer process with processId: " + processId));
+                switch (processId) {
+                  case QUEUED_PROCESS_ID:
+                    return Mono.just(QUEUED_PATIENT_SUMMARY_RESULT);
+                  case RUNNING_PROCESS_ID:
+                    return Mono.just(RUNNING_PATIENT_SUMMARY_RESULT);
+                  case COMPLETED_PROCESS_ID:
+                    return Mono.just(COMPLETED_PATIENT_SUMMARY_RESULT);
+                  case COMPLETED_WITH_ERROR_PROCESS_ID:
+                    return Mono.just(COMPLETED_WITH_ERROR_PATIENT_SUMMARY_RESULT);
+                  case FATAL_PROCESS_ID:
+                    return Mono.just(FATAL_PATIENT_SUMMARY_RESULT);
+                  default:
+                    return Mono.error(
+                        new IllegalStateException(
+                            "No transfer process with processId: " + processId));
                 }
               }
             },
@@ -67,7 +90,7 @@ class TransferProcessControllerTest {
             "example", UriComponentsBuilder.fromUriString("http://localhost:1234"), List.of());
     var uri =
         UriComponentsBuilder.fromUriString("http://localhost:1234")
-            .path("api/v2/process/status/processId")
+            .path("api/v2/process/status/queuedProcessId")
             .build()
             .toUri();
     create(start)
@@ -91,12 +114,43 @@ class TransferProcessControllerTest {
   }
 
   @Test
-  void status() {
-    create(api.status(PROCESS_ID))
+  void queuedStatus() {
+    create(api.status("queuedProcessId"))
         .expectNext(
             ResponseEntity.accepted()
                 .headers(h -> h.add(X_PROGRESS, "Queued"))
-                .body(PATIENT_SUMMARY_RESULT))
+                .body(QUEUED_PATIENT_SUMMARY_RESULT))
+        .verifyComplete();
+  }
+
+  @Test
+  void runningStatus() {
+    create(api.status(RUNNING_PROCESS_ID))
+        .expectNext(
+            ResponseEntity.accepted()
+                .headers(h -> h.add(X_PROGRESS, "Running"))
+                .body(RUNNING_PATIENT_SUMMARY_RESULT))
+        .verifyComplete();
+  }
+
+  @Test
+  void completedStatus() {
+    create(api.status(COMPLETED_PROCESS_ID))
+        .expectNext(ResponseEntity.ok().body(COMPLETED_PATIENT_SUMMARY_RESULT))
+        .verifyComplete();
+  }
+
+  @Test
+  void completedWWithErrorStatus() {
+    create(api.status(COMPLETED_WITH_ERROR_PROCESS_ID))
+        .expectNext(ResponseEntity.ok().body(COMPLETED_WITH_ERROR_PATIENT_SUMMARY_RESULT))
+        .verifyComplete();
+  }
+
+  @Test
+  void fatalStatus() {
+    create(api.status(FATAL_PROCESS_ID))
+        .expectNext(ResponseEntity.internalServerError().body(FATAL_PATIENT_SUMMARY_RESULT))
         .verifyComplete();
   }
 
@@ -110,7 +164,7 @@ class TransferProcessControllerTest {
   @Test
   void statuses() {
     create(api.statuses())
-        .expectNext(ResponseEntity.ok(List.of(PATIENT_SUMMARY_RESULT)))
+        .expectNext(ResponseEntity.ok(List.of(QUEUED_PATIENT_SUMMARY_RESULT)))
         .verifyComplete();
   }
 
