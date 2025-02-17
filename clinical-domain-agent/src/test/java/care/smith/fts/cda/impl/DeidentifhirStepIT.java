@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
@@ -10,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static reactor.test.StepVerifier.create;
 
@@ -21,6 +23,8 @@ import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TCADomains;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -34,6 +38,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.ProblemDetail;
+import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Mono;
 
 @SpringBootTest(classes = ClinicalDomainAgent.class)
@@ -81,6 +87,11 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
           @Override
           public Mono<TransportBundle> executeStep() {
             return step.deidentify(consentedPatientBundle);
+          }
+
+          @Override
+          public String acceptedContentType() {
+            return MimeTypeUtils.APPLICATION_JSON_VALUE;
           }
         });
   }
@@ -141,6 +152,23 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     create(step.deidentify(new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1"))))
         .expectNextCount(0)
         .verifyComplete();
+  }
+
+  @Test
+  void handleBadRequest() throws JsonProcessingException {
+    var om = new ObjectMapper();
+    wireMock.register(
+        getBuilder()
+            .willReturn(
+                badRequest()
+                    .withHeader("Content-Type", MimeTypeUtils.APPLICATION_JSON_VALUE)
+                    .withBody(
+                        om.writeValueAsString(
+                            ProblemDetail.forStatusAndDetail(
+                                BAD_REQUEST, "TCA Returns Bad Request")))));
+    create(step.deidentify(consentedPatientBundle))
+        .expectErrorMessage("TCA Returns Bad Request")
+        .verify();
   }
 
   @AfterEach

@@ -2,7 +2,6 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
-import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
@@ -33,7 +32,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
-import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,11 +128,15 @@ class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
         getBuilderFetchAll()
             .willReturn(
                 badRequest()
+                    .withHeader("Content-Type", APPLICATION_JSON_VALUE)
                     .withBody(
                         om.writeValueAsString(
-                            ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Some TCA Error")))));
+                            ProblemDetail.forStatusAndDetail(
+                                BAD_REQUEST, "TCA Returns Bad Request")))));
 
-    create(cohortSelector.selectCohort(List.of())).expectError().verify();
+    create(cohortSelector.selectCohort(List.of()))
+        .expectErrorMessage("TCA Returns Bad Request")
+        .verify();
   }
 
   @Test

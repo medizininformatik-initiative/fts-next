@@ -50,7 +50,7 @@ class DefaultTransferProcessRunnerTest {
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
-            b -> Mono.just(new Result()));
+            b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
     sleep(500L);
@@ -59,6 +59,37 @@ class DefaultTransferProcessRunnerTest {
             r -> {
               assertThat(r.sentBundles()).isEqualTo(1);
               assertThat(r.skippedBundles()).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void runMockTestWithSkippedBundles() throws InterruptedException {
+    final boolean[] first = {true};
+    var patient2 = new ConsentedPatient(PATIENT_ID);
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, patient2)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> {
+              if (first[0]) {
+                first[0] = false;
+                return just(new Result());
+              } else {
+                throw new RuntimeException("Cannot send bundle");
+              }
+            });
+
+    var processId = runner.start(process, List.of());
+    sleep(500L);
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.sentBundles()).isEqualTo(1);
+              assertThat(r.skippedBundles()).isEqualTo(1);
             })
         .verifyComplete();
   }
@@ -127,16 +158,17 @@ class DefaultTransferProcessRunnerTest {
                   .containsExactlyInAnyOrder(Phase.RUNNING, Phase.COMPLETED, Phase.COMPLETED);
             })
         .verifyComplete();
+    var processId4 = runner.start(process, List.of());
 
     sleep(3000L);
     create(runner.statuses())
         .assertNext(
             r -> {
-              assertThat(r.size()).isEqualTo(1);
+              assertThat(r.size()).isEqualTo(2);
               assertThat(r.stream().map(TransferProcessStatus::phase))
-                  .isEqualTo(List.of(Phase.COMPLETED));
+                  .isEqualTo(List.of(Phase.COMPLETED, Phase.COMPLETED));
               assertThat(r.stream().map(TransferProcessStatus::processId))
-                  .isEqualTo(List.of(processId3));
+                  .containsExactlyInAnyOrder(processId3, processId4);
             })
         .verifyComplete();
   }
