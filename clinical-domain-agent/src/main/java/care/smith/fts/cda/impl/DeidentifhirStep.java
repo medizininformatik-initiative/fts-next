@@ -1,6 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.api.ConsentedPatientBundle;
@@ -12,6 +13,7 @@ import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

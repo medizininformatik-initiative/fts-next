@@ -29,11 +29,11 @@ class ConsentedPatientExtractorTest {
   }
 
   private static Bundle generateBundle() {
-    Patient patient = new Patient();
-    Identifier identifier = new Identifier().setSystem(PATIENT_IDENTIFIER_SYSTEM).setValue("12345");
+    var patient = new Patient();
+    var identifier = new Identifier().setSystem(PATIENT_IDENTIFIER_SYSTEM).setValue("12345");
     patient.addIdentifier(identifier);
 
-    Consent consent = new Consent();
+    var consent = new Consent();
     consent.setProvision(
         new Consent.ProvisionComponent()
             .setType(Consent.ConsentProvisionType.DENY)
@@ -58,22 +58,22 @@ class ConsentedPatientExtractorTest {
 
   @Test
   void extractConsentedPatients() {
-    Bundle outerBundle = new Bundle();
+    var outerBundle = new Bundle();
     outerBundle.addEntry().setResource(bundle1);
     outerBundle.addEntry().setResource(bundle2);
 
-    Stream<ConsentedPatient> consentedPatients =
+    var consentedPatients =
         ConsentedPatientExtractor.extractConsentedPatients(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, outerBundle, POLICIES_TO_CHECK);
 
-    List<ConsentedPatient> result = consentedPatients.collect(Collectors.toList());
+    var result = consentedPatients.collect(Collectors.toList());
     assertThat(result).hasSize(2);
     assertThat(result.get(0).id()).isEqualTo("12345");
   }
 
   @Test
   void extractConsentedPatient() {
-    Optional<ConsentedPatient> consentedPatient =
+    var consentedPatient =
         ConsentedPatientExtractor.extractConsentedPatient(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
 
@@ -83,7 +83,7 @@ class ConsentedPatientExtractorTest {
 
   @Test
   void extractConsentedPatientWithUnknownPoliciesYieldsEmptyResult() {
-    Optional<ConsentedPatient> consentedPatient =
+    var consentedPatient =
         ConsentedPatientExtractor.extractConsentedPatient(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, Set.of("Unknown Policy"));
 
@@ -92,7 +92,7 @@ class ConsentedPatientExtractorTest {
 
   @Test
   void hasAllPolicies() {
-    boolean result =
+    var result =
         ConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
 
     assertThat(result).isTrue();

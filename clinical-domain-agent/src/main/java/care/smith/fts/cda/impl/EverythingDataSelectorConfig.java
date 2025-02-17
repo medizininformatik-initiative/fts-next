@@ -14,14 +14,9 @@ import lombok.ToString;
 @EqualsAndHashCode
 @ToString
 public final class EverythingDataSelectorConfig {
-
-  public static int DEFAULT_PAGE_SIZE = 500;
-
   private @NotNull HttpClientConfig fhirServer;
   private FhirResolveConfig resolve;
-  private int pageSize = DEFAULT_PAGE_SIZE;
-
-  private EverythingDataSelectorConfig() {}
+  private int pageSize;
 
   public EverythingDataSelectorConfig(
       HttpClientConfig fhirServer, FhirResolveConfig resolve, int pageSize) {
