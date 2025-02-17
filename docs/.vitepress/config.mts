@@ -42,6 +42,10 @@ export default withMermaid({
             link: 'https://github.com/medizininformatik-initiative/fts-next/issues',
           },
           {
+            text: 'Discussions',
+            link: 'https://github.com/medizininformatik-initiative/fts-next/discussions',
+          },
+          {
             text: 'Releases',
             link: 'https://github.com/medizininformatik-initiative/fts-next/releases',
           },
