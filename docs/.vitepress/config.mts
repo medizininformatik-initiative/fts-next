@@ -1,6 +1,7 @@
 import {withMermaid} from 'vitepress-plugin-mermaid';
 
 const shortVersion = (process.env.VITE_LATEST_RELEASE || "local").split(".")[0];
+const currentYear = new Date().getFullYear();
 
 export default withMermaid({
   title: "FTSnext",
@@ -139,7 +140,7 @@ export default withMermaid({
 
     footer: {
       message: 'Released under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>',
-      copyright: 'Copyright 2024',
+      copyright: `Copyright © 2024 - ${currentYear}`,
     },
 
     search: {
