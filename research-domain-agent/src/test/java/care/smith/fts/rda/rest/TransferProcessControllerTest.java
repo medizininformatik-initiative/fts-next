@@ -30,6 +30,15 @@ import reactor.core.publisher.Mono;
 class TransferProcessControllerTest {
 
   private TransferProcessController api;
+  private static final String RUNNING_PROCESS_ID = "runningProcessId";
+  private static final Status RUNNING_PROCESS_STATUS =
+      new Status(RUNNING_PROCESS_ID, Phase.RUNNING, 0, 0);
+  private static final String COMPLETED_PROCESS_ID = "completedProcessId";
+  private static final Status COMPLETED_PROCESS_STATUS =
+      new Status(COMPLETED_PROCESS_ID, Phase.COMPLETED, 0, 0);
+  private static final String ERROR_PROCESS_ID = "errorProcessId";
+  private static final Status ERROR_PROCESS_STATUS =
+      new Status(ERROR_PROCESS_ID, Phase.ERROR, 0, 0);
 
   @BeforeEach
   void setUp() {
@@ -38,16 +47,17 @@ class TransferProcessControllerTest {
             new TransferProcessRunner() {
               @Override
               public String start(TransferProcessDefinition process, Mono<TransportBundle> data) {
-                return "processId";
+                return RUNNING_PROCESS_ID;
               }
 
               @Override
               public Mono<Status> status(String processId) {
-                if ("processId".equals(processId)) {
-                  return Mono.just(new Status("processId", Phase.RUNNING, 0, 0));
-                } else {
-                  return Mono.error(new RuntimeException("error"));
-                }
+                return switch (processId) {
+                  case RUNNING_PROCESS_ID -> Mono.just(RUNNING_PROCESS_STATUS);
+                  case COMPLETED_PROCESS_ID -> Mono.just(COMPLETED_PROCESS_STATUS);
+                  case ERROR_PROCESS_ID -> Mono.just(ERROR_PROCESS_STATUS);
+                  case null, default -> Mono.error(new RuntimeException("error"));
+                };
               }
             },
             of(mockTransferProcess()));
@@ -55,8 +65,7 @@ class TransferProcessControllerTest {
 
   @Test
   void startExistingProjectSucceeds() {
-
-    Bundle bundle =
+    var bundle =
         concat(
                 Stream.of(
                     new Parameters().addParameter("id", "transfer-142601").setId("transfer-id")),
@@ -69,7 +78,7 @@ class TransferProcessControllerTest {
             UriComponentsBuilder.fromUriString("http://localhost:1234"));
     var uri =
         UriComponentsBuilder.fromUriString("http://localhost:1234")
-            .path("api/v2/process/status/processId")
+            .path("api/v2/process/status/runningProcessId")
             .build()
             .toUri();
     create(start)
@@ -97,7 +106,7 @@ class TransferProcessControllerTest {
 
   @Test
   void minimalTransportBundleConversionSucceeds() {
-    Bundle bundle =
+    var bundle =
         Stream.of(
                 new Parameters()
                     .addParameter("id", new StringType("transfer-142411"))
@@ -111,7 +120,7 @@ class TransferProcessControllerTest {
 
   @Test
   void typicalTransportBundleConversionSucceeds() {
-    Bundle bundle =
+    var bundle =
         Stream.of(
                 new Parameters()
                     .addParameter("id", new StringType("transfer-142431"))
@@ -127,7 +136,7 @@ class TransferProcessControllerTest {
 
   @Test
   void unknownTransportBundleConversionParamErrors() {
-    Bundle bundle =
+    var bundle =
         Stream.of(
                 new Parameters()
                     .addParameter("unknown", new StringType("transfer-142437"))
@@ -139,7 +148,7 @@ class TransferProcessControllerTest {
 
   @Test
   void unknownTransportBundleConversionResourcePassesUntouched() {
-    Bundle bundle =
+    var bundle =
         Stream.of(
                 new Parameters()
                     .addParameter("id", new StringType("transfer-142448"))
@@ -159,7 +168,7 @@ class TransferProcessControllerTest {
 
   @Test
   void statusIsRunning() {
-    var status = api.status("processId");
+    var status = api.status(RUNNING_PROCESS_ID);
     create(status)
         .expectNext(
             ResponseEntity.accepted()
@@ -168,7 +177,21 @@ class TransferProcessControllerTest {
                       h.add(X_PROGRESS, "Running");
                       h.add(RETRY_AFTER, "3");
                     })
-                .body(new Status("processId", Phase.RUNNING, 0, 0)))
+                .body(RUNNING_PROCESS_STATUS))
+        .verifyComplete();
+  }
+
+  @Test
+  void statusIsCompleted() {
+    var status = api.status(COMPLETED_PROCESS_ID);
+    create(status).expectNext(ResponseEntity.ok().body(COMPLETED_PROCESS_STATUS)).verifyComplete();
+  }
+
+  @Test
+  void statusIsError() {
+    var status = api.status(ERROR_PROCESS_ID);
+    create(status)
+        .expectNext(ResponseEntity.internalServerError().body(ERROR_PROCESS_STATUS))
         .verifyComplete();
   }
 }

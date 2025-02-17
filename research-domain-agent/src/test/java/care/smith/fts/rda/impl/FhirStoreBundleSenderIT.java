@@ -21,6 +21,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,8 +73,11 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
 
   @Test
   void bundleSent() {
+    var patient = new Patient();
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(patient);
     wireMock.register(getBuilder().willReturn(ok()));
-    create(bundleSender.send(new Bundle())).expectNext(new BundleSender.Result()).verifyComplete();
+    create(bundleSender.send(bundle)).expectNext(new BundleSender.Result()).verifyComplete();
   }
 
   private static MappingBuilder getBuilder() {
