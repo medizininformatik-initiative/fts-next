@@ -39,6 +39,7 @@ public class DeIdentificationController {
   @ExceptionHandler(UnknownDomainException.class)
   @Operation(
       summary = "Get the transport mapping",
+      description = "**Since 5.0**\n\n",
       requestBody =
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
               content = @Content(schema = @Schema(implementation = TransportMappingRequest.class))),
@@ -71,6 +72,7 @@ public class DeIdentificationController {
       produces = MediaType.APPLICATION_JSON_VALUE)
   @Operation(
       summary = "Get the research mapping",
+      description = "**Since 5.0**\n\n",
       requestBody =
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
               content = @Content(schema = @Schema(implementation = String.class))),
