@@ -64,7 +64,7 @@ public class TransferProcessController {
       produces = APPLICATION_FHIR_JSON_VALUE)
   @Operation(
       summary = "Start a transfer process",
-      description = "Start the transfer of a patient's bundles",
+      description = "**Since 5.0**\n\nStart the transfer of a patient's bundles",
       parameters = {
         @Parameter(
             name = "project",
@@ -154,6 +154,7 @@ public class TransferProcessController {
   @GetMapping("/process/status/{processId:[\\w-]+}")
   @Operation(
       summary = "Transfer process status",
+      description = "**Since 5.0**\n\n",
       parameters = {
         @Parameter(
             name = "processId",
@@ -194,6 +195,7 @@ public class TransferProcessController {
   @GetMapping("/projects")
   @Operation(
       summary = "List available projects",
+      description = "**Since 5.0**\n\n",
       responses = {
         @ApiResponse(
             responseCode = "200",
@@ -215,6 +217,7 @@ public class TransferProcessController {
   @GetMapping(value = "projects/{project:[\\w-]+}")
   @Operation(
       summary = "Project configuration",
+      description = "**Since 5.0**\n\n",
       parameters = {@Parameter(name = "project", description = "Project name")},
       responses = {
         @ApiResponse(

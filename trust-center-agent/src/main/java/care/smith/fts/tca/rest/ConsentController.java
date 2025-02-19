@@ -47,7 +47,7 @@ public class ConsentController {
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
   @Operation(
       summary = "List of all consented patients",
-      description = "",
+      description = "**Since 5.0**\n\n",
       parameters = {
         @Parameter(
             name = "from",
@@ -87,7 +87,7 @@ public class ConsentController {
       produces = MediaTypes.APPLICATION_FHIR_JSON_VALUE)
   @Operation(
       summary = "List of consented patients",
-      description = "",
+      description = "**Since 5.0**\n\n",
       parameters = {
         @Parameter(
             name = "from",

@@ -47,7 +47,7 @@ public class TransferProcessController {
   @Operation(
       summary = "Start a transfer process",
       description =
-          "Start a transfer of patients with IDs given in the request body or if empty start a transfer of all consented patients.",
+          "**Since 5.0**\n\nStart a transfer of patients with IDs given in the request body or if empty start a transfer of all consented patients.",
       parameters = {
         @Parameter(
             name = "project",
@@ -108,6 +108,7 @@ public class TransferProcessController {
   @GetMapping("/process/status/{processId:[\\w-]+}")
   @Operation(
       summary = "Transfer process's status",
+      description = "**Since 5.0**\n\n",
       parameters = {
         @Parameter(
             name = "processId",
@@ -142,6 +143,7 @@ public class TransferProcessController {
   @GetMapping("/process/statuses")
   @Operation(
       summary = "List of all transfer process statuses",
+      description = "**Since 5.0**\n\n",
       responses = {
         @ApiResponse(
             responseCode = "200",
@@ -181,6 +183,7 @@ public class TransferProcessController {
   @GetMapping("/projects")
   @Operation(
       summary = "List available projects",
+      description = "**Since 5.0**\n\n",
       responses = {
         @ApiResponse(
             responseCode = "200",
@@ -202,6 +205,7 @@ public class TransferProcessController {
   @GetMapping(value = "projects/{project:[\\w-]+}")
   @Operation(
       summary = "Project configuration",
+      description = "**Since 5.0**\n\n",
       parameters = {@Parameter(name = "project", description = "Project name")},
       responses = {
         @ApiResponse(
