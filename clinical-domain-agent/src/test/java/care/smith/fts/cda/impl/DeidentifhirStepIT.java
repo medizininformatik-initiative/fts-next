@@ -1,43 +1,58 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
+import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static java.time.Duration.ofDays;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.ProblemDetail.forStatusAndDetail;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
+import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
+import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TCADomains;
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.util.MimeTypeUtils;
+import reactor.core.publisher.Mono;
 
 @SpringBootTest(classes = ClinicalDomainAgent.class)
 @WireMockTest
-class DeidentifhirStepTest {
+class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
 
-  @Autowired MeterRegistry meterRegistry;
   private DeidentifhirStep step;
   private WireMock wireMock;
+  private ConsentedPatientBundle consentedPatientBundle;
 
   @BeforeEach
-  void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
+  void setUp(
+      WireMockRuntimeInfo wireMockRuntime,
+      @Autowired WebClientFactory clientFactory,
+      @Autowired MeterRegistry meterRegistry)
+      throws IOException {
     var scraperConfig = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
     var deidentifhirConfig = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var domains = new TCADomains("domain", "domain", "domain");
@@ -46,12 +61,42 @@ class DeidentifhirStepTest {
     step =
         new DeidentifhirStep(
             client, domains, ofDays(14), deidentifhirConfig, scraperConfig, meterRegistry);
+
+    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
+    var consentedPatient = new ConsentedPatient("id1");
+    consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
+  }
+
+  private static MappingBuilder transportMappingRequest() {
+    return post("/api/v2/cd/transport-mapping")
+        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
+  }
+
+  @Override
+  protected Stream<TestStep<?>> createTestSteps() {
+    return Stream.of(
+        new TestStep<TransportBundle>() {
+          @Override
+          public MappingBuilder requestBuilder() {
+            return DeidentifhirStepIT.transportMappingRequest();
+          }
+
+          @Override
+          public Mono<TransportBundle> executeStep() {
+            return step.deidentify(consentedPatientBundle);
+          }
+
+          @Override
+          public String acceptedContentType() {
+            return MimeTypeUtils.APPLICATION_JSON_VALUE;
+          }
+        });
   }
 
   @Test
-  void correctRequestSent() throws IOException {
+  void correctRequestSent() {
     wireMock.register(
-        post("/api/v2/cd/transport-mapping")
+        transportMappingRequest()
             .withRequestBody(
                 equalToJson(
                     """
@@ -70,28 +115,20 @@ class DeidentifhirStepTest {
                     true))
             .willReturn(ok()));
 
-    var consentedPatient = new ConsentedPatient("id1");
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
+    create(step.deidentify(consentedPatientBundle)).verifyComplete();
+  }
+
+  @Test
+  void emptyTCAResponseYieldsEmptyResult() {
+    wireMock.register(transportMappingRequest().willReturn(ok()));
 
     create(step.deidentify(consentedPatientBundle)).verifyComplete();
   }
 
   @Test
-  void emptyTCAResponseYieldsEmptyResult() throws IOException {
-    wireMock.register(post("/api/v2/cd/transport-mapping").willReturn(ok()));
-
-    var consentedPatient = new ConsentedPatient("id1");
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
-
-    create(step.deidentify(consentedPatientBundle)).verifyComplete();
-  }
-
-  @Test
-  void deidentifySucceeds() throws IOException {
+  void deidentifySucceeds() {
     wireMock.register(
-        post("/api/v2/cd/transport-mapping")
+        transportMappingRequest()
             .willReturn(
                 jsonResponse(
                     """
@@ -101,12 +138,7 @@ class DeidentifhirStepTest {
                                                     "id1.Patient:id1": "tid1" },
                               "dateShiftValue": 1209600.000000000
                             }
-                            """,
-                    200)));
-
-    var consentedPatient = new ConsentedPatient("id1");
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
+                            """)));
 
     create(step.deidentify(consentedPatientBundle)).expectNextCount(1).verifyComplete();
   }
@@ -116,6 +148,15 @@ class DeidentifhirStepTest {
     create(step.deidentify(new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1"))))
         .expectNextCount(0)
         .verifyComplete();
+  }
+
+  @Test
+  void handleBadRequest() {
+    var response = jsonResponse(forStatusAndDetail(BAD_REQUEST, "TCA Returns Bad Request"));
+    wireMock.register(transportMappingRequest().willReturn(response));
+    create(step.deidentify(consentedPatientBundle))
+        .expectErrorMessage("TCA Returns Bad Request")
+        .verify();
   }
 
   @AfterEach

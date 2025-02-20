@@ -13,6 +13,7 @@ import care.smith.fts.cda.TransferProcessRunner.Phase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void runMockTestSuccessfully() throws InterruptedException {
+  void runMockTestSuccessfully() {
     var process =
         new TransferProcessDefinition(
             "test",
@@ -50,10 +51,9 @@ class DefaultTransferProcessRunnerTest {
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
-            b -> Mono.just(new Result()));
+            b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
-    sleep(500L);
     create(runner.status(processId))
         .assertNext(
             r -> {
@@ -64,7 +64,36 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void errorInCohortSelector() throws InterruptedException {
+  void runMockTestWithSkippedBundles() {
+    var first = new AtomicBoolean(true);
+    var patient2 = new ConsentedPatient(PATIENT_ID);
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, patient2)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> {
+              if (first.getAndSet(false)) {
+                return just(new Result());
+              } else {
+                throw new RuntimeException("Cannot send bundle");
+              }
+            });
+
+    var processId = runner.start(process, List.of());
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.sentBundles()).isEqualTo(1);
+              assertThat(r.skippedBundles()).isEqualTo(1);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void errorInCohortSelector() {
     var process =
         new TransferProcessDefinition(
             "test",
@@ -75,7 +104,6 @@ class DefaultTransferProcessRunnerTest {
             b -> Mono.just(new Result()));
 
     var processId = runner.start(process, List.of());
-    sleep(500L);
     create(runner.status(processId))
         .assertNext(
             r -> {
@@ -87,7 +115,7 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void startMultipleProcessesWithQueueing() throws InterruptedException {
+  void startMultipleProcessesWithQueueing() {
     var process =
         new TransferProcessDefinition(
             "test",
@@ -96,12 +124,11 @@ class DefaultTransferProcessRunnerTest {
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b ->
                 just(new TransportBundle(new Bundle(), "transferId"))
-                    .delayElement(Duration.ofSeconds(2)),
+                    .delayElement(Duration.ofMillis(100)),
             b -> just(new Result()));
 
     var processId1 = runner.start(process, List.of());
-    var processId2 = runner.start(process, List.of());
-    sleep(1000L);
+    runner.start(process, List.of());
     var processId3 = runner.start(process, List.of());
 
     create(runner.status(processId3))
@@ -117,7 +144,14 @@ class DefaultTransferProcessRunnerTest {
             })
         .verifyComplete();
 
-    sleep(1500L);
+    create(
+            Flux.interval(Duration.ofMillis(50))
+                .flatMap(i -> runner.status(processId1))
+                .takeUntil(s -> TransferProcessStatus.isCompleted(s.phase()))
+                .take(Duration.ofSeconds(10))
+                .last())
+        .expectNextCount(1)
+        .verifyComplete();
 
     create(runner.statuses())
         .assertNext(
@@ -127,16 +161,36 @@ class DefaultTransferProcessRunnerTest {
                   .containsExactlyInAnyOrder(Phase.RUNNING, Phase.COMPLETED, Phase.COMPLETED);
             })
         .verifyComplete();
+  }
 
-    sleep(3000L);
+  @Test
+  void ttl() throws InterruptedException {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+    config.setProcessTtl(Duration.ofMillis(100));
+    var runner = new DefaultTransferProcessRunner(new ObjectMapper(), config);
+    runner.start(process, List.of());
+    runner.start(process, List.of());
+
     create(runner.statuses())
         .assertNext(
             r -> {
-              assertThat(r.size()).isEqualTo(1);
-              assertThat(r.stream().map(TransferProcessStatus::phase))
-                  .isEqualTo(List.of(Phase.COMPLETED));
-              assertThat(r.stream().map(TransferProcessStatus::processId))
-                  .isEqualTo(List.of(processId3));
+              assertThat(r.size()).isEqualTo(2);
+            })
+        .verifyComplete();
+
+    sleep(110L); // wait TTL seconds for process 1 and 2 to be removed
+
+    create(runner.statuses())
+        .assertNext(
+            r -> {
+              assertThat(r.size()).isEqualTo(0);
             })
         .verifyComplete();
   }

@@ -5,22 +5,26 @@ import static care.smith.fts.test.MockServerUtil.REST;
 import static care.smith.fts.test.MockServerUtil.accepted;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
-import care.smith.fts.util.HttpClientConfig;
+import care.smith.fts.api.cda.BundleSender.Result;
+import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -36,42 +40,65 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.*;
+import reactor.core.publisher.Mono;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
 @WireMockTest
-class RDABundleSenderTest {
-
-  @Autowired MeterRegistry meterRegistry;
+class RDABundleSenderIT extends AbstractConnectionScenarioIT {
 
   private static final String PATIENT_ID = "patient-102931";
-  private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);
 
-  private final HttpClientConfig server = new HttpClientConfig("http://localhost");
-  private final RDABundleSenderConfig config = new RDABundleSenderConfig(server, "example");
-
-  private WebClient client;
+  @Autowired MeterRegistry meterRegistry;
   private WireMock wireMock;
+
+  private RDABundleSender bundleSender;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
-    client = clientFactory.create(clientConfig(wireMockRuntime));
+    var server = clientConfig(wireMockRuntime);
+    var client = clientFactory.create(server);
     wireMock = wireMockRuntime.getWireMock();
+
+    var config = new RDABundleSenderConfig(server, "example");
+    bundleSender = new RDABundleSender(config, client, meterRegistry);
+  }
+
+  private static MappingBuilder rdaRequest() {
+    return post("/api/v2/process/example/patient")
+        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON_VALUE));
+  }
+
+  @Override
+  protected Stream<TestStep<?>> createTestSteps() {
+    return Stream.of(
+        new TestStep<Result>() {
+          @Override
+          public MappingBuilder requestBuilder() {
+            return RDABundleSenderIT.rdaRequest();
+          }
+
+          @Override
+          public Mono<Result> executeStep() {
+            return bundleSender.send(new TransportBundle(new Bundle(), "transferId"));
+          }
+
+          @Override
+          public Result returnValue() {
+            return new Result();
+          }
+        });
   }
 
   @Test
   void nullBundleErrors() {
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
-
     assertThatExceptionOfType(NullPointerException.class)
         .isThrownBy(() -> bundleSender.send(null).subscribe());
   }
 
   @Test
   void badRequest() {
-    wireMock.register(post(ANY).willReturn(WireMock.badRequest()));
-
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
+    wireMock.register(rdaRequest().willReturn(WireMock.badRequest()));
 
     create(bundleSender.send(new TransportBundle(new Bundle(), "transferId")))
         .expectError(WebClientResponseException.class)
@@ -80,10 +107,8 @@ class RDABundleSenderTest {
 
   @Test
   void contentLocationIsNull() {
-    wireMock.register(post(ANY).willReturn(accepted()));
-    wireMock.register(get(ANY).willReturn(ok()));
-
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
+    wireMock.register(rdaRequest().willReturn(accepted()));
+    wireMock.register(get(ANY).willReturn(ok())); // get status
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
@@ -93,9 +118,7 @@ class RDABundleSenderTest {
 
   @Test
   void contentLocationIsEmpty() {
-    wireMock.register(post(ANY).willReturn(accepted().withHeader(CONTENT_LOCATION, "")));
-
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
+    wireMock.register(rdaRequest().willReturn(accepted().withHeader(CONTENT_LOCATION, "")));
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
@@ -106,13 +129,11 @@ class RDABundleSenderTest {
   @Test
   void bundleSent() {
     wireMock.register(
-        post(ANY)
+        rdaRequest()
             .willReturn(
                 accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
 
     wireMock.register(get("/api/v2/process/status/processId").willReturn(ok()));
-
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
@@ -123,11 +144,10 @@ class RDABundleSenderTest {
   @Test
   void withStatusUnequalAcceptedInWaitForRDACompleted() {
     wireMock.register(
-        post(ANY)
+        rdaRequest()
             .willReturn(
                 created().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
 
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectErrorMessage("Require ACCEPTED status")
@@ -137,7 +157,7 @@ class RDABundleSenderTest {
   @Test
   void withRetryAfterOnFirstAttempt() {
     wireMock.register(
-        post(ANY)
+        rdaRequest()
             .willReturn(
                 accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
 
@@ -157,7 +177,6 @@ class RDABundleSenderTest {
             .whenScenarioStateIs(REST)
             .willReturn(ok()));
 
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectNext(new BundleSender.Result())
@@ -167,7 +186,7 @@ class RDABundleSenderTest {
   @Test
   void withNumberFormatExceptionInGetRetryAfterWithParsingException() {
     wireMock.register(
-        post(ANY)
+        rdaRequest()
             .willReturn(
                 accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
 
@@ -187,7 +206,6 @@ class RDABundleSenderTest {
             .whenScenarioStateIs(REST)
             .willReturn(ok()));
 
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectNext(new BundleSender.Result())
@@ -197,14 +215,13 @@ class RDABundleSenderTest {
   @Test
   void withNumberFormatExceptionInGetRetryAfterWithRetriesExhausted() {
     wireMock.register(
-        post(ANY)
+        rdaRequest()
             .willReturn(
                 accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
     wireMock.register(
         get("/api/v2/process/status/processId")
             .willReturn(accepted().withHeader(RETRY_AFTER, "1")));
 
-    var bundleSender = new RDABundleSender(config, client, meterRegistry);
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectError(TransferProcessException.class)

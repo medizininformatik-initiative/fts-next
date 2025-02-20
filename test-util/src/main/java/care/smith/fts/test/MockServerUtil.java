@@ -10,8 +10,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static java.lang.Math.toIntExact;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpStatus.OK;
 
 import care.smith.fts.util.HttpClientConfig;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
@@ -24,6 +27,8 @@ import java.time.Duration;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 
 public interface MockServerUtil {
 
@@ -139,11 +144,28 @@ public interface MockServerUtil {
     }
   }
 
+  static ResponseDefinitionBuilder fhirResponse(Resource bundle) {
+    return fhirResponse(fhirResourceToString(bundle), OK);
+  }
+
+  @Deprecated
   static ResponseDefinitionBuilder fhirResponse(Resource bundle, int statusCode) {
     return fhirResponse(fhirResourceToString(bundle), statusCode);
   }
 
-  static ResponseDefinitionBuilder fhirResponse(String body, int statusCode) {
+  static ResponseDefinitionBuilder fhirResponse(Resource bundle, HttpStatus statusCode) {
+    return fhirResponse(fhirResourceToString(bundle), statusCode.value());
+  }
+
+  static ResponseDefinitionBuilder fhirResponse(String body) {
+    return fhirResponse(body, OK);
+  }
+
+  static ResponseDefinitionBuilder fhirResponse(String body, HttpStatus statusCode) {
+    return fhirResponse(body, statusCode.value());
+  }
+
+  private static ResponseDefinitionBuilder fhirResponse(String body, int statusCode) {
     return status(statusCode).withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON_VALUE).withBody(body);
   }
 
@@ -157,5 +179,27 @@ public interface MockServerUtil {
 
   static ResponseDefinitionBuilder delayedResponse(Duration d) {
     return noContent().withFixedDelay(toIntExact(d.toMillis()));
+  }
+
+  ObjectMapper objectMapper = new ObjectMapper();
+
+  static ResponseDefinitionBuilder jsonResponse(String body) {
+    return jsonResponse(body, OK);
+  }
+
+  static ResponseDefinitionBuilder jsonResponse(String body, HttpStatus statusCode) {
+    return WireMock.jsonResponse(body, statusCode.value());
+  }
+
+  static ResponseDefinitionBuilder jsonResponse(ProblemDetail body) {
+    return jsonResponse(body, body.getStatus());
+  }
+
+  private static ResponseDefinitionBuilder jsonResponse(Object body, int statusCode) {
+    try {
+      return WireMock.jsonResponse(objectMapper.writeValueAsString(body), statusCode);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Body cannot be converted to json.", e);
+    }
   }
 }

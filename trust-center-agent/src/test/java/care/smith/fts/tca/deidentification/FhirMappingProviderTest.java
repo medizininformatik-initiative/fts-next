@@ -113,7 +113,7 @@ class FhirMappingProviderTest {
                                     .formatted(key),
                                 true,
                                 true))
-                        .willReturn(fhirResponse(fhirGenerator.generateString(), 200))));
+                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
@@ -178,7 +178,7 @@ class FhirMappingProviderTest {
                         "issue": [{"severity": "error", "code": "processing",
                                    "diagnostics": "Unknown domain"}]}
                        """,
-                    BAD_REQUEST.value())));
+                    BAD_REQUEST)));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
@@ -199,7 +199,7 @@ class FhirMappingProviderTest {
 "issue": [{"severity": "error", "code": "processing",
            "diagnostics": "Unknown error"}]}
 """,
-                    BAD_REQUEST.value())));
+                    BAD_REQUEST)));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));

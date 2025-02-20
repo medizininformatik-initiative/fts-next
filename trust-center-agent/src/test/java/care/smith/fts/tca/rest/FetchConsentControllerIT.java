@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,10 +39,19 @@ import reactor.core.publisher.Mono;
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
 class FetchConsentControllerIT extends BaseIT {
-  private static WebClient client;
 
-  @BeforeAll
-  static void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
+  private static final Map<String, Object> FETCH_CONSENTED_PATIENTS_BODY =
+      ofEntries(
+          entry("domain", "MII"),
+          entry("policies", Set.of("")),
+          entry("policySystem", "sys"),
+          entry("patientIdentifierSystem", "sys"),
+          entry("pids", List.of("FTS001")));
+
+  private WebClient client;
+
+  @BeforeEach
+  void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     client = factory.webClient("https://localhost:" + port, "cd-agent");
   }
 
@@ -53,30 +62,14 @@ class FetchConsentControllerIT extends BaseIT {
         .register(
             post("/ttp-fhir/fhir/gics/$allConsentsForPerson")
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                .willReturn(fhirResponse(consentGenerator.generateString(), 200)));
+                .willReturn(fhirResponse(consentGenerator.generateString())));
 
-    checkResponse();
-  }
-
-  private static void checkResponse() {
-    var response =
-        fetch(
-            ofEntries(
-                entry("domain", "MII"),
-                entry("policies", Set.of("")),
-                entry("policySystem", "sys"),
-                entry("patientIdentifierSystem", "sys"),
-                entry("pids", List.of("FTS001"))));
-    create(response)
-        .assertNext(
-            val -> {
-              log.info("Response: {}", val);
-              assertThat(val).isNotBlank();
-            })
+    create(fetch(FETCH_CONSENTED_PATIENTS_BODY))
+        .assertNext(val -> assertThat(val).isNotBlank())
         .verifyComplete();
   }
 
-  private static Mono<String> fetch(Map<String, Object> body) {
+  private Mono<String> fetch(Map<String, Object> body) {
     return client
         .post()
         .uri("/api/v2/cd/consented-patients/fetch")
@@ -105,9 +98,11 @@ class FetchConsentControllerIT extends BaseIT {
                 .inScenario("firstRequestFails")
                 .whenScenarioStateIs(REST)
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                .willReturn(fhirResponse(consentGenerator.generateString(), 200)));
+                .willReturn(fhirResponse(consentGenerator.generateString())));
 
-    checkResponse();
+    create(fetch(FETCH_CONSENTED_PATIENTS_BODY))
+        .assertNext(val -> assertThat(val).isNotBlank())
+        .verifyComplete();
   }
 
   @AfterEach
