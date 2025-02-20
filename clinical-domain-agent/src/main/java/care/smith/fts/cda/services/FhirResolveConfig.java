@@ -20,7 +20,8 @@ public record FhirResolveConfig(
   }
 
   public FhirResolveService createService(
-      WebClient client, @Autowired MeterRegistry meterRegistry) {
-    return new FhirResolveService(patientIdentifierSystem(), requireNonNull(client), meterRegistry);
+      WebClient hdsClient, @Autowired MeterRegistry meterRegistry) {
+    return new FhirResolveService(
+        patientIdentifierSystem(), requireNonNull(hdsClient), meterRegistry);
   }
 }

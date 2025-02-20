@@ -29,19 +29,19 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class EverythingDataSelector implements DataSelector {
   private final Config common;
-  private final WebClient client;
+  private final WebClient hdsClient;
   private final PatientIdResolver pidResolver;
   private final MeterRegistry meterRegistry;
   private final int pageSize;
 
   public EverythingDataSelector(
       Config common,
-      WebClient client,
+      WebClient hdsClient,
       PatientIdResolver patientIdResolver,
       MeterRegistry meterRegistry,
       int pageSize) {
     this.common = common;
-    this.client = client;
+    this.hdsClient = hdsClient;
     this.pidResolver = patientIdResolver;
     this.meterRegistry = meterRegistry;
     this.pageSize = pageSize;
@@ -64,7 +64,7 @@ public class EverythingDataSelector implements DataSelector {
 
   private Mono<Bundle> fetchBundle(String uri, Function<UriBuilder, URI> builder) {
     log.debug("Fetching patient data from HDS: {}", uri);
-    return client
+    return hdsClient
         .get()
         .uri(uri, builder)
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))

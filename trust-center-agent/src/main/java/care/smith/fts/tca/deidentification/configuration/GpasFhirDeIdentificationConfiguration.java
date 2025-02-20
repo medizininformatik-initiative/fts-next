@@ -26,7 +26,7 @@ public class GpasFhirDeIdentificationConfiguration {
   }
 
   @Bean("gpasFhirHttpClient")
-  public WebClient httpClient(WebClientFactory clientFactory) {
+  public WebClient gpasClient(WebClientFactory clientFactory) {
     return clientFactory.create(new HttpClientConfig(baseUrl, auth));
   }
 

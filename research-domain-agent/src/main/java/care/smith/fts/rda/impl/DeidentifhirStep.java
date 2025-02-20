@@ -16,15 +16,13 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 class DeidentifhirStep implements Deidentificator {
-  private final WebClient httpClient;
+  private final WebClient tcaClient;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final MeterRegistry meterRegistry;
 
   public DeidentifhirStep(
-      com.typesafe.config.Config config,
-      WebClient httpClient,
-      MeterRegistry meterRegistry) {
-    this.httpClient = httpClient;
+      com.typesafe.config.Config config, WebClient tcaClient, MeterRegistry meterRegistry) {
+    this.tcaClient = tcaClient;
     this.deidentifhirConfig = config;
     this.meterRegistry = meterRegistry;
   }
@@ -43,7 +41,7 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private Mono<ResearchMappingResponse> fetchResearchMapping(String transferId) {
-    return httpClient
+    return tcaClient
         .post()
         .uri("/api/v2/rd/research-mapping")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))

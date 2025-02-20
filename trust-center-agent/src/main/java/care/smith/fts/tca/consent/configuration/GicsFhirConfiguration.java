@@ -26,7 +26,7 @@ public class GicsFhirConfiguration {
   }
 
   @Bean("gicsFhirHttpClient")
-  public WebClient httpClient(WebClientFactory clientFactory) {
+  public WebClient gicsClient(WebClientFactory clientFactory) {
     var config = new HttpClientConfig(baseUrl, auth);
     return clientFactory.create(config);
   }

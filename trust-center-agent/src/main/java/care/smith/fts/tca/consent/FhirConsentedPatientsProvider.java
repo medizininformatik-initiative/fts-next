@@ -22,17 +22,16 @@ import reactor.core.publisher.Mono;
 /** This class provides functionalities for handling FHIR consents using an HTTP client. */
 @Slf4j
 public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider {
-  private final WebClient client;
+  private final WebClient gicsClient;
   private final MeterRegistry meterRegistry;
 
   /**
    * Constructs a FhirConsentProvider with the specified parameters.
    *
-   * @param client the WebClient used for HTTP requests
+   * @param gicsClient the WebClient used for HTTP requests
    */
-  public FhirConsentedPatientsProvider(
-      WebClient client,  MeterRegistry meterRegistry) {
-    this.client = client;
+  public FhirConsentedPatientsProvider(WebClient gicsClient, MeterRegistry meterRegistry) {
+    this.gicsClient = gicsClient;
     this.meterRegistry = meterRegistry;
   }
 
@@ -70,7 +69,7 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
       PagingParams paging,
       GicsFhirRequestHelper<C> helper) {
     var body = helper.buildBody(req, paging);
-    return client
+    return gicsClient
         .post()
         .uri(uri -> helper.buildUri(uri, paging))
         .bodyValue(body)
