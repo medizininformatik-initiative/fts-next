@@ -30,13 +30,13 @@ import reactor.core.publisher.Mono;
 @Slf4j
 class TCACohortSelector implements CohortSelector {
   private final TCACohortSelectorConfig config;
-  private final WebClient client;
+  private final WebClient tcaClient;
   private final MeterRegistry meterRegistry;
 
   public TCACohortSelector(
-      TCACohortSelectorConfig config, WebClient client, MeterRegistry meterRegistry) {
+      TCACohortSelectorConfig config, WebClient tcaClient, MeterRegistry meterRegistry) {
     this.config = config;
-    this.client = client;
+    this.tcaClient = tcaClient;
     this.meterRegistry = meterRegistry;
   }
 
@@ -65,7 +65,7 @@ class TCACohortSelector implements CohortSelector {
             config.policies(),
             config.patientIdentifierSystem(),
             pids);
-    return client
+    return tcaClient
         .post()
         .uri(uri)
         .bodyValue(body)

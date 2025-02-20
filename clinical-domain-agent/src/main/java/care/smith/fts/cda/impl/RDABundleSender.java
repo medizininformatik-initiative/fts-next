@@ -30,13 +30,13 @@ import reactor.core.publisher.Mono;
 @Slf4j
 final class RDABundleSender implements BundleSender {
   private final RDABundleSenderConfig config;
-  private final WebClient client;
+  private final WebClient rdaClient;
   private final MeterRegistry meterRegistry;
 
   public RDABundleSender(
-      RDABundleSenderConfig config, WebClient client, MeterRegistry meterRegistry) {
+      RDABundleSenderConfig config, WebClient rdaClient, MeterRegistry meterRegistry) {
     this.config = config;
-    this.client = client;
+    this.rdaClient = rdaClient;
     this.meterRegistry = meterRegistry;
   }
 
@@ -54,7 +54,7 @@ final class RDABundleSender implements BundleSender {
   }
 
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {
-    return client
+    return rdaClient
         .post()
         .uri("/api/v2/process/{project}/patient", Map.of("project", config.project()))
         .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))
@@ -98,7 +98,7 @@ final class RDABundleSender implements BundleSender {
   }
 
   private Mono<ResponseEntity<Void>> fetchStatus(URI uri) {
-    return client.get().uri(uri.toString()).retrieve().toBodilessEntity();
+    return rdaClient.get().uri(uri.toString()).retrieve().toBodilessEntity();
   }
 
   private Mono<URI> extractStatusUri(ResponseEntity<Void> response) {

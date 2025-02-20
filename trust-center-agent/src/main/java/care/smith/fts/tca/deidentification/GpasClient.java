@@ -18,12 +18,12 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Component
 public class GpasClient {
-  private final WebClient httpClient;
+  private final WebClient gpasClient;
   private final MeterRegistry meterRegistry;
 
   public GpasClient(
-      @Qualifier("gpasFhirHttpClient") WebClient httpClient, MeterRegistry meterRegistry) {
-    this.httpClient = httpClient;
+      @Qualifier("gpasFhirHttpClient") WebClient gpasClient, MeterRegistry meterRegistry) {
+    this.gpasClient = gpasClient;
     this.meterRegistry = meterRegistry;
   }
 
@@ -42,7 +42,7 @@ public class GpasClient {
 
     log.trace("fetchOrCreatePseudonyms for domain: {} and {}", domain, id);
 
-    return httpClient
+    return gpasClient
         .post()
         .uri("/$pseudonymizeAllowCreate")
         .headers(h -> h.setContentType(MediaTypes.APPLICATION_FHIR_JSON))

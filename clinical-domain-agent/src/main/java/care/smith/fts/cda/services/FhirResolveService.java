@@ -20,14 +20,14 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class FhirResolveService implements PatientIdResolver {
 
-  private final WebClient client;
+  private final WebClient hdsClient;
   private final MeterRegistry meterRegistry;
   private final String identifierSystem;
 
   public FhirResolveService(
-      String identifierSystem, WebClient client, MeterRegistry meterRegistry) {
+      String identifierSystem, WebClient hdsClient, MeterRegistry meterRegistry) {
     this.identifierSystem = identifierSystem;
-    this.client = client;
+    this.hdsClient = hdsClient;
     this.meterRegistry = meterRegistry;
   }
 
@@ -54,7 +54,7 @@ public class FhirResolveService implements PatientIdResolver {
 
   private Mono<Bundle> fetchPatientBundle(String patientId) {
     log.trace("fetchPatientBundle {}", patientId);
-    return client
+    return hdsClient
         .get()
         .uri(
             "/Patient",

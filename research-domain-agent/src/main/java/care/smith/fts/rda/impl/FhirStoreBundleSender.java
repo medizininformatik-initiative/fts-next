@@ -16,18 +16,18 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 final class FhirStoreBundleSender implements BundleSender {
-  private final WebClient client;
+  private final WebClient hdsClient;
   private final MeterRegistry meterRegistry;
 
-  public FhirStoreBundleSender(WebClient client, MeterRegistry meterRegistry) {
-    this.client = client;
+  public FhirStoreBundleSender(WebClient hdsClient, MeterRegistry meterRegistry) {
+    this.hdsClient = hdsClient;
     this.meterRegistry = meterRegistry;
   }
 
   @Override
   public Mono<Result> send(Bundle bundle) {
     log.trace("Sending bundle");
-    return client
+    return hdsClient
         .post()
         .uri("")
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))

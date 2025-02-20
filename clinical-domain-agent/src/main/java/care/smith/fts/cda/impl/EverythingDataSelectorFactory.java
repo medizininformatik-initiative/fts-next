@@ -30,13 +30,14 @@ public class EverythingDataSelectorFactory
   @Override
   public DataSelector create(DataSelector.Config common, EverythingDataSelectorConfig config) {
     var client = clientFactory.create(config.fhirServer());
-    PatientIdResolver resolver = createResolver(config, client);
+    var resolver = createResolver(config, client);
     return new EverythingDataSelector(common, client, resolver, meterRegistry, config.pageSize());
   }
 
-  private PatientIdResolver createResolver(EverythingDataSelectorConfig config, WebClient client) {
+  private PatientIdResolver createResolver(
+      EverythingDataSelectorConfig config, WebClient hdsClient) {
     if (config.resolve() != null) {
-      return config.resolve().createService(client, meterRegistry);
+      return config.resolve().createService(hdsClient, meterRegistry);
     } else {
       return pid -> Mono.just(new IdType("Patient", pid));
     }

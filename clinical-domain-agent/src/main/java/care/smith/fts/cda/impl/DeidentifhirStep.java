@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 class DeidentifhirStep implements Deidentificator {
-  private final WebClient httpClient;
+  private final WebClient tcaClient;
   private final TCADomains domains;
   private final Duration maxDateShift;
   private final com.typesafe.config.Config deidentifhirConfig;
@@ -31,13 +31,13 @@ class DeidentifhirStep implements Deidentificator {
   private final MeterRegistry meterRegistry;
 
   public DeidentifhirStep(
-      WebClient httpClient,
+      WebClient tcaClient,
       TCADomains domains,
       Duration maxDateShift,
       com.typesafe.config.Config deidentifhirConfig,
       com.typesafe.config.Config scraperConfig,
       MeterRegistry meterRegistry) {
-    this.httpClient = httpClient;
+    this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
     this.deidentifhirConfig = deidentifhirConfig;
@@ -74,7 +74,7 @@ class DeidentifhirStep implements Deidentificator {
     var request = new TransportMappingRequest(patientId, ids, domains, maxDateShift);
 
     log.trace("Fetch transport mapping for {} IDs", ids.size());
-    return httpClient
+    return tcaClient
         .post()
         .uri("/api/v2/cd/transport-mapping")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
