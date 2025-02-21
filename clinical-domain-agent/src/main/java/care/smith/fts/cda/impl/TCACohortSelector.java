@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
+import static care.smith.fts.util.error.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static java.util.Map.entry;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -9,6 +10,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
+import care.smith.fts.util.error.FhirErrorResponseUtil;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotNull;
@@ -19,8 +21,8 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
+import org.hl7.fhir.r4.model.OperationOutcome;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
@@ -125,16 +127,15 @@ class TCACohortSelector implements CohortSelector {
   }
 
   private static Mono<Throwable> handleBadRequest(ClientResponse r) {
-    return r.bodyToMono(ProblemDetail.class)
+    return r.bodyToMono(OperationOutcome.class)
         .onErrorResume(
             e -> {
               log.error("Failed to parse error response", e);
-              var problemDetail =
-                  ProblemDetail.forStatusAndDetail(
-                      HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-              return Mono.just(problemDetail);
+              return Mono.just(operationOutcomeWithIssue(e));
             })
         .flatMap(
-            problemDetail -> Mono.error(new TransferProcessException(problemDetail.getDetail())));
+            outcome ->
+                Mono.error(
+                    new TransferProcessException(outcome.getIssueFirstRep().getDiagnostics())));
   }
 }
