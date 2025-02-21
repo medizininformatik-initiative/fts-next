@@ -76,8 +76,7 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))
         .retrieve()
-        .onStatus(
-            r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentedPatientsProvider::handleGicsNotFound)
+        .onStatus(r -> !r.equals(HttpStatus.OK), FhirConsentedPatientsProvider::handleGicsError)
         .bodyToMono(Bundle.class)
         .doOnNext(b -> log.trace("body(n: {})", b.getEntry().size()))
         .retryWhen(defaultRetryStrategy(meterRegistry, helper.requestName()))
@@ -86,19 +85,19 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
         .map(bundle -> helper.processResponse(bundle, req, requestUrl, paging));
   }
 
-  private static Mono<Throwable> handleGicsNotFound(ClientResponse r) {
+  private static Mono<Throwable> handleGicsError(ClientResponse r) {
     log.trace("response headers: {}", r.headers().asHttpHeaders());
     return r.bodyToMono(OperationOutcome.class)
-        .doOnNext(re -> log.info("{}", re))
+        .doOnError(e -> log.error("Expected FHIR, got: {}", r))
         .flatMap(
             b -> {
-              log.info("issue: {}", b.getIssueFirstRep());
               var diagnostics = b.getIssueFirstRep().getDiagnostics();
-              log.error(diagnostics);
-              if (diagnostics != null && diagnostics.startsWith("No consents found for domain")) {
-                return Mono.error(new UnknownDomainException(diagnostics));
+              log.trace("gICS diagnostics: {}", diagnostics);
+              if (diagnostics != null) {
+                return Mono.error(new GicsResponseException(diagnostics));
               } else {
-                return Mono.error(new IllegalArgumentException());
+                log.error("No diagnostics found in {}", r);
+                return Mono.error(new IllegalArgumentException("No diagnostics found"));
               }
             });
   }

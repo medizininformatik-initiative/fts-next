@@ -11,6 +11,7 @@ import static java.lang.String.valueOf;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
@@ -20,8 +21,8 @@ import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.FhirUtils;
-import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -43,6 +44,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @SpringBootTest
@@ -81,12 +83,16 @@ class FhirConsentedPatientsProviderFetchAllIT {
   }
   """;
   private static WireMock wireMock;
+  private FhirConsentedPatientsProvider fhirConsentProvider;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime) throws IOException {
     address = wireMockRuntime.getHttpBaseUrl();
     wireMock = wireMockRuntime.getWireMock();
     gicsConsentGenerator = FhirGenerators.gicsResponse(randomUuid(), randomUuid());
+    fhirConsentProvider =
+        new FhirConsentedPatientsProvider(
+            httpClientBuilder.baseUrl(address).build(), meterRegistry);
   }
 
   @AfterEach
@@ -97,56 +103,47 @@ class FhirConsentedPatientsProviderFetchAllIT {
   @Test
   void paging() {
     int totalEntries = 2 * defaultPageSize;
-    var fhirConsentProvider =
-        new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
-    Bundle bundle =
+    var bundle =
         gicsConsentGenerator
             .generateResources()
             .limit(defaultPageSize)
             .collect(toBundle())
             .setTotal(totalEntries);
 
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")),
-                    entry("_count", equalTo(valueOf(defaultPageSize)))))
-            .willReturn(fhirResponse(bundle)));
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo(valueOf(defaultPageSize))),
-                    entry("_count", equalTo(valueOf(defaultPageSize)))))
-            .willReturn(fhirResponse(bundle)));
+    register(0, defaultPageSize, fhirResponse(bundle));
+    register(defaultPageSize, defaultPageSize, fhirResponse(bundle));
 
     var expectedNextLink =
         "http://localhost:8080/api/v2/cd/consented-patients/fetch-all?from=%s&count=%s"
             .formatted(defaultPageSize, defaultPageSize);
 
     log.info("Get first page");
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://localhost:8080"),
-                new PagingParams(0, defaultPageSize)))
+    create(gicsRequest(CONSENT_FETCH_ALL_REQUEST, "http://localhost:8080", 0, defaultPageSize))
         .assertNext(
             consentBundle ->
                 assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink))
         .verifyComplete();
     log.info("Get second page");
     create(
-            fhirConsentProvider.fetchAll(
+            gicsRequest(
                 CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://localhost:8080"),
-                new PagingParams(defaultPageSize, defaultPageSize)))
+                "http://localhost:8080",
+                defaultPageSize,
+                defaultPageSize))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink()).isEmpty())
         .verifyComplete();
+  }
+
+  private void register(int number, int defaultPageSize, ResponseDefinitionBuilder bundle) {
+    wireMock.register(
+        post(urlPathEqualTo("/$allConsentsForDomain"))
+            .withRequestBody(equalToJson(jsonBody))
+            .withQueryParams(
+                ofEntries(
+                    entry("_offset", equalTo(valueOf(number))),
+                    entry("_count", equalTo(valueOf(defaultPageSize)))))
+            .willReturn(bundle));
   }
 
   @Test
@@ -154,32 +151,19 @@ class FhirConsentedPatientsProviderFetchAllIT {
     int totalEntries = 1;
     int pageSize = 1;
 
-    var fhirConsentProvider =
-        new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), meterRegistry);
+    var bundle = consentBundle(totalEntries);
 
-    Bundle bundle =
-        Stream.generate(gicsConsentGenerator::generateString)
-            .limit(totalEntries)
-            .map(FhirUtils::stringToFhirBundle)
-            .collect(toBundle())
-            .setTotal(totalEntries);
+    register(0, pageSize, fhirResponse(bundle));
 
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(bundle)));
-
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
+    create(gicsRequest(CONSENT_FETCH_ALL_REQUEST, "http://trustcenteragent:1234", 0, pageSize))
         .assertNext(consentBundle -> assertThat(consentBundle.getLink("next")).isNull())
         .verifyComplete();
+  }
+
+  private Mono<Bundle> gicsRequest(
+      ConsentFetchAllRequest consentFetchAllRequest, String url, int from, int pageSize) {
+    return fhirConsentProvider.fetchAll(
+        consentFetchAllRequest, fromUriString(url), new PagingParams(from, pageSize));
   }
 
   @Test
@@ -187,29 +171,11 @@ class FhirConsentedPatientsProviderFetchAllIT {
     int totalEntries = 0;
     int pageSize = 1;
 
-    var fhirConsentProvider =
-        new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), meterRegistry);
-    Bundle bundle =
-        Stream.generate(gicsConsentGenerator::generateString)
-            .limit(totalEntries)
-            .map(FhirUtils::stringToFhirBundle)
-            .collect(toBundle())
-            .setTotal(totalEntries);
+    var bundle = consentBundle(totalEntries);
 
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(bundle)));
+    register(0, pageSize, fhirResponse(bundle));
 
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
+    create(gicsRequest(CONSENT_FETCH_ALL_REQUEST, "http://trustcenteragent:1234", 0, pageSize))
         .assertNext(
             consentBundle -> {
               assertThat(consentBundle.getEntry()).isEmpty();
@@ -219,87 +185,30 @@ class FhirConsentedPatientsProviderFetchAllIT {
   }
 
   @Test
-  void unknownDomainCausesGicsNotFound() {
+  void handleGicsErrorResponse() {
     int pageSize = 2;
-
-    var fhirConsentProvider =
-        new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
     var operationOutcome = new OperationOutcome();
     var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
     issue.setDiagnostics("No consents found for domain");
 
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
+    register(0, pageSize, fhirResponse(operationOutcome, NOT_FOUND));
 
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
-        .expectError(UnknownDomainException.class)
+    create(gicsRequest(CONSENT_FETCH_ALL_REQUEST, "http://trustcenteragent:1234", 0, pageSize))
+        .expectError(GicsResponseException.class)
         .verify();
   }
 
   @Test
-  void somethingElseCausesGicsNotFound() {
+  void diagnosticsIsNullInHandleGicsError() {
     int pageSize = 2;
-
-    var fhirConsentProvider =
-        new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), meterRegistry);
-
-    var operationOutcome = new OperationOutcome();
-    var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
-    issue.setDiagnostics("Something's not right");
-
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
-
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
-        .expectError(IllegalArgumentException.class)
-        .verify();
-  }
-
-  @Test
-  void diagnosticsIsNullInHandleGicsNotFound() {
-    int pageSize = 2;
-
-    var fhirConsentProvider =
-        new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), meterRegistry);
 
     var operationOutcome = new OperationOutcome();
     operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
 
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
+    register(0, pageSize, fhirResponse(operationOutcome, NOT_FOUND));
 
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
+    create(gicsRequest(CONSENT_FETCH_ALL_REQUEST, "http://trustcenteragent:1234", 0, pageSize))
         .expectError(IllegalArgumentException.class)
         .verify();
   }
@@ -310,33 +219,24 @@ class FhirConsentedPatientsProviderFetchAllIT {
     int pageSize = 2;
 
     var consentRequest = new ConsentFetchAllRequest("MII", Set.of(), POLICY_SYSTEM);
-    var fhirConsentProvider =
-        new FhirConsentedPatientsProvider(
-            httpClientBuilder.baseUrl(address).build(), meterRegistry);
-    Bundle bundle =
-        Stream.generate(gicsConsentGenerator::generateString)
-            .limit(totalEntries)
-            .map(FhirUtils::stringToFhirBundle)
-            .collect(toBundle())
-            .setTotal(totalEntries);
 
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(bundle)));
+    var bundle = consentBundle(totalEntries);
 
-    create(
-            fhirConsentProvider.fetchAll(
-                consentRequest,
-                fromUriString("http://trustcenteragent:8080"),
-                new PagingParams(0, pageSize)))
+    register(0, pageSize, fhirResponse(bundle));
+
+    create(gicsRequest(consentRequest, "http://trustcenteragent:8080", 0, pageSize))
         .assertNext(
             consentBundle -> {
               assertThat(consentBundle.getEntry()).isEmpty();
             })
         .verifyComplete();
+  }
+
+  private Bundle consentBundle(int totalEntries) {
+    return Stream.generate(gicsConsentGenerator::generateString)
+        .limit(totalEntries)
+        .map(FhirUtils::stringToFhirBundle)
+        .collect(toBundle())
+        .setTotal(totalEntries);
   }
 }
