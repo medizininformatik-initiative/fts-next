@@ -4,12 +4,12 @@ import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.error.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.ProblemDetail.forStatusAndDetail;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 import static reactor.test.StepVerifier.create;
 
@@ -120,8 +120,9 @@ class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
 
   @Test
   void badRequestErrors() {
-    var response = jsonResponse(forStatusAndDetail(BAD_REQUEST, "TCA Returns Bad Request"));
-    wireMock.register(fetchAllRequest().willReturn(response));
+    var response =
+        fhirResponse(operationOutcomeWithIssue(new Exception("TCA Returns Bad Request")));
+    wireMock.register(fetchAllRequest().willReturn(response.withStatus(400)));
 
     create(cohortSelector.selectCohort(List.of()))
         .expectErrorMessage("TCA Returns Bad Request")
