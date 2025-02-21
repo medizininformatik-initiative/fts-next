@@ -21,6 +21,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
 import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
@@ -66,7 +67,8 @@ class FhirMappingProviderTest {
 
   private static final TCADomains DEFAULT_DOMAINS = new TCADomains("domain", "domain", "domain");
   private static final TransportMappingRequest DEFAULT_REQUEST =
-      new TransportMappingRequest("id1", Set.of("id1"), DEFAULT_DOMAINS, Duration.ofDays(14));
+      new TransportMappingRequest(
+          "id1", Set.of("id1"), DEFAULT_DOMAINS, Duration.ofDays(14), DateShiftPreserve.NONE);
 
   @Autowired WebClient.Builder httpClientBuilder;
   @MockitoBean RedissonClient redisClient;
@@ -128,7 +130,9 @@ class FhirMappingProviderTest {
 
     var ids = Set.of("Patient.id1", "identifier.id1");
     var mapName = "wSUYQUR3Y";
-    var request = new TransportMappingRequest("id1", ids, DEFAULT_DOMAINS, Duration.ofDays(14));
+    var request =
+        new TransportMappingRequest(
+            "id1", ids, DEFAULT_DOMAINS, Duration.ofDays(14), DateShiftPreserve.NONE);
     create(mappingProvider.generateTransportMapping(request))
         .assertNext(
             r -> {

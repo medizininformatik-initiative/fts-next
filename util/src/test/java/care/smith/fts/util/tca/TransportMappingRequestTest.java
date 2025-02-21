@@ -2,6 +2,7 @@ package care.smith.fts.util.tca;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.api.DateShiftPreserve;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -21,7 +22,8 @@ class TransportMappingRequestTest {
             "patient123",
             Set.of("id1", "id2"),
             new TCADomains("pDomain", "sDomain", "dDomain"),
-            Duration.ofDays(30));
+            Duration.ofDays(30),
+            DateShiftPreserve.NONE);
 
     String jsonString = objectMapper.writeValueAsString(request);
 

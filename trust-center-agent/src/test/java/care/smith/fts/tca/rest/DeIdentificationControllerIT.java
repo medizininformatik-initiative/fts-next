@@ -24,7 +24,6 @@ import care.smith.fts.util.tca.ResearchMappingResponse;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +44,9 @@ import reactor.core.publisher.Mono;
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
 class DeIdentificationControllerIT extends BaseIT {
+
+  private static final Map<String, String> DEFAULT_DOMAINS =
+      ofEntries(entry("pseudonym", "MII"), entry("salt", "MII"), entry("dateShift", "MII"));
 
   private WebClient cdClient;
   private WebClient rdClient;
@@ -88,15 +90,11 @@ class DeIdentificationControllerIT extends BaseIT {
     var response =
         doPost(
             ofEntries(
-                entry(
-                    "tcaDomains",
-                    ofEntries(
-                        entry("pseudonym", "MII"),
-                        entry("salt", "MII"),
-                        entry("dateShift", "MII"))),
+                entry("tcaDomains", DEFAULT_DOMAINS),
                 entry("patientId", "id-144218"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
-                entry("maxDateShift", ofDays(14).getSeconds())));
+                entry("maxDateShift", ofDays(14).getSeconds()),
+                entry("dateShiftPreserve", "NONE")));
 
     create(response)
         .assertNext(
@@ -110,8 +108,6 @@ class DeIdentificationControllerIT extends BaseIT {
 
   @Test
   void firstRequestToGpasFails() throws IOException {
-    var statusCodes = new LinkedList<>(List.of(500));
-
     var map =
         Map.of("id-144218", "469680023", "Salt_id-144218", "123", "PT336H_id-144218", "12345");
 
@@ -138,15 +134,11 @@ class DeIdentificationControllerIT extends BaseIT {
     var response =
         doPost(
             ofEntries(
-                entry(
-                    "tcaDomains",
-                    ofEntries(
-                        entry("pseudonym", "MII"),
-                        entry("salt", "MII"),
-                        entry("dateShift", "MII"))),
+                entry("tcaDomains", DEFAULT_DOMAINS),
                 entry("patientId", "id-144218"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
-                entry("maxDateShift", ofDays(14).getSeconds())));
+                entry("maxDateShift", ofDays(14).getSeconds()),
+                entry("dateShiftPreserve", "NONE")));
 
     create(response)
         .assertNext(
@@ -210,15 +202,11 @@ class DeIdentificationControllerIT extends BaseIT {
     var transferId =
         doPost(
                 ofEntries(
-                    entry(
-                        "tcaDomains",
-                        ofEntries(
-                            entry("pseudonym", "MII"),
-                            entry("salt", "MII"),
-                            entry("dateShift", "MII"))),
+                    entry("tcaDomains", DEFAULT_DOMAINS),
                     entry("patientId", "id-144218"),
                     entry("resourceIds", Set.of("id-144218", "id-244194")),
-                    entry("maxDateShift", ofDays(14).getSeconds())))
+                    entry("maxDateShift", ofDays(14).getSeconds()),
+                    entry("dateShiftPreserve", "NONE")))
             .block()
             .transferId();
 
