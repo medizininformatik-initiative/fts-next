@@ -4,6 +4,7 @@ import care.smith.fts.tca.consent.ConsentedPatientsProvider;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.ErrorResponseUtil;
+import care.smith.fts.util.error.FhirErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
@@ -123,9 +124,9 @@ public class ConsentController {
 
   private static Mono<ResponseEntity<Bundle>> errorResponse(Throwable e) {
     if (e instanceof UnknownDomainException) {
-      return ErrorResponseUtil.badRequest(e);
+      return FhirErrorResponseUtil.badRequest(e);
     } else {
-      return ErrorResponseUtil.internalServerError(e);
+      return FhirErrorResponseUtil.internalServerError(e);
     }
   }
 }
