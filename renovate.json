@@ -39,6 +39,12 @@
         "valkey-io/valkey"
       ],
       "groupName": "valkey"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "automerge": true
     }
   ],
   "hostRules": [
