@@ -224,7 +224,7 @@ class FhirConsentedPatientsProviderFetchIT {
                 consentRequest,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(0, pageSize)))
-        .expectError(UnknownDomainException.class)
+        .expectError(GicsResponseException.class)
         .verify();
   }
 
@@ -250,12 +250,12 @@ class FhirConsentedPatientsProviderFetchIT {
                 consentRequest,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(0, pageSize)))
-        .expectError(IllegalArgumentException.class)
+        .expectError(GicsResponseException.class)
         .verify();
   }
 
   @Test
-  void diagnosticsIsNullInHandleGicsNotFound() {
+  void diagnosticsIsNullInHandleGicsError() {
     int pageSize = 2;
 
     fhirConsentProvider =
