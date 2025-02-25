@@ -2,16 +2,16 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static care.smith.fts.util.error.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static java.util.Map.entry;
 import static java.util.Optional.ofNullable;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
-import care.smith.fts.util.error.FhirErrorResponseUtil;
 import care.smith.fts.util.error.TransferProcessException;
+import care.smith.fts.util.error.fhir.FhirException;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
 import org.hl7.fhir.r4.model.OperationOutcome;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
@@ -74,7 +73,7 @@ class TCACohortSelector implements CohortSelector {
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
-        .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), TCACohortSelector::handleBadRequest)
+        .onStatus(r -> r.equals(BAD_REQUEST), TCACohortSelector::handleBadRequest)
         .bodyToMono(Bundle.class)
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchBundle"));
   }
@@ -131,7 +130,8 @@ class TCACohortSelector implements CohortSelector {
         .onErrorResume(
             e -> {
               log.error("Failed to parse error response", e);
-              return Mono.just(operationOutcomeWithIssue(e));
+              return Mono.just(
+                  new FhirException(BAD_REQUEST, e.getMessage()).getOperationOutcome());
             })
         .flatMap(
             outcome ->

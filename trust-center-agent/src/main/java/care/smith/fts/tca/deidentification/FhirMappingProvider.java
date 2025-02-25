@@ -80,9 +80,9 @@ public class FhirMappingProvider implements MappingProvider {
     var saltKey = "Salt_" + patientId;
     var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
     return Mono.zip(
-        gpasClient.fetchOrCreatePseudonyms(domains.pseudonym(), patientId),
-        gpasClient.fetchOrCreatePseudonyms(domains.salt(), saltKey),
-        gpasClient.fetchOrCreatePseudonyms(domains.dateShift(), dateShiftKey));
+        gpasClient.fetchOrCreatePseudonym(domains.pseudonym(), patientId),
+        gpasClient.fetchOrCreatePseudonym(domains.salt(), saltKey),
+        gpasClient.fetchOrCreatePseudonym(domains.dateShift(), dateShiftKey));
   }
 
   /** Saves the research mapping in redis for later use by the rda. */

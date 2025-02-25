@@ -9,7 +9,7 @@
 # deIdentification:
 #   # Keystore URL, when using the default compose file the default should suffice
 #   keystoreUrl: redis://keystore:6379
-#   # GPAS FHIR gateway configuration
+#   # gPAS FHIR gateway configuration
 #   gpas.fhir:
 #     baseUrl: http://gpas:8080/ttp-fhir/fhir/gpas
 #     auth: [ ... ]

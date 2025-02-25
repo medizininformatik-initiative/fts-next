@@ -1,11 +1,12 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.fromFhirException;
+import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.internalServerError;
+
 import care.smith.fts.tca.consent.ConsentedPatientsProvider;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.util.MediaTypes;
-import care.smith.fts.util.error.ErrorResponseUtil;
-import care.smith.fts.util.error.FhirErrorResponseUtil;
-import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,7 +70,16 @@ public class ConsentController {
                       schema = @Schema(implementation = ConsentFetchAllRequest.class))),
       responses = {
         @ApiResponse(responseCode = "200", description = "Returns Bundle with consented patients"),
-        @ApiResponse(responseCode = "400", description = "Unknown domain"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Request body is no consent fetch request"),
+        @ApiResponse(responseCode = "404", description = "Unknown domain"),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Configuration error, parsing or other unexpected errors"),
+        @ApiResponse(
+            responseCode = "503",
+            description = "Configuration missing authentication or gICS not available"),
       })
   public Mono<ResponseEntity<Bundle>> fetchAll(
       @RequestBody @Valid Mono<ConsentFetchAllRequest> request,
@@ -109,7 +119,16 @@ public class ConsentController {
                       schema = @Schema(implementation = ConsentFetchRequest.class))),
       responses = {
         @ApiResponse(responseCode = "200", description = "Returns Bundle with consented patients"),
-        @ApiResponse(responseCode = "400", description = "Unknown domain"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Request body is no consent fetch request"),
+        @ApiResponse(responseCode = "404", description = "Unknown domain"),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Configuration error, parsing or other unexpected errors"),
+        @ApiResponse(
+            responseCode = "503",
+            description = "Configuration missing authentication or gICS not available"),
       })
   public Mono<ResponseEntity<Bundle>> fetch(
       @RequestBody @Valid Mono<ConsentFetchRequest> request,
@@ -123,10 +142,10 @@ public class ConsentController {
   }
 
   private static Mono<ResponseEntity<Bundle>> errorResponse(Throwable e) {
-    if (e instanceof UnknownDomainException) {
-      return FhirErrorResponseUtil.badRequest(e);
+    if (e instanceof FhirException) {
+      return fromFhirException((FhirException) e);
     } else {
-      return FhirErrorResponseUtil.internalServerError(e);
+      return internalServerError(e);
     }
   }
 }
