@@ -20,6 +20,7 @@ import care.smith.fts.tca.deidentification.configuration.TransportMappingConfigu
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.error.fhir.FhirUnknownDomainException;
 import care.smith.fts.util.tca.TCADomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -184,7 +185,7 @@ class FhirMappingProviderTest {
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
-        .expectError(UnknownDomainException.class)
+        .expectError(FhirUnknownDomainException.class)
         .verify();
   }
 
