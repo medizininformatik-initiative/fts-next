@@ -1,15 +1,17 @@
 package care.smith.fts.tca.deidentification;
 
+import static org.springframework.http.HttpStatus.OK;
+
 import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.RetryStrategies;
-import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.error.fhir.FhirUnknownDomainException;
+import care.smith.fts.util.error.fhir.NoFhirServerException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -49,7 +51,7 @@ public class GpasClient {
         .bodyValue(params)
         .headers(h -> h.setAccept(List.of(MediaTypes.APPLICATION_FHIR_JSON)))
         .retrieve()
-        .onStatus(r1 -> r1.equals(HttpStatus.BAD_REQUEST), GpasClient::handleGpasBadRequest)
+        .onStatus(r -> !r.equals(OK), this::handleError)
         .bodyToMono(GpasParameterResponse.class)
         .retryWhen(
             RetryStrategies.defaultRetryStrategy(meterRegistry, "fetchOrCreatePseudonymsOnGpas"))
@@ -59,14 +61,20 @@ public class GpasClient {
         .map(map -> map.get(id));
   }
 
-  private static Mono<Throwable> handleGpasBadRequest(ClientResponse r) {
+  private Mono<Throwable> handleError(ClientResponse r) {
     return r.bodyToMono(OperationOutcome.class)
+        .onErrorResume(
+            e -> {
+              log.error("Cannot parse OperationOutcome expected from gPAS", e);
+              return Mono.error(
+                  new NoFhirServerException("Cannot parse OperationOutcome received from gPAS"));
+            })
         .flatMap(
             b -> {
               var diagnostics = b.getIssueFirstRep().getDiagnostics();
               log.error("Bad Request: {}", diagnostics);
-              if (diagnostics != null && diagnostics.startsWith("Unknown domain")) {
-                return Mono.error(new UnknownDomainException(diagnostics));
+              if (diagnostics.startsWith("Unknown domain")) {
+                return Mono.error(new FhirUnknownDomainException(b));
               } else {
                 return Mono.error(new IllegalArgumentException(diagnostics));
               }
