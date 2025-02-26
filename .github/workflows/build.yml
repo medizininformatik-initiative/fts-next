@@ -100,7 +100,7 @@ jobs:
 
     - name: Download Agent Jar
       if: ${{ matrix.agent }}
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
       with:
         name: ${{ matrix.agent }}
         path: ${{ matrix.agent }}/target
@@ -133,7 +133,7 @@ jobs:
         - research-domain-agent
     steps:
     - name: Download Container Image
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
       with:
         name: ${{ matrix.agent }}-image
         path: /tmp
@@ -170,7 +170,7 @@ jobs:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Agent Images
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
       with:
         pattern: '*-image'
         merge-multiple: true
@@ -259,13 +259,13 @@ jobs:
 
     - name: Download Agent Jar
       if: ${{ matrix.agent }}
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
       with:
         name: ${{ matrix.agent }}
         path: ${{ matrix.agent }}/target
 
     - name: Download Container Image
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
       with:
         name: ${{ matrix.agent }}-image
         path: /tmp
