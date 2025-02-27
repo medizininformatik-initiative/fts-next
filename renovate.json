@@ -9,7 +9,9 @@
     "workarounds:all",
     "docker:pinDigests",
     "helpers:pinGitHubActionDigests",
-    ":pinDevDependencies"
+    ":pinDevDependencies",
+    ":automergeMinor",
+    ":automergeDigest"
   ],
   "prConcurrentLimit": 3,
   "packageRules": [
@@ -41,10 +43,12 @@
       "groupName": "valkey"
     },
     {
-      "matchManagers": [
-        "github-actions"
+      "matchDepNames": [
+        "ghcr.io/knoppiks/mosaic-*",
+        "spring boot",
+        "org.junit.jupiter:*"
       ],
-      "automerge": true
+      "automerge": false
     }
   ],
   "hostRules": [
