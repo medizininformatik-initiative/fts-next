@@ -16,7 +16,7 @@ services:
     depends_on:
       keystore:
         condition: service_healthy
-      gics: # CI_ONLY
+      gics:                                                                                # CI_ONLY
         condition: service_healthy                                                         # CI_ONLY
       gpas:                                                                                # CI_ONLY
         condition: service_healthy                                                         # CI_ONLY
