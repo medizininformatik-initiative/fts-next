@@ -4,7 +4,7 @@ import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.error.FhirErrorResponseUtil.operationOutcomeWithIssue;
+import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
