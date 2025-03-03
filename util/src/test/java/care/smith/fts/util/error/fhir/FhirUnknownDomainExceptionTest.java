@@ -10,7 +10,7 @@ class FhirUnknownDomainExceptionTest {
   @Test
   void fhirUnknownDomainException() {
     var e = new FhirUnknownDomainException("message");
-    assertThat(e.statusCode).isEqualTo(NOT_FOUND);
+    assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
     assertThat(e).hasMessage("message");
     assertThat(e.getOperationOutcome().getIssueFirstRep().getDiagnostics()).isEqualTo("message");
   }
@@ -20,7 +20,7 @@ class FhirUnknownDomainExceptionTest {
     var outcome = new OperationOutcome();
     outcome.addIssue().setDiagnostics("message");
     var e = new FhirUnknownDomainException(outcome);
-    assertThat(e.statusCode).isEqualTo(NOT_FOUND);
+    assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
     assertThat(e).hasMessage("message");
     assertThat(e.getOperationOutcome().getIssueFirstRep().getDiagnostics()).isEqualTo("message");
   }

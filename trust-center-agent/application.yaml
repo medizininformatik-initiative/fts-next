@@ -22,9 +22,9 @@
 # consent:
 ### GICS FHIR gateway configuration
 #   gics.fhir:
-#       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
-#       auth: [ ... ]
-#       ssl: [ ... ]
+#     baseUrl: http://gics:8080/ttp-fhir/fhir/gics
+#     auth: [ ... ]
+#     ssl: [ ... ]
 
 ### Spring SSL Bundle Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/ssl-bundles

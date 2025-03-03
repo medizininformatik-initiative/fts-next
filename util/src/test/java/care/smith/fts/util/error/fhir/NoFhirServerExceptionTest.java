@@ -9,7 +9,7 @@ class NoFhirServerExceptionTest {
   @Test
   void noFhirServerException() {
     var e = new FhirConnectException("message");
-    assertThat(e.statusCode).isEqualTo(BAD_GATEWAY);
+    assertThat(e.getStatusCode()).isEqualTo(BAD_GATEWAY);
     assertThat(e).hasMessage("message");
     assertThat(e.getOperationOutcome().getIssueFirstRep().getDiagnostics()).isEqualTo("message");
   }

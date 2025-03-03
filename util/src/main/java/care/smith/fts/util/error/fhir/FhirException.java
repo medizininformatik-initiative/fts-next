@@ -6,8 +6,8 @@ import org.springframework.http.HttpStatusCode;
 
 @Getter
 public class FhirException extends Exception {
-  HttpStatusCode statusCode;
-  OperationOutcome operationOutcome;
+  private final HttpStatusCode statusCode;
+  private final OperationOutcome operationOutcome;
 
   public FhirException(HttpStatusCode statusCode, String message) {
     super(message);

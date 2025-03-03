@@ -3,7 +3,7 @@
 Client certificate authentication validates users based on their SSL/TLS certificates and associates
 the extract cn ([username](#username)) with an application [role](#role).
 
-#### Configuration Example
+## Configuration Example
 
 ```yaml
 clientCert:
@@ -12,7 +12,7 @@ clientCert:
     role: client
 ```
 
-#### Fields
+## Fields
 
 ### `users` _(list)_
 
@@ -22,7 +22,7 @@ clientCert:
   * **Example**: `client`
 
 * #### `role` <Badge type="warning" text="Since 5.0" />
-  * **Description**: R assigned to the user, which defines access permissions.
-    R are referenced in the [endpoints list](../security#endpoints-list)
+  * **Description**: Role assigned to the user, which defines access permissions.
+    Roles are referenced in the [endpoints list](../security#endpoints-list)
   * **Type**: String
   * **Example**: `client`

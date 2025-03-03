@@ -9,7 +9,8 @@ public interface FhirErrorResponseUtil {
 
   @SuppressWarnings("unchecked")
   static <T> Mono<ResponseEntity<T>> fromFhirException(FhirException e) {
-    return Mono.just((ResponseEntity<T>) ResponseEntity.status(e.statusCode).body(e.getMessage()));
+    return Mono.just(
+        (ResponseEntity<T>) ResponseEntity.status(e.getStatusCode()).body(e.getMessage()));
   }
 
   @SuppressWarnings("unchecked")

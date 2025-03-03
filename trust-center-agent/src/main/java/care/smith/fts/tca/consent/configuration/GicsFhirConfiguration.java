@@ -19,6 +19,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Configuration
@@ -48,11 +49,16 @@ public class GicsFhirConfiguration {
   ApplicationRunner runner(@Qualifier("gicsFhirHttpClient") WebClient gicsClient) {
     return args ->
         fetchCapabilityStatement(gicsClient)
+            .flatMap(
+                c ->
+                    c.getSoftware().getName().equals("GICS")
+                        ? Mono.just(c)
+                        : Mono.error(new NoGicsException()))
             .flatMap(c -> requireOperations(c, GICS_OPERATIONS))
-            .doOnNext(i -> log.info("gCIS available"))
+            .doOnNext(c -> log.info("gICS {} available", c.getSoftware().getVersion()))
             .doOnError(GicsFhirConfiguration::logWarning)
             .onErrorComplete()
-            .block();
+            .subscribe();
   }
 
   private static void logWarning(Throwable e) {

@@ -4,7 +4,7 @@ This document describes the configuration options available for managing data se
 `dataSelector` section of the project configuration file. The `dataSelector` section defines
 parameters for fetching and resolving patient records from a FHIR server.
 
-## Configuration Structure
+## Configuration Example
 
 The `dataSelector` section allows different implementations to be used for selecting transfer data,
 at the moment there is only one implementation available out-of-the-box: `everything`
@@ -14,6 +14,8 @@ dataSelector:
   everything:
     fhirServer:
       baseUrl: http://cd-hds:8080/fhir
+      auth: [ ... ]
+      ssl: [ ... ]
     resolve:
       patientIdentifierSystem: http://fts.smith.care
     pageSize: 500

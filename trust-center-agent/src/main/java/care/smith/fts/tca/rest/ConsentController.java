@@ -6,7 +6,6 @@ import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.internalServe
 import care.smith.fts.tca.consent.ConsentedPatientsProvider;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.util.MediaTypes;
-import care.smith.fts.util.error.fhir.FhirErrorResponseUtil;
 import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
@@ -111,7 +110,8 @@ public class ConsentController {
                       schema = @Schema(implementation = ConsentFetchRequest.class))),
       responses = {
         @ApiResponse(responseCode = "200", description = "Returns Bundle with consented patients"),
-        @ApiResponse(responseCode = "400", description = "Unknown domain"),
+        @ApiResponse(responseCode = "400", description = "Unknown domain, "),
+        @ApiResponse(responseCode = "500", description = "Configuration error"),
       })
   public Mono<ResponseEntity<Bundle>> fetch(
       @RequestBody @Valid Mono<ConsentFetchRequest> request,

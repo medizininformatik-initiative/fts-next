@@ -9,6 +9,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.common.ContentTypes.CONTENT_TYPE;
 import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
 import static java.lang.String.valueOf;
 import static java.util.Map.entry;
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.I_AM_A_TEAPOT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
@@ -330,6 +332,30 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
     wireMock.register(
         get("/metadata")
             .willReturn(status(I_AM_A_TEAPOT.value()).withBody("Would you like some milk?")));
+    create(
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:8080"),
+                new PagingParams(0, 2)))
+        .expectError(NoFhirServerException.class)
+        .verify();
+  }
+
+  @Test
+  void responseHasNoOperationOutcome() {
+    wireMock.register(
+        post("/$allConsentsForDomain")
+            .withRequestBody(equalToJson(jsonBody))
+            .willReturn(
+                status(UNAUTHORIZED.value())
+                    .withHeader(CONTENT_TYPE, "text/plain")
+                    .withBody("Unauthorized")));
+    wireMock.register(
+        get("/metadata")
+            .willReturn(
+                status(UNAUTHORIZED.value())
+                    .withHeader(CONTENT_TYPE, "text/plain")
+                    .withBody("Unauthorized")));
     create(
             fhirConsentProvider.fetchAll(
                 CONSENT_FETCH_ALL_REQUEST,
