@@ -1,11 +1,14 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
+import static care.smith.fts.tca.consent.GicsFhirUtil.verifyGicsCapabilities;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.util.error.fhir.FhirException;
@@ -16,7 +19,6 @@ import care.smith.fts.util.tca.ConsentFetchRequest;
 import care.smith.fts.util.tca.ConsentRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.http.HttpStatusCode;
@@ -93,7 +95,7 @@ public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvi
               if (e.getCause() instanceof WebClientRequestException) {
                 return Mono.error(new NoFhirServerException("No connection to gICS server"));
               } else if (e.getCause() instanceof WebClientResponseException) {
-                return Mono.error(new FhirException(INTERNAL_SERVER_ERROR, e.getMessage()));
+                return Mono.error(new FhirException(INTERNAL_SERVER_ERROR, ""));
               } else {
                 return Mono.error(e);
               }
@@ -105,27 +107,50 @@ public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvi
 
   private Mono<Throwable> handle4xxError(ClientResponse r) {
     log.trace("response headers: {}", r.headers().asHttpHeaders());
-    if (Set.of(400, 401, 404, 422).contains(r.statusCode().value())) {
-      log.debug("Status code: {}", r.statusCode().value());
-      return r.bodyToMono(OperationOutcome.class)
-          .onErrorResume(
-              e -> {
-                log.error("Cannot parse OperationOutcome expected from gICS", e);
-                return Mono.error(
-                    new NoFhirServerException("Cannot parse OperationOutcome received from gICS"));
-              })
-          .flatMap(
-              b -> {
-                var diagnostics = b.getIssueFirstRep().getDiagnostics();
-                log.error(diagnostics);
-                if (r.statusCode() == NOT_FOUND) {
-                  return Mono.error(new FhirUnknownDomainException(b));
-                } else {
-                  return Mono.error(new FhirException(BAD_REQUEST, b));
-                }
-              });
-    } else {
-      return Mono.error(new NoFhirServerException("Unexpected error connecting to gICS"));
-    }
+    log.debug("Status code: {}", r.statusCode().value());
+
+    return verifyGicsCapabilities(gicsClient)
+        .onErrorResume(e -> Mono.error(new NoFhirServerException("This is no gICS server")))
+        .flatMap(
+            x ->
+                r.bodyToMono(OperationOutcome.class)
+                    .onErrorResume(
+                        e ->
+                            Mono.error(
+                                new FhirException(
+                                    INTERNAL_SERVER_ERROR,
+                                    "Unexpected Error: Cannot parse OperationOutcome from gICS")))
+                    .flatMap(
+                        operationOutcome -> {
+                          var diagnostics = operationOutcome.getIssueFirstRep().getDiagnostics();
+                          log.error(diagnostics);
+                          return switch (r.statusCode()) {
+                            case BAD_REQUEST ->
+                                // fehlende oder falsche params
+                                // kann eigentlich nicht passieren
+                                Mono.error(
+                                    new FhirException(
+                                        BAD_REQUEST, "Fehlende oder fehlerhafte Parameter."));
+                            case UNAUTHORIZED ->
+                                Mono.error(
+                                    new FhirException(
+                                        INTERNAL_SERVER_ERROR,
+                                        "Invalid GICS FHIR gateway configuration"));
+                            case NOT_FOUND ->
+                                // kommt, wenn die gics-Domain unbekannt ist
+                                Mono.error(
+                                    new FhirUnknownDomainException(
+                                        "Parameter mit unbekanntem Inhalt"));
+                            case UNPROCESSABLE_ENTITY ->
+                                // keine Ahnung wann der kommt
+                                Mono.error(
+                                    new FhirException(
+                                        UNPROCESSABLE_ENTITY,
+                                        "Fehlende oder falsche Patienten-Attribute."));
+                            default ->
+                                Mono.error(
+                                    new FhirException(INTERNAL_SERVER_ERROR, "Unknown Error^^"));
+                          };
+                        }));
   }
 }

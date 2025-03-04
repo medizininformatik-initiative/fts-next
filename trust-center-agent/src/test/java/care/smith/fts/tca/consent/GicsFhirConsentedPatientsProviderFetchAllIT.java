@@ -1,7 +1,9 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
@@ -15,10 +17,13 @@ import static java.lang.String.valueOf;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.I_AM_A_TEAPOT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
@@ -28,9 +33,9 @@ import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.FhirUtils;
 import care.smith.fts.util.error.fhir.FhirException;
-import care.smith.fts.util.error.fhir.FhirUnknownDomainException;
 import care.smith.fts.util.error.fhir.NoFhirServerException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -40,8 +45,9 @@ import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.OperationOutcome;
-import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +56,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -90,6 +97,8 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
   """;
   private static WireMock wireMock;
   private GicsFhirConsentedPatientsProvider fhirConsentProvider;
+  private static final MappingBuilder gicsRequest =
+      post(urlPathEqualTo("/$allConsentsForDomain")).withRequestBody(equalToJson(jsonBody));
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime) throws IOException {
@@ -106,6 +115,15 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
     wireMock.resetMappings();
   }
 
+  private static @NotNull CapabilityStatement gicsMockCapabilityStatement() {
+    var capabilities = new CapabilityStatement();
+    var rest = capabilities.addRest();
+    rest.addResource().setProfile("gics");
+    rest.addOperation().setName("allConsentsForDomain");
+    rest.addOperation().setName("allConsentsForPerson");
+    return capabilities;
+  }
+
   @Test
   void paging() {
     int totalEntries = 2 * defaultPageSize;
@@ -118,8 +136,7 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
             .setTotal(totalEntries);
 
     wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
+        gicsRequest
             .withQueryParams(
                 ofEntries(
                     entry("_offset", equalTo("0")),
@@ -171,8 +188,7 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
             .setTotal(totalEntries);
 
     wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
+        gicsRequest
             .withQueryParams(
                 ofEntries(
                     entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
@@ -199,8 +215,7 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
             .setTotal(totalEntries);
 
     wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
+        gicsRequest
             .withQueryParams(
                 ofEntries(
                     entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
@@ -220,78 +235,6 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
   }
 
   @Test
-  void unknownDomainCausesGicsNotFound() {
-    int pageSize = 2;
-
-    var operationOutcome = new OperationOutcome();
-    var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
-    issue.setDiagnostics("No consents found for domain");
-
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
-
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
-        .expectError(FhirUnknownDomainException.class)
-        .verify();
-  }
-
-  @Test
-  void somethingElseCausesGicsNotFound() {
-    int pageSize = 2;
-    var operationOutcome = new OperationOutcome();
-    var issue = operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
-    issue.setDiagnostics("Something's not right");
-
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
-
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
-        .expectError(FhirUnknownDomainException.class)
-        .verify();
-  }
-
-  @Test
-  void diagnosticsIsNullInHandle4xxError() {
-    int pageSize = 2;
-    var operationOutcome = new OperationOutcome();
-    operationOutcome.addIssue().setSeverity(IssueSeverity.ERROR);
-
-    wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
-            .withQueryParams(
-                ofEntries(
-                    entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
-            .willReturn(fhirResponse(operationOutcome, NOT_FOUND)));
-
-    create(
-            fhirConsentProvider.fetchAll(
-                CONSENT_FETCH_ALL_REQUEST,
-                fromUriString("http://trustcenteragent:1234"),
-                new PagingParams(0, pageSize)))
-        .expectError(FhirUnknownDomainException.class)
-        .verify();
-  }
-
-  @Test
   void emptyPoliciesYieldEmptyBundle() {
     int totalEntries = 0;
     int pageSize = 2;
@@ -304,8 +247,7 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
             .setTotal(totalEntries);
 
     wireMock.register(
-        post(urlPathEqualTo("/$allConsentsForDomain"))
-            .withRequestBody(equalToJson(jsonBody))
+        gicsRequest
             .withQueryParams(
                 ofEntries(
                     entry("_offset", equalTo("0")), entry("_count", equalTo(valueOf(pageSize)))))
@@ -324,13 +266,12 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
   }
 
   @Test
-  void responseIsNotFHIR() {
+  void serverIsNoGics() {
     wireMock.register(
-        post("/$allConsentsForDomain")
-            .withRequestBody(equalToJson(jsonBody))
-            .willReturn(status(I_AM_A_TEAPOT.value()).withBody("Would you like some milk?")));
+        gicsRequest.willReturn(
+            status(I_AM_A_TEAPOT.value()).withBody("Would you like some milk?")));
     wireMock.register(
-        get("/metadata")
+        get(urlPathEqualTo("/metadata"))
             .willReturn(status(I_AM_A_TEAPOT.value()).withBody("Would you like some milk?")));
     create(
             fhirConsentProvider.fetchAll(
@@ -341,15 +282,84 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
         .verify();
   }
 
+  private void gics4xxResponse(
+      String body, String message, HttpStatus gicsResponseStatus, HttpStatus returnStatus) {
+    wireMock.register(
+        gicsRequest.willReturn(
+            status(gicsResponseStatus.value())
+                .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+                .withBody(body)));
+    wireMock.register(
+        get(urlPathEqualTo("/metadata"))
+            .willReturn(
+                status(OK.value())
+                    .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+                    .withBody(FhirUtils.fhirResourceToString(gicsMockCapabilityStatement()))));
+    create(
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:8080"),
+                new PagingParams(0, 2)))
+        .expectErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(FhirException.class).hasMessage(message);
+              assertThat(((FhirException) error).getStatusCode()).isEqualTo(returnStatus);
+            })
+        .verify();
+  }
+
+  @Test
+  void serverIsGicsButDoesNotSendOperationOutcome() {
+    gics4xxResponse(
+        fhirResourceToString(new Bundle()),
+        "Unexpected Error: Cannot parse OperationOutcome from gICS",
+        BAD_REQUEST,
+        INTERNAL_SERVER_ERROR);
+  }
+
+  @Test
+  void gicsReturnsBadRequest() {
+    gics4xxResponse(
+        fhirResourceToString(new OperationOutcome()),
+        "Fehlende oder fehlerhafte Parameter.",
+        BAD_REQUEST,
+        BAD_REQUEST);
+  }
+
+  @Test
+  void gicsReturnsUnauthorized() {
+    gics4xxResponse(
+        fhirResourceToString(new OperationOutcome()),
+        "Invalid GICS FHIR gateway configuration",
+        UNAUTHORIZED,
+        INTERNAL_SERVER_ERROR);
+  }
+
+  @Test
+  void gicsReturnsNotFound() {
+    gics4xxResponse(
+        fhirResourceToString(new OperationOutcome()),
+        "Parameter mit unbekanntem Inhalt",
+        NOT_FOUND,
+        NOT_FOUND);
+  }
+
+  @Test
+  void gicsReturnsUnprocessableEntity() {
+    gics4xxResponse(
+        fhirResourceToString(new OperationOutcome()),
+        "Fehlende oder falsche Patienten-Attribute.",
+        UNPROCESSABLE_ENTITY,
+        UNPROCESSABLE_ENTITY);
+  }
+
   @Test
   void responseHasNoOperationOutcome() {
     wireMock.register(
-        post("/$allConsentsForDomain")
-            .withRequestBody(equalToJson(jsonBody))
-            .willReturn(
-                status(UNAUTHORIZED.value())
-                    .withHeader(CONTENT_TYPE, "text/plain")
-                    .withBody("Unauthorized")));
+        gicsRequest.willReturn(
+            status(UNAUTHORIZED.value())
+                .withHeader(CONTENT_TYPE, "text/plain")
+                .withBody("Unauthorized")));
     wireMock.register(
         get("/metadata")
             .willReturn(
@@ -386,13 +396,28 @@ class GicsFhirConsentedPatientsProviderFetchAllIT {
     fhirConsentProvider =
         new GicsFhirConsentedPatientsProvider(
             httpClientBuilder.baseUrl("http://does-not-exist").build(), meterRegistry);
-
     create(
             fhirConsentProvider.fetchAll(
                 CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://trustcenteragent:8080"),
                 new PagingParams(0, 2)))
         .expectError(NoFhirServerException.class)
+        .verify();
+  }
+
+  @Test
+  void gicsReturns5xx() {
+    wireMock.register(gicsRequest.willReturn(status(INTERNAL_SERVER_ERROR.value())));
+    create(
+            fhirConsentProvider.fetchAll(
+                CONSENT_FETCH_ALL_REQUEST,
+                fromUriString("http://trustcenteragent:8080"),
+                new PagingParams(0, 2)))
+        .expectErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(FhirException.class).hasMessage("");
+              assertThat(((FhirException) error).getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
+            })
         .verify();
   }
 }
