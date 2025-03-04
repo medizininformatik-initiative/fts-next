@@ -1,7 +1,6 @@
 package care.smith.fts.tca.consent.configuration;
 
-import static care.smith.fts.util.FhirClientUtils.fetchCapabilityStatement;
-import static care.smith.fts.util.FhirClientUtils.requireOperations;
+import static care.smith.fts.tca.consent.GicsFhirUtil.verifyGicsCapabilities;
 
 import care.smith.fts.tca.consent.GicsFhirConsentedPatientsProvider;
 import care.smith.fts.util.HttpClientConfig;
@@ -19,7 +18,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Slf4j
 @Configuration
@@ -48,13 +46,7 @@ public class GicsFhirConfiguration {
   @Bean("gicsApplicationRunner")
   ApplicationRunner runner(@Qualifier("gicsFhirHttpClient") WebClient gicsClient) {
     return args ->
-        fetchCapabilityStatement(gicsClient)
-            .flatMap(
-                c ->
-                    c.getSoftware().getName().equals("GICS")
-                        ? Mono.just(c)
-                        : Mono.error(new NoGicsException()))
-            .flatMap(c -> requireOperations(c, GICS_OPERATIONS))
+        verifyGicsCapabilities(gicsClient)
             .doOnNext(c -> log.info("gICS {} available", c.getSoftware().getVersion()))
             .doOnError(GicsFhirConfiguration::logWarning)
             .onErrorComplete()

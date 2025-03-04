@@ -1,29 +1,21 @@
 package care.smith.fts.tca.consent;
 
+import static care.smith.fts.tca.TtpFhirGatewayUtil.handle4xxError;
+import static care.smith.fts.tca.TtpFhirGatewayUtil.handleError;
+import static care.smith.fts.tca.consent.GicsFhirUtil.GICS_OPERATIONS;
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.util.error.fhir.FhirException;
-import care.smith.fts.util.error.fhir.FhirUnknownDomainException;
-import care.smith.fts.util.error.fhir.NoFhirServerException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
 import care.smith.fts.util.tca.ConsentRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
@@ -82,50 +74,17 @@ public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvi
         .uri(uri -> helper.buildUri(uri, paging))
         .bodyValue(body)
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
-        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))
+        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
-        .onStatus(HttpStatusCode::is4xxClientError, this::handle4xxError)
+        .onStatus(
+            HttpStatusCode::is4xxClientError,
+            r -> handle4xxError("gICS", gicsClient, GICS_OPERATIONS, r))
         .bodyToMono(Bundle.class)
         .doOnNext(b -> log.trace("body(n: {})", b.getEntry().size()))
         .retryWhen(defaultRetryStrategy(meterRegistry, helper.requestName()))
-        .onErrorResume(
-            e -> {
-              if (e.getCause() instanceof WebClientRequestException) {
-                return Mono.error(new NoFhirServerException("No connection to gICS server"));
-              } else if (e.getCause() instanceof WebClientResponseException) {
-                return Mono.error(new FhirException(INTERNAL_SERVER_ERROR, e.getMessage()));
-              } else {
-                return Mono.error(e);
-              }
-            })
+        .onErrorResume(e -> (Mono<? extends Bundle>) handleError("gICS", e))
         .doOnError(b -> log.error("Unable to fetch consent from gICS", b))
         .map(outerBundle -> filterOuterBundle(req.policySystem(), req.policies(), outerBundle))
         .map(bundle -> helper.processResponse(bundle, req, requestUrl, paging));
-  }
-
-  private Mono<Throwable> handle4xxError(ClientResponse r) {
-    log.trace("response headers: {}", r.headers().asHttpHeaders());
-    if (Set.of(400, 401, 404, 422).contains(r.statusCode().value())) {
-      log.debug("Status code: {}", r.statusCode().value());
-      return r.bodyToMono(OperationOutcome.class)
-          .onErrorResume(
-              e -> {
-                log.error("Cannot parse OperationOutcome expected from gICS", e);
-                return Mono.error(
-                    new NoFhirServerException("Cannot parse OperationOutcome received from gICS"));
-              })
-          .flatMap(
-              b -> {
-                var diagnostics = b.getIssueFirstRep().getDiagnostics();
-                log.error(diagnostics);
-                if (r.statusCode() == NOT_FOUND) {
-                  return Mono.error(new FhirUnknownDomainException(b));
-                } else {
-                  return Mono.error(new FhirException(BAD_REQUEST, b));
-                }
-              });
-    } else {
-      return Mono.error(new NoFhirServerException("Unexpected error connecting to gICS"));
-    }
   }
 }

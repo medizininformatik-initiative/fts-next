@@ -12,8 +12,8 @@ import reactor.core.publisher.Mono;
 
 public interface FhirClientUtils {
 
-  static Mono<CapabilityStatement> fetchCapabilityStatement(WebClient client) {
-    return client.get().uri("/metadata").retrieve().bodyToMono(CapabilityStatement.class);
+  static Mono<CapabilityStatement> fetchCapabilityStatementOperations(WebClient client) {
+    return client.get().uri("/metadata?_elements=rest.operation").retrieve().bodyToMono(CapabilityStatement.class);
   }
 
   /**

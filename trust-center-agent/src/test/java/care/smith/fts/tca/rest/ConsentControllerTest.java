@@ -8,7 +8,6 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.consent.ConsentedPatientsProvider;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
-import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.error.fhir.FhirUnknownDomainException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;

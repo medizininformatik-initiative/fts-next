@@ -1,6 +1,6 @@
 package care.smith.fts.tca.deidentification.configuration;
 
-import static care.smith.fts.util.FhirClientUtils.fetchCapabilityStatement;
+import static care.smith.fts.util.FhirClientUtils.fetchCapabilityStatementOperations;
 import static care.smith.fts.util.FhirClientUtils.requireOperations;
 
 import care.smith.fts.util.HttpClientConfig;
@@ -27,7 +27,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Data
 public class GpasFhirDeIdentificationConfiguration {
 
-  private static final List<String> GPAS_OPERATIONS = List.of("pseudonymizeAllowCreate");
+  public static final List<String> GPAS_OPERATIONS = List.of("pseudonymizeAllowCreate");
 
   @NotBlank String baseUrl;
   HttpClientAuth.Config auth = HttpClientAuth.Config.builder().none("").build();
@@ -45,7 +45,7 @@ public class GpasFhirDeIdentificationConfiguration {
   @Bean("gpasApplicationRunner")
   ApplicationRunner runner(@Qualifier("gpasFhirHttpClient") WebClient gpasClient) {
     return args ->
-        fetchCapabilityStatement(gpasClient)
+        fetchCapabilityStatementOperations(gpasClient)
             .flatMap(c -> requireOperations(c, GPAS_OPERATIONS))
             .doOnNext(i -> log.info("gPAS available"))
             .doOnError(GpasFhirDeIdentificationConfiguration::logWarning)

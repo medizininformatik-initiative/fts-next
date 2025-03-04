@@ -1,15 +1,11 @@
 package care.smith.fts.tca.rest;
 
-import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.fromFhirException;
-import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.internalServerError;
 
 import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.tca.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,7 +13,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

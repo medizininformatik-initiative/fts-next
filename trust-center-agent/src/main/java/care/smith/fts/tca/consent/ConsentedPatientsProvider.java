@@ -47,6 +47,5 @@ public interface ConsentedPatientsProvider {
     int sum() {
       return from + count;
     }
-
   }
 }
