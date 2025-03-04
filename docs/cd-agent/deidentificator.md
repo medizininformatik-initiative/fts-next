@@ -3,7 +3,7 @@
 This document describes the configuration options available for managing deidentification settings
 in the `deidentificator` section of the project configuration file.
 
-## Configuration Structure
+## Configuration Example
 
 The `deidentificator` section allows different implementations to be used for pseudonymizing and
 anonymizing patient data. At the moment there is only one implementation available out-of-the-box:
@@ -15,6 +15,8 @@ deidentificator:
     trustCenterAgent:
       server:
         baseUrl: http://tc-agent:8080
+        auth: [ ... ]
+        ssl: [ ... ]
       domains:
         pseudonym: MII
         salt: MII
