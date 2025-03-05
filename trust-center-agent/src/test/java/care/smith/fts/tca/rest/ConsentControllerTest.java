@@ -8,7 +8,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.consent.ConsentedPatientsProvider;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
-import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.error.fhir.FhirUnknownDomainException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
 import java.util.List;
@@ -70,15 +70,14 @@ class ConsentControllerTest {
   @Test
   void fetchErrorResponseYieldsBadRequest() {
     given(provider.fetchAll(consentFetchAllRequest, requestUrl, new PagingParams(0, 1)))
-        .willReturn(Mono.error(new UnknownDomainException("")));
+        .willReturn(Mono.error(new FhirUnknownDomainException("")));
     given(provider.fetch(consentFetchRequest, requestUrl, new PagingParams(0, 1)))
-        .willReturn(Mono.error(new UnknownDomainException("")));
+        .willReturn(Mono.error(new FhirUnknownDomainException("")));
     responses()
         .forEach(
             response ->
                 create(response)
-                    .assertNext(
-                        b -> assertThat(b.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST))
+                    .assertNext(b -> assertThat(b.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND))
                     .verifyComplete());
   }
 

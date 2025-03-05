@@ -1,11 +1,8 @@
 package care.smith.fts.tca.deidentification;
 
+import care.smith.fts.util.tca.ResearchMappingResponse;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
-import care.smith.fts.util.tca.ResearchMappingResponse;
-import care.smith.fts.util.tca.TCADomains;
-import java.time.Duration;
-import java.util.Set;
 import reactor.core.publisher.Mono;
 
 public interface MappingProvider {

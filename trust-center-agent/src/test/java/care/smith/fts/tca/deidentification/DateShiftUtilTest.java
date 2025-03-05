@@ -19,8 +19,7 @@ class DateShiftUtilTest {
   void randomCDShiftIsInRange() {
     for (int i = 0; i < NUM_RANDOM_SHIFTS; i++) {
       var dateShiftValues = generate(valueOf(currentTimeMillis()), MAX_DATE_SHIFT);
-      assertThat(dateShiftValues.cdDateShift().abs())
-          .isLessThanOrEqualTo(MAX_DATE_SHIFT);
+      assertThat(dateShiftValues.cdDateShift().abs()).isLessThanOrEqualTo(MAX_DATE_SHIFT);
     }
   }
 
