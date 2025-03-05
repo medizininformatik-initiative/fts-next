@@ -1,6 +1,5 @@
 package care.smith.fts.tca.rest;
 
-
 import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
