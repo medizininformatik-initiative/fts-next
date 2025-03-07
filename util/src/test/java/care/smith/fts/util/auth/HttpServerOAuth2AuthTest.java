@@ -18,38 +18,7 @@ import org.springframework.security.web.server.authorization.AuthorizationWebFil
 import reactor.core.publisher.Mono;
 
 class HttpServerOAuth2AuthTest {
-  static class TestHttpServerOAuth2Auth extends HttpServerOAuth2Auth {
-    TestHttpServerOAuth2Auth() {
-      super("https://test-issuer");
-    }
-
-    @Override
-    protected ReactiveJwtDecoder createJwtDecoder() {
-      return token -> {
-        Map<String, Object> claims = new HashMap<>();
-        return Mono.just(
-            new Jwt(
-                "token",
-                Instant.now(),
-                Instant.now().plusSeconds(60),
-                Map.of("alg", "none"),
-                claims));
-      };
-    }
-  }
-
-  TestHttpServerOAuth2Auth auth = new TestHttpServerOAuth2Auth();
-
-  @Test
-  void configure() {
-    var security = ServerHttpSecurity.http();
-    var chain = auth.configure(security).build();
-    var filters = chain.getWebFilters().collectList().block();
-
-    assertThat(filters)
-        .filteredOn(filter -> filter instanceof AuthenticationWebFilter)
-        .isNotEmpty();
-  }
+  HttpServerOAuth2Auth auth = new HttpServerOAuth2Auth("https://test-issuer");
 
   @Test
   void filterShouldRequireAuthenticationForEndpointPath() {

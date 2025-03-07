@@ -14,27 +14,27 @@ function countResources() {
 }
 
 function expectCount() {
-  jq -r ".count.${2}" <"results/${1}.json"
+  jq -r ".count.${2}" <"results/${1}"
 }
 
 echo "Check Transferred Patient Data"
 assert "transferred patients count" \
-  "$(countResources "Patient")" "$(expectCount "${1:-100}" Patient)"
+  "$(countResources "Patient")" "$(expectCount "${2:-example.json}" Patient)"
 
 assert "transferred conditions count" \
-  "$(countResources "Encounter")" "$(expectCount "${1:-100}" Encounter)"
+  "$(countResources "Encounter")" "$(expectCount "${2:-example.json}" Encounter)"
 
 assert "transferred observations count" \
-  "$(countResources "Observation")" "$(expectCount "${1:-100}" Observation)"
+  "$(countResources "Observation")" "$(expectCount "${2:-example.json}" Observation)"
 
 assert "transferred conditions count" \
-  "$(countResources "Condition")" "$(expectCount "${1:-100}" Condition)"
+  "$(countResources "Condition")" "$(expectCount "${2:-example.json}" Condition)"
 
 assert "transferred diagnostic reports count" \
-  "$(countResources "DiagnosticReport")" "$(expectCount "${1:-100}" DiagnosticReport)"
+  "$(countResources "DiagnosticReport")" "$(expectCount "${2:-example.json}" DiagnosticReport)"
 
 assert "transferred medications count" \
-  "$(countResources "Medication")" "$(expectCount "${1:-100}" Medication)"
+  "$(countResources "Medication")" "$(expectCount "${2:-example.json}" Medication)"
 
 assert "transferred medication administration count" \
-  "$(countResources "MedicationAdministration")" "$(expectCount "${1:-100}" MedicationAdministration)"
+  "$(countResources "MedicationAdministration")" "$(expectCount "${2:-example.json}" MedicationAdministration)"

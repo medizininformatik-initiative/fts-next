@@ -7,7 +7,6 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,8 +16,7 @@ public record HttpServerClientCertAuth(List<UserSpec> users) implements HttpServ
 
   @Override
   public ServerHttpSecurity configure(ServerHttpSecurity http) {
-    return http
-        .x509(x509 -> x509.principalExtractor(HttpServerClientCertAuth::extractCN));
+    return http.x509(x509 -> x509.principalExtractor(HttpServerClientCertAuth::extractCN));
   }
 
   private static String extractCN(X509Certificate cert) {

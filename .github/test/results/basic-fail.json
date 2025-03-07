@@ -1,5 +1,6 @@
 {
-  "sentBundles": 100,
+  "phase": "FATAL",
+  "sentBundles": 0,
   "skippedBundles": 0,
   "count": {
     "total": 21,

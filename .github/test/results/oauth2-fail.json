@@ -1,0 +1,15 @@
+{
+  "phase": "COMPLETED_WITH_ERROR",
+  "sentBundles": 0,
+  "skippedBundles": 118,
+  "count": {
+    "total": 21,
+    "Patient": 100,
+    "Encounter": 760,
+    "Observation": 7855,
+    "Condition": 4675,
+    "DiagnosticReport": 499,
+    "Medication": 0,
+    "MedicationAdministration": 169
+  }
+}

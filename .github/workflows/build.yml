@@ -166,6 +166,7 @@ jobs:
         working-directory: .github/test
     env:
       TEST_SET_SIZE: 100
+
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -190,6 +191,14 @@ jobs:
     - name: Install Blazectl
       run: install-blazectl.sh
 
+    - name: Prepare Auth Failing Tests
+      uses: mikefarah/yq@8bf425b4d1344db7cd469a8d10a390876e0c77fd # v4
+      with:
+        cmd: >-
+          cd .github/test/cd-agent/projects &&
+          yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' example.yaml >basic-fail.yaml &&
+          yq 'del(.bundleSender.researchDomainAgent.server.auth)' example.yaml >oauth2-fail.yaml
+
     - name: Start Test Environment
       run: make start
 
@@ -212,16 +221,34 @@ jobs:
 
     - name: Run e2e for all Consented Patients
       run: |
-        make transfer-all wait
-        make check-status check-resources
+        make transfer-all PROJECT=example 
+        make wait
+        make check-status RESULTS_FILE=example.json
+        make check-resources RESULTS_FILE=example.json
 
     - name: Clean RD HDS and gPAS DB
       run: make clean-rd-hds-and-gpas-db
 
     - name: Run e2e for Selected Patients
       run: |
-        make transfer-list wait
-        make check-status check-resources
+        make transfer-list PROJECT=example 
+        make wait
+        make check-status RESULTS_FILE=example.json
+        make check-resources RESULTS_FILE=example.json
+
+    - name: Run e2e with failing Basic Auth
+      run: |
+        make transfer-all PROJECT=basic-fail
+        make wait
+        make check-status RESULTS_FILE=basic-fail.json
+        make check-resources RESULTS_FILE=basic-fail.json
+
+    - name: Run e2e with failing OAuth2 Auth
+      run: |
+        make transfer-all PROJECT=oauth2-fail
+        make wait
+        make check-status RESULTS_FILE=oauth2-fail.json
+        make check-resources RESULTS_FILE=oauth2-fail.json
 
     - name: Collect Agent Logs
       if: failure() || cancelled()

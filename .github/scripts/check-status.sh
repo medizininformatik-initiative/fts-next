@@ -9,10 +9,10 @@ if [ -z "${1:-}" ]; then
   exit 2
 fi
 
-status="$(curl -sf "${1}")"
+status="$(curl -s "${1}")"
 
 echo "Check Transfer Result Status"
-assert "phase" "$(echo "${status}" | jq -r .phase)" "COMPLETED"
+assert "phase" "$(echo "${status}" | jq -r .phase)" "$(jq -r .phase <"results/${2:-example.json}")"
 echo "${status}"
-assert-ge "number of bundles sent" "$(echo "${status}" | jq -r .sentBundles)" "$(jq -r .sentBundles <"results/${2:-100}.json")"
-assert "number of patients skipped" "$(echo "${status}" | jq -r .skippedBundles)" "$(jq -r .skippedBundles <"results/${2:-100}.json")"
+assert "number of bundles sent" "$(echo "${status}" | jq -r .sentBundles)" "$(jq -r .sentBundles <"results/${2:-example.json}")"
+assert "number of patients skipped" "$(echo "${status}" | jq -r .skippedBundles)" "$(jq -r .skippedBundles <"results/${2:-example.json}")"

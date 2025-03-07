@@ -60,7 +60,7 @@ class HttpClientAuthTest {
   }
 
   @Test
-  void oauth2CookieVonstructor() {
+  void oauth2CookieConstructor() {
     var config = new Config(oauth2, cookieToken);
     assertThat(config.basic()).isNull();
     assertThat(config.oauth2()).isNotNull();

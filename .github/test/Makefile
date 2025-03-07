@@ -18,10 +18,10 @@ upload:
 	../scripts/upload-data.sh ${TEST_SET_SIZE}
 
 transfer-all:
-	../scripts/start-transfer-all.sh example >process.url
+	../scripts/start-transfer-all.sh ${PROJECT} >process.url
 
 transfer-list:
-	../scripts/start-transfer-list.sh example ${TEST_SET_SIZE} >process.url
+	../scripts/start-transfer-list.sh ${PROJECT} ${TEST_SET_SIZE} >process.url
 
 wait:
 	../scripts/await-transfer.sh "$(shell cat process.url)"
@@ -30,13 +30,13 @@ check-consent:
 	../scripts/check-consent.sh ${TEST_SET_SIZE}
 
 check-status:
-	../scripts/check-status.sh "$(shell cat process.url)" ${TEST_SET_SIZE}
+	../scripts/check-status.sh "$(shell cat process.url)" ${RESULTS_FILE}
 
 check-resources:
 	../scripts/check-resources.sh ${TEST_SET_SIZE}
 
 show-status:
-	curl -sf "$(shell cat process.url)"
+	curl -s "$(shell cat process.url)"
 
 list-projects:
 	../scripts/list-projects.sh
