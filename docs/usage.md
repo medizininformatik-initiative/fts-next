@@ -34,3 +34,7 @@ sequenceDiagram
         RDA ->> RDA: deidentify Patient
     end
 ```
+
+## Important Notes
+
+- **Domain prerequisite**: Any domains referenced in FTSnext configuration must be pre-created in your consent and pseudonym management systems. FTSnext does not have the capability to create or alter domains.

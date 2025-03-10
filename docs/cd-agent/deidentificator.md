@@ -66,6 +66,8 @@ deidentification of FHIR bundles.
       domains:
         salt: MII_SALT
   ```
+* **Important**: This domain must already exist in gPAS before FTSnext can use it. FTSnext cannot
+  create or alter domains.
 
 #### `trustCenterAgent.domains.dateShift` <Badge type="warning" text="Since 5.0" />
 
@@ -77,6 +79,8 @@ deidentification of FHIR bundles.
       domains:
         dateShift: MII_DATE_SHIFT
   ```
+* **Important**: This domain must already exist in gPAS before FTSnext can use it. FTSnext cannot
+  create or alter domains.
 
 #### `maxDateShift` <Badge type="warning" text="Since 5.0" />
 
@@ -86,6 +90,8 @@ deidentification of FHIR bundles.
   ```yaml
     maxDateShift: P30D
   ```
+* **Important**: This domain must already exist in gPAS before FTSnext can use it. FTSnext cannot
+  create or alter domains.
 
 #### `deidentifhirConfig` <Badge type="warning" text="Since 5.0" />
 
