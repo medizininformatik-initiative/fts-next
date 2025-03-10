@@ -49,7 +49,7 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
       patientIdentifierSystem: http://custom.identifier.system
   ```
 
-#### `pageSize` <Badge type="warning" text="Since 5.1" />
+#### `pageSize` <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.1" />
 
 * **Description**: Specifies the maximum number of FHIR resources to be included in a single bundle
   when requesting data from the clinical domain health data storage (cd-hds).

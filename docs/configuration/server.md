@@ -1,4 +1,4 @@
-# Server <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.0" />
+# Server <Badge type="tip" text="All Agents" /> <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.0" />
 
 This page documents the `server` section of the FTSnext agent configuration file
 (`application.yaml`).
