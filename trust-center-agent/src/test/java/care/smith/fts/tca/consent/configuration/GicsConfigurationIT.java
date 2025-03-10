@@ -2,7 +2,6 @@ package care.smith.fts.tca.consent.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.tca.consent.GicsFhirConsentedPatientsProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,29 +12,33 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
-class GicsFhirConfigurationIT {
-
-  @Autowired private GicsFhirConfiguration gicsFhirConfiguration;
-  @Autowired private GicsFhirConsentedPatientsProvider fhirConsentProvider;
+class GicsConfigurationIT {
+  @Autowired
+  private GicsConfiguration gicsConfiguration;
 
   @MockitoBean
   RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start
-
-  @Test
-  void getBaseUrl() {
-    assertThat(gicsFhirConfiguration.getBaseUrl()).isNotNull();
-  }
 
   /*
    * The page size is set to 200 in test/resources/application.yaml
    * */
   @Test
   void getPageSize() {
-    assertThat(gicsFhirConfiguration.getDefaultPageSize()).isEqualTo(200);
+    assertThat(gicsConfiguration.getPageSize()).isEqualTo(200);
   }
 
   @Test
-  void fhirConsentedPatientsProvider() {
-    assertThat(fhirConsentProvider).isNotNull();
+  void getDefaultPageSizeIfPageSizeIsNull() {
+    var localGicsConfiguration = new GicsConfiguration();
+    localGicsConfiguration.setPageSize(null);
+    localGicsConfiguration.setFhir(gicsConfiguration.getFhir());
+
+    assertThat(localGicsConfiguration.getPageSize()).isEqualTo(null);
+    assertThat(localGicsConfiguration.pageSize()).isEqualTo(50);
+  }
+
+  @Test
+  void getBaseUrl() {
+    assertThat(gicsConfiguration.fhir.getBaseUrl()).isNotNull();
   }
 }
