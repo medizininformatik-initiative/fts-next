@@ -43,18 +43,25 @@ deIdentification:
 * **Default Value**: `PT10M` (10 minutes in ISO-8601 duration format)
 * **Notes**:
   * This value determines how long transport pseudonyms remain valid.
-  * Adjust this based on the system's security and operational requirements.
+  * Adjust this based on your security and operational requirements.
 
 ## Notes
 
+* **Domain Prerequisites**:
+  * All domains specified in the CDA's project configuration (`pseudonym`, `salt`, and
+    `dateShift`) **must be created in gPAS before FTSnext can use them**.
+  * FTSnext does not create domains, so this setup must be done manually
+    or through other administrative interfaces.
+
 * **Customization**:
-  *Each field can be customized based on deployment-specific requirements.
-  *Ensure changes to the configuration are consistent with service dependencies.
+  * Each field can be customized based on deployment-specific requirements.
+  * Ensure changes to the configuration are consistent with service dependencies.
 
 * **Validation**:
-  *Use YAML validation tools to verify the integrity of the configuration file.
-  *Confirm that all referenced services (e.g., Redis, gPAS FHIR gateway) are available and properly
-  authenticated.
+  * Use YAML validation tools to verify the integrity of the configuration file.
+  * Confirm that all referenced services (e.g., Redis, gPAS FHIR gateway) are available and
+    properly
+    authenticated.
 
 * **Security Considerations**:
   * Secure access to the keystore and FHIR gateway endpoints to prevent unauthorized access.

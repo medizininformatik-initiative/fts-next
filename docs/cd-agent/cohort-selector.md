@@ -48,6 +48,8 @@ transfer.
   ```yaml
     domain: ResearchDomain
   ```
+* **Important**: This domain must already exist in gICS before FTSnext can use it. FTSnext cannot
+  create or alter domains through the FHIR gateway.
 
 #### `patientIdentifierSystem` <Badge type="warning" text="Since 5.0" />
 
@@ -80,8 +82,8 @@ transfer.
   ```
 
 ## Notes
-
 * The `domain` field should be chosen carefully to avoid overlapping data between namespaces.
+* Ensure that `domain` is correctly configured in the trust center.
 * The `patientIdentifierSystem` and `policySystem` fields must reference valid FHIR-based system
   URLs.
 * When defining policies, ensure they align with the consent requirements of your organization.
