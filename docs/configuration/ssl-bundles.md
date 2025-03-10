@@ -1,4 +1,4 @@
-# SSL Bundles <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.0" />
+# SSL Bundles <Badge type="tip" text="All Agents" /> <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.0" />
 
 This page documents the `spring.ssl.bundle` section of the FTSnext agent configuration file
 (`application.yaml`), which allows for the setup of PEM-based SSL certificate and trust management

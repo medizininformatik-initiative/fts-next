@@ -1,4 +1,4 @@
-# Security <Badge type="tip" text="All Agents" /> <Badge type="warning" text="Since 5.0" />
+# Security <Badge type="tip" text="All Agents" /> <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.0" />
 
 The `security` configuration is used to define secure endpoint paths and authentication methods for
 FTSnext agents.
