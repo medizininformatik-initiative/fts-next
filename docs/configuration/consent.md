@@ -10,10 +10,12 @@ management.
 
 ```yaml
 consent:
-  gics.fhir:
-    baseUrl: http://gics:8080/ttp-fhir/fhir/gics
-    auth: [ ... ]
-    ssl: [ ... ]
+  gics:
+    fhir:
+      baseUrl: http://gics:8080/ttp-fhir/fhir/gics
+      auth: [ ... ]
+      ssl: [ ... ]    
+    pageSize: 50
 ```
 
 ## Fields
@@ -23,8 +25,20 @@ consent:
 * **Description**: Defines settings for connecting to gICS
 * **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
 
-### `gics.fhir.defaultPageSize` <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.0" />
+### `gics.pageSize` <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.2" />
 
+* **Description**: Specifies the maximum number of consents to be included in a single request.
+  This parameter helps control memory usage and network load by limiting the size of data transfers.
+* **Type**: Integer
+* **Default**: 50
+* **Example**:
+  ```yaml
+    pageSize: 100
+  ```
+  
+### `gics.fhir.defaultPageSize` <Badge type="danger" text="Deprecated" /> <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.0" />
+
+* **Deprecated**: Will be removed in version 5.4
 * **Description**: Specifies the maximum number of Consents to be included in a single request.
   This parameter helps control memory usage and network load by limiting the size of data transfers.
 * **Type**: Integer
