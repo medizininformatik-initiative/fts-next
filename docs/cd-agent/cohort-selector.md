@@ -4,7 +4,7 @@ This document describes the configuration options available for managing cohort 
 in the `cohortSelector` section of the project configuration file. These settings control how
 consent data is retrieved and filtered.
 
-## Configuration Structure
+## Example Configuration
 
 The `cohortSelector` section allows different implementations to be used for selecting the transfer
 cohort, at the moment there is only one implementation available out-of-the-box: `trustCenterAgent`.
@@ -14,10 +14,17 @@ cohortSelector:
   trustCenterAgent:
     server:
       baseUrl: http://tc-agent:8080
+      auth: [ ... ]
+      ssl: [ ... ]
     domain: MII
     patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
-    policySystem: "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy"
-    policies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
+    # e.g.: https://simplifier.net/medizininformatikinitiative-modulconsent/2.16.840.1.113883.3.1937.777.24.5.3--20210423105554
+    policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3" # MII CS Consent Policy
+    policies:
+    - 2.16.840.1.113883.3.1937.777.24.5.3.2    # IDAT erheben
+    - 2.16.840.1.113883.3.1937.777.24.5.3.3    # IDAT speichern, verarbeiten
+    - 2.16.840.1.113883.3.1937.777.24.5.3.6    # MDAT erheben
+    - 2.16.840.1.113883.3.1937.777.24.5.3.7    # MDAT speichern, verarbeiten
 ```
 
 ## Fields
@@ -68,7 +75,7 @@ transfer.
 * **Type**: String
 * **Example**:
   ```yaml
-    policySystem: "https://example.org/fhir/CodeSystem/Policy"
+    policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3" # MII CS Consent Policy
   ```
 
 #### `policies` <Badge type="warning" text="Since 5.0" />
@@ -78,7 +85,8 @@ transfer.
 * **Type**: Array of Strings
 * **Example**:
   ```yaml
-    policies: [ "IDAT_view", "MDAT_process" ]
+    policies:
+    - 2.16.840.1.113883.3.1937.777.24.5.3.2    # IDAT erheben
   ```
 
 ## Notes
