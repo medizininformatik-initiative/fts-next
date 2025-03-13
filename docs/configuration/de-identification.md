@@ -37,7 +37,7 @@ deIdentification:
   * This URL is used for interacting with the FHIR service.
   * The endpoint should be accessible and compliant with the gPAS FHIR gateway specifications.
 
-### `transport.ttl` <Badge type="warning" text="Since 5.0" />
+### `transport.ttl` <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies the Time-To-Live (TTL) duration for transport pseudonyms.
 * **Default Value**: `PT10M` (10 minutes in ISO-8601 duration format)
