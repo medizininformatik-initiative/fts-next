@@ -1,8 +1,8 @@
 # FHIR Transfer Services Usage Guide
 
 Welcome to the FHIR Transfer Services user guide! This guide will help you get started with running
-the FHIR Transfer Services components: Clinical Domain Agent (CDA),
-Research Domain Agent (RDA), and Trust Center Agent (TCA).
+the FHIR Transfer Services components: Clinical Domain Agent (CDA), Research Domain Agent (RDA),
+and Trust Center Agent (TCA).
 
 ## Getting Started
 
@@ -34,3 +34,9 @@ sequenceDiagram
         RDA ->> RDA: deidentify Patient
     end
 ```
+
+## Important Notes
+
+* **Domain prerequisite**: Any domains referenced in FTSnext configuration must be pre-created in
+  your consent and pseudonym management systems. FTSnext does not have the capability to create or
+  alter domains.
