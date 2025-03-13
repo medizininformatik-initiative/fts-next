@@ -4,7 +4,7 @@ This document describes the configuration options available for managing the `bu
 of the configuration file. This section is responsible for defining how bundles are sent after being
 processed by the CDA.
 
-## Configuration Structure
+## Configuration Example
 
 The `bundleSender` section allows different implementations to be used for sending processed
 bundles, at the moment there is only one implementation available out-of-the-box:
@@ -15,6 +15,8 @@ bundleSender:
   researchDomainAgent:
     server:
       baseUrl: http://rd-agent:8080
+      auth: [ ... ]
+      ssl: [ ... ]
     project: example
 ```
 
