@@ -116,6 +116,23 @@
           "range": true,
           "refId": "A",
           "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum by(le) (rate(http_client_requests_seconds_bucket{job=\"cda\", uri=\"/api/v2/cd/consented-patients/fetch-all\"}[1m]))",
+          "format": "heatmap",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "range": true,
+          "refId": "B",
+          "useBackend": false
         }
       ],
       "title": "fetchBundle",
@@ -190,6 +207,23 @@
           "instant": false,
           "range": true,
           "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum by(le) (http_client_requests_seconds_bucket{job=\"cda\", uri=\"/api/v2/cd/consented-patients/fetch-all\"})",
+          "format": "heatmap",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "range": true,
+          "refId": "B",
           "useBackend": false
         }
       ],
@@ -1888,7 +1922,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(le) (rate(http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/resolve-pseudonyms\"}[1m]))",
+          "expr": "sum by(le) (rate(http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/research-mapping\"}[1m]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1962,7 +1996,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(le) (http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/resolve-pseudonyms\"})",
+          "expr": "sum by(le) (http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/research-mapping\"})",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
