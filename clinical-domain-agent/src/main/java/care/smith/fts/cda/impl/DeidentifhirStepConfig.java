@@ -9,7 +9,7 @@ public record DeidentifhirStepConfig(
     TCAConfig trustCenterAgent,
     Duration maxDateShift,
     boolean keepDaytime,
-    boolean keepWeekday,
+    boolean keepWeekdayAndDaytime,
     File deidentifhirConfig,
     File scraperConfig) {
 

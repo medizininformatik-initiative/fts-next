@@ -22,6 +22,8 @@ deidentificator:
         salt: MII
         dateShift: MII
     maxDateShift: P14D
+    keepDaytime: false
+    keepWeekdayAndDaytime: false
     deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
     scraperConfig: /app/config/deidentifhir/IDScraper.profile
 ```
@@ -93,6 +95,24 @@ deidentification of FHIR bundles.
 * **Example**:
   ```yaml
     maxDateShift: P30D
+  ```
+
+#### `keepDaytime` <Badge type="warning" text="Since 5.3" />
+
+* **Description**: If true the daytime is kept.  
+* **Type**: Boolean
+* **Example**:
+  ```yaml
+    keepDaytime: true
+  ```
+
+#### `keepWeekdayAndDaytime` <Badge type="warning" text="Since 5.3" />
+
+* **Description**: If true the weekday and the daytime are kept.  
+* **Type**: Boolean
+* **Example**:
+  ```yaml
+    keepWeekdayAndDaytime: true
   ```
 
 #### `deidentifhirConfig` <Badge type="warning" text="Since 5.0" />

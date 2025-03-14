@@ -66,7 +66,7 @@ class FhirMappingProviderTest {
 
   private static final TCADomains DEFAULT_DOMAINS = new TCADomains("domain", "domain", "domain");
   private static final TransportMappingRequest DEFAULT_REQUEST =
-      new TransportMappingRequest("id1", Set.of("id1"), DEFAULT_DOMAINS, Duration.ofDays(14));
+      new TransportMappingRequest("id1", Set.of("id1"), DEFAULT_DOMAINS, Duration.ofDays(14), false, false);
 
   @Autowired WebClient.Builder httpClientBuilder;
   @MockitoBean RedissonClient redisClient;
@@ -128,7 +128,7 @@ class FhirMappingProviderTest {
 
     var ids = Set.of("Patient.id1", "identifier.id1");
     var mapName = "wSUYQUR3Y";
-    var request = new TransportMappingRequest("id1", ids, DEFAULT_DOMAINS, Duration.ofDays(14));
+    var request = new TransportMappingRequest("id1", ids, DEFAULT_DOMAINS, Duration.ofDays(14), false, false);
     create(mappingProvider.generateTransportMapping(request))
         .assertNext(
             r -> {

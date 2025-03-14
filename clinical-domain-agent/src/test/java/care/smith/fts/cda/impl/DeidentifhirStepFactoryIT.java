@@ -43,6 +43,8 @@ class DeidentifhirStepFactoryIT {
                         new HttpClientConfig("baseUrl:1234"),
                         new TCADomains("domain", "domain", "domain")),
                     ofDays(14),
+                    false,
+                    false,
                     new File("deidentifhirConfig"),
                     new File("scraperConfig"))))
         .isNotNull();

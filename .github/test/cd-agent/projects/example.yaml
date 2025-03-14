@@ -72,8 +72,8 @@ deidentificator:
     maxDateShift: P14D
     # Should the time of the day be preserved
     keepDaytime: false
-    # Should the weekday be preserved
-    keepWeekday: false
+    # Should the weekday and the daytime be preserved
+    keepWeekdayAndDaytime: false
     # Deidentifhir needs additional configuration, which must be available within the agent's
     # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
     deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
