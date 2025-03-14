@@ -29,7 +29,7 @@ public class GicsFhirConfiguration {
       List.of("allConsentsForDomain", "allConsentsForPerson");
 
   @NotBlank String baseUrl;
-  int defaultPageSize = 50;
+  @Deprecated int defaultPageSize = 50;
   HttpClientAuth.Config auth = HttpClientAuth.Config.builder().none("").build();
   HttpClientConfig.Ssl ssl = null;
 
