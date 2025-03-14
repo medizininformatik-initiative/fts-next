@@ -1,11 +1,12 @@
 package care.smith.fts.tca.consent;
 
+import static care.smith.fts.tca.TtpFhirGatewayUtil.handle4xxError;
+import static care.smith.fts.tca.TtpFhirGatewayUtil.handleError;
+import static care.smith.fts.tca.consent.GicsFhirUtil.GICS_OPERATIONS;
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
 import care.smith.fts.util.tca.ConsentRequest;
@@ -13,15 +14,14 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 /** This class provides functionalities for handling FHIR consents using an HTTP client. */
 @Slf4j
-public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider {
+public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvider {
   private final WebClient gicsClient;
   private final MeterRegistry meterRegistry;
 
@@ -30,7 +30,7 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
    *
    * @param gicsClient the WebClient used for HTTP requests
    */
-  public FhirConsentedPatientsProvider(WebClient gicsClient, MeterRegistry meterRegistry) {
+  public GicsFhirConsentedPatientsProvider(WebClient gicsClient, MeterRegistry meterRegistry) {
     this.gicsClient = gicsClient;
     this.meterRegistry = meterRegistry;
   }
@@ -74,32 +74,17 @@ public class FhirConsentedPatientsProvider implements ConsentedPatientsProvider 
         .uri(uri -> helper.buildUri(uri, paging))
         .bodyValue(body)
         .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
-        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON, APPLICATION_JSON)))
+        .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .onStatus(
-            r -> r.equals(HttpStatus.NOT_FOUND), FhirConsentedPatientsProvider::handleGicsNotFound)
+            HttpStatusCode::is4xxClientError,
+            r -> handle4xxError("gICS", gicsClient, GICS_OPERATIONS, r))
         .bodyToMono(Bundle.class)
         .doOnNext(b -> log.trace("body(n: {})", b.getEntry().size()))
         .retryWhen(defaultRetryStrategy(meterRegistry, helper.requestName()))
+        .onErrorResume(e -> handleError("gICS", e))
         .doOnError(b -> log.error("Unable to fetch consent from gICS", b))
         .map(outerBundle -> filterOuterBundle(req.policySystem(), req.policies(), outerBundle))
         .map(bundle -> helper.processResponse(bundle, req, requestUrl, paging));
-  }
-
-  private static Mono<Throwable> handleGicsNotFound(ClientResponse r) {
-    log.trace("response headers: {}", r.headers().asHttpHeaders());
-    return r.bodyToMono(OperationOutcome.class)
-        .doOnNext(re -> log.info("{}", re))
-        .flatMap(
-            b -> {
-              log.info("issue: {}", b.getIssueFirstRep());
-              var diagnostics = b.getIssueFirstRep().getDiagnostics();
-              log.error(diagnostics);
-              if (diagnostics != null && diagnostics.startsWith("No consents found for domain")) {
-                return Mono.error(new UnknownDomainException(diagnostics));
-              } else {
-                return Mono.error(new IllegalArgumentException());
-              }
-            });
   }
 }

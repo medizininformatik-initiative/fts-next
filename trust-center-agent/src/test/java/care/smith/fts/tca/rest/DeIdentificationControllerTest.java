@@ -3,6 +3,7 @@ package care.smith.fts.tca.rest;
 import static java.time.Duration.ofDays;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.MappingProvider;
@@ -12,7 +13,6 @@ import care.smith.fts.util.tca.ResearchMappingResponse;
 import care.smith.fts.util.tca.TCADomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
-import com.github.dockerjava.api.exception.InternalServerErrorException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -118,7 +118,7 @@ class DeIdentificationControllerTest {
     var ids = Set.of("id1", "id2");
     var request = new TransportMappingRequest("id1", ids, DEFAULT_DOMAINS, ofDays(14));
     given(mappingProvider.generateTransportMapping(request))
-        .willReturn(Mono.error(new InternalServerErrorException("Internal Server Error")));
+        .willReturn(Mono.error(new ResponseStatusException(INTERNAL_SERVER_ERROR)));
 
     create(controller.transportMapping(Mono.just(request)))
         .assertNext(
@@ -164,8 +164,7 @@ class DeIdentificationControllerTest {
     create(controller.researchMapping("transferId"))
         .expectNext(
             ResponseEntity.of(
-                    ProblemDetail.forStatusAndDetail(
-                        HttpStatus.INTERNAL_SERVER_ERROR, "error message"))
+                    ProblemDetail.forStatusAndDetail(INTERNAL_SERVER_ERROR, "error message"))
                 .build())
         .verifyComplete();
   }
@@ -179,7 +178,7 @@ class DeIdentificationControllerTest {
         .expectNext(
             ResponseEntity.of(
                     ProblemDetail.forStatusAndDetail(
-                        HttpStatus.INTERNAL_SERVER_ERROR, "Invalid dateShiftMillis value."))
+                        INTERNAL_SERVER_ERROR, "Invalid dateShiftMillis value."))
                 .build())
         .verifyComplete();
   }

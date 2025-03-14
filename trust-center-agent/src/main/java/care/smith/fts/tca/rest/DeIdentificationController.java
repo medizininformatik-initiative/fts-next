@@ -5,7 +5,6 @@ import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -80,6 +79,7 @@ public class DeIdentificationController {
         @ApiResponse(
             responseCode = "200",
             content = @Content(schema = @Schema(implementation = ResearchMappingResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid transfer id"),
       })
   public Mono<ResponseEntity<ResearchMappingResponse>> researchMapping(
       @RequestBody @NotNull @Pattern(regexp = "^[\\w-]+$") String transferId) {

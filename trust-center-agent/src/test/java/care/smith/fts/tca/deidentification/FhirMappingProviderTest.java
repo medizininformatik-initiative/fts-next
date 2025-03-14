@@ -3,10 +3,14 @@ package care.smith.fts.tca.deidentification;
 import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -14,15 +18,17 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.OK;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
-import care.smith.fts.util.error.UnknownDomainException;
+import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.tca.TCADomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.common.ContentTypes;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -33,6 +39,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -167,6 +174,13 @@ class FhirMappingProviderTest {
         .verify();
   }
 
+  private static CapabilityStatement gpasMockCapabilityStatement() {
+    var capabilities = new CapabilityStatement();
+    var rest = capabilities.addRest();
+    rest.addOperation().setName("pseudonymizeAllowCreate");
+    return capabilities;
+  }
+
   @Test
   void fetchResearchMappingWithUnknownDomainException() {
     wireMock.register(
@@ -179,12 +193,19 @@ class FhirMappingProviderTest {
                                    "diagnostics": "Unknown domain"}]}
                        """,
                     BAD_REQUEST)));
+    wireMock.register(
+        get(urlPathEqualTo("/metadata"))
+            .withQueryParam("_elements", equalTo("rest.operation"))
+            .willReturn(
+                status(OK.value())
+                    .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
+                    .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
-        .expectError(UnknownDomainException.class)
+        .expectError(FhirException.class)
         .verify();
   }
 
@@ -200,12 +221,19 @@ class FhirMappingProviderTest {
            "diagnostics": "Unknown error"}]}
 """,
                     BAD_REQUEST)));
+    wireMock.register(
+        get(urlPathEqualTo("/metadata"))
+            .withQueryParam("_elements", equalTo("rest.operation"))
+            .willReturn(
+                status(OK.value())
+                    .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
+                    .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
-        .expectError(IllegalArgumentException.class)
+        .expectError(FhirException.class)
         .verify();
   }
 

@@ -2,7 +2,7 @@ package care.smith.fts.tca.consent.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.tca.consent.FhirConsentedPatientsProvider;
+import care.smith.fts.tca.consent.GicsFhirConsentedPatientsProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,7 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 class GicsFhirConfigurationIT {
 
   @Autowired private GicsFhirConfiguration gicsFhirConfiguration;
-  @Autowired private FhirConsentedPatientsProvider fhirConsentProvider;
+  @Autowired private GicsFhirConsentedPatientsProvider fhirConsentProvider;
 
   @MockitoBean
   RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start

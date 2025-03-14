@@ -10,7 +10,9 @@ import java.util.stream.Collector;
 import java.util.stream.Stream;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.hl7.fhir.r4.model.Resource;
+import org.springframework.web.reactive.function.client.WebClient;
 
 public interface FhirUtils {
   FhirContext fctx = FhirContext.forR4();
@@ -76,4 +78,5 @@ public interface FhirUtils {
         l.stream().map(r -> new Bundle.BundleEntryComponent().setResource(r)).toList();
     return new Bundle().setTotal(l.size()).setEntry(list);
   }
+
 }
