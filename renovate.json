@@ -11,7 +11,8 @@
     "helpers:pinGitHubActionDigests",
     ":pinDevDependencies",
     ":automergeMinor",
-    ":automergeDigest"
+    ":automergeDigest",
+    ":maintainLockFilesWeekly"
   ],
   "prConcurrentLimit": 3,
   "packageRules": [
