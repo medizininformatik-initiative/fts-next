@@ -29,12 +29,16 @@ public class GicsFhirConfiguration {
       List.of("allConsentsForDomain", "allConsentsForPerson");
 
   @NotBlank String baseUrl;
-  int defaultPageSize = 50;
+  @Deprecated Integer defaultPageSize;
   HttpClientAuth.Config auth = HttpClientAuth.Config.builder().none("").build();
   HttpClientConfig.Ssl ssl = null;
 
-  @Bean
-  int defaultPageSize() {
+  @Bean("gicsFhirDefaultPageSize")
+  Integer defaultPageSize() {
+    if (defaultPageSize != null) {
+      log.warn(
+          "consent.gics.fhir.defaultPageSize is deprecated. Use consent.gics.pageSize instead.");
+    }
     return defaultPageSize;
   }
 

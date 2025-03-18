@@ -2,9 +2,9 @@ consent:
   gics:
     fhir:
       baseUrl: http://gics:8080/ttp-fhir/fhir/gics
-      defaultPageSize: 200
       auth:
         none: { }
+    pageSize: 200
 
 deIdentification:
   keystoreUrl: redis://valkey:6379

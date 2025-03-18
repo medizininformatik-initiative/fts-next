@@ -33,14 +33,14 @@ import reactor.core.publisher.Mono;
 @Validated
 public class ConsentController {
   private final ConsentedPatientsProvider consentedPatientsProvider;
-  private final int defaultPageSize;
+  private final int pageSize;
 
   @Autowired
   ConsentController(
       ConsentedPatientsProvider consentedPatientsProvider,
-      @Qualifier("defaultPageSize") int defaultPageSize) {
+      @Qualifier("gicsPageSize") int pageSize) {
     this.consentedPatientsProvider = consentedPatientsProvider;
-    this.defaultPageSize = defaultPageSize;
+    this.pageSize = pageSize;
   }
 
   @PostMapping(
@@ -86,7 +86,7 @@ public class ConsentController {
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {
-    var pagingParams = new PagingParams(from.orElse(0), count.orElse(defaultPageSize));
+    var pagingParams = new PagingParams(from.orElse(0), count.orElse(pageSize));
     var response =
         request.flatMap(r -> consentedPatientsProvider.fetchAll(r, uriBuilder, pagingParams));
     return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
@@ -135,7 +135,7 @@ public class ConsentController {
       UriComponentsBuilder uriBuilder,
       @RequestParam("from") Optional<Integer> from,
       @RequestParam("count") Optional<Integer> count) {
-    var pagingParams = new PagingParams(from.orElse(0), count.orElse(defaultPageSize));
+    var pagingParams = new PagingParams(from.orElse(0), count.orElse(pageSize));
     var response =
         request.flatMap(r -> consentedPatientsProvider.fetch(r, uriBuilder, pagingParams));
     return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
