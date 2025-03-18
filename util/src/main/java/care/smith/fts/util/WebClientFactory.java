@@ -42,6 +42,7 @@ public class WebClientFactory {
   public WebClient create(HttpClientConfig config) {
     log.debug("Webclient Config {}", config);
     return clientBuilder
+        .clone()
         .baseUrl(config.baseUrl())
         .apply(b -> configureAuth(b, config.auth()))
         .apply(b -> configureSsl(b, config.ssl()))
