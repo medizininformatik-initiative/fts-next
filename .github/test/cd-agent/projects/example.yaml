@@ -94,7 +94,7 @@ bundleSender:
       # Base URL of the Research Domain Agent server
       baseUrl: http://rd-agent:8080
       auth:
-        client:
+        oauth2:
           registration: rd-agent
       # ssl: [ ... ]
     # Which project configuration to use in the research domain
