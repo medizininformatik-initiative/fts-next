@@ -49,14 +49,6 @@ public class WebClientFactory {
         .build();
   }
 
-  public WebClient create(Builder builder, HttpClientConfig config) {
-    return builder
-        .baseUrl(config.baseUrl())
-        .apply(b -> configureAuth(b, config.auth()))
-        .apply(b -> configureSsl(b, config.ssl()))
-        .build();
-  }
-
   private void configureAuth(Builder builder, HttpClientAuth.Config auth) {
     if (auth != null) {
       if (auth.basic() != null) {

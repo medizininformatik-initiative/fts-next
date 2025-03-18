@@ -75,7 +75,7 @@ class WebClientFactoryTest {
     var tokenConf = new HttpClientCookieTokenAuth.Config("token-152510");
     var config = new HttpClientConfig("http://localhost", new Config(basicConf, tokenConf));
 
-    assertThat(factory.create(builder, config)).isNotNull();
+    assertThat(factory.create(config)).isNotNull();
     verify(basic).configure(basicConf, builder);
     verify(oauth2, never()).configure(oauth2Conf, builder);
     verify(token, never()).configure(tokenConf, builder);
