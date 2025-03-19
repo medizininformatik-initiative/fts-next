@@ -3,24 +3,13 @@ package care.smith.fts.util.auth;
 import static org.springframework.security.oauth2.jwt.ReactiveJwtDecoders.fromIssuerLocation;
 
 import care.smith.fts.util.auth.HttpServerAuthConfig.Endpoint;
-import java.util.Objects;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
-@Getter
-@Slf4j
-public class HttpServerOAuth2Auth implements HttpServerAuthMethod {
+public record HttpServerOAuth2Auth(String issuer) implements HttpServerAuthMethod {
 
-  private final String issuer;
-
-  public HttpServerOAuth2Auth(String issuer) {
-    this.issuer = issuer;
-  }
-
-  protected ReactiveJwtDecoder createJwtDecoder() {
+  ReactiveJwtDecoder createJwtDecoder() {
     return fromIssuerLocation(issuer);
   }
 
