@@ -21,7 +21,7 @@ class TransportMappingRequestTest {
             "patient123",
             Set.of("id1", "id2"),
             new TCADomains("pDomain", "sDomain", "dDomain"),
-            Duration.ofDays(30));
+            Duration.ofDays(30), false, false);
 
     String jsonString = objectMapper.writeValueAsString(request);
 

@@ -26,6 +26,8 @@ class DeidentifhirStep implements Deidentificator {
   private final WebClient tcaClient;
   private final TCADomains domains;
   private final Duration maxDateShift;
+  private final boolean keepDaytime;
+  private final boolean keepWeekdayAndDaytime;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
   private final MeterRegistry meterRegistry;
@@ -34,12 +36,16 @@ class DeidentifhirStep implements Deidentificator {
       WebClient tcaClient,
       TCADomains domains,
       Duration maxDateShift,
+      boolean keepDaytime,
+      boolean keepWeekdayAndDaytime,
       com.typesafe.config.Config deidentifhirConfig,
       com.typesafe.config.Config scraperConfig,
       MeterRegistry meterRegistry) {
     this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
+    this.keepDaytime = keepDaytime;
+    this.keepWeekdayAndDaytime = keepWeekdayAndDaytime;
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
     this.meterRegistry = meterRegistry;
@@ -71,7 +77,8 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private Mono<TransportMappingResponse> fetchTransportMapping(String patientId, Set<String> ids) {
-    var request = new TransportMappingRequest(patientId, ids, domains, maxDateShift);
+    var request = new TransportMappingRequest(patientId, ids, domains, maxDateShift, keepDaytime,
+        keepWeekdayAndDaytime);
 
     log.trace("Fetch transport mapping for {} IDs", ids.size());
     return tcaClient

@@ -8,6 +8,8 @@ import java.time.Duration;
 public record DeidentifhirStepConfig(
     TCAConfig trustCenterAgent,
     Duration maxDateShift,
+    boolean keepDaytime,
+    boolean keepWeekdayAndDaytime,
     File deidentifhirConfig,
     File scraperConfig) {
 
