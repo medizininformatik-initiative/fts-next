@@ -80,7 +80,7 @@ jobs:
       run: mvn ${MAVEN_ARGS} -DskipTests package ${COMMIT_TAG:+-Drevision=${COMMIT_TAG#v}}
 
     - name: Upload Jar
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: ${{ matrix.agent }}
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
@@ -116,7 +116,7 @@ jobs:
         outputs: type=docker,dest=/tmp/${{ matrix.agent }}.tar
 
     - name: Upload Container Image
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: ${{ matrix.agent }}-image
         path: /tmp/${{ matrix.agent }}.tar
@@ -328,7 +328,7 @@ jobs:
       run: make cd-agent tc-agent rd-agent
 
     - name: Upload Archives
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         path: |
           .github/release/cd-agent.tar.gz
