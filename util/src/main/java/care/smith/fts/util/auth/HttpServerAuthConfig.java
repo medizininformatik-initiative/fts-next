@@ -45,10 +45,12 @@ public class HttpServerAuthConfig {
   }
 
   private static HttpServerAuthMethod authMethod(AuthMethod auth) {
+    log.debug("Using '{}' auth method", auth);
     var httpServerAuthMethodStream =
-        Stream.of(auth.clientCert(), auth.basic(), auth.oauth2(), auth.none())
+        Stream.of(auth.basic(), auth.oauth2(), auth.clientCert(), auth.none())
             .filter(Objects::nonNull)
             .toList();
+    log.debug("auth method stream size {}", httpServerAuthMethodStream.size());
     if (httpServerAuthMethodStream.size() == 1) {
       return httpServerAuthMethodStream.getFirst();
     } else if (httpServerAuthMethodStream.isEmpty()) {
