@@ -18,10 +18,9 @@ public interface RetryStrategies {
   boolean RETRY_TIMEOUT = parseBoolean(System.getProperty("fts.retryTimeout", "true"));
 
   static RetryBackoffSpec defaultRetryStrategy(MeterRegistry meterRegistry, String name) {
-    log.info("Using default retry strategy: {}", name);
     var counter = meterRegistry.counter("http.client.requests.retries", "request_name", name);
     return Retry.backoff(3, Duration.ofSeconds(1))
-        .doBeforeRetry(retry -> log.info("RetrySignal {}", retry))
+        .doBeforeRetry(retry -> log.debug("RetrySignal {}", retry))
         .filter(
             or(
                 RetryStrategies::is5xxServerError,
