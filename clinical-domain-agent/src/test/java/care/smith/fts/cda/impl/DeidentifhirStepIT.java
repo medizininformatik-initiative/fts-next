@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.api.DateShiftPreserve.NONE;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
@@ -53,14 +54,12 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       @Autowired WebClientFactory clientFactory,
       @Autowired MeterRegistry meterRegistry)
       throws IOException {
-    var scraperConfig = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
-    var deidentifhirConfig = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
+    var scrConf = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
+    var deiConf = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var domains = new TCADomains("domain", "domain", "domain");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     wireMock = wireMockRuntime.getWireMock();
-    step =
-        new DeidentifhirStep(
-            client, domains, ofDays(14), deidentifhirConfig, scraperConfig, meterRegistry);
+    step = new DeidentifhirStep(client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry);
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem");
     var consentedPatient = new ConsentedPatient("id1");

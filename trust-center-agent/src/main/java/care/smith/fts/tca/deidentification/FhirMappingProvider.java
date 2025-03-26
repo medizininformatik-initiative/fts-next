@@ -8,6 +8,7 @@ import static java.time.Duration.ofMillis;
 import static java.util.stream.Collectors.toMap;
 import static reactor.function.TupleUtils.function;
 
+import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.util.tca.ResearchMappingResponse;
 import care.smith.fts.util.tca.TCADomains;
@@ -17,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
@@ -71,7 +73,9 @@ public class FhirMappingProvider implements MappingProvider {
     var rMap = redisClient.reactive().<String, String>getMapCache(transferId);
     return rMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
-        .flatMap(saveResearchMapping(r.patientId(), r.maxDateShift(), transportMapping, rMap))
+        .flatMap(
+            saveResearchMapping(
+                r.patientId(), r.maxDateShift(), r.dateShiftPreserve(), transportMapping, rMap))
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
   }
 
@@ -89,11 +93,12 @@ public class FhirMappingProvider implements MappingProvider {
   private Function<Tuple3<String, String, String>, Mono<Duration>> saveResearchMapping(
       String patientId,
       Duration maxDateShift,
+      @NotNull DateShiftPreserve preserve,
       Map<String, String> transportMapping,
       RMapReactive<String, String> rMap) {
     return function(
         (patientIdPseudonym, salt, dateShiftSeed) -> {
-          var dateShifts = generate(dateShiftSeed, maxDateShift);
+          var dateShifts = generate(dateShiftSeed, maxDateShift, preserve);
           var resolveMap =
               ImmutableMap.<String, String>builder()
                   .putAll(generateResearchMapping(salt, transportMapping))

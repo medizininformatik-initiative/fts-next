@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.UnknownDomainException;
@@ -45,7 +46,9 @@ class DeIdentificationControllerTest {
   void transportMapping() {
     var ids = Set.of("id1", "id2");
     var mapName = "transferId";
-    var request = new TransportMappingRequest("patientId1", ids, DEFAULT_DOMAINS, ofDays(14));
+    var request =
+        new TransportMappingRequest(
+            "patientId1", ids, DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(
             Mono.just(
@@ -68,7 +71,9 @@ class DeIdentificationControllerTest {
   @Test
   void transportMappingUnknownDomain() {
     var domains = new TCADomains("unknown domain", "unknown domain", "unknown domain");
-    var request = new TransportMappingRequest("id1", Set.of("id1"), domains, ofDays(14));
+    var request =
+        new TransportMappingRequest(
+            "id1", Set.of("id1"), domains, ofDays(14), DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
 
@@ -82,7 +87,9 @@ class DeIdentificationControllerTest {
 
   @Test
   void transportMappingIllegalArgumentException() {
-    var request = new TransportMappingRequest("id1", Set.of("id1"), DEFAULT_DOMAINS, ofDays(14));
+    var request =
+        new TransportMappingRequest(
+            "id1", Set.of("id1"), DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
 
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new IllegalArgumentException("Illegal argument")));
@@ -98,7 +105,9 @@ class DeIdentificationControllerTest {
   @Test
   void transportMappingEmptyIds() {
     var mapName = "transferId";
-    var request = new TransportMappingRequest("patientId1", Set.of(), DEFAULT_DOMAINS, ofDays(14));
+    var request =
+        new TransportMappingRequest(
+            "patientId1", Set.of(), DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.just(new TransportMappingResponse(mapName, Map.of(), ofDays(1))));
 
@@ -116,7 +125,9 @@ class DeIdentificationControllerTest {
   @Test
   void transportMappingInternalServerError() {
     var ids = Set.of("id1", "id2");
-    var request = new TransportMappingRequest("id1", ids, DEFAULT_DOMAINS, ofDays(14));
+    var request =
+        new TransportMappingRequest(
+            "id1", ids, DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new ResponseStatusException(INTERNAL_SERVER_ERROR)));
 

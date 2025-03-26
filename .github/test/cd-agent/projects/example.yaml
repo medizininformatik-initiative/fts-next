@@ -70,6 +70,9 @@ deidentificator:
     # specified as an ISO-8601 duration (e.g., P1D means 1 day)
     # see https://de.wikipedia.org/wiki/ISO_8601
     maxDateShift: P14D
+    # Should the Weekday or the time of day be preserved
+    # possible values: NONE (default), WEEKDAY, DAYTIME
+    dateShiftPreserve: NONE
     # Deidentifhir needs additional configuration, which must be available within the agent's
     # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
     deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile

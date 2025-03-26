@@ -4,6 +4,7 @@ import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generat
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.api.ConsentedPatientBundle;
+import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
@@ -26,6 +27,7 @@ class DeidentifhirStep implements Deidentificator {
   private final WebClient tcaClient;
   private final TCADomains domains;
   private final Duration maxDateShift;
+  private final DateShiftPreserve preserve;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
   private final MeterRegistry meterRegistry;
@@ -34,12 +36,14 @@ class DeidentifhirStep implements Deidentificator {
       WebClient tcaClient,
       TCADomains domains,
       Duration maxDateShift,
+      DateShiftPreserve preserve,
       com.typesafe.config.Config deidentifhirConfig,
       com.typesafe.config.Config scraperConfig,
       MeterRegistry meterRegistry) {
     this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
+    this.preserve = preserve;
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
     this.meterRegistry = meterRegistry;
@@ -71,7 +75,7 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private Mono<TransportMappingResponse> fetchTransportMapping(String patientId, Set<String> ids) {
-    var request = new TransportMappingRequest(patientId, ids, domains, maxDateShift);
+    var request = new TransportMappingRequest(patientId, ids, domains, maxDateShift, preserve);
 
     log.trace("Fetch transport mapping for {} IDs", ids.size());
     return tcaClient

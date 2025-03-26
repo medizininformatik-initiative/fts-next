@@ -33,6 +33,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
         httpClient,
         implConfig.trustCenterAgent().domains(),
         implConfig.maxDateShift(),
+        implConfig.dateShiftPreserve(),
         parseFile(requireNonNull(implConfig.deidentifhirConfig())),
         parseFile(requireNonNull(implConfig.scraperConfig())),
         meterRegistry);
