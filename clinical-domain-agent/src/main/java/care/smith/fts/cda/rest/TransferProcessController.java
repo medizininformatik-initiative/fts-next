@@ -3,6 +3,7 @@ package care.smith.fts.cda.rest;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import care.smith.fts.cda.TransferProcessConfig;
 import care.smith.fts.cda.TransferProcessDefinition;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseEntity.BodyBuilder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
@@ -32,6 +35,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/v2")
 @Tag(name = "Transfer Process API", description = "API for managing transfer processes")
+@Validated
 public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
@@ -43,7 +47,10 @@ public class TransferProcessController {
     this.processes = processes;
   }
 
-  @PostMapping(value = "/process/{project:[\\w-]+}/start")
+  @PostMapping(
+      value = "/process/{project:[\\w-]+}/start",
+      consumes = APPLICATION_JSON_VALUE,
+      produces = APPLICATION_JSON_VALUE)
   @Operation(
       summary = "Start a transfer process",
       description =
@@ -79,8 +86,8 @@ public class TransferProcessController {
       })
   Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project,
-      UriComponentsBuilder uriBuilder,
-      @RequestBody(required = false) List<String> pids) {
+      @Valid @RequestBody(required = false) List<String> pids,
+      UriComponentsBuilder uriBuilder) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());

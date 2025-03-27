@@ -45,6 +45,10 @@ jobs:
           console.log(`Latest tag: ${latestTag}`);
           core.setOutput("latest_tag", latestTag);
 
+    - name: Clear Application Yamls
+      working-directory: .github/test
+      run: echo "" | tee cd-agent/application.yaml rd-agent/application.yaml tc-agent/application.yaml
+
     - name: Build OpenAPI Specs
       working-directory: docs
       run: make generate-openapi

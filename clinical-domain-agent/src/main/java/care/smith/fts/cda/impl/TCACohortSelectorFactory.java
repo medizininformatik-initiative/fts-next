@@ -4,10 +4,8 @@ package care.smith.fts.cda.impl;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component("trustCenterAgentCohortSelector")
 public class TCACohortSelectorFactory implements CohortSelector.Factory<TCACohortSelectorConfig> {
 
@@ -27,7 +25,6 @@ public class TCACohortSelectorFactory implements CohortSelector.Factory<TCACohor
   @Override
   public CohortSelector create(CohortSelector.Config ignored, TCACohortSelectorConfig config) {
     var client = clientFactory.create(config.server());
-    log.info("Created Client {}", client);
     return new TCACohortSelector(config, client, meterRegistry);
   }
 }

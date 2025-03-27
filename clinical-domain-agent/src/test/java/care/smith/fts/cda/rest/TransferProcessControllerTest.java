@@ -56,7 +56,7 @@ class TransferProcessControllerTest {
     when(mockRunner.status(processId))
         .thenReturn(Mono.just(TransferProcessStatus.create(processId)));
 
-    var start = api.start(EXISTING_PROJECT_NAME, fromUriString(MOCK_HOST), List.of());
+    var start = api.start(EXISTING_PROJECT_NAME, List.of(), fromUriString(MOCK_HOST));
     var uri = fromUriString(MOCK_HOST).path("api/v2/process/status/" + processId).build().toUri();
     create(start)
         .expectNext(
@@ -71,7 +71,7 @@ class TransferProcessControllerTest {
         ProblemDetail.forStatusAndDetail(
             NOT_FOUND, "Project '%s' could not be found".formatted(projectName));
 
-    var start = api.start(projectName, fromUriString(MOCK_HOST), List.of());
+    var start = api.start(projectName, List.of(), fromUriString(MOCK_HOST));
 
     create(start).expectNext(ResponseEntity.of(result).build()).verifyComplete();
   }

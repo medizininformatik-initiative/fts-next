@@ -2,6 +2,8 @@ package care.smith.fts.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,6 +24,7 @@ import org.springframework.boot.autoconfigure.web.reactive.function.client.WebCl
 import org.springframework.boot.ssl.NoSuchSslBundleException;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.Builder;
 
 @Slf4j
@@ -73,12 +76,13 @@ class WebClientFactoryTest {
     var basicConf = new HttpClientBasicAuth.Config("user-1505512", "pwd-15054518");
     var oauth2Conf = new HttpClientOAuth2Auth.Config("usr-142135");
     var tokenConf = new HttpClientCookieTokenAuth.Config("token-152510");
-    var config = new HttpClientConfig("http://localhost", new Config(basicConf, tokenConf));
+    var config =
+        new HttpClientConfig("http://localhost", new Config(basicConf, oauth2Conf, tokenConf));
 
-    assertThat(factory.create(builder, config)).isNotNull();
-    verify(basic).configure(basicConf, builder);
-    verify(oauth2, never()).configure(oauth2Conf, builder);
-    verify(token, never()).configure(tokenConf, builder);
+    assertThat(factory.create(config)).isNotNull();
+    verify(basic).configure(eq(basicConf), any(WebClient.Builder.class));
+    verify(oauth2, never()).configure(eq(oauth2Conf), any(WebClient.Builder.class));
+    verify(token, never()).configure(eq(tokenConf), any(WebClient.Builder.class));
   }
 
   @Test

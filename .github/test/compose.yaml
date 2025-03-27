@@ -12,6 +12,7 @@ include:
 - cd-agent/compose.yaml
 - rd-agent/compose.yaml
 - tc-agent/compose.yaml
+- oauth2/compose.yaml
 
 services:
   # Clinical Domain

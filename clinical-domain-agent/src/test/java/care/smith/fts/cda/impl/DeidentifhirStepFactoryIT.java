@@ -23,6 +23,7 @@ class DeidentifhirStepFactoryIT {
 
   private DeidentifhirStepFactory factory;
 
+
   @BeforeEach
   void setUp() {
     factory = new DeidentifhirStepFactory(clientFactory, meterRegistry);

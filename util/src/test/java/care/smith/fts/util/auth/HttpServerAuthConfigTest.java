@@ -22,7 +22,7 @@ class HttpServerAuthConfigTest {
     var config = new HttpServerAuthConfig();
     config.setAuth(
         new AuthMethod(
-            null,
+            new HttpServerClientCertAuth(List.of()),
             new HttpServerBasicAuth(List.of()),
             new HttpServerOAuth2Auth(""),
             new HttpServerNoneAuth()));

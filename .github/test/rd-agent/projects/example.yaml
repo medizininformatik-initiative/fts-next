@@ -11,6 +11,12 @@ deidentificator:
       server:
         # Base URL of the Trust Center Agent server.
         baseUrl: http://tc-agent:8080
+        auth:
+          basic:
+            user: rd-agent
+            password: 1J5MhEhhiGh33dgt
+            # password: "{noop}1J5MhEhhiGh33dgt"
+            role: rd-client
         # auth: [ ... ]
         # ssl: [ ... ]
     # Deidentifhir needs additional configuration, which must be available within the agent's

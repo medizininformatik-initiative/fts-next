@@ -1,14 +1,15 @@
-package care.smith.fts.rda.rest;
+package care.smith.fts.cda.rest;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.rda.ResearchDomainAgent;
-import care.smith.fts.rda.TransferProcessRunner.Status;
+import care.smith.fts.cda.ClinicalDomainAgent;
+import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.test.TestWebClientFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +30,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 @Slf4j
-@SpringBootTest(classes = ResearchDomainAgent.class, webEnvironment = RANDOM_PORT)
+@SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
 public class TransferProcessControllerIT {
 
@@ -57,18 +58,25 @@ public class TransferProcessControllerIT {
     create(
             client
                 .post()
-                .uri("/api/v2/process/non-existent/patient")
+                .uri("/api/v2/process/non-existent/start")
                 .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
                 .retrieve()
                 .toBodilessEntity())
-        .expectError(WebClientResponseException.NotFound.class)
+        .expectError(NotFound.class)
         .verifyThenAssertThat()
         .hasOperatorErrors();
   }
 
   @Test
   void bodyHasWrongContentType() {
-    create(client.post().uri("/api/v2/process/test/patient").retrieve().toBodilessEntity())
+    create(
+            client
+                .post()
+                .uri("/api/v2/process/example/start")
+                .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
+                .bodyValue("{}")
+                .retrieve()
+                .toBodilessEntity())
         .expectError(UnsupportedMediaType.class)
         .verifyThenAssertThat()
         .hasOperatorErrors();
@@ -79,12 +87,12 @@ public class TransferProcessControllerIT {
     create(
             client
                 .post()
-                .uri("/api/v2/process/example/patient")
-                .headers(h -> h.setContentType(APPLICATION_FHIR_JSON))
+                .uri("/api/v2/process/example/start")
+                .headers(h -> h.setContentType(APPLICATION_JSON))
                 .bodyValue("{NoBundle: 0}")
                 .retrieve()
                 .onStatus(
-                    r -> r.equals(HttpStatus.resolve(500)),
+                    r -> r.equals(HttpStatus.resolve(400)),
                     (c) ->
                         c.bodyToMono(ProblemDetail.class)
                             .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))
@@ -101,7 +109,7 @@ public class TransferProcessControllerIT {
                 .get()
                 .uri("/api/v2/process/status/unknown-id")
                 .retrieve()
-                .bodyToMono(Status.class))
+                .bodyToMono(TransferProcessStatus.class))
         .expectError(NotFound.class)
         .verifyThenAssertThat()
         .hasOperatorErrors();
@@ -122,6 +130,8 @@ public class TransferProcessControllerIT {
     create(client.get().uri("/api/v2/projects/example").retrieve().bodyToMono(String.class))
         .assertNext(
             transferProcessDefinitions -> {
+              assertThat(transferProcessDefinitions).contains("cohortSelector");
+              assertThat(transferProcessDefinitions).contains("dataSelector");
               assertThat(transferProcessDefinitions).contains("deidentificator");
               assertThat(transferProcessDefinitions).contains("bundleSender");
               assertThat(transferProcessDefinitions).contains("patient-102931");

@@ -10,7 +10,12 @@ cohortSelector:
     server:
       # Base URL of the Trust Center Agent server.
       baseUrl: http://tc-agent:8080
-      # auth: [ ... ]
+      auth:
+        basic:
+          user: cd-agent
+          password: Aj6cloJYsTpu+op+
+          role: cd-client
+
       # ssl: [ ... ]
     # Domain to search for consent. This acts as a namespace for data segregation.
     domain: MII
@@ -55,7 +60,12 @@ deidentificator:
       server:
         # Base URL of the Trust Center Agent server.
         baseUrl: http://tc-agent:8080
-        # auth: [ ... ]
+        auth:
+          basic:
+            user: cd-agent
+            password: Aj6cloJYsTpu+op+
+            # password: "{noop}Aj6cloJYsTpu+op+"
+            role: cd-client
         # ssl: [ ... ]
       # Deidentification parameters can be store in different or in the same TCA domain
       # When the same domain is used, key collisions are prevented using prefixes
@@ -86,7 +96,9 @@ bundleSender:
     server:
       # Base URL of the Research Domain Agent server
       baseUrl: http://rd-agent:8080
-      # auth: [ ... ]
+      auth:
+        oauth2:
+          registration: rd-agent
       # ssl: [ ... ]
     # Which project configuration to use in the research domain
     # See https://medizininformatik-initiative.github.io/fts-next/rd-agent/project
