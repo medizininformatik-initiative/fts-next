@@ -1,8 +1,8 @@
 {
   "id": "53fc5545-8093-48a4-b3b1-8d974ea4cb07",
-  "realm": "fts",
-  "displayName": "FTS",
-  "displayNameHtml": "<div class=\"kc-logo-text\">FTS</div>",
+  "realm": "unauthorized",
+  "displayName": "UNAUTHORIZED",
+  "displayNameHtml": "<div class=\"kc-logo-text\">UNAUTHORIZED</div>",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
@@ -49,7 +49,7 @@
   "failureFactor": 30,
   "defaultRole": {
     "id": "0883744b-e94d-438e-9e82-3db361e5c40e",
-    "name": "default-roles-fts",
+    "name": "default-roles-unauthorized",
     "description": "${role_default-roles}",
     "composite": true,
     "clientRole": false,
@@ -145,9 +145,9 @@
   },
   "clients": [
     {
-      "id": "ee7a80f4-da2f-4bc8-962b-369c9fd36b1c",
-      "clientId": "fts-client",
-      "name": "FTS CD Client",
+      "id": "ee7a80f4-da2f-4bc8-962b-369c9fd36b1d",
+      "clientId": "unauthorized-client",
+      "name": "UNAUTHORIZED CD Client",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
@@ -250,7 +250,7 @@
     {
       "id": "34ed2b5c-6e6d-4477-bfa2-f9c36f4f6134",
       "clientId": "cd-client",
-      "name": "FTS CD Client",
+      "name": "UNAUTHORIZED CD Client",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
@@ -353,7 +353,7 @@
     {
       "id": "f03b64d9-c57b-4061-a781-52e29bf05085",
       "clientId": "rd-client",
-      "name": "FTS RD Client",
+      "name": "UNAUTHORIZED RD Client",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
@@ -456,7 +456,7 @@
   ],
   "roles": {
     "client": {
-      "fts-client": [
+      "unauthorized-client": [
         {
           "name": "cd-client"
         },
@@ -467,7 +467,7 @@
     }
   },
   "clientScopeMappings": {
-    "fts-client": [
+    "unauthorized-client": [
       {
         "client": "cd-client",
         "roles": [
@@ -488,7 +488,7 @@
       "enabled": true,
       "serviceAccountClientId": "cd-client",
       "clientRoles": {
-        "fts-client": [
+        "unauthorized-client": [
           "cd-client"
         ]
       },
@@ -501,7 +501,7 @@
       "enabled": true,
       "serviceAccountClientId": "rd-client",
       "clientRoles": {
-        "fts-client": [
+        "unauthorized-client": [
           "rd-client"
         ]
       },
