@@ -2,8 +2,6 @@ package care.smith.fts.test;
 
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
-import care.smith.fts.util.auth.HttpClientAuth;
-import care.smith.fts.util.auth.HttpClientBasicAuth.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.ClientHttpConnectorAutoConfiguration;
@@ -36,6 +34,10 @@ public class TestWebClientFactory {
     return webClient(baseUrl, "default");
   }
 
+  public WebClient unauthorizedWebClient(String baseUrl) {
+    return webClient(baseUrl, "unauthorized");
+  }
+
   public WebClient webClient(String baseUrl, String clientName) {
 
     log.debug("TestWebClientFactory baseurl: {}, clientName: {}", baseUrl, clientName);
@@ -43,19 +45,6 @@ public class TestWebClientFactory {
     return config
         .findConfigurationEntry(clientName)
         .map(c -> factory.create(new HttpClientConfig(baseUrl, c.auth(), c.ssl())))
-        .orElseThrow();
-  }
-
-  public WebClient unauthorizedWebClient(String baseUrl) {
-    return config
-        .findConfigurationEntry("default")
-        .map(
-            c ->
-                factory.create(
-                    new HttpClientConfig(
-                        baseUrl,
-                        new HttpClientAuth.Config(new Config("user", "wrong password")),
-                        c.ssl())))
         .orElseThrow();
   }
 }

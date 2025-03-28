@@ -7,6 +7,8 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec;
+import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec.Access;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,12 +26,8 @@ public record HttpServerClientCertAuth(List<UserSpec> users) implements HttpServ
   }
 
   @Override
-  public ServerHttpSecurity filter(Endpoint endpoint, ServerHttpSecurity http) {
-    return http.authorizeExchange(
-        exchange -> {
-          log.debug("Authenticating exchange: {}", exchange);
-          exchange.pathMatchers(endpoint.path()).authenticated();
-        });
+  public AuthorizeExchangeSpec filter(Endpoint endpoint, Access access) {
+    return access.authenticated();
   }
 
   @Override
