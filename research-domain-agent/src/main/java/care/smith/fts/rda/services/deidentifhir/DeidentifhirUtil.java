@@ -16,8 +16,7 @@ import org.hl7.fhir.r4.model.Bundle;
 /** TransportID to Pseudonym */
 public interface DeidentifhirUtil {
 
-  static Registry generateRegistry(
-      Map<String, String> researchMapping, Duration dateShiftValue) {
+  static Registry generateRegistry(Map<String, String> researchMapping, Duration dateShiftValue) {
     var keyCreator = NamespacingReplacementProvider.withoutNamespacing();
     var replacementProvider = NamespacingReplacementProvider.of(keyCreator, researchMapping);
     DateShiftingProvider dsp = new DateShiftingProvider(dateShiftValue);

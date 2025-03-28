@@ -90,6 +90,7 @@ transfer.
   ```
 
 ## Notes
+
 * The `domain` field should be chosen carefully to avoid overlapping data between namespaces.
 * Ensure that `domain` is correctly configured in the trust center.
 * The `patientIdentifierSystem` and `policySystem` fields must reference valid FHIR-based system

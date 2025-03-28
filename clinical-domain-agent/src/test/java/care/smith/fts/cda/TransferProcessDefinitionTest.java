@@ -12,7 +12,6 @@ import care.smith.fts.cda.test.MockDataSelector;
 import care.smith.fts.cda.test.MockDeidentificator;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
 class TransferProcessDefinitionTest {
   @Test

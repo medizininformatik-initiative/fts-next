@@ -98,8 +98,8 @@ deidentification of FHIR bundles.
 
 #### `dateShiftPreserve` <Badge type="warning" text="Since 5.2" />
 
-* **Description**:     Specifies whether the weekday or the time of day are preserved.
-                       Possible values: NONE (default), WEEKDAY, DAYTIME
+* **Description**: Specifies whether the weekday or the time of day are preserved.
+  Possible values: NONE (default), WEEKDAY, DAYTIME
 * **Type**: [`DateShiftPreserve`](../types/DateShiftPreserve)
 * **Example**:
   ```yaml

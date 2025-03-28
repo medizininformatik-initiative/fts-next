@@ -1,6 +1,5 @@
 package care.smith.fts.cda.impl;
 
-
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;

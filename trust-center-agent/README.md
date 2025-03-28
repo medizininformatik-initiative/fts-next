@@ -7,5 +7,5 @@ pseudonyms between the Clinical Domain Agent (CDA) and Research Domain Agent (RD
 
 ## Documentation
 
-Detailed [documentation](https://medizininformatik-initiative.github.io/fts-next/) is available to 
+Detailed [documentation](https://medizininformatik-initiative.github.io/fts-next/) is available to
 help users and developers understand and utilize the FHIR Transfer Services.

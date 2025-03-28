@@ -3,17 +3,11 @@ package care.smith.fts.util.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.util.auth.HttpServerAuthConfig.Endpoint;
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
-import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.authorization.AuthorizationWebFilter;
 import reactor.core.publisher.Mono;
 

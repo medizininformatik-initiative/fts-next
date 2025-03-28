@@ -42,8 +42,7 @@ final class RDABundleSender implements BundleSender {
 
   @Override
   public Mono<Result> send(TransportBundle bundle) {
-    return sendBundle(toPlainBundle(requireNonNull(bundle)))
-        .map(v -> new Result());
+    return sendBundle(toPlainBundle(requireNonNull(bundle))).map(v -> new Result());
   }
 
   private static Bundle toPlainBundle(TransportBundle transportBundle) {

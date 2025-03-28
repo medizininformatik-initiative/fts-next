@@ -12,16 +12,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
-import io.micrometer.core.instrument.MeterRegistry;
-
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,8 +28,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
-import java.util.Set;
 
 @SpringBootTest
 @WireMockTest

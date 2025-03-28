@@ -14,8 +14,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
   private final WebClientFactory clientFactory;
   private final MeterRegistry meterRegistry;
 
-  public DeidentifhirStepFactory(
-      WebClientFactory clientFactory, MeterRegistry meterRegistry) {
+  public DeidentifhirStepFactory(WebClientFactory clientFactory, MeterRegistry meterRegistry) {
     this.clientFactory = clientFactory;
     this.meterRegistry = meterRegistry;
   }

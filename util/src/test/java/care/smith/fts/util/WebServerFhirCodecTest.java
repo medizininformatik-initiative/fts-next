@@ -1,19 +1,15 @@
 package care.smith.fts.util;
 
-import static ca.uhn.fhir.context.FhirContext.forR4;
 import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
-import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.reactive.server.WebTestClient.bindToServer;
 
-import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.util.auth.HttpServerAuthConfig;
-import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +25,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

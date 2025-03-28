@@ -7,7 +7,6 @@ import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.AbstractFhirClientIT;
-import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.util.FhirUtils;

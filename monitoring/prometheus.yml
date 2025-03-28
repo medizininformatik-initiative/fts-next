@@ -5,31 +5,31 @@ scrape_configs:
 - job_name: "tca"
   metrics_path: "/actuator/prometheus"
   static_configs:
-    - targets: [ "tc-agent:8080" ]
+  - targets: [ "tc-agent:8080" ]
 
 - job_name: "cda"
   metrics_path: "/actuator/prometheus"
   static_configs:
-    - targets: [ "cd-agent:8080" ]
+  - targets: [ "cd-agent:8080" ]
 
 - job_name: "rda"
   metrics_path: "/actuator/prometheus"
   static_configs:
-    - targets: [ "rd-agent:8080" ]
+  - targets: [ "rd-agent:8080" ]
 
 - job_name: "prometheus"
   scrape_interval: 5s
   static_configs:
-    - targets: [ "localhost:9090" ]
+  - targets: [ "localhost:9090" ]
 
 - job_name: "blaze-cd-hds"
   static_configs:
-    - targets: [ "cd-hds:8081" ]
-    - labels:
-        instance: "blaze-cd-hds"
+  - targets: [ "cd-hds:8081" ]
+  - labels:
+      instance: "blaze-cd-hds"
 
 - job_name: "blaze-rd-hds"
   static_configs:
-    - targets: [ "rd-hds:8081" ]
-    - labels:
-        instance: "blaze-rd-hds"
+  - targets: [ "rd-hds:8081" ]
+  - labels:
+      instance: "blaze-rd-hds"

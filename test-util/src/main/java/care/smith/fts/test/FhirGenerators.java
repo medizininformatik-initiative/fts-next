@@ -45,6 +45,7 @@ public interface FhirGenerators {
         "resolve-search-response.json",
         Map.ofEntries(entry("$PATIENT_ID", patientId), entry("$HDS_ID", hdsId)));
   }
+
   static FhirGenerator<Bundle> transportBundle() throws IOException {
     return new FhirGenerator<>(Bundle.class, "transport-bundle.json", Map.of());
   }

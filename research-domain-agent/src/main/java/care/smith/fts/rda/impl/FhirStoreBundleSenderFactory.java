@@ -12,8 +12,7 @@ public class FhirStoreBundleSenderFactory
   private final MeterRegistry meterRegistry;
   private final WebClientFactory clientFactory;
 
-  public FhirStoreBundleSenderFactory(
-      WebClientFactory clientFactory, MeterRegistry meterRegistry) {
+  public FhirStoreBundleSenderFactory(WebClientFactory clientFactory, MeterRegistry meterRegistry) {
     this.clientFactory = clientFactory;
     this.meterRegistry = meterRegistry;
   }
