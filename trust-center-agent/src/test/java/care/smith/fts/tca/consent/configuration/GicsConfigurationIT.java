@@ -13,8 +13,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
 class GicsConfigurationIT {
-  @Autowired
-  private GicsConfiguration gicsConfiguration;
+  @Autowired private GicsConfiguration gicsConfiguration;
 
   @MockitoBean
   RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start
@@ -60,7 +59,6 @@ class GicsConfigurationIT {
     localGicsConfiguration.setFhir(fhir);
     assertThat(localGicsConfiguration.getFhir().defaultPageSize()).isEqualTo(null);
   }
-
 
   @Test
   void getBaseUrl() {

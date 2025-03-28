@@ -8,12 +8,12 @@ services:
     build:
       dockerfile: Dockerfile
     command:
-      - start-dev
-      - --import-realm
+    - start-dev
+    - --import-realm
     networks: [ "agents" ]
     ports: [ "8080:8080" ]
     volumes:
-      - ./import:/opt/keycloak/data/import
+    - ./import:/opt/keycloak/data/import
     environment:
       KC_HEALTH_ENABLED: true
     healthcheck:

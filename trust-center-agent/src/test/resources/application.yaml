@@ -22,10 +22,10 @@ logging.level:
 
 security:
   endpoints:
-    - path: /api/v2/cd/**
-      role: cd-client
-    - path: /api/v2/rd/**
-      role: rd-client
+  - path: /api/v2/cd/**
+    role: cd-client
+  - path: /api/v2/rd/**
+    role: rd-client
 
 spring:
   main:

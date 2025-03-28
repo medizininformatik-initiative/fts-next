@@ -163,7 +163,8 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>${project.basedir}/../util/src/main/bash/generate-certificates.sh
+              <executable>
+                ${project.basedir}/../util/src/main/bash/generate-certificates.sh
               </executable>
               <arguments>
                 <argument>localhost</argument>

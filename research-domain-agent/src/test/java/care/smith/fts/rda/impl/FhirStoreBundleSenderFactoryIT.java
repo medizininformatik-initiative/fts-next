@@ -14,8 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 class FhirStoreBundleSenderFactoryIT {
 
   @Autowired MeterRegistry meterRegistry;
-  @Autowired
-  WebClientFactory clientFactory;
+  @Autowired WebClientFactory clientFactory;
 
   private FhirStoreBundleSenderFactory factory;
 
