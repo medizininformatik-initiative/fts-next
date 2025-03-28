@@ -18,7 +18,10 @@ class HttpServerOAuth2AuthTest {
   void filterShouldRequireAuthenticationForEndpointPath() {
     var security = ServerHttpSecurity.http();
     var endpoint = new Endpoint("https://test-issuer", "");
-    var chain = auth.filter(endpoint, security).build();
+    var chain =
+        security
+            .authorizeExchange(e -> auth.filter(endpoint, e.pathMatchers(endpoint.path())))
+            .build();
     var filters = chain.getWebFilters().collectList().block();
 
     assertThat(filters).filteredOn(filter -> filter instanceof AuthorizationWebFilter).hasSize(1);

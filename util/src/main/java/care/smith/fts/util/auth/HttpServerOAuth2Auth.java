@@ -4,6 +4,8 @@ import static org.springframework.security.oauth2.jwt.ReactiveJwtDecoders.fromIs
 
 import care.smith.fts.util.auth.HttpServerAuthConfig.Endpoint;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec;
+import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec.Access;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
@@ -20,9 +22,8 @@ public record HttpServerOAuth2Auth(String issuer) implements HttpServerAuthMetho
   }
 
   @Override
-  public ServerHttpSecurity filter(Endpoint endpoint, ServerHttpSecurity http) {
-    return http.authorizeExchange(
-        exchange -> exchange.pathMatchers(endpoint.path()).authenticated());
+  public AuthorizeExchangeSpec filter(Endpoint endpoint, Access access) {
+    return access.authenticated();
   }
 
   @Override

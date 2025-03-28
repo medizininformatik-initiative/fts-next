@@ -25,15 +25,20 @@ public class HttpServerAuthConfig {
 
   @Bean
   public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-    var httpServerAuthMethod = authMethod(auth);
+    var method = authMethod(auth);
+    http.csrf(CsrfSpec::disable);
 
     log.debug(
-        "Configure server security using '{}' auth with {} endpoints",
-        httpServerAuthMethod,
-        endpoints.size());
-    httpServerAuthMethod.configure(http.csrf(CsrfSpec::disable));
-    endpoints.forEach(endpoint -> httpServerAuthMethod.filter(endpoint, http));
-    http.authorizeExchange(exchange -> exchange.anyExchange().permitAll());
+        "Configure server security using '{}' auth with {} endpoints", method, endpoints.size());
+    method.configure(http);
+
+    http.authorizeExchange(
+        auth -> {
+          for (Endpoint endpoint : endpoints) {
+            method.filter(endpoint, auth.pathMatchers(endpoint.path()));
+          }
+          auth.anyExchange().permitAll();
+        });
 
     return http.build();
   }
