@@ -14,6 +14,15 @@ spring:
             private-key: classpath:/client-rd-agent.key
           truststore:
             certificate: classpath:/ca.crt
+        unauthorized:
+          truststore:
+            certificate: classpath:/ca.crt
+        self-signed:
+          keystore:
+            certificate: classpath:/client-no-ca.crt
+            private-key: classpath:/client-no-ca.key
+          truststore:
+            certificate: classpath:/ca.crt
 
 server:
   ssl:
@@ -27,6 +36,12 @@ test:
     rd-agent:
       ssl:
         bundle: rd-agent
+    unauthorized:
+      ssl:
+        bundle: unauthorized
+    incorrect:
+      ssl:
+        bundle: self-signed
 
 security:
   auth:

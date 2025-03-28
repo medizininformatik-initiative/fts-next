@@ -14,3 +14,8 @@ test:
         basic:
           user: cd-agent
           password: bdfXkmQQIQLEkvVq
+    incorrect:
+      auth:
+        basic:
+          user: cd-agent
+          password: wrong-password

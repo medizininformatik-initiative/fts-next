@@ -8,6 +8,15 @@ spring:
             private-key: classpath:/client-default.key
           truststore:
             certificate: classpath:/ca.crt
+        unauthorized:
+          truststore:
+            certificate: classpath:/ca.crt
+        self-signed:
+          keystore:
+            certificate: classpath:/client-no-ca.crt
+            private-key: classpath:/client-no-ca.key
+          truststore:
+            certificate: classpath:/ca.crt
 
 server:
   ssl:
@@ -19,3 +28,12 @@ security:
       users:
       - username: default
         role: client
+
+test:
+  webclient:
+    unauthorized:
+      ssl:
+        bundle: unauthorized
+    incorrect:
+      ssl:
+        bundle: self-signed

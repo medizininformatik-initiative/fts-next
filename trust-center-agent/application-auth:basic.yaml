@@ -23,3 +23,8 @@ test:
         basic:
           user: rd-agent
           password: 1J5MhEhhiGh33dgt
+    incorrect:
+      auth:
+        basic:
+          user: cd-agent
+          password: wrong-password

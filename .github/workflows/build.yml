@@ -21,11 +21,7 @@ jobs:
         - clinical-domain-agent
         - trust-center-agent
         - research-domain-agent
-        auth:
-        - none
-        - basic
-        - cert
-        - oauth2
+
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -37,12 +33,11 @@ jobs:
         cache: 'maven'
 
     - name: Setup Keycloak
-      if: matrix.auth == 'oauth2'
       working-directory: .github/test
       run: docker compose -f oauth2/compose.yaml up --build --wait
 
     - name: Run Tests
-      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }} -Dspring.profiles.active=auth:${{ matrix.auth }}
+      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }}
 
     - name: Generate Code Coverage Report
       run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report

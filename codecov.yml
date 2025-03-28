@@ -14,7 +14,7 @@ codecov:
   require_ci_to_pass: false
   notify:
     wait_for_ci: true
-    after_n_builds: 9
+    after_n_builds: 3
 
 ignore:
 - "./test-util"
