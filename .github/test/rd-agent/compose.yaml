@@ -12,6 +12,8 @@ services:
     depends_on:                                                                            # CI_ONLY
       rd-hds:                                                                              # CI_ONLY
         condition: service_healthy                                                         # CI_ONLY
+      keycloak:                                                                            # CI_ONLY
+        condition: service_healthy                                                         # CI_ONLY
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
       interval: 10s
