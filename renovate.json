@@ -17,16 +17,16 @@
   "prConcurrentLimit": 3,
   "packageRules": [
     {
-      "matchPackagePatterns": [
-        "com.fasterxml.jackson"
-      ],
-      "groupName": "jackson"
+      "groupName": "jackson",
+      "matchPackageNames": [
+        "/com.fasterxml.jackson/"
+      ]
     },
     {
-      "matchPackagePatterns": [
-        "ca.uhn.hapi.fhir"
-      ],
-      "groupName": "hapi"
+      "groupName": "hapi",
+      "matchPackageNames": [
+        "/ca.uhn.hapi.fhir/"
+      ]
     },
     {
       "matchPackageNames": [
