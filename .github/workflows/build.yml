@@ -266,6 +266,10 @@ jobs:
       if: failure() || cancelled()
       run: docker compose logs gics-db gpas-db keystore
 
+    - name: Collect OAuth2 Server Logs
+      if: failure() || cancelled()
+      run: docker compose logs keycloak
+
   push-image:
     if: github.event_name != 'pull_request' || (github.event.pull_request.base.repo.full_name == github.event.pull_request.head.repo.full_name)
     needs:
