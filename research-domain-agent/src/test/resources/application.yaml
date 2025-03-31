@@ -24,6 +24,12 @@ test:
     default:
       ssl:
         bundle: client
+    unauthorized:
+      ssl:
+        bundle: client
+    incorrect:
+      ssl:
+        bundle: client
 
 security:
   endpoints:

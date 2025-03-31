@@ -13,9 +13,16 @@ spring:
             client-id: rd-client
             client-secret: tIQfOvBuhyR1dw9OQ3E4tCeTvcHtiW84
             provider: keycloak
+          unauthorized:
+            authorization-grant-type: client_credentials
+            client-id: rd-client
+            client-secret: tIQfOvBuhyR1dw9OQ3E4tCeTvcHtiW84
+            provider: unauthorized
         provider:
           keycloak:
             issuer-uri: http://localhost:8080/realms/fts
+          unauthorized:
+            issuer-uri: http://localhost:8080/realms/unauthorized
 
 test:
   webclient:
@@ -23,3 +30,7 @@ test:
       auth:
         oauth2:
           registration: agent
+    incorrect:
+      auth:
+        oauth2:
+          registration: unauthorized

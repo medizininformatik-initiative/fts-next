@@ -6,14 +6,11 @@ import static java.util.Objects.requireNonNull;
 import care.smith.fts.util.auth.HttpClientAuth;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public record HttpClientConfig(
     @NotBlank String baseUrl, @Nullable HttpClientAuth.Config auth, @Nullable Ssl ssl) {
 
   public HttpClientConfig(@NotBlank String baseUrl, HttpClientAuth.Config auth, Ssl ssl) {
-    log.debug("Auth: {}", auth);
     this.baseUrl = requireNonNull(emptyToNull(baseUrl), "Base URL must not be null");
     this.auth = auth;
     this.ssl = ssl;

@@ -58,3 +58,9 @@ test:
     rd-agent:
       ssl:
         bundle: client
+    unauthorized:
+      ssl:
+        bundle: client
+    incorrect:
+      ssl:
+        bundle: client

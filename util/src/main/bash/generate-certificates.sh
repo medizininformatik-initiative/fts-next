@@ -15,5 +15,9 @@ for CLIENT_CN in "${@:2}"; do
   echo "Creating '$CLIENT_CN' client certificate for CN=$CLIENT_CN..."
   openssl genpkey -quiet -algorithm RSA -out "client-${CLIENT_CN}.key" -pkeyopt rsa_keygen_bits:2048 >/dev/null
   openssl req -new -key "client-${CLIENT_CN}.key" -subj "/CN=${CLIENT_CN}" \
-  | openssl x509 -req -CA "ca.crt" -CAkey "ca.key" -CAcreateserial -out "client-${CLIENT_CN}.crt" -days 30
+    | openssl x509 -req -CA "ca.crt" -CAkey "ca.key" -CAcreateserial -out "client-${CLIENT_CN}.crt" -days 30
 done
+
+echo "Creating 'no-ca' client certificate for CN=no-ca..."
+openssl genpkey -quiet -algorithm RSA -out "client-no-ca.key" -pkeyopt rsa_keygen_bits:2048 >/dev/null
+openssl req -new -x509 -key "client-no-ca.key" -subj "/CN=no-ca" -out "client-no-ca.crt" -days 30

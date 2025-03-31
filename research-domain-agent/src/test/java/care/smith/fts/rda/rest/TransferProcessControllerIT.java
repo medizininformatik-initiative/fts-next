@@ -20,11 +20,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClientResponseException.NotFound;
-import org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized;
 import org.springframework.web.reactive.function.client.WebClientResponseException.UnsupportedMediaType;
 import reactor.core.publisher.Mono;
 
@@ -39,17 +37,6 @@ public class TransferProcessControllerIT {
   final void setUpTransferProcessControllerIT(
       @LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     client = factory.webClient("https://localhost:" + port);
-  }
-
-  @Test
-  @EnabledIf(
-      value = "#{environment.matchesProfiles('auth:basic | auth:oauth2')}",
-      reason = "Basic Auth or OAuth2 Configured")
-  void failWithWrongAuth(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
-    var client = factory.unauthorizedWebClient("https://localhost:" + port);
-    create(client.get().uri("/api/v2/projects").retrieve().bodyToMono(String.class))
-        .expectError(Unauthorized.class)
-        .verify();
   }
 
   @Test
