@@ -10,7 +10,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 public class BaseIT {
   // renovate: datasource=github-releases depName=valkey-io/valkey
-  private static final String VALKEY_VERSION = "8.0.2";
+  private static final String VALKEY_VERSION = "8.1.0";
 
   private static final WireMockServer gics = onRandomPort();
   private static final WireMockServer gpas = onRandomPort();
