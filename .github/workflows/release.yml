@@ -1,0 +1,14 @@
+name: Publish Release
+
+on:
+  release:
+    types: [ released ]
+
+jobs:
+  pages:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Trigger Pages Build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh workflow run Pages --ref main --repo ${{ github.repository }}
