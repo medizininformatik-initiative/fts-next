@@ -379,9 +379,9 @@ jobs:
           .github/release/cd-agent.tar.gz
           .github/release/tc-agent.tar.gz
           .github/release/rd-agent.tar.gz
-        draft: false
+        draft: true
         prerelease: ${{ env.is_prerelease }}
-        generate_release_notes: false
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
