@@ -10,6 +10,10 @@ export default withMermaid({
   base: process.env.DOCS_BASE || "",
   lastUpdated: true,
 
+  markdown: {
+    math: true,
+  },
+
   vue: {
     template: {
       compilerOptions: {
@@ -128,7 +132,13 @@ export default withMermaid({
           items: [
             {text: 'Repository Structure', link: '/contributing/structure'},
             {text: 'Clinical Domain Agent', link: '/contributing/clinical-domain-agent'},
-            {text: 'Trust Center Agent', link: '/contributing/trust-center-agent'},
+            {
+              text: 'Trust Center Agent',
+              items: [
+                {text: "Overview", link: '/contributing/trust-center-agent'},
+                {text: 'Pseudonymisierung', link: '/contributing/pseudonymisierung'}
+              ]
+            },
             {
               text: 'API',
               items: [
