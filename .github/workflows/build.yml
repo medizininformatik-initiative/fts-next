@@ -384,9 +384,3 @@ jobs:
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Trigger Pages Build
-      if: github.ref_type == 'tag'
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh workflow run Pages --ref main --repo ${{ github.repository }}
