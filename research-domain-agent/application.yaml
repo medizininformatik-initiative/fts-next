@@ -17,21 +17,21 @@
 #     server:
 #       keystore:
 #         # Path to the server's SSL certificate and corresponding private key
-#         certificate: target/test-classes/server.crt
-#         private-key: target/test-classes/server.key
+#         certificate: file:/path/to/server.crt
+#         private-key: file:/path/to/server.key
 #         private-key-password: password
 #       truststore:
 #         # Path to the certificate authority (CA) certificate for server-side trust
-#         certificate: target/test-classes/ca.crt
+#         certificate: file:/path/to/ca.crt
 #     client:
 #       keystore:
 #         # Path to the client's SSL certificate and corresponding private key
-#         certificate: target/test-classes/client-default.crt
-#         private-key: target/test-classes/client-default.key
+#         certificate: file:/path/to/client-default.crt
+#         private-key: file:/path/to/client-default.key
 #         private-key-password: password
 #       truststore:
 #         # Path to the certificate authority (CA) certificate for client-side trust
-#         certificate: target/test-classes/ca.crt
+#         certificate: file:/path/to/ca.crt
 
 ### Spring Server Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/server

@@ -12,18 +12,18 @@ spring.ssl.bundle:
   pem:
     server:
       keystore:
-        certificate: <path-to-server-certificate>
-        private-key: <path-to-server-private-key>
+        certificate: file:<path-to-server-certificate>
+        private-key: file:<path-to-server-private-key>
         private-key-password: <password>
       truststore:
-        certificate: <path-to-ca-certificate>
+        certificate: file:<path-to-ca-certificate>
     client:
       keystore:
-        certificate: <path-to-client-certificate>
-        private-key: <path-to-client-private-key>K
+        certificate: file:<path-to-client-certificate>
+        private-key: file:<path-to-client-private-key>K
         private-key-password: <password>
       truststore:
-        certificate: <path-to-ca-certificate>
+        certificate: file:<path-to-ca-certificate>
 ```
 
 ## Fields
@@ -33,10 +33,10 @@ spring.ssl.bundle:
 * #### `keystore` <Badge type="warning" text="Since 5.0" />
   * `certificate`
     * **Description**: Path to the server's SSL certificate file.
-    * **Example**: `target/test-classes/server.crt`
+    * **Example**: `file:/path/to/server.crt`
   * `private-key`
     * **Description**: Path to the private key corresponding to the server's SSL certificate.
-    * **Example**: `target/test-classes/server.key`
+    * **Example**: `file:/path/to/server.key`
 * `private-key-password`
   * **Description**: Password used to protect the server's private key file. This is required if the
     private key is encrypted.
@@ -47,17 +47,17 @@ spring.ssl.bundle:
     * **Description**: Path to the certificate authority (CA) certificate used to validate
       incoming
       SSL connections on the server.
-    * **Example**: `target/test-classes/ca.crt`
+    * **Example**: `file:/path/to/ca.crt`
 
 ### `pem.client` <Badge type="warning" text="Since 5.0" />
 
 * #### `keystore` <Badge type="warning" text="Since 5.0" />
   * `certificate`
     * **Description**: Path to the client's SSL certificate file.
-    * **Example**: `target/test-classes/client-default.crt`
+    * **Example**: `file:/path/to/client-default.crt`
   * `private-key`
     * **Description**: Path to the private key corresponding to the client's SSL certificate.
-    * **Example**: `target/test-classes/client-default.key`
+    * **Example**: `file:/path/to/client-default.key`
   * `private-key-password`
     * **Description**: Password used to protect the server's private key file. This is required if
       the private key is encrypted.
@@ -68,11 +68,13 @@ spring.ssl.bundle:
     * **Description**: Path to the certificate authority (CA) certificate used to validate
       server
       SSL connections from the client.
-    * **Example**: `target/test-classes/ca.crt`
+    * **Example**: `file:/path/to/ca.crt`
 
 ## Notes
 
 * **File Paths**  
+  The file paths must begin with either `file:` or `classpath:`.
+
   The paths specified in the configuration should be accessible by the application at runtime.
   Relative paths like `target/test-classes/...` are typically used for development or testing. Use
   absolute paths in production for better reliability.
