@@ -36,6 +36,8 @@ This section describes the implementation details of the FhirMappingProvider.
 
 The de-identification process works by generating a pseudonym (sPID) in gPAS
 for the patient resource's ID (PID).
+For more details on the pseudonymization approach, see the [Pseudonymization](pseudonymisierung)
+document.
 The PID may be thought of as the main ID and is used to re-identify patients.
 All other IDs are hashed with SHA256.
 Since we have no influence about the ids' length

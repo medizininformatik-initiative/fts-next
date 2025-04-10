@@ -3,6 +3,14 @@
 This document describes the configuration options available for managing deidentification settings
 in the `deidentificator` section of the project configuration file.
 
+::: danger Security Warning
+To protect pseudonyms against brute-force attacks, it is essential to choose a sufficiently large
+alphabet and salt length.
+This ensures that the total number of possible combinations ($A^n$) is high enough to make reverse
+computation practically infeasible.
+See [Pseudonymization](../details/pseudonymisierung) for more details.
+:::
+
 ## Configuration Example
 
 The `deidentificator` section allows different implementations to be used for pseudonymizing and
@@ -129,6 +137,9 @@ deidentification of FHIR bundles.
 ## Notes
 
 * Ensure all domains (`pseudonym`, `salt`, and `dateShift`) are correctly configured in the TCA.
+* To protect pseudonyms against brute-force attacks, it is essential to choose a sufficiently large
+  alphabet and salt length. This ensures that the total number of possible combinations ($A^n$) is
+  high enough to make reverse computation practically infeasible.
 * The `maxDateShift` must be in a valid ISO-8601 duration format. Refer
   to [ISO-8601 documentation](https://en.wikipedia.org/wiki/ISO_8601) for more details.
 * Mount the configuration files (`deidentifhirConfig` and `scraperConfig`) into the Docker container
