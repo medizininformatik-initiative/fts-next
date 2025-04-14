@@ -27,7 +27,8 @@
     <maven.compiler.release>${java.version}</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>3.4.4</spring-boot.version>
-    <junit-jupiter.version>5.12.2</junit-jupiter.version>
+    <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
+    <junit-platform.version>1.11.4</junit-platform.version>
     <skipUnitTests>false</skipUnitTests>
   </properties>
 
@@ -120,9 +121,9 @@
           <version>3.5.2</version>
           <dependencies>
             <dependency>
-              <groupId>org.junit.jupiter</groupId>
-              <artifactId>junit-jupiter-engine</artifactId>
-              <version>${junit-jupiter.version}</version>
+              <groupId>org.junit.platform</groupId>
+              <artifactId>junit-platform-engine</artifactId>
+              <version>${junit-platform.version}</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -136,9 +137,9 @@
           <version>3.5.2</version>
           <dependencies>
             <dependency>
-              <groupId>org.junit.jupiter</groupId>
-              <artifactId>junit-jupiter-engine</artifactId>
-              <version>${junit-jupiter.version}</version>
+              <groupId>org.junit.platform</groupId>
+              <artifactId>junit-platform-engine</artifactId>
+              <version>${junit-platform.version}</version>
             </dependency>
           </dependencies>
 
