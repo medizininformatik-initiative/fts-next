@@ -5,7 +5,7 @@ import static care.smith.fts.test.FhirGenerators.resolveSearchResponse;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
-import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;

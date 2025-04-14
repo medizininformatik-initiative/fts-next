@@ -1,7 +1,7 @@
 package care.smith.fts.tca;
 
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.FhirUtils.fhirResourceToString;
+import static care.smith.fts.util.fhir.FhirUtils.fhirResourceToString;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;

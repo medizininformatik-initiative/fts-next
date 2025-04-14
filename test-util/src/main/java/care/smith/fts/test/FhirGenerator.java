@@ -2,7 +2,7 @@ package care.smith.fts.test;
 
 import static java.util.Objects.requireNonNull;
 
-import care.smith.fts.util.FhirUtils;
+import care.smith.fts.util.fhir.FhirUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;

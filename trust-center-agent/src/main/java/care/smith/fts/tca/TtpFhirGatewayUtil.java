@@ -1,7 +1,7 @@
 package care.smith.fts.tca;
 
-import static care.smith.fts.util.FhirClientUtils.fetchCapabilityStatementOperations;
-import static care.smith.fts.util.FhirClientUtils.requireOperations;
+import static care.smith.fts.util.fhir.FhirClientUtils.fetchCapabilityStatementOperations;
+import static care.smith.fts.util.fhir.FhirClientUtils.requireOperations;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;

@@ -1,4 +1,4 @@
-package care.smith.fts.util;
+package care.smith.fts.util.fhir;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;

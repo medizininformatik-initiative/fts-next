@@ -1,11 +1,11 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.util.ConsentedPatientExtractor.hasAllPolicies;
-import static care.smith.fts.util.FhirClientUtils.fetchCapabilityStatementOperations;
-import static care.smith.fts.util.FhirClientUtils.requireOperations;
-import static care.smith.fts.util.FhirUtils.resourceStream;
-import static care.smith.fts.util.FhirUtils.toBundle;
-import static care.smith.fts.util.FhirUtils.typedResourceStream;
+import static care.smith.fts.util.fhir.FhirClientUtils.fetchCapabilityStatementOperations;
+import static care.smith.fts.util.fhir.FhirClientUtils.requireOperations;
+import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 
 import com.google.common.base.Predicates;
 import java.util.List;

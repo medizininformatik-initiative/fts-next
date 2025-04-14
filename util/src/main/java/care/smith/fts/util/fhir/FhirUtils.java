@@ -1,4 +1,4 @@
-package care.smith.fts.util;
+package care.smith.fts.util.fhir;
 
 import static java.util.stream.Stream.concat;
 

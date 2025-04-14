@@ -1,7 +1,7 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
-import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
@@ -9,7 +9,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.tca.AbstractFhirClientIT;
 import care.smith.fts.test.FhirGenerator;
 import care.smith.fts.test.FhirGenerators;
-import care.smith.fts.util.FhirUtils;
+import care.smith.fts.util.fhir.FhirUtils;
 import care.smith.fts.util.tca.ConsentRequest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;

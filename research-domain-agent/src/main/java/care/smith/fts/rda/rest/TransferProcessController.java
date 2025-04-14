@@ -1,10 +1,10 @@
 package care.smith.fts.rda.rest;
 
-import static care.smith.fts.util.FhirUtils.resourceStream;
-import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
+import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.google.common.base.Predicates.and;
 import static java.util.function.Predicate.not;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;

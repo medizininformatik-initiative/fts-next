@@ -3,7 +3,7 @@ package care.smith.fts.tca.deidentification;
 import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
-import static care.smith.fts.util.FhirUtils.fhirResourceToString;
+import static care.smith.fts.util.fhir.FhirUtils.fhirResourceToString;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;

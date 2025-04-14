@@ -1,6 +1,6 @@
 package care.smith.fts.tca.rest;
 
-import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;

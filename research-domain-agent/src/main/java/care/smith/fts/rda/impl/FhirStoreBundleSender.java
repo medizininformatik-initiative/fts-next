@@ -1,8 +1,8 @@
 package care.smith.fts.rda.impl;
 
-import static care.smith.fts.util.FhirUtils.resourceStream;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
+import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;

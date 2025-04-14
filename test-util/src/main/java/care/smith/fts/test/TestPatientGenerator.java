@@ -3,7 +3,7 @@ package care.smith.fts.test;
 import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.FhirGenerators.patient;
 import static care.smith.fts.test.FhirGenerators.withPrefix;
-import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static java.util.stream.Stream.generate;
 
 import java.io.IOException;

@@ -1,6 +1,6 @@
-package care.smith.fts.util;
+package care.smith.fts.util.fhir;
 
-import static care.smith.fts.util.FhirUtils.*;
+import static care.smith.fts.util.fhir.FhirUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;

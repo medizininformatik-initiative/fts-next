@@ -1,7 +1,7 @@
 package care.smith.fts.tca.deidentification.configuration;
 
-import static care.smith.fts.util.FhirClientUtils.fetchCapabilityStatementOperations;
-import static care.smith.fts.util.FhirClientUtils.requireOperations;
+import static care.smith.fts.util.fhir.FhirClientUtils.fetchCapabilityStatementOperations;
+import static care.smith.fts.util.fhir.FhirClientUtils.requireOperations;
 
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.LogUtil;

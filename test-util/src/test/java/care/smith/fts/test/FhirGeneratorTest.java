@@ -1,10 +1,10 @@
 package care.smith.fts.test;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
-import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.util.FhirUtils;
+import care.smith.fts.util.fhir.FhirUtils;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;

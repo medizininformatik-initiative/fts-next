@@ -1,4 +1,4 @@
-package care.smith.fts.util;
+package care.smith.fts.util.fhir;
 
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.springframework.core.ResolvableType;
