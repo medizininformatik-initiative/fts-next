@@ -58,7 +58,8 @@
     },
     {
       "matchDepNames": [
-        "org.junit.jupiter:*"
+        "org.junit.jupiter:*",
+        "org.junit.platform:*"
       ],
       "enabled": false
     },
