@@ -45,11 +45,29 @@
     },
     {
       "matchDepNames": [
-        "ghcr.io/knoppiks/mosaic-*",
-        "spring boot",
-        "org.junit.jupiter:*"
+        "ghcr.io/knoppiks/mosaic-*"
       ],
       "automerge": false
+    },
+    {
+      "matchDepNames": [
+        "spring boot"
+      ],
+      "prHeader": "Check if there are transitive dependencies that need to be updated, too. e.g. `junit-platform`",
+      "automerge": false
+    },
+    {
+      "matchDepNames": [
+        "org.junit.jupiter:*"
+      ],
+      "enabled": false
+    },
+    {
+      "matchDepNames": [
+        "org.apache.maven.plugins:maven-surefire-plugin",
+        "org.apache.maven.plugins:maven-failsafe-plugin"
+      ],
+      "groupName": "maven-surefire+failsafe"
     }
   ],
   "hostRules": [
