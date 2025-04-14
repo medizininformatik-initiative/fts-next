@@ -71,6 +71,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
                       "processing patient bundle, resources: {}", b.bundle().getEntry().size()))
           .doOnNext(b -> receivedResources.getAndAdd(b.bundle().getEntry().size()))
           .flatMap(deidentificator::deidentify)
+          .map(TransferProcessRunner::tagResources)
           .doOnNext(b -> sentResources.getAndAdd(b.getEntry().size()))
           .flatMap(bundleSender::send)
           .doOnError(err -> log.info("Could not process patient: {}", err.getMessage()))
@@ -81,6 +82,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .onErrorComplete()
           .subscribe();
     }
+
 
     public Status status(String processId) {
       return new Status(processId, phase.get(), receivedResources.get(), sentResources.get());

@@ -11,4 +11,4 @@ generate-openapi:
 	../.github/scripts/openapi-specs.sh rd-agent --project-name fts-docs -f ../.github/test/compose.yaml >"public/rd-agent-openapi.json"
 	docker compose --project-name fts-docs -f ../.github/test/compose.yaml down
 
-.PHONY: install build
+.PHONY: install build generate-openapi
