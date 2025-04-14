@@ -28,7 +28,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>3.4.4</spring-boot.version>
     <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
-    <junit-platform.version>1.11.4</junit-platform.version>
+    <junit-platform.version>1.12.2</junit-platform.version>
     <skipUnitTests>false</skipUnitTests>
   </properties>
 
