@@ -1,6 +1,6 @@
 package care.smith.fts.util;
 
-import static care.smith.fts.util.FhirUtils.typedResourceStream;
+import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;

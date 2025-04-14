@@ -1,9 +1,9 @@
 package care.smith.fts.test;
 
 import static care.smith.fts.test.MockServerUtil.SequentialMock.newScenario;
-import static care.smith.fts.util.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
+import static care.smith.fts.util.fhir.FhirUtils.fhirResourceToString;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
 import static com.github.tomakehurst.wiremock.client.WireMock.status;

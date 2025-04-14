@@ -1,8 +1,8 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.util.FhirUtils.resourceStream;
-import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
+import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.of;

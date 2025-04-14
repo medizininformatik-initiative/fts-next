@@ -1,9 +1,9 @@
 package care.smith.fts.rda.rest;
 
 import static care.smith.fts.rda.rest.TransferProcessController.fromPlainBundle;
-import static care.smith.fts.util.FhirUtils.resourceStream;
-import static care.smith.fts.util.FhirUtils.toBundle;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
+import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static java.util.List.of;
 import static java.util.stream.Stream.concat;
 import static org.assertj.core.api.Assertions.assertThat;

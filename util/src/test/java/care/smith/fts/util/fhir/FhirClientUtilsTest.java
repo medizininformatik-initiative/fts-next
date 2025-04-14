@@ -1,7 +1,7 @@
-package care.smith.fts.util;
+package care.smith.fts.util.fhir;
 
-import static care.smith.fts.util.FhirClientUtils.requireOperations;
-import static care.smith.fts.util.FhirClientUtils.verifyOperationsExist;
+import static care.smith.fts.util.fhir.FhirClientUtils.requireOperations;
+import static care.smith.fts.util.fhir.FhirClientUtils.verifyOperationsExist;
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.test.StepVerifier.create;
 

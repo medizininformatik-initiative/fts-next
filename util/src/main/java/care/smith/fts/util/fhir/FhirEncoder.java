@@ -1,7 +1,7 @@
-package care.smith.fts.util;
+package care.smith.fts.util.fhir;
 
-import static care.smith.fts.util.FhirCodecUtils.isBaseResource;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.fhir.FhirCodecUtils.isBaseResource;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import ca.uhn.fhir.context.FhirContext;

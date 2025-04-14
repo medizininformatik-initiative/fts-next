@@ -5,6 +5,7 @@ import static java.time.Duration.ofSeconds;
 import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.util.auth.HttpServerAuthConfig;
 import care.smith.fts.util.auth.OAuth2ConfigurationExistsCondition;
+import care.smith.fts.util.fhir.FhirCodecConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.net.http.HttpClient;

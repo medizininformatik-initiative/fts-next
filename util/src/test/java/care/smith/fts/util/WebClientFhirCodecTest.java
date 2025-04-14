@@ -1,8 +1,8 @@
 package care.smith.fts.util;
 
 import static ca.uhn.fhir.context.FhirContext.forR4;
-import static care.smith.fts.util.FhirUtils.fhirResourceToString;
-import static care.smith.fts.util.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.fhirResourceToString;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.test.StepVerifier.create;
 
 import ca.uhn.fhir.context.FhirContext;
+import care.smith.fts.util.fhir.FhirCodecConfiguration;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.stream.Stream;

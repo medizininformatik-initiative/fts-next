@@ -1,4 +1,4 @@
-package care.smith.fts.util;
+package care.smith.fts.util.fhir;
 
 import static ca.uhn.fhir.context.FhirContext.forR4;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
