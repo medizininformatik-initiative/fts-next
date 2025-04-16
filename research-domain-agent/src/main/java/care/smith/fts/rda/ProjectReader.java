@@ -2,7 +2,6 @@ package care.smith.fts.rda;
 
 import static java.nio.file.Files.*;
 import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -22,7 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProjectReader {
 
-  private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(?<name>.*)[.](?:ya?ml|json)$");
+  private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(?<name>.+)[.](?:ya?ml|json)$");
 
   private final TransferProcessFactory processFactory;
   private final ObjectMapper objectMapper;
@@ -69,7 +68,7 @@ public class ProjectReader {
     }
   }
 
-  private Optional<TransferProcessDefinition> openConfigAndParse(Path projectFile, String name) {
+  protected Optional<TransferProcessDefinition> openConfigAndParse(Path projectFile, String name) {
     try (var inStream = newInputStream(projectFile)) {
       return parseConfig(inStream, name).flatMap(config -> createProcess(config, name));
     } catch (IOException e) {
@@ -82,7 +81,7 @@ public class ProjectReader {
       TransferProcessConfig config, String name) {
     try {
       log.info("Project '{}' created: {}", name, config);
-      return ofNullable(processFactory.create(config, name));
+      return Optional.of(processFactory.create(config, name));
     } catch (Exception e) {
       log.error("Could not create project '{}'", name, e);
       return empty();
