@@ -33,9 +33,9 @@ class ProjectReaderTest {
 
   @Test
   void emptyDirYieldsNoBeans() throws Exception {
-    var factory = new ProjectReader(processFactory, objectMapper, tempDirectory);
+    var reader = new ProjectReader(processFactory, objectMapper, tempDirectory);
 
-    factory.createTransferProcesses();
+    reader.createTransferProcesses();
 
     verifyNoInteractions(processFactory);
     verifyNoInteractions(beanFactory);
@@ -53,8 +53,8 @@ class ProjectReaderTest {
             b -> null);
     when(processFactory.create(any(), anyString())).thenReturn(process);
 
-    var factory = new ProjectReader(processFactory, objectMapper, testDirectory);
-    factory.createTransferProcesses();
+    var reader = new ProjectReader(processFactory, objectMapper, testDirectory);
+    reader.createTransferProcesses();
 
     verify(processFactory, times(1)).create(any(), eq("example"));
   }
