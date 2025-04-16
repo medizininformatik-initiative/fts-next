@@ -4,6 +4,7 @@
 [![Code Coverage](https://codecov.io/gh/medizininformatik-initiative/fts-next/branch/main/graph/badge.svg)](https://codecov.io/gh/medizininformatik-initiative/fts-next)
 [![Documentation](https://img.shields.io/badge/see-Docs-blue.svg)](https://medizininformatik-initiative.github.io/fts-next)
 [![Renovate](https://img.shields.io/badge/renovate-enabled-violet.svg)](https://github.com/medizininformatik-initiative/fts-next/issues/67)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/medizininformatik-initiative/fts-next/badge)](https://scorecard.dev/viewer/?uri=github.com/medizininformatik-initiative/fts-next)
 
 The FHIR Transfer Services (FTSnext) facilitate the transfer of
 FHIR ([Fast Healthcare Interoperability Resources][fhir]) resources between FHIR servers, inhabiting
