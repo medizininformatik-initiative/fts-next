@@ -1,0 +1,14 @@
+cohortSelector:
+  mock:
+    pids: [ "patient-102931" ]
+
+dataSelector:
+  mock: { }
+
+deidentificator:
+  mock:
+    deidentify: false
+
+bundleSender:
+  mock:
+    expect: [ "patient-102931" ]
