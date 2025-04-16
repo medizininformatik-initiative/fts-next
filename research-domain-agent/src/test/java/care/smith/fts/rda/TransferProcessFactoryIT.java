@@ -1,4 +1,4 @@
-package care.smith.fts.cda;
+package care.smith.fts.rda;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -38,43 +38,23 @@ class TransferProcessFactoryIT {
   @Test
   void emptyConfigThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(
-            () -> factory.create(new TransferProcessConfig(null, null, null, null), "example"));
-  }
-
-  @Test
-  void ignoreCommonConfigEntries() {
-    TransferProcessConfig processDefinition =
-        new TransferProcessConfig(
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of(), "additionalFilter", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()));
-
-    assertThatNoException().isThrownBy(() -> factory.create(processDefinition, "example"));
+        .isThrownBy(() -> factory.create(new TransferProcessConfig(null, null), "example"));
   }
 
   @Test
   void unknownConfigEntriesThrow() {
     TransferProcessConfig processDefinition =
         new TransferProcessConfig(
-            Map.of("mock", Map.of(), "unknown", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()));
+            Map.of("mock", Map.of(), "unknown", Map.of()), Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> factory.create(processDefinition, "example"));
+        .isThrownBy(() -> factory.create(processDefinition, "example"))
+        .withMessageContaining("Multiple config entries");
   }
 
   @Test
   void noImplementationThrows() {
-    TransferProcessConfig processDefinition =
-        new TransferProcessConfig(
-            Map.of("mock", Map.of()),
-            Map.of("ignoreConsent", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()));
+    TransferProcessConfig processDefinition = new TransferProcessConfig(Map.of(), Map.of());
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> factory.create(processDefinition, "example"))
@@ -85,10 +65,7 @@ class TransferProcessFactoryIT {
   void multipleImplementationsThrow() {
     TransferProcessConfig processDefinition =
         new TransferProcessConfig(
-            Map.of("mock", Map.of(), "mock2", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()));
+            Map.of("mock", Map.of(), "mock2", Map.of()), Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> factory.create(processDefinition, "example"))
@@ -98,11 +75,7 @@ class TransferProcessFactoryIT {
   @Test
   void unknownImplementationThrows() {
     TransferProcessConfig processDefinition =
-        new TransferProcessConfig(
-            Map.of("unknown", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()));
+        new TransferProcessConfig(Map.of("unknown", Map.of()), Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> factory.create(processDefinition, "example"))
@@ -113,10 +86,7 @@ class TransferProcessFactoryIT {
   void invalidConfigEntryThrows() {
     TransferProcessConfig processDefinition =
         new TransferProcessConfig(
-            Map.of("mock", Map.of("known", List.of("invalid"))),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()));
+            Map.of("mock", Map.of("deidentify", List.of("invalid"))), Map.of("mock", Map.of()));
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> factory.create(processDefinition, "example"))
@@ -126,11 +96,7 @@ class TransferProcessFactoryIT {
   @Test
   void validConfig() {
     TransferProcessConfig processDefinition =
-        new TransferProcessConfig(
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()),
-            Map.of("mock", Map.of()));
+        new TransferProcessConfig(Map.of("mock", Map.of()), Map.of("mock", Map.of()));
 
     assertThatNoException().isThrownBy(() -> factory.create(processDefinition, "example"));
   }
