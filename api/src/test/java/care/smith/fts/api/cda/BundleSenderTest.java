@@ -15,8 +15,8 @@ class BundleSenderTest {
 
     om.readValue(
         """
-      ---
-      """,
+        ---
+        """,
         BundleSender.Config.class);
   }
 
