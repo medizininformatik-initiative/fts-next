@@ -54,7 +54,12 @@ public class TransferProcessController {
   @Operation(
       summary = "Start a transfer process",
       description =
-          "**Since 5.0**\n\nStart a transfer of patients with IDs given in the request body or if empty start a transfer of all consented patients.",
+          """
+          **Since 5.0**
+
+          Start a transfer of patients with IDs given in the request body or if empty start
+           a transfer of all consented patients.
+          """,
       parameters = {
         @Parameter(
             name = "project",
@@ -134,8 +139,8 @@ public class TransferProcessController {
                           name = "Transfer process status",
                           value =
                               """
-                    {"processId":"ChlblQ","phase":"RUNNING","createdAt":[2024,12,16,9,29,37,186662587],"finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
-                    """)
+                              {"processId":"ChlblQ","phase":"RUNNING","createdAt":[2024,12,16,9,29,37,186662587],"finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
+                              """)
                     })),
         @ApiResponse(responseCode = "404", description = "The project could not be found")
       })
@@ -163,11 +168,11 @@ public class TransferProcessController {
                           name = "List of transfer process statuses",
                           value =
                               """
-                    [
-                      {"processId":"8R9JGu","phase":"COMPLETED","createdAt":[2024,12,16,9,28,50,772443200],"finishedAt":[2024,12,16,9,29,31,776068091],"totalPatients":100,"totalBundles":119,"deidentifiedBundles":118,"sentBundles":118,"skippedBundles":0},
-                      {"processId":"ChlblQ","phase":"RUNNING","createdAt":[2024,12,16,9,29,37,186662587],"finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
-                    ]
-                    """)
+                              [
+                                {"processId":"8R9JGu","phase":"COMPLETED","createdAt":[2024,12,16,9,28,50,772443200],"finishedAt":[2024,12,16,9,29,31,776068091],"totalPatients":100,"totalBundles":119,"deidentifiedBundles":118,"sentBundles":118,"skippedBundles":0},
+                                {"processId":"ChlblQ","phase":"RUNNING","createdAt":[2024,12,16,9,29,37,186662587],"finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
+                              ]
+                              """)
                     })),
       })
   Mono<ResponseEntity<List<TransferProcessStatus>>> statuses() {
@@ -226,11 +231,13 @@ public class TransferProcessController {
                           name = "Example configuration",
                           value =
                               """
-                    {"cohortSelector":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domain":"MII","patientIdentifierSystem":"https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym","policySystem":"https://ths-greifswald.de/fhir/CodeSystem/gics/Policy","policies":["IDAT_erheben","IDAT_speichern_verarbeiten","MDAT_erheben","MDAT_speichern_verarbeiten"]}},
-                     "dataSelector":{"everything":{"fhirServer":{"baseUrl":"http://cd-hds:8080/fhir"},"resolve":{"patientIdentifierSystem":"http://fts.smith.care"}}},
-                     "deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domains":{"pseudonym":"MII","salt":"MII","dateShift":"MII"}},"maxDateShift":"P14D","deidentifhirConfig":"/app/projects/example/deidentifhir/CDtoTransport.profile","scraperConfig":"/app/projects/example/deidentifhir/IDScraper.profile"}},
-                     "bundleSender":{"researchDomainAgent":{"server":{"baseUrl":"http://rd-agent:8080"},"project":"example"}}}
-                    """)
+                              {
+                                "cohortSelector":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domain":"MII","patientIdentifierSystem":"https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym","policySystem":"https://ths-greifswald.de/fhir/CodeSystem/gics/Policy","policies":["IDAT_erheben","IDAT_speichern_verarbeiten","MDAT_erheben","MDAT_speichern_verarbeiten"]}},
+                                "dataSelector":{"everything":{"fhirServer":{"baseUrl":"http://cd-hds:8080/fhir"},"resolve":{"patientIdentifierSystem":"http://fts.smith.care"}}},
+                                "deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domains":{"pseudonym":"MII","salt":"MII","dateShift":"MII"}},"maxDateShift":"P14D","deidentifhirConfig":"/app/projects/example/deidentifhir/CDtoTransport.profile","scraperConfig":"/app/projects/example/deidentifhir/IDScraper.profile"}},
+                                "bundleSender":{"researchDomainAgent":{"server":{"baseUrl":"http://rd-agent:8080"},"project":"example"}}
+                              }
+                              """)
                     })),
         @ApiResponse(responseCode = "404", description = "The project does not exist")
       })

@@ -34,9 +34,17 @@ class WebClientDefaultsTest {
             .willReturn(
                 jsonResponse(
                     """
-                          {"id":"patient","consentedPolicies":{"policies":{"a":[
-                                {"start":-23220777600.000000000,"end":-23220604800.000000000}]}}}
-                          """,
+                    {
+                      "id": "patient",
+                      "consentedPolicies": {
+                        "policies":{
+                          "a":[
+                            {"start": -23220777600.000000000, "end": -23220604800.000000000}
+                          ]
+                        }
+                      }
+                    }
+                    """,
                     200)));
 
     WebClient.Builder webClientBuilder = WebClient.builder();

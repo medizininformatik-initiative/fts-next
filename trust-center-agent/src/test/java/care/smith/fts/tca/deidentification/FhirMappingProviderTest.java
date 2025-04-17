@@ -192,10 +192,10 @@ class FhirMappingProviderTest {
             .willReturn(
                 fhirResponse(
                     """
-                       {"resourceType": "OperationOutcome",
-                        "issue": [{"severity": "error", "code": "processing",
-                                   "diagnostics": "Unknown domain"}]}
-                       """,
+                    {"resourceType": "OperationOutcome",
+                     "issue": [{"severity": "error", "code": "processing",
+                                "diagnostics": "Unknown domain"}]}
+                    """,
                     BAD_REQUEST)));
     wireMock.register(
         get(urlPathEqualTo("/metadata"))
@@ -220,10 +220,15 @@ class FhirMappingProviderTest {
             .willReturn(
                 fhirResponse(
                     """
-{"resourceType": "OperationOutcome",
-"issue": [{"severity": "error", "code": "processing",
-           "diagnostics": "Unknown error"}]}
-""",
+                    {
+                      "resourceType": "OperationOutcome",
+                      "issue": [{
+                        "severity": "error",
+                        "code": "processing",
+                        "diagnostics": "Unknown error"
+                      }]
+                    }
+                    """,
                     BAD_REQUEST)));
     wireMock.register(
         get(urlPathEqualTo("/metadata"))

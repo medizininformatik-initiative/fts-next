@@ -15,8 +15,8 @@ class CohortSelectorTest {
 
     om.readValue(
         """
-      ---
-      """,
+        ---
+        """,
         CohortSelector.Config.class);
   }
 

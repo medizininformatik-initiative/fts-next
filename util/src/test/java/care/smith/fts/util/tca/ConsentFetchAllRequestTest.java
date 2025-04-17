@@ -31,12 +31,12 @@ class ConsentFetchAllRequestTest {
   void deserialize() throws JsonProcessingException {
     String json =
         """
-            {
-                "domain": "domain",
-                "policies": ["policy1", "policy2"],
-                "policySystem": "policySystem"
-            }
-            """;
+        {
+          "domain": "domain",
+          "policies": ["policy1", "policy2"],
+          "policySystem": "policySystem"
+        }
+        """;
 
     ConsentFetchAllRequest request = objectMapper.readValue(json, ConsentFetchAllRequest.class);
 

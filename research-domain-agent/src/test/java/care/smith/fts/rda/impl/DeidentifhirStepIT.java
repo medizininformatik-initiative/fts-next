@@ -111,9 +111,11 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             .willReturn(
                 jsonResponse(
                     """
-                          {"tidPidMap": {"tid1": "pid1"},
-                           "dateShiftBy": "P12D"}
-                          """)));
+                    {
+                      "tidPidMap": {"tid1": "pid1"},
+                      "dateShiftBy": "P12D"
+                    }
+                    """)));
 
     create(step.deidentify(new TransportBundle(bundle, "transferId")))
         .assertNext(

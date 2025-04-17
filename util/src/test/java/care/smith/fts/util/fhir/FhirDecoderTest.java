@@ -76,8 +76,8 @@ class FhirDecoderTest {
     DefaultDataBuffer buffer =
         bufferFactory.wrap(
             """
-                {"resourceType":"Patient","id":"123"}
-                """
+            {"resourceType":"Patient","id":"123"}
+            """
                 .getBytes(StandardCharsets.UTF_8));
     Patient result =
         (Patient) decoder.decode(buffer, resolvableType, MediaType.APPLICATION_JSON, null);

@@ -41,17 +41,17 @@ class TransportMappingRequestTest {
   void deserialize() throws JsonProcessingException {
     String json =
         """
-            {
-                "patientId": "patient123",
-                "resourceIds": ["id1", "id2"],
-                "tcaDomains": {
-                  "pseudonym" : "pDomain",
-                  "salt" : "sDomain",
-                  "dateShift" : "dDomain"
-                },
-                "maxDateShift": "P30D"
-            }
-            """;
+        {
+          "patientId": "patient123",
+          "resourceIds": ["id1", "id2"],
+          "tcaDomains": {
+            "pseudonym" : "pDomain",
+            "salt" : "sDomain",
+            "dateShift" : "dDomain"
+          },
+          "maxDateShift": "P30D"
+        }
+        """;
 
     TransportMappingRequest request = objectMapper.readValue(json, TransportMappingRequest.class);
 
