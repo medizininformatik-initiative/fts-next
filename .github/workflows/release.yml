@@ -4,6 +4,9 @@ on:
   release:
     types: [ released ]
 
+# Declare default permissions as read only.
+permissions: read-all
+
 jobs:
   pages:
     runs-on: ubuntu-24.04
