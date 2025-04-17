@@ -99,17 +99,17 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             .withRequestBody(
                 equalToJson(
                     """
-                                {
-                                  "patientId" : "id1",
-                                  "resourceIds" : [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
-                                  "tcaDomains": {
-                                    "pseudonym" : "domain",
-                                    "salt" : "domain",
-                                    "dateShift" : "domain"
-                                  },
-                                  "maxDateShift" : 1209600.0
-                                }
-                                """,
+                    {
+                      "patientId": "id1",
+                      "resourceIds": [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
+                      "tcaDomains": {
+                        "pseudonym": "domain",
+                        "salt": "domain",
+                        "dateShift": "domain"
+                      },
+                      "maxDateShift": 1209600.0
+                    }
+                    """,
                     true,
                     true))
             .willReturn(ok()));
@@ -131,13 +131,13 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             .willReturn(
                 jsonResponse(
                     """
-                            {
-                              "transferId": "transferId",
-                              "transportMapping": { "id1.identifier.identifierSystem:id1": "tident1",
-                                                    "id1.Patient:id1": "tid1" },
-                              "dateShiftValue": 1209600.000000000
-                            }
-                            """)));
+                    {
+                      "transferId": "transferId",
+                      "transportMapping": { "id1.identifier.identifierSystem:id1": "tident1",
+                                            "id1.Patient:id1": "tid1" },
+                      "dateShiftValue": 1209600.000000000
+                    }
+                    """)));
 
     create(step.deidentify(consentedPatientBundle)).expectNextCount(1).verifyComplete();
   }

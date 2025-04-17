@@ -60,7 +60,8 @@ public class GpasFhirDeIdentificationConfiguration {
         """
         Connection to gPAS could not be established on agent startup. \
         The agent will continue startup anyway, in case gPAS connection will be \
-        available later on.""";
+        available later on.\
+        """;
     LogUtil.warnWithDebugException(log, msg, e);
   }
 

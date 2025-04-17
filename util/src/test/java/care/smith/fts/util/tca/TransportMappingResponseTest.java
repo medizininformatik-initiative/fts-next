@@ -31,8 +31,12 @@ class TransportMappingResponseTest {
     var response =
         objectMapper.readValue(
             """
-                    {"transferId": "transferId", "transportMapping":{"original":"pseudonym"},"dateShiftValue":1209600.000000000}
-                    """,
+            {
+              "transferId": "transferId",
+              "transportMapping": {"original":"pseudonym"},
+              "dateShiftValue": 1209600.000000000
+            }
+            """,
             TransportMappingResponse.class);
 
     assertThat(response.dateShiftValue()).isEqualTo(Duration.ofDays(14));

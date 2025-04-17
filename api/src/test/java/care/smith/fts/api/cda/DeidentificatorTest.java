@@ -15,8 +15,8 @@ class DeidentificatorTest {
 
     om.readValue(
         """
-      ---
-      """,
+        ---
+        """,
         Deidentificator.Config.class);
   }
 
