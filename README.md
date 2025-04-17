@@ -46,9 +46,14 @@ confidentiality.
 
 ## Documentation
 
-Please see the [official docs](https://medizininformatik-initiative.github.io/fts-next) page for
-complete documentation.
+Please see the [official docs][docs] page for documentation on how to install and use FTSnext.
+Feel free to contribute by providing feedback or develop the software, see our
+[contributing guidelines][contrib] on how to participate.
 
 [fhir]: https://fhir.org/
 
 [smith]: https://www.smith.care
+
+[docs]: https://medizininformatik-initiative.github.io/fts-next
+
+[contrib]: https://medizininformatik-initiative.github.io/fts-next/contributing/contributing.html
