@@ -12,6 +12,20 @@ on:
 permissions: read-all
 
 jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+    - uses: axel-op/googlejavaformat-action@c1134ebd196c4cbffb077f9476585b0be8b6afcd # v4
+      with:
+        args: "--replace --set-exit-if-changed"
+        skip-commit: true
+
+    - name: Print diffs
+      if: failure() || cancelled()
+      run: git --no-pager diff
+
   codeql:
     env:
       MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
