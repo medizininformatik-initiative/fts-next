@@ -9,9 +9,8 @@ promptly.
 ### How to Report a Vulnerability
 
 Please report security vulnerabilities through GitHub's private vulnerability reporting feature:
-[**GitHub Security Advisory
-**](https://github.com/medizininformatik-initiative/fts-next/security/advisories)
-This ensures that vulnerability information remains confidential while we address the issue.
+**[GitHub Security Advisory][advisory]**. This ensures that vulnerability information remains
+confidential while we address the issue.
 
 *We strive to address security vulnerabilities within 30 days of confirmation.*
 
@@ -30,3 +29,5 @@ to upgrade to the latest version to ensure issues are addressed.
 
 **Upon discovery of severe security or usability bugs of a released version, we will mark affected
 releases as pre-release and add notes to indicate why the version should not be used.**
+
+[advisory]: https://github.com/medizininformatik-initiative/fts-next/security/advisories
