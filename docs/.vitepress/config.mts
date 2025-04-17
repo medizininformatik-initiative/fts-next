@@ -60,6 +60,9 @@ export default withMermaid({
     sidebar: {
       '/': [
         {
+          text: 'Introduction', link: '/introduction',
+        },
+        {
           text: 'Getting Started', link: '/usage',
           items: [
             {text: 'Prerequisites', link: '/usage/prerequisites'},

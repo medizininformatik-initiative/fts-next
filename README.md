@@ -6,16 +6,19 @@
 [![Renovate](https://img.shields.io/badge/renovate-enabled-violet.svg)](https://github.com/medizininformatik-initiative/fts-next/issues/67)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/medizininformatik-initiative/fts-next/badge)](https://scorecard.dev/viewer/?uri=github.com/medizininformatik-initiative/fts-next)
 
-The FHIR Transfer Services (FTSnext) facilitate the transfer of
-FHIR ([Fast Healthcare Interoperability Resources][fhir]) resources between FHIR servers, inhabiting
-different domains of the [SMITH][smith] architecture, namely clinical and research domain.
+FTSnext (FHIR Transfer Services) is a software system that securely transfers
+healthcare data between clinical and research domains using FHIR
+([Fast Healthcare Interoperability Resources][fhir]) standards. While initially
+designed for the [SMITH][smith] architecture, its framework is adaptable for broader
+applications in any healthcare data sharing scenario.
 
 ## Overview
 
-The FHIR Transfer Services software project consists of several components designed to transfer FHIR
-resources securely and efficiently between clinical and research domains. It includes Clinical
-Domain Agent (CDA), Research Domain Agent (RDA), and Trust Center Agent (TCA), each serving a
-specific role in the data transfer process.
+At its core are three components — Clinical Domain Agent, Research Domain Agent, and
+Trust Center Agent — working together to maintain privacy by ensuring the Trust Center
+manages IDs without accessing medical content, while researchers receive only the data
+they need without the ability to link it back to clinical sources. This elegant design
+enables valuable research while robustly protecting patient privacy.
 
 ### Clinical Domain Agent (CDA)
 
