@@ -39,14 +39,14 @@ class ConsentFetchRequestTest {
   void deserialize() throws JsonProcessingException {
     String json =
         """
-            {
-                "domain": "domain",
-                "policies": ["policy1", "policy2"],
-                "policySystem": "policySystem",
-                "patientIdentifierSystem": "patientIdentifierSystem",
-                "pids": ["id1"]
-            }
-            """;
+        {
+          "domain": "domain",
+          "policies": ["policy1", "policy2"],
+          "policySystem": "policySystem",
+          "patientIdentifierSystem": "patientIdentifierSystem",
+          "pids": ["id1"]
+        }
+        """;
 
     ConsentFetchRequest request = objectMapper.readValue(json, ConsentFetchRequest.class);
 

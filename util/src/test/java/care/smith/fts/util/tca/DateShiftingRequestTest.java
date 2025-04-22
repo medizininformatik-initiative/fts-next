@@ -27,11 +27,11 @@ class DateShiftingRequestTest {
   void deserialize() throws JsonProcessingException {
     String json =
         """
-            {
-                "id": "id1",
-                "dateShift": 604800.000000000
-            }
-            """;
+        {
+          "id": "id1",
+          "dateShift": 604800.000000000
+        }
+        """;
 
     DateShiftingRequest request = objectMapper.readValue(json, DateShiftingRequest.class);
 

@@ -77,10 +77,13 @@ class DeIdentificationControllerIT extends BaseIT {
                             .withRequestBody(
                                 equalToJson(
                                     """
-                                    { "resourceType": "Parameters",
+                                    {
+                                      "resourceType": "Parameters",
                                       "parameter": [
                                         {"name": "target", "valueString": "MII"},
-                                        {"name": "original", "valueString": "%s"}]}
+                                        {"name": "original", "valueString": "%s"}
+                                      ]
+                                    }
                                     """
                                         .formatted(key),
                                     true,
@@ -120,11 +123,11 @@ class DeIdentificationControllerIT extends BaseIT {
                   .withRequestBody(
                       equalToJson(
                           """
-                              { "resourceType": "Parameters",
-                                "parameter": [
-                                  {"name": "target", "valueString": "MII"},
-                                  {"name": "original", "valueString": "%s"}]}
-                              """
+                          { "resourceType": "Parameters",
+                            "parameter": [
+                              {"name": "target", "valueString": "MII"},
+                              {"name": "original", "valueString": "%s"}]}
+                          """
                               .formatted(s),
                           true,
                           true))
