@@ -14,6 +14,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -21,6 +22,7 @@ import reactor.core.publisher.Mono;
 
 /** This class provides functionalities for handling FHIR consents using an HTTP client. */
 @Slf4j
+@ConditionalOnProperty(prefix = "consent", name = "gics")
 public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvider {
   private final WebClient gicsClient;
   private final MeterRegistry meterRegistry;
