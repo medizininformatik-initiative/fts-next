@@ -15,7 +15,7 @@ upload-consents:
 	../scripts/upload-consents.sh ${TEST_SET_SIZE}
 
 upload:
-	../scripts/upload-data.sh ${TEST_SET_SIZE}
+	../scripts/upload-data.sh
 
 transfer-all:
 	../scripts/start-transfer-all.sh ${PROJECT} >process.url
