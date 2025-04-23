@@ -80,8 +80,15 @@ jobs:
     - name: Upload Jar
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
-        name: ${{ matrix.agent }}
+        name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
+        if-no-files-found: error
+
+    - name: Upload Maven SBOM
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ matrix.agent }}-sbom-mvn
+        path: ${{ matrix.agent }}/target/sbom-mvn.json
         if-no-files-found: error
 
   build-image:
@@ -96,11 +103,11 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-    - name: Download Agent Jar
+    - name: Download Jar
       if: ${{ matrix.agent }}
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
-        name: ${{ matrix.agent }}
+        name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target
 
     - name: Set up Docker Buildx
@@ -158,6 +165,24 @@ jobs:
       with:
         sarif_file: trivy-results.sarif
 
+    - name: Generate SBOM
+      uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # v0.30.0
+      env:
+        TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2
+        TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1
+      with:
+        image-ref: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:local
+        format: cyclonedx
+        output: sbom-trivy.json
+        scan-type: image
+
+    - name: Upload Trivy SBOM
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ matrix.agent }}-sbom-trivy
+        path: sbom-trivy.json
+        if-no-files-found: error
+
   #  e2e-tests:
   #    needs: [ build-image ]
   #    runs-on: ubuntu-24.04
@@ -170,7 +195,7 @@ jobs:
   #    steps:
   #    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
   #
-  #    - name: Download Agent Images
+  #    - name: Download Images
   #      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
   #      with:
   #        pattern: '*-image'
@@ -270,11 +295,54 @@ jobs:
   #      if: failure() || cancelled()
   #      run: docker compose logs keycloak
 
+  combine-sboms:
+    needs:
+    - build-jar
+    - scan-image
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+    steps:
+    - name: Install CycloneDX CLI
+      env:
+        # renovate: datasource=github-releases depName=CycloneDX/cyclonedx-cli
+        CDX_CLI_VERSION: "0.27.2"
+      run: |
+        url="https://github.com/CycloneDX/cyclonedx-cli/releases/download/v${CDX_CLI_VERSION}/cyclonedx-linux-x64"
+        target="${HOME}/.local/bin/cyclonedx"
+        mkdir -p "$(dirname "${target}")"
+        wget "${url}" -qO "${target}"
+        chmod +x "${target}"
+
+    - name: Download SBOMs
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
+      with:
+        pattern: ${{ matrix.agent }}-sbom-*
+        path: .
+        merge-multiple: true
+
+    - name: Merge SBOMS
+      run: |
+        ls -l
+        cyclonedx merge --input-files sbom-mvn.json sbom-trivy.json --output-file sbom.json
+
+    - name: Upload Combined SBOM
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ matrix.agent }}-sbom
+        path: sbom.json
+        if-no-files-found: error
+
   push-image:
     if: github.event_name != 'pull_request' || (github.event.pull_request.base.repo.full_name == github.event.pull_request.head.repo.full_name)
     needs:
     - scan-image
     #    - e2e-tests
+    - combine-sboms
     runs-on: ubuntu-24.04
     permissions:
       packages: write
@@ -288,21 +356,17 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-    - name: Download Agent Jar
-      if: ${{ matrix.agent }}
+    - name: Download Jar
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
-        name: ${{ matrix.agent }}
+        name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target
 
-    - name: Download Container Image
+    - name: Download SBOM
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
-        name: ${{ matrix.agent }}-image
-        path: /tmp
-
-    - name: Load Container Image
-      run: docker load --input /tmp/${{ matrix.agent }}.tar
+        name: ${{ matrix.agent }}-sbom
+        path: .
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
@@ -329,6 +393,7 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and Push Container Image
+      id: push
       uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6
       with:
         context: ${{ matrix.agent }}
@@ -337,8 +402,18 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    - name: Install cosign
+      uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3
+
+    - name: Sign and Attest Image
+      env:
+        IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
+      run: |
+        cosign sign --yes "${IMAGE_REF}"
+        cosign attest --yes --predicate "sbom.json" --type cyclonedx "${IMAGE_REF}"
+
   create-release:
-    #    needs: push-image
+    #    needs: [ push-image ]
     runs-on: ubuntu-24.04
     defaults:
       run:
