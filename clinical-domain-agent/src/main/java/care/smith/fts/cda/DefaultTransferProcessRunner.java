@@ -123,6 +123,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     public void execute() {
       status.updateAndGet(s -> s.setPhase(Phase.RUNNING));
       selectCohort(pids)
+          .doOnNext(b -> log.debug("CP: {}", b))
           .transform(this::selectData)
           .transform(this::deidentify)
           .transform(this::sendBundles)

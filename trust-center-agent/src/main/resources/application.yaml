@@ -26,10 +26,10 @@ deIdentification:
   transport:
     ttl: PT10M
 
-consent:
-  gics:
-    fhir:
-      baseUrl: http://gics:8080/ttp-fhir/fhir/gics
+#consent:
+#  gics:
+#    fhir:
+#      baseUrl: http://gics:8080/ttp-fhir/fhir/gics
 
 springdoc:
   api-docs:
