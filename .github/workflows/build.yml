@@ -362,9 +362,7 @@ jobs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         path: |
-          .github/release/cd-agent.tar.gz
-          .github/release/tc-agent.tar.gz
-          .github/release/rd-agent.tar.gz
+          .github/release/*.tar.gz
         if-no-files-found: error
 
     - name: Recognize Prerelease
@@ -381,9 +379,7 @@ jobs:
       uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
       with:
         files: |
-          .github/release/cd-agent.tar.gz
-          .github/release/tc-agent.tar.gz
-          .github/release/rd-agent.tar.gz
+          .github/release/*.tar.gz
         draft: true
         prerelease: ${{ env.is_prerelease }}
         generate_release_notes: true
