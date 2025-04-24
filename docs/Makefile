@@ -1,7 +1,10 @@
 install:
 	npm install
 
-build: install
+public/cosign.pub:
+	cp ../cosign.pub public/
+
+build: install public/cosign.pub
 	npm run docs:build
 
 generate-openapi:
