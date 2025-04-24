@@ -16,6 +16,7 @@ cd-agent:
 		-type f \( -name "TransportToRD.profile" -o -name "TransportToRD.conf" \) -delete
 	cp ../../clinical-domain-agent/application.yaml ./cd-agent/
 	tar -czf cd-agent.tar.gz ./cd-agent/
+	sha256sum cd-agent.tar.gz >cd-agent.tar.gz.sha256
 
 tc-agent:
 	cp -r ../test/tc-agent .
@@ -24,6 +25,7 @@ tc-agent:
 	sed -i "s/:local/$${COMMIT_TAG:+:$${COMMIT_TAG#v}}@$${TC_AGENT_DIGEST}/g" ./tc-agent/compose.yaml
 	cp ../../trust-center-agent/application.yaml ./tc-agent/
 	tar -czf tc-agent.tar.gz ./tc-agent/
+	sha256sum tc-agent.tar.gz >tc-agent.tar.gz.sha256
 
 rd-agent:
 	cp -r ../test/rd-agent .
@@ -38,6 +40,7 @@ rd-agent:
 		-type f \( -name "IDScraper.profile" -o -name "IDScraper.conf" \) -delete
 	cp ../../research-domain-agent/application.yaml ./rd-agent/
 	tar -czf rd-agent.tar.gz ./rd-agent/
+	sha256sum rd-agent.tar.gz >rd-agent.tar.gz.sha256
 
 clean:
 	rm -Rf *-agent*
