@@ -15,62 +15,89 @@ It is provided for convenience; in case of discrepancies, the German version tak
 
 # Pseudonymization
 
+In pseudonymization, the original IDs (oID) from the clinical domain (CD) are replaced with
+pseudonyms (sID) in the research domain (RD).  
+The process is designed with the help of a Trusted Center (TC) so that
+
+- the CD has no knowledge of the sIDs,
+- the RD has no knowledge of the oIDs,
+- and the TC itself has no access to the medical data content (see [1]).
+
 ## Requirements
 
-1. The ID exchange process takes place via a trusted third party (TCA).
-2. Re-identification by the trusted third party must be possible.
-3. sIDs must remain consistent across repeated transmissions.
+1. The ID exchange process is handled via a Trusted Center Agent (TCA).
+2. Re-identification must be possible via the Trusted Center.
+3. The sIDs must remain consistent across repeated transmissions.
 
 ## Transmission Process
 
-In a transmission process, the CDA requests the assignment of original IDs (oIDs) to transport IDs (
-tIDs) from the TCA. Before the patient bundle is sent to the research domain agent (RDA), the oIDs
-are replaced by tIDs.  
-After receiving the transport-pseudonymized patient bundle, the RDA requests the mapping of tIDs to
-stable pseudonyms (sIDs) and replaces the tIDs with sIDs.
+Data transmission is managed by one agent each in the clinical domain (CDA), the research domain (
+RDA), and the trusted center (TCA).
+
+In a transmission process, the CDA sends a list of oIDs to be pseudonymized to the TCA.  
+The patient ID (PID) is handled separately, as it is used for re-identification.
+
+The TCA generates a pseudonym for the oPID.  
+For the oIDs of other resources, a hash is calculated using a salt.  
+The TCA generates the salt, which is used in the hash function to protect the resulting sIDs from
+brute-force attacks.
+
+Next, the TCA generates a transport ID (tID) for each oID and sends the transport mapping (tMap: oID
+➙ tID) back to the CDA.  
+A secure mapping (sMap: tID ➙ sID) is created for the research domain.
+
+The identifier for the sMap (sMapName) is sent to the CDA.  
+The CDA first replaces the oIDs with tIDs in the patient bundle, then sends the
+transport-pseudonymized patient bundle and sMapName to the RDA.  
+Upon receipt, the RDA requests the corresponding sMap and replaces the tIDs with sIDs.
+
+The following diagram illustrates the transmission process in detail:
+
+```mermaid
+sequenceDiagram
+    CDA ->> TCA: Set<oID> & oPID
+    TCA ->> gPAS: oPID, Salt_oID
+    gPAS ->> TCA: oPID ➙ sPID, Salt_oID ➙ Salt
+  TCA ->> Keystore: sMap & tMap
+  TCA ->> CDA: sMapName & tMap,
+  CDA ->> RDA: sMapName & Bundles
+  RDA ->> TCA: sMapName
+  TCA ->> RDA: sMap
+```
 
 ## Generation of Transport and Pseudonymized IDs
 
 ### sID
 
 The TCA uses gPAS to generate and store pseudonyms.
-Two pseudonyms are generated for each patient:
+For each patient, two pseudonyms are generated:
 
 $$
 \begin{align*}
-\text{patientOID} &\rightarrow \text{patientSID}\\
-\textit{Salt\_} + \text{patientOID} &\rightarrow \text{Salt}
+\text{oPID} &\rightarrow \text{sPID}\\
+\text{"Salt\_"} + \text{oPID} &\rightarrow \text{Salt}
 \end{align*}
 $$
 
-The keys used are the patient’s oID and the concatenation of the fixed string _Salt_ and the oID.
-Note that _Salt_ is a literal string, not a variable or actual salt.
+The keys used are the oPID of the patient and the concatenation of the literal "Salt_" with the
+oPID.
+Note: "Salt_" is a fixed string, not a variable or real salt.
 
-The first pseudonym replaces the oID of the patient resource—i.e., it is a direct mapping to the
-patient’s sID and can be used for re-identification.
-The second pseudonym is used as a salt for generating pseudonyms for the remaining resources:
+The first pseudonym maps the patient oPID directly to a sPID and can be used for re-identification.
+The second pseudonym acts as a salt for the other resource IDs:
 
 $$
-\text{Resource-sID} = \text{SHA256}(\text{Salt} + \text{oID})
+\text{Ressourcen-sID} = \text{SHA256}(\text{Salt} + \text{oID})
 $$
 
 ::: warning Security Note
-The combination of alphabet size $A$ and salt length $n$ — that is, $A^n$ possible variants — must
-be sufficiently large to be resistant to brute-force attacks (see Security Aspects).
+The combination of alphabet size $A$ and salt length $n$—i.e., $A^n$ possible variants—must be
+chosen large enough to resist brute-force attacks (see security aspects).
 :::
 
-### tID
+### Example
 
-For each oID, a random number is generated to serve as the tID.  
-The mapping
-
-$$ \text{oID} \rightarrow \text{tID} $$
-
-is temporarily stored in a key-value store, so tIDs may vary between transmissions.
-
-## Example
-
-Assume we have a patient with two resources:
+Suppose there is a patient in the CDA with two resources:
 
 ```
 Patient:
@@ -78,11 +105,12 @@ Patient:
   Ressourcen:
   [
     Encounter: oID = 2,
-    Medication: oID = 3
+    MedicationAdministration: oID = 3
   ]
 ```
 
-The CDA sends the IDs to be pseudonymized to the TCA:
+The CDA sends the oIDs (1, 2, 3) to the TCA.
+The TCA generates:
 
 $$
 \begin{align*}
@@ -91,14 +119,34 @@ $$
 \end{align*}
 $$
 
+Using the salt, the TCA computes:
+
+$$
+\begin{align*}
+2 &\rightarrow \text{SHA256}(5kf8344f2)\\
+3 &\rightarrow \text{SHA256}(5kf8344f3)
+\end{align*}
+$$
+
+### tID
+
+For each oID, a random number is generated as the tID.
+
+The mapping:
+
+$$ \text{oID} \rightarrow \text{tID} $$
+
+is temporarily stored in a key-value store.
+Thus, tIDs can vary on repeated transfers.
+The retention time of tIDs is configurable in the TCA.
+
 ### Transport Mapping: Replacing oIDs with tIDs
 
 Once the CDA sends the oIDs to be pseudonymized to the TCA, temporary transport IDs (tIDs) are
-generated.
-These tIDs replace the original oIDs before the data is forwarded to the RDA.
+generated and sent back with the sMapName.
+The CDA replaces the oIDs with tIDs and sends the data and sMapName to the RDA.
 
-**Example Transport Mapping:**
-
+Example Transport Mapping:
 $$
 \begin{align*}
 1 &\rightarrow 84613221\\
@@ -107,73 +155,70 @@ $$
 \end{align*}
 $$
 
-After this mapping, the bundle with transport-pseudonymized IDs is forwarded to the RDA:
-
 ```
 transport-Patient:
   tID = 84613221,
   Ressourcen:
   [
     Encounter: tID = 34186571,
-    Medication: tID = 97354168
+    MedicationAdministration: tID = 97354168
   ]
 ```
 
 ### Secure Mapping
 
-After the RDA has received the transport-pseudonymized bundle, it requests the mapping of tIDs to
-stable pseudonyms (sIDs) from the TCA.
-These sIDs are intended for research purposes and remain constant across repeated transmissions.
+After receiving the transport-pseudonymized bundle, the RDA requests the sMap using the sMapName and
+replaces the tIDs with sIDs.
+The sIDs are intended for research purposes and remain stable across transfers.
 
 **Example Secure Mapping:**
 
 $$
 \begin{align*}
 84613221 &\rightarrow \text{d7dsjdg4}\\
-34186571 &\rightarrow \text{SHA256}(5kf83442)\\
-97354168 &\rightarrow \text{SHA256}(5kf83443)
+34186571 &\rightarrow \text{SHA256}(5kf8344f2)\\
+97354168 &\rightarrow \text{SHA256}(5kf8344f3)
 \end{align*}
 $$
-
-The RDA then replaces the tIDs with the sIDs:
 
 ```
 research-Patient:
  <sID = d7dsjdg4,
  Ressourcen: [
-  Encounter: sID = SHA256(5kf83442),
-  Medication: sID = SHA256(5kf83443)
+  Encounter: sID = SHA256(5kf8344f2),
+  MedicationAdministration: sID = SHA256(5kf8344f3)
  ]
 ```
 
 ## Security Aspects
 
-### Brute-Forcing the Salt
+### Salt Brute-Forcing
 
-Assume an attacker knows the oIDs and sIDs and attempts to establish a relationship between them.
-To do so, they try to brute-force the salt.
+Suppose an attacker knows both oIDs and sIDs and attempts to determine the mapping using
+brute-force.
 
-The time $T$ required to determine the salt is given by:
+The time $T$ needed to determine the salt is given by:
 
 $$
 T = \frac{A^n}{v}
 $$
 
-where $A$ is the alphabet size, $n$ is the salt length, and $v$ is the number of hashes per second.
+where $A$ is the alphabet size, $n$ the salt length, and $v$ the number of hashes per second.
 
-With current hardware, $10^9$ hashes per second is a realistic assumption.
+As of 2025, hardware capable of $10^{15}$ SHA256 hashes per second is realistically available
+for $25,000, consuming 15 J/TH.
+These figures are based on SHA256 Bitcoin mining hardware.
 
-| Alphabet Size $(A)$ | Length $(n)$ | Possible Combinations $(Aⁿ)$        | Time at $10^9$ Hashes/Second                         |
-|---------------------|--------------|-------------------------------------|------------------------------------------------------|
-| $10$ (Digits)       | $8$          | $10^8$                              | $0.1$ s                                              |
-| $10$ (Digits)       | $12$         | $10^{12}$                           | $10^3$ s ($\sim 16$ min)                             |
-| $10$ (Digits)       | $16$         | $10^{16}$                           | $10^7$ s ($\sim 4$ months)                           |
-| $10$ (Digits)       | $24$         | $10^{24}$                           | $10^{15}$ s ($\sim 32$ million years)                |
-| $26$ (Lowercase)    | $8$          | $26^8 \approx 2.1 \cdot 10^{11}$    | $210$ s ($\sim 3.5$ min)                             |
-| $26$ (Lowercase)    | $12$         | $26^{12} \approx 9.5 \cdot 10^{16}$ | $9.5 \cdot 10^7$ s ($\sim 3$ years)                  |
-| $26$ (Lowercase)    | $16$         | $26^{16} \approx 4.4 \cdot 10^{22}$ | $4.4 \cdot 10^{13}$ s ($\sim 1.4$ million years)     |
-| $26$ (Lowercase)    | $24$         | $26^{24} \approx 9.1 \cdot 10^{33}$ | $9.1 \cdot 10^{24}$ s ($\sim 3 \cdot 10^{17}$ yrs)   |
-| $62$ (Alphanumeric) | $8$          | $62^8 \approx 2.2 \cdot 10^{14}$    | $2.2 \cdot 10^5$ s ($\sim 2.5$ days)                 |
-| $62$ (Alphanumeric) | $12$         | $62^{12} \approx 3.2 \cdot 10^{21}$ | $3.2 \cdot 10^{12}$ s ($\sim 100,000$ years)         |
-| $62$ (Alphanumeric) | $16$         | $62^{16} \approx 4.8 \cdot 10^{28}$ | $4.8 \cdot 10^{19}$ s ($\sim 1.5 \cdot 10^{12}$ yrs) |
-| $62$ (Alphanumeric) | $24$         | $62^{24} \approx 1.0 \cdot 10^{43}$ | $1.0 \cdot 10^{34}$ s ($\sim 3 \cdot 10^{26}$ yrs)   |
+| Alphabet Size $(A)$ | Length $(n)$ | Possible Combinations $(Aⁿ)$        | Time @ $10^{15}$ Hashes/sec  | Power Use (15 J/TH) in kWh |
+|---------------------|--------------|-------------------------------------|------------------------------|----------------------------|
+| $26$ (lowercase)    | $12$         | $26^{12} \approx 9,5 \cdot 10^{16}$ | $95$ s                       | $4,0 \cdot 10^{-1}$        |             
+| $26$ (lowercase)    | $16$         | $26^{16} \approx 4,4 \cdot 10^{22}$ | $\sim 1,4$ years             | $1,8 \cdot 10^5$           |        
+| $26$ (lowercase)    | $24$         | $26^{24} \approx 9,1 \cdot 10^{33}$ | $\sim 177$ years             | $3,8 \cdot 10^{16}$        |       
+| $62$ (alphanumeric) | $12$         | $62^{12} \approx 3,2 \cdot 10^{21}$ | $\sim 38$ days               | $1,3 \cdot 10^4$           |        
+| $62$ (alphanumeric) | $16$         | $62^{16} \approx 4,8 \cdot 10^{28}$ | $\sim 15$ years              | $2,0 \cdot 10^{11}$        |                 
+| $62$ (alphanumeric) | $24$         | $62^{24} \approx 1,0 \cdot 10^{43}$ | $\sim 3 \cdot 10^{20}$ years | $4,3 \cdot 10^{25}$        |                                  
+
+## References
+
+* [1] [Leitfaden zum Datenschutz in medizinischen Forschungsprojekten](https://www.tmf-ev.de/unsere-arbeit/produkte/leitfaden-zum-datenschutz-in-medizinischen-forschungsprojekten)
+  * Siehe 6.1.1.2 für Informationen über den Pseudonymisierungsdienst
