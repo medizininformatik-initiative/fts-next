@@ -441,10 +441,6 @@ jobs:
     defaults:
       run:
         working-directory: .github/release
-    permissions:
-      contents: write
-      actions: write
-
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -458,16 +454,58 @@ jobs:
         CD_AGENT_DIGEST: ${{ needs.push-image.outputs.clinical-domain-agent-digest }}
         TC_AGENT_DIGEST: ${{ needs.push-image.outputs.trust-center-agent-digest }}
         RD_AGENT_DIGEST: ${{ needs.push-image.outputs.research-domain-agent-digest }}
-      run: make cd-agent tc-agent rd-agent
+      run: |
+        make cd-agent tc-agent rd-agent
+        echo "checksums-b64=$(cat *.tar.gz.sha256 | xargs -L1 bash -c 'echo -n "{\"$(echo $1 | cut -d. -f1)\": \"$(echo "$0 $1" | base64 -w0)\"}"' | jq -sc 'add')" >>"$GITHUB_OUTPUT"
+        echo "files=$(ls *.tar.gz.sha256 | cut -d. -f1 | jq -Rnc '[inputs]')" >>"$GITHUB_OUTPUT"
 
-    - name: Upload Archives
+    - name: Upload Release Archives
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
+        name: release-archives
         path: |
-          .github/release/cd-agent.tar.gz
-          .github/release/tc-agent.tar.gz
-          .github/release/rd-agent.tar.gz
+          .github/release/*.tar.gz
+          .github/release/*.tar.gz.sha256
         if-no-files-found: error
+
+    outputs:
+      checksums-b64: ${{ steps.create.outputs.checksums-b64 }}
+      files: ${{ steps.create.outputs.files }}
+
+  attest-release:
+    needs: [ create-release ]
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    strategy:
+      matrix:
+        file: ${{ fromJson(needs.create-release.outputs.files) }}
+    with:
+      base64-subjects: ${{ fromJson(needs.create-release.outputs.checksums-b64)[matrix.file] }}
+      upload-assets: false
+
+  publish-release:
+    needs: [ attest-release, push-image ]
+    runs-on: ubuntu-24.04
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+    steps:
+    - name: Download Release Archives
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+      with:
+        name: release-archives
+        path: .
+
+    - name: Download Provenance
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+      with:
+        pattern: |
+          *-agent.tar.gz.intoto.jsonl
+        merge-multiple: true
+        path: .
 
     - name: Recognize Prerelease
       env:
@@ -479,13 +517,12 @@ jobs:
         fi
 
     - name: Release
-      if: github.ref_type == 'tag'
       uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
       with:
         files: |
-          .github/release/cd-agent.tar.gz
-          .github/release/tc-agent.tar.gz
-          .github/release/rd-agent.tar.gz
+          *.tar.gz
+          *.tar.gz.sha256
+          *.tar.gz.intoto.jsonl
         draft: true
         prerelease: ${{ env.is_prerelease }}
         generate_release_notes: true
