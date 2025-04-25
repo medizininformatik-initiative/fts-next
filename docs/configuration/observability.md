@@ -65,7 +65,7 @@ milliseconds).
   * **Description**: SLOs for deidentify operation times.
   * **Example Values**: `25,100,250,500,1000,10000`
 
-* `fetchResearchMapping` <Badge type="tip" text="Research Domain Agent" />
+* `fetchSecureMapping` <Badge type="tip" text="Research Domain Agent" />
   * **Description**: SLOs for fetching mappings from TCA.
   * **Example Values**: `5,10,25,100,250,500,1000,5000,10000`
 

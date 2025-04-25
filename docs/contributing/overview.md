@@ -44,7 +44,7 @@ sequenceDiagram
     TCA ->> CDA: mapName, [ID -> Transport ID] and Date Shift
     CDA ->> RDA: process/{project}/patient(PatientBundle, mapName)
     RDA ->> CDA: PROCESS_ID
-    RDA ->> TCA: rd/research-mapping(mapName)
+    RDA ->> TCA: rd/secure-mapping(mapName)
     TCA ->> RDA: [Transport ID -> Research ID], Date Shift Value
     RDA ->> RDA: deidentify Patient
     RDA ->> rd_hds: Bundle

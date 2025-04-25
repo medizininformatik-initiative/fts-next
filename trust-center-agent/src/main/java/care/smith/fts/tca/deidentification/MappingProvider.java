@@ -1,6 +1,6 @@
 package care.smith.fts.tca.deidentification;
 
-import care.smith.fts.util.tca.ResearchMappingResponse;
+import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import reactor.core.publisher.Mono;
@@ -20,5 +20,5 @@ public interface MappingProvider {
    * @param transferId unique ID for a transfer process to identify mapping
    * @return the mapped tid:sid
    */
-  Mono<ResearchMappingResponse> fetchResearchMapping(String transferId);
+  Mono<SecureMappingResponse> fetchSecureMapping(String transferId);
 }

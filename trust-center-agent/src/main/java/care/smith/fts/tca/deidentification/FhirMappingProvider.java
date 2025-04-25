@@ -10,7 +10,7 @@ import static reactor.function.TupleUtils.function;
 
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
-import care.smith.fts.util.tca.ResearchMappingResponse;
+import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TCADomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
@@ -70,12 +70,12 @@ public class FhirMappingProvider implements MappingProvider {
     var transferId = randomStringGenerator.generate();
     var transportMapping =
         r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
-    var rMap = redisClient.reactive().<String, String>getMapCache(transferId);
-    return rMap.expire(configuration.getTtl())
+    var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
+    return sMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
         .flatMap(
-            saveResearchMapping(
-                r.patientId(), r.maxDateShift(), r.dateShiftPreserve(), transportMapping, rMap))
+            saveSecureMapping(
+                r.patientId(), r.maxDateShift(), r.dateShiftPreserve(), transportMapping, sMap))
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
   }
 
@@ -90,7 +90,7 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /** Saves the research mapping in redis for later use by the rda. */
-  private Function<Tuple3<String, String, String>, Mono<Duration>> saveResearchMapping(
+  private Function<Tuple3<String, String, String>, Mono<Duration>> saveSecureMapping(
       String patientId,
       Duration maxDateShift,
       @NotNull DateShiftPreserve preserve,
@@ -101,7 +101,7 @@ public class FhirMappingProvider implements MappingProvider {
           var dateShifts = generate(dateShiftSeed, maxDateShift, preserve);
           var resolveMap =
               ImmutableMap.<String, String>builder()
-                  .putAll(generateResearchMapping(salt, transportMapping))
+                  .putAll(generateSecureMapping(salt, transportMapping))
                   .putAll(patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping))
                   .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
                   .build();
@@ -110,7 +110,7 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /** generate ids for all entries in the transport mapping */
-  private Map<String, String> generateResearchMapping(
+  private Map<String, String> generateSecureMapping(
       String transportSalt, Map<String, String> transportMapping) {
     return transportMapping.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));
@@ -133,18 +133,18 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   @Override
-  public Mono<ResearchMappingResponse> fetchResearchMapping(String transferId) {
+  public Mono<SecureMappingResponse> fetchSecureMapping(String transferId) {
     RedissonReactiveClient redis = redisClient.reactive();
     return Mono.just(transferId)
         .flatMap(name -> redis.<String, String>getMapCache(name).readAllMap())
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchResearchMapping"))
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchSecureMapping"))
         .map(FhirMappingProvider::buildResolveResponse);
   }
 
-  private static ResearchMappingResponse buildResolveResponse(Map<String, String> map) {
+  private static SecureMappingResponse buildResolveResponse(Map<String, String> map) {
     var mutableMap = new HashMap<>(map);
     var dateShiftValue = getDateShiftMillis(mutableMap);
-    return new ResearchMappingResponse(mutableMap, dateShiftValue);
+    return new SecureMappingResponse(mutableMap, dateShiftValue);
   }
 
   private static Duration getDateShiftMillis(HashMap<String, String> mutableMap) {

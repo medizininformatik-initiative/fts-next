@@ -20,7 +20,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.BaseIT;
 import care.smith.fts.test.TestWebClientFactory;
-import care.smith.fts.util.tca.ResearchMappingResponse;
+import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import java.io.IOException;
 import java.time.Duration;
@@ -158,7 +158,7 @@ class DeIdentificationControllerIT extends BaseIT {
     var response =
         rdClient
             .post()
-            .uri("/api/v2/rd/research-mapping")
+            .uri("/api/v2/rd/secure-mapping")
             .contentType(APPLICATION_JSON)
             .body(fromValue(Set.of("username=Guest'%0AUser:'Admin")))
             .accept(APPLICATION_JSON)
@@ -216,12 +216,12 @@ class DeIdentificationControllerIT extends BaseIT {
     var response =
         rdClient
             .post()
-            .uri("/api/v2/rd/research-mapping")
+            .uri("/api/v2/rd/secure-mapping")
             .contentType(APPLICATION_JSON)
             .body(fromValue(transferId))
             .accept(APPLICATION_JSON)
             .retrieve()
-            .toEntity(ResearchMappingResponse.class);
+            .toEntity(SecureMappingResponse.class);
 
     create(response)
         .assertNext(

@@ -1922,7 +1922,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(le) (rate(http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/research-mapping\"}[1m]))",
+          "expr": "sum by(le) (rate(http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/secure-mapping\"}[1m]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1932,7 +1932,7 @@
           "useBackend": false
         }
       ],
-      "title": "fetchResearchMapping",
+      "title": "fetchSecureMapping",
       "type": "heatmap"
     },
     {
@@ -1996,7 +1996,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(le) (http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/research-mapping\"})",
+          "expr": "sum by(le) (http_client_requests_seconds_bucket{job=\"rda\", uri=\"/api/v2/rd/secure-mapping\"})",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -2006,7 +2006,7 @@
           "useBackend": false
         }
       ],
-      "title": "fetchResearchMapping",
+      "title": "fetchSecureMapping",
       "type": "bargauge"
     },
     {

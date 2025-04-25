@@ -6,16 +6,16 @@ import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class ResearchMappingResponseTest {
+class SecureMappingResponseTest {
 
   @Test
   void tidPidMapCannotBeNull() {
     assertThrows(
-        NullPointerException.class, () -> new ResearchMappingResponse(null, Duration.ofSeconds(1)));
+        NullPointerException.class, () -> new SecureMappingResponse(null, Duration.ofSeconds(1)));
   }
 
   @Test
   void durationCannotBeNull() {
-    assertThrows(NullPointerException.class, () -> new ResearchMappingResponse(Map.of(), null));
+    assertThrows(NullPointerException.class, () -> new SecureMappingResponse(Map.of(), null));
   }
 }

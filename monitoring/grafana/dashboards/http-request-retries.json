@@ -826,14 +826,14 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "fetchResearchMapping_retries_total",
+          "expr": "fetchSecureMapping_retries_total",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "fetchResearchMapping",
+      "title": "fetchSecureMapping",
       "type": "timeseries"
     },
     {
