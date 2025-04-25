@@ -52,7 +52,7 @@ the clinical and research domains.
 
 When the CDA requests a transport mapping (tMap),
 a random transport ID is generated for each oID and the oID ➙ tID mapping
-together with the clinical domain date shift value is returned it to the CDA.
+together with the clinical domain date shift value is returned to the CDA.
 The CDA replaces the original IDs with the transport IDs,
 applies the date shift and sends the Bundle to the RDA.
 The TCA generates and stores the research mapping (rdMap),
