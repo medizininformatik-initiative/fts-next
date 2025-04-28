@@ -163,7 +163,17 @@ PASSED: SLSA verification passed
   1. Please see official <code>slsa-verifier</code> <a href="https://github.com/slsa-framework/slsa-verifier#installation">installation</a> instructions
 </small>
 
+### Container Images
+
+The release archives come with a `verify.sh` utility script that allows verifying the provenance of
+the container images used in the respective compose files. It uses [slsa-verifier][slsa-verifier]
+and/or [cosign][cosign] to check whether the image was built by the FTSnext GitHub actions.
+
 [compose]: https://docs.docker.com/compose/
+
+[slsa-verifier]: https://github.com/slsa-framework/slsa-verifier#installation
+
+[cosign]: https://docs.sigstore.dev/cosign/system_config/installation/
 
 <style>
 table.downloads {
