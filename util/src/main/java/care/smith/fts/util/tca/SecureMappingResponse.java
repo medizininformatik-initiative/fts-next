@@ -7,10 +7,10 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.Map;
 
-public record ResearchMappingResponse(
+public record SecureMappingResponse(
     @NotNull Map<String, String> tidPidMap, @NotNull Duration dateShiftBy) {
 
-  public ResearchMappingResponse {
+  public SecureMappingResponse {
     tidPidMap = copyOf(tidPidMap);
     requireNonNull(dateShiftBy, "dateShiftBy cannot be null");
   }

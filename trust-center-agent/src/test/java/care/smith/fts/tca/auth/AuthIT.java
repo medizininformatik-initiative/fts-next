@@ -5,7 +5,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.test.AbstractAuthIT;
-import care.smith.fts.util.tca.ResearchMappingResponse;
+import care.smith.fts.util.tca.SecureMappingResponse;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,16 +37,16 @@ public class AuthIT {
       String transferId = "any";
       var mockResponse =
           Mono.just(
-              new ResearchMappingResponse(
+              new SecureMappingResponse(
                   Map.of("tid1", "pid1", "tid2", "pid2"), Duration.ofHours(2)));
-      when(mappingProvider.fetchResearchMapping(transferId)).thenReturn(mockResponse);
+      when(mappingProvider.fetchSecureMapping(transferId)).thenReturn(mockResponse);
     }
 
     @Override
     protected RequestHeadersSpec<?> protectedEndpoint(WebClient client) {
       return client
           .post()
-          .uri("/api/v2//rd/research-mapping")
+          .uri("/api/v2//rd/secure-mapping")
           .contentType(APPLICATION_JSON)
           .bodyValue("any");
     }
@@ -67,16 +67,16 @@ public class AuthIT {
       String transferId = "any";
       var mockResponse =
           Mono.just(
-              new ResearchMappingResponse(
+              new SecureMappingResponse(
                   Map.of("tid1", "pid1", "tid2", "pid2"), Duration.ofHours(2)));
-      when(mappingProvider.fetchResearchMapping(transferId)).thenReturn(mockResponse);
+      when(mappingProvider.fetchSecureMapping(transferId)).thenReturn(mockResponse);
     }
 
     @Override
     protected RequestHeadersSpec<?> protectedEndpoint(WebClient client) {
       return client
           .post()
-          .uri("/api/v2//rd/research-mapping")
+          .uri("/api/v2//rd/secure-mapping")
           .contentType(APPLICATION_JSON)
           .bodyValue("any");
     }
@@ -97,16 +97,16 @@ public class AuthIT {
       String transferId = "any";
       var mockResponse =
           Mono.just(
-              new ResearchMappingResponse(
+              new SecureMappingResponse(
                   Map.of("tid1", "pid1", "tid2", "pid2"), Duration.ofHours(2)));
-      when(mappingProvider.fetchResearchMapping(transferId)).thenReturn(mockResponse);
+      when(mappingProvider.fetchSecureMapping(transferId)).thenReturn(mockResponse);
     }
 
     @Override
     protected RequestHeadersSpec<?> protectedEndpoint(WebClient client) {
       return client
           .post()
-          .uri("/api/v2//rd/research-mapping")
+          .uri("/api/v2//rd/secure-mapping")
           .contentType(APPLICATION_JSON)
           .bodyValue("any");
     }

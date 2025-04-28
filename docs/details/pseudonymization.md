@@ -119,13 +119,13 @@ transport-Patient:
   ]
 ```
 
-### Research Mapping
+### Secure Mapping
 
 After the RDA has received the transport-pseudonymized bundle, it requests the mapping of tIDs to
 stable pseudonyms (sIDs) from the TCA.
 These sIDs are intended for research purposes and remain constant across repeated transmissions.
 
-**Example Research Mapping:**
+**Example Secure Mapping:**
 
 $$
 \begin{align*}

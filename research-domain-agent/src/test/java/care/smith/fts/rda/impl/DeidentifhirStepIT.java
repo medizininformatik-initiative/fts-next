@@ -50,7 +50,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
         new TestStep<Bundle>() {
           @Override
           public MappingBuilder requestBuilder() {
-            return DeidentifhirStepIT.researchMappingRequest();
+            return DeidentifhirStepIT.secureMappingRequest();
           }
 
           @Override
@@ -80,15 +80,15 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     wireMock.resetMappings();
   }
 
-  private static MappingBuilder researchMappingRequest() {
-    return post("/api/v2/rd/research-mapping")
+  private static MappingBuilder secureMappingRequest() {
+    return post("/api/v2/rd/secure-mapping")
         .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
   }
 
   @Test
   void correctRequestSent() {
     wireMock.register(
-        WireMock.post(urlPathEqualTo("/api/v2/rd/research-mapping"))
+        WireMock.post(urlPathEqualTo("/api/v2/rd/secure-mapping"))
             .withRequestBody(equalTo("transferId"))
             .willReturn(ok()));
 
@@ -97,8 +97,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
 
   @Test
   void emptyTCAResponseYieldsEmptyResult() {
-    wireMock.register(
-        WireMock.post(urlPathEqualTo("/api/v2/rd/research-mapping")).willReturn(ok()));
+    wireMock.register(WireMock.post(urlPathEqualTo("/api/v2/rd/secure-mapping")).willReturn(ok()));
 
     create(step.deidentify(new TransportBundle(bundle, "transferId"))).verifyComplete();
   }
@@ -106,7 +105,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   @Test
   void deidentifySucceeds() {
     wireMock.register(
-        WireMock.post(urlPathEqualTo("/api/v2/rd/research-mapping"))
+        WireMock.post(urlPathEqualTo("/api/v2/rd/secure-mapping"))
             .withRequestBody(equalTo("transferId"))
             .willReturn(
                 jsonResponse(

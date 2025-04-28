@@ -154,12 +154,12 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void fetchResearchMapping() {
+  void fetchSecureMapping() {
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.readAllMap())
         .willReturn(
             Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "12345")));
-    create(mappingProvider.fetchResearchMapping("transferId"))
+    create(mappingProvider.fetchSecureMapping("transferId"))
         .assertNext(
             m -> {
               assertThat(m.tidPidMap().keySet()).containsExactlyInAnyOrder("id1", "id2");
@@ -171,9 +171,9 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void fetchResearchMappingWhenRedisDown() {
+  void fetchSecureMappingWhenRedisDown() {
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
-    create(mappingProvider.fetchResearchMapping("transferId"))
+    create(mappingProvider.fetchSecureMapping("transferId"))
         .expectError(RedisTimeoutException.class)
         .verify();
   }
@@ -186,7 +186,7 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void fetchResearchMappingWithUnknownDomainException() {
+  void fetchSecureMappingWithUnknownDomainException() {
     wireMock.register(
         post("/$pseudonymizeAllowCreate")
             .willReturn(
@@ -214,7 +214,7 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void fetchResearchMappingWithUnknownError() {
+  void fetchSecureMappingWithUnknownError() {
     wireMock.register(
         post("/$pseudonymizeAllowCreate")
             .willReturn(
@@ -247,12 +247,12 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void fetchResearchMappingWrongDateShiftValue() {
+  void fetchSecureMappingWrongDateShiftValue() {
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.readAllMap())
         .willReturn(
             Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "nan")));
-    create(mappingProvider.fetchResearchMapping("transferId"))
+    create(mappingProvider.fetchSecureMapping("transferId"))
         .expectErrorMessage("Invalid dateShiftMillis value.")
         .verify();
   }

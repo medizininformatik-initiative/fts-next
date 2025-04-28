@@ -6,7 +6,7 @@ import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
-import care.smith.fts.util.tca.ResearchMappingResponse;
+import care.smith.fts.util.tca.SecureMappingResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -29,7 +29,7 @@ class DeidentifhirStep implements Deidentificator {
 
   @Override
   public Mono<Bundle> deidentify(TransportBundle bundle) {
-    return fetchResearchMapping(bundle.transferId())
+    return fetchSecureMapping(bundle.transferId())
         .map(
             p ->
                 DeidentifhirUtil.deidentify(
@@ -40,15 +40,15 @@ class DeidentifhirStep implements Deidentificator {
         .doOnNext(b -> log.trace("Total bundle entries: {}", b.getEntry().size()));
   }
 
-  private Mono<ResearchMappingResponse> fetchResearchMapping(String transferId) {
+  private Mono<SecureMappingResponse> fetchSecureMapping(String transferId) {
     return tcaClient
         .post()
-        .uri("/api/v2/rd/research-mapping")
+        .uri("/api/v2/rd/secure-mapping")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(transferId)
         .retrieve()
-        .bodyToMono(ResearchMappingResponse.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchResearchMapping"))
+        .bodyToMono(SecureMappingResponse.class)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchSecureMapping"))
         .doOnError(e -> log.error("Unable to resolve transport IDs: {}", e.getMessage()));
   }
 }

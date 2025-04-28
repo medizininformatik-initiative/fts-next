@@ -8,7 +8,7 @@ management:
     distribution.slo:
       http.server.requests: 25,100,250,500,1000,10000
       http.client.requests: 25,100,250,500,1000,10000
-      fetchResearchMapping: 5,10,25,100,250,500,1000,5000,10000
+      fetchSecureMapping: 5,10,25,100,250,500,1000,5000,10000
       deidentify: 25,100,250,500,1000,10000
       sendBundleToHds: 25,50,100,250,500,1000,2000,5000,10000
 

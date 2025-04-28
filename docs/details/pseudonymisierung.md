@@ -128,7 +128,7 @@ Nachdem der RDA das transportpseudonymisierte Bundle erhalten hat, fordert diese
 Zuordnung der tIDs zu stabilen Pseudonymen (sIDs) an.
 Diese sIDs sind für Forschungszwecke bestimmt und bleiben für wiederholte Übertragungen konstant.
 
-**Beispiel für das Research-Mapping:**
+**Beispiel für das Secure-Mapping:**
 
 $$
 \begin{align*}

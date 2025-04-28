@@ -10,7 +10,7 @@ import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.UnknownDomainException;
-import care.smith.fts.util.tca.ResearchMappingResponse;
+import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TCADomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
@@ -140,14 +140,14 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void researchMapping() {
-    given(mappingProvider.fetchResearchMapping("transferId"))
+  void secureMapping() {
+    given(mappingProvider.fetchSecureMapping("transferId"))
         .willReturn(
             Mono.just(
-                new ResearchMappingResponse(
+                new SecureMappingResponse(
                     Map.of("tid-1", "pid1", "tid-2", "pid2"), Duration.ofMillis(12345))));
 
-    create(controller.researchMapping("transferId"))
+    create(controller.secureMapping("transferId"))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
@@ -161,18 +161,18 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void researchMappingEmpty() {
-    given(mappingProvider.fetchResearchMapping("transferId")).willReturn(Mono.empty());
+  void secureMappingEmpty() {
+    given(mappingProvider.fetchSecureMapping("transferId")).willReturn(Mono.empty());
 
-    create(controller.researchMapping("transferId")).verifyComplete();
+    create(controller.secureMapping("transferId")).verifyComplete();
   }
 
   @Test
-  void researchMappingWithAnyException() {
-    given(mappingProvider.fetchResearchMapping("transferId"))
+  void secureMappingWithAnyException() {
+    given(mappingProvider.fetchSecureMapping("transferId"))
         .willReturn(Mono.error(new TransferProcessException("error message")));
 
-    create(controller.researchMapping("transferId"))
+    create(controller.secureMapping("transferId"))
         .expectNext(
             ResponseEntity.of(
                     ProblemDetail.forStatusAndDetail(INTERNAL_SERVER_ERROR, "error message"))
@@ -181,11 +181,11 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void researchMappingInvalidDateShiftValueFromKeyValueStore() {
-    given(mappingProvider.fetchResearchMapping("transferId"))
+  void secureMappingInvalidDateShiftValueFromKeyValueStore() {
+    given(mappingProvider.fetchSecureMapping("transferId"))
         .willReturn(Mono.error(new NumberFormatException("Invalid dateShiftMillis value.")));
 
-    create(controller.researchMapping("transferId"))
+    create(controller.secureMapping("transferId"))
         .expectNext(
             ResponseEntity.of(
                     ProblemDetail.forStatusAndDetail(

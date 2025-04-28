@@ -66,11 +66,11 @@ public class DeIdentificationController {
   }
 
   @PostMapping(
-      value = "/rd/research-mapping",
+      value = "/rd/secure-mapping",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   @Operation(
-      summary = "Get the research mapping",
+      summary = "Get the secure mapping",
       description = "**Since 5.0**\n\n",
       requestBody =
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -78,19 +78,19 @@ public class DeIdentificationController {
       responses = {
         @ApiResponse(
             responseCode = "200",
-            content = @Content(schema = @Schema(implementation = ResearchMappingResponse.class))),
+            content = @Content(schema = @Schema(implementation = SecureMappingResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid transfer id"),
       })
-  public Mono<ResponseEntity<ResearchMappingResponse>> researchMapping(
+  public Mono<ResponseEntity<SecureMappingResponse>> secureMapping(
       @RequestBody @NotNull @Pattern(regexp = "^[\\w-]+$") String transferId) {
     log.trace("Resolve pseudonyms of map: {} ", transferId);
     return mappingProvider
-        .fetchResearchMapping(transferId)
+        .fetchSecureMapping(transferId)
         .map(ResponseEntity::ok)
         .onErrorResume(e -> handleFetchError(transferId, e));
   }
 
-  private static Mono<ResponseEntity<ResearchMappingResponse>> handleFetchError(
+  private static Mono<ResponseEntity<SecureMappingResponse>> handleFetchError(
       String transferId, Throwable e) {
     log.error("Could not fetch pseudonyms of map {}: {}", transferId, e.getMessage());
     return ErrorResponseUtil.internalServerError(e);
