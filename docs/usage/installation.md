@@ -117,8 +117,9 @@ of provenance. Each release uses [SLSA](https://slsa.dev) and [cosign][cosign] t
 provenance metadata for both release archives and container images. These artifacts are signed
 during the build process, enabling independent verification of their origin and integrity.
 
-For container images, we use [cosign][cosign] to sign images and attach SBOMs, stored alongside the
-image in the container registry. This allows users to confirm the image was built by the expected CI
+For container images, we use [cosign][cosign] also to sign images and attach SBOMs, stored alongside
+the image in the container registry. This allows users to confirm the image was built by the
+expected CI
 pipeline and has not been modified after publication.
 
 Release archives include SLSA provenance files that can be verified using the slsa-verifier tool.
@@ -158,7 +159,7 @@ slsa-verifier verify-artifact rd-agent.tar.gz \
 
 :::
 
-If the verification passes, the output should contain confirmation that the artifact is valid
+If the verification passes the output should contain confirmation that the artifact is valid
 and matches the signed provenance:
 
 ```
@@ -175,9 +176,10 @@ PASSED: SLSA verification passed
 
 Each release archive includes a verify.sh utility script for verifying the provenance of the
 container images used in the corresponding compose files, by running `./verify.sh`. Use
-`./verify.sh {{ release }}` if he image versions in the docker compose file have been updated since
-first installation. The verify script uses [cosign][cosign-cli] to check whether the image was built
-by the FTSnext GitHub actions.
+`./verify.sh {{ release }}`, if the image versions in the docker compose file have been updated
+since
+first installation. The verify script uses [slsa-verifier][slsa-verifier] and [cosign][cosign-cli]
+to check whether the image was built by the FTSnext GitHub actions.
 
 **Example output:**
 
@@ -186,12 +188,15 @@ $ ./verify.sh {{ release }}
 # Verifying image provenance, assert image was built 
 - from github.com/medizininformatik-initiative/fts-next 
 - for tag {{ release }}
+* Using slsa-verifier ✔ 
 * Using cosign ✔ 
 ```
 
 [compose]: https://docs.docker.com/compose/
 
 [cosign]: https://docs.sigstore.dev/cosign/signing/overview/
+
+[slsa-verifier]: https://github.com/slsa-framework/slsa-verifier#installation
 
 [cosign-cli]: https://docs.sigstore.dev/cosign/system_config/installation/
 

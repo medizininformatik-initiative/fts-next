@@ -435,6 +435,26 @@ jobs:
       trust-center-agent-digest: ${{ steps.digest.outputs.trust-center-agent-digest }}
       research-domain-agent-digest: ${{ steps.digest.outputs.research-domain-agent-digest }}
 
+  attest-image:
+    needs: [ push-image ]
+    permissions:
+      actions: read # for detecting the Github Actions environment.
+      id-token: write
+      packages: write # for uploading attestations.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+    with:
+      image: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
+      digest: ${{ needs.push-image.outputs[format('{0}-digest', matrix.agent)] }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+
   create-release:
     needs: [ push-image ]
     runs-on: ubuntu-24.04
