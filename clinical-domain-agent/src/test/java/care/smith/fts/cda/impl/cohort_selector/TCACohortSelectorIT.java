@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.cda.impl.cohort_selector;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;

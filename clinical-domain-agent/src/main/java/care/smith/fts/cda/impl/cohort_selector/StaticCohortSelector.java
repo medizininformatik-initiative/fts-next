@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.cda.impl.cohort_selector;
 
 import static reactor.core.publisher.Flux.fromStream;
 

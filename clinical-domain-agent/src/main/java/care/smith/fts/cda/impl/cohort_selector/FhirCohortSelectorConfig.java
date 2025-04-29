@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.cda.impl.cohort_selector;
 
 import care.smith.fts.util.HttpClientConfig;
 import com.fasterxml.jackson.annotation.JsonClassDescription;

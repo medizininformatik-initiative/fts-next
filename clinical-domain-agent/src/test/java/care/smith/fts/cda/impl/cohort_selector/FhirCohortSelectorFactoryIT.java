@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.cda.impl.cohort_selector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,16 +11,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class TCACohortSelectorFactoryIT {
+class FhirCohortSelectorFactoryIT {
 
   @Autowired MeterRegistry meterRegistry;
   @Autowired WebClientFactory clientFactory;
 
-  private TCACohortSelectorFactory factory;
+  private FhirCohortSelectorFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new TCACohortSelectorFactory(clientFactory, meterRegistry);
+    factory = new FhirCohortSelectorFactory(clientFactory, meterRegistry);
   }
 
   @Test
@@ -33,8 +33,12 @@ class TCACohortSelectorFactoryIT {
     assertThat(
             factory.create(
                 null,
-                new TCACohortSelectorConfig(
-                    new HttpClientConfig("http://dummy.example.com"), null, null, null, null)))
+                new FhirCohortSelectorConfig(
+                    new HttpClientConfig("http://dummy.example.com"),
+                    "http://example.org/fhir/patient-id",
+                    "http://example.org/fhir/policy",
+                    null,
+                    null)))
         .isNotNull();
   }
 }

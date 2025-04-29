@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.cda.impl.cohort_selector;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;

@@ -5,6 +5,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.cda.impl.cohort_selector.StaticCohortSelector;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
