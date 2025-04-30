@@ -1,17 +1,19 @@
 package care.smith.fts.cda.impl.cohort_selector;
 
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.cda.impl.mock.MockCohortSelector;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
-import care.smith.fts.util.error.TransferProcessException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -47,6 +49,7 @@ class FhirCohortSelectorIT extends AbstractConnectionScenarioIT {
       "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
 
   private static FhirCohortSelector cohortSelector;
+  private static MockCohortSelector allCohortSelector;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
@@ -57,39 +60,18 @@ class FhirCohortSelectorIT extends AbstractConnectionScenarioIT {
         new FhirCohortSelector(
             config, clientFactory.create(clientConfig(wireMockRuntime)), meterRegistry);
     wireMock = wireMockRuntime.getWireMock();
-
-    // Set up basic stubs for the FHIR endpoints
-    setupFhirStubs();
-  }
-
-  private void setupFhirStubs() {
-    // Create stub for all consents request
-    wireMock.register(
-        get(urlPathEqualTo("/Consent"))
-            .withQueryParam("scope", containing(POLICY_SYSTEM))
-            .withQueryParam("status", equalTo("active"))
-            .willReturn(aResponse().withStatus(200).withBody("{}")));
-
-    // Create stub for patient-specific consent request
-    wireMock.register(
-        get(urlPathEqualTo("/Consent"))
-            .withQueryParam("scope", containing(POLICY_SYSTEM))
-            .withQueryParam("status", equalTo("active"))
-            .withQueryParam("patient.identifier", containing(PID_SYSTEM))
-            .willReturn(aResponse().withStatus(200).withBody("{}")));
   }
 
   private static MappingBuilder fetchAllRequest() {
-    return get(urlPathEqualTo("/Consent"))
-        .withQueryParam("scope", containing(POLICY_SYSTEM))
-        .withQueryParam("status", equalTo("active"));
+    return get(urlPathEqualTo("/Patient"))
+        .withQueryParam("_revinclude", equalTo("Consent:patient"))
+        .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
-  private static MappingBuilder fetchSpecificRequest(String pid) {
-    return get(urlPathEqualTo("/Consent"))
-        .withQueryParam("scope", containing(POLICY_SYSTEM))
-        .withQueryParam("status", equalTo("active"))
-        .withQueryParam("patient.identifier", containing(pid));
+  private static MappingBuilder fetchRequest() {
+    return get(urlPathEqualTo("/Patient"))
+        .withQueryParam("_revinclude", equalTo("Consent:patient"))
+        .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
   @Override
@@ -109,7 +91,7 @@ class FhirCohortSelectorIT extends AbstractConnectionScenarioIT {
         new TestStep<ConsentedPatient>() {
           @Override
           public MappingBuilder requestBuilder() {
-            return FhirCohortSelectorIT.fetchSpecificRequest("id");
+            return FhirCohortSelectorIT.fetchRequest();
           }
 
           @Override
@@ -138,74 +120,16 @@ class FhirCohortSelectorIT extends AbstractConnectionScenarioIT {
 
   @Test
   void consentBundleSucceeds() {
-    // Create a bundle with one patient consent
-    Bundle bundle = new Bundle();
-    bundle.setType(Bundle.BundleType.SEARCHSET);
-
-    // Add a Consent resource to the bundle
-    Consent consent = new Consent();
-    consent.setId("consent-1");
-    consent.setStatus(Consent.ConsentState.ACTIVE);
-
-    // Set policy
-    CodeableConcept scope = new CodeableConcept();
-    Coding policy = scope.addCoding();
-    policy.setSystem(POLICY_SYSTEM);
-    policy.setCode(POLICIES.iterator().next());
-    consent.setScope(scope);
-
-    // Set patient
-    Reference patientRef = new Reference();
-    Identifier patientId = new Identifier();
-    patientId.setSystem(PID_SYSTEM);
-    patientId.setValue("patient123");
-    patientRef.setIdentifier(patientId);
-    consent.setPatient(patientRef);
-
-    // Add entry to bundle
-    bundle.addEntry().setResource(consent);
-
-    // Register the response
+    var bundle = FhirCohortGenerator.OnePatientWithConsent(PID_SYSTEM, POLICY_SYSTEM, POLICIES);
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
-
     create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
   }
 
   @Test
   void consentBundleForIdsSucceeds() {
-    // Create a bundle with one patient consent
-    Bundle bundle = new Bundle();
-    bundle.setType(Bundle.BundleType.SEARCHSET);
-
-    // Add a Consent resource to the bundle
-    Consent consent = new Consent();
-    consent.setId("consent-1");
-    consent.setStatus(Consent.ConsentState.ACTIVE);
-
-    // Set policy
-    CodeableConcept scope = new CodeableConcept();
-    Coding policy = scope.addCoding();
-    policy.setSystem(POLICY_SYSTEM);
-    policy.setCode(POLICIES.iterator().next());
-    consent.setScope(scope);
-
-    // Set patient
-    Reference patientRef = new Reference();
-    Identifier patientId = new Identifier();
-    patientId.setSystem(PID_SYSTEM);
-    patientId.setValue("specific-patient");
-    patientRef.setIdentifier(patientId);
-    consent.setPatient(patientRef);
-
-    // Add entry to bundle
-    bundle.addEntry().setResource(consent);
-
-    // Register the response for a specific patient ID
-    wireMock.register(fetchSpecificRequest("specific-patient").willReturn(fhirResponse(bundle)));
-
-    create(cohortSelector.selectCohort(List.of("specific-patient")))
-        .expectNextCount(1)
-        .verifyComplete();
+    var bundle = FhirCohortGenerator.OnePatientWithConsent(PID_SYSTEM, POLICY_SYSTEM, POLICIES);
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+    create(cohortSelector.selectCohort(List.of("patient-1"))).expectNextCount(1).verifyComplete();
   }
 
   @Test
@@ -216,140 +140,27 @@ class FhirCohortSelectorIT extends AbstractConnectionScenarioIT {
   }
 
   @Test
-  void serverErrorGivesTransferProcessException() {
-    wireMock.register(fetchAllRequest().willReturn(serverError()));
-    create(cohortSelector.selectCohort(List.of()))
-        .expectError(TransferProcessException.class)
-        .verify();
-  }
-
-  @Test
   void paging() {
-    // Create first page with next link
-    Bundle firstPage = new Bundle();
-    firstPage.setType(Bundle.BundleType.SEARCHSET);
+    var bundles =
+        FhirCohortGenerator.PatientsWithMultipleConsentsPaged(
+                PID_SYSTEM, POLICY_SYSTEM, POLICIES, 2, 1, 1)
+            .toList();
 
-    // Add a Consent resource to the first page
-    Consent consent1 = new Consent();
-    consent1.setId("consent-1");
-    consent1.setStatus(Consent.ConsentState.ACTIVE);
-
-    // Set policy
-    CodeableConcept scope1 = new CodeableConcept();
-    Coding policy1 = scope1.addCoding();
-    policy1.setSystem(POLICY_SYSTEM);
-    policy1.setCode(POLICIES.iterator().next());
-    consent1.setScope(scope1);
-
-    // Set patient
-    Reference patientRef1 = new Reference();
-    Identifier patientId1 = new Identifier();
-    patientId1.setSystem(PID_SYSTEM);
-    patientId1.setValue("patient1");
-    patientRef1.setIdentifier(patientId1);
-    consent1.setPatient(patientRef1);
-
-    // Add entry to first page
-    firstPage.addEntry().setResource(consent1);
-
-    // Add next link
-    firstPage.addLink().setRelation("next").setUrl("/Consent?_page=2");
-
-    // Create second page
-    Bundle secondPage = new Bundle();
-    secondPage.setType(Bundle.BundleType.SEARCHSET);
-
-    // Add a Consent resource to the second page
-    Consent consent2 = new Consent();
-    consent2.setId("consent-2");
-    consent2.setStatus(Consent.ConsentState.ACTIVE);
-
-    // Set policy
-    CodeableConcept scope2 = new CodeableConcept();
-    Coding policy2 = scope2.addCoding();
-    policy2.setSystem(POLICY_SYSTEM);
-    policy2.setCode(POLICIES.iterator().next());
-    consent2.setScope(scope2);
-
-    // Set patient
-    Reference patientRef2 = new Reference();
-    Identifier patientId2 = new Identifier();
-    patientId2.setSystem(PID_SYSTEM);
-    patientId2.setValue("patient2");
-    patientRef2.setIdentifier(patientId2);
-    consent2.setPatient(patientRef2);
-
-    // Add entry to second page
-    secondPage.addEntry().setResource(consent2);
-
-    // Register responses
-    wireMock.register(fetchAllRequest().willReturn(fhirResponse(firstPage)));
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundles.getFirst())));
     wireMock.register(
         get(urlPathEqualTo("/Consent"))
             .withQueryParam("_page", equalTo("2"))
-            .willReturn(fhirResponse(secondPage)));
+            .willReturn(fhirResponse(bundles.get(1))));
 
     create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
   }
 
   @Test
   void pagingWithRetries() {
-    // Create first page with next link
-    Bundle firstPage = new Bundle();
-    firstPage.setType(Bundle.BundleType.SEARCHSET);
-
-    // Add a Consent resource to the first page
-    Consent consent1 = new Consent();
-    consent1.setId("consent-1");
-    consent1.setStatus(Consent.ConsentState.ACTIVE);
-
-    // Set policy
-    CodeableConcept scope1 = new CodeableConcept();
-    Coding policy1 = scope1.addCoding();
-    policy1.setSystem(POLICY_SYSTEM);
-    policy1.setCode(POLICIES.iterator().next());
-    consent1.setScope(scope1);
-
-    // Set patient
-    Reference patientRef1 = new Reference();
-    Identifier patientId1 = new Identifier();
-    patientId1.setSystem(PID_SYSTEM);
-    patientId1.setValue("patient1");
-    patientRef1.setIdentifier(patientId1);
-    consent1.setPatient(patientRef1);
-
-    // Add entry to first page
-    firstPage.addEntry().setResource(consent1);
-
-    // Add next link
-    firstPage.addLink().setRelation("next").setUrl("/Consent?_page=2");
-
-    // Create second page
-    Bundle secondPage = new Bundle();
-    secondPage.setType(Bundle.BundleType.SEARCHSET);
-
-    // Add a Consent resource to the second page
-    Consent consent2 = new Consent();
-    consent2.setId("consent-2");
-    consent2.setStatus(Consent.ConsentState.ACTIVE);
-
-    // Set policy
-    CodeableConcept scope2 = new CodeableConcept();
-    Coding policy2 = scope2.addCoding();
-    policy2.setSystem(POLICY_SYSTEM);
-    policy2.setCode(POLICIES.iterator().next());
-    consent2.setScope(scope2);
-
-    // Set patient
-    Reference patientRef2 = new Reference();
-    Identifier patientId2 = new Identifier();
-    patientId2.setSystem(PID_SYSTEM);
-    patientId2.setValue("patient2");
-    patientRef2.setIdentifier(patientId2);
-    consent2.setPatient(patientRef2);
-
-    // Add entry to second page
-    secondPage.addEntry().setResource(consent2);
+    var bundles =
+        FhirCohortGenerator.PatientsWithMultipleConsentsPaged(
+                PID_SYSTEM, POLICY_SYSTEM, POLICIES, 2, 1, 1)
+            .toList();
 
     // Register responses with first-time failures
     wireMock.register(
@@ -363,7 +174,7 @@ class FhirCohortSelectorIT extends AbstractConnectionScenarioIT {
         fetchAllRequest()
             .inScenario("retry-scenario")
             .whenScenarioStateIs("first-retry")
-            .willReturn(fhirResponse(firstPage)));
+            .willReturn(fhirResponse(bundles.getFirst())));
 
     wireMock.register(
         get(urlPathEqualTo("/Consent"))
@@ -378,7 +189,7 @@ class FhirCohortSelectorIT extends AbstractConnectionScenarioIT {
             .withQueryParam("_page", equalTo("2"))
             .inScenario("retry-scenario")
             .whenScenarioStateIs("second-retry")
-            .willReturn(fhirResponse(secondPage)));
+            .willReturn(fhirResponse(bundles.get(1))));
 
     create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
   }

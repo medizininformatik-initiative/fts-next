@@ -11,11 +11,11 @@ import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.fhir.FhirException;
-import com.google.common.collect.Streams;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -86,7 +86,6 @@ class FhirCohortSelector implements CohortSelector {
     //    if (query.charAt(query.length() - 1) == '&') {
     //      query.setLength(query.length() - 1);
     //    }
-
     return query.toString();
   }
 
@@ -115,33 +114,29 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
-
-    var consents = typedResourceStream(bundle, Consent.class);
-    var patients = typedResourceStream(bundle, Patient.class);
-    var outerBundle = new Bundle();
-
-    patients.forEach(
-        p -> {
-          var inner = new Bundle().addEntry(new BundleEntryComponent().setResource(p));
-
-          outerBundle.addEntry(new BundleEntryComponent().setResource(inner));
-        });
-
-    Streams.zip(
-            consents,
-            patients,
-            (c, p) ->
-                new Bundle()
-                    .addEntry(new BundleEntryComponent().setResource(c))
-                    .addEntry(new BundleEntryComponent().setResource(p)))
-        .forEach(inner -> outerBundle.addEntry(new BundleEntryComponent().setResource(inner)));
-
     return Flux.fromStream(
-        ConsentedPatientExtractor.extractConsentedPatients(
+        ConsentedPatientExtractor.getConsentedPatients(
             config.patientIdentifierSystem(),
             config.policySystem(),
-            outerBundle,
+            getBundleEntryComponents(bundle),
             config.policies()));
+  }
+
+  private static Stream<Bundle> getBundleEntryComponents(Bundle bundle) {
+    var patients = typedResourceStream(bundle, Patient.class);
+    return patients.map(
+        p -> {
+          var inner = new Bundle().addEntry(new BundleEntryComponent().setResource(p));
+          typedResourceStream(bundle, Consent.class)
+              .filter(c -> isConsentOfPatient(p, c))
+              .forEach(c -> inner.addEntry(new BundleEntryComponent().setResource(c)));
+          return inner;
+        });
+  }
+
+  private static boolean isConsentOfPatient(Patient patient, Consent c) {
+    var patientRefId = c.getPatient().getReferenceElement().getIdPart();
+    return patientRefId.equals(patient.getIdPart());
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {

@@ -41,7 +41,7 @@ public interface ConsentedPatientExtractor {
    * @param policiesToCheck the set of policies to check for consent
    * @return a stream of consented patients
    */
-  private static Stream<ConsentedPatient> getConsentedPatients(
+  static Stream<ConsentedPatient> getConsentedPatients(
       String patientIdentifierSystem,
       String policySystem,
       Stream<Bundle> bundles,
