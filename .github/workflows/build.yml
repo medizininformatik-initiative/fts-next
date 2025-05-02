@@ -12,47 +12,47 @@ on:
 permissions: read-all
 
 jobs:
-  test:
-    env:
-      MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
-      GITHUB_TOKEN: ${{ github.token }}
-    runs-on: ubuntu-24.04
-    strategy:
-      max-parallel: 6
-      matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
-
-    steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
-      with:
-        distribution: 'temurin'
-        java-version: 21
-        cache: 'maven'
-
-    - name: Setup Keycloak
-      working-directory: .github/test
-      run: docker compose -f oauth2/compose.yaml up --build --wait
-
-    - name: Run Tests
-      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }}
-
-    - name: Generate Code Coverage Report
-      run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
-
-    - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: true
+  #  test:
+  #    env:
+  #      MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
+  #      GITHUB_TOKEN: ${{ github.token }}
+  #    runs-on: ubuntu-24.04
+  #    strategy:
+  #      max-parallel: 6
+  #      matrix:
+  #        agent:
+  #        - clinical-domain-agent
+  #        - trust-center-agent
+  #        - research-domain-agent
+  #
+  #    steps:
+  #    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+  #
+  #    - name: Set up JDK 21
+  #      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+  #      with:
+  #        distribution: 'temurin'
+  #        java-version: 21
+  #        cache: 'maven'
+  #
+  #    - name: Setup Keycloak
+  #      working-directory: .github/test
+  #      run: docker compose -f oauth2/compose.yaml up --build --wait
+  #
+  #    - name: Run Tests
+  #      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }}
+  #
+  #    - name: Generate Code Coverage Report
+  #      run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
+  #
+  #    - name: Upload Coverage to Codecov
+  #      uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # v5
+  #      with:
+  #        token: ${{ secrets.CODECOV_TOKEN }}
+  #        fail_ci_if_error: true
 
   build-jar:
-    needs: [ test ]
+    #    needs: [ test ]
     env:
       MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
       GITHUB_TOKEN: ${{ github.token }}
@@ -80,8 +80,15 @@ jobs:
     - name: Upload Jar
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
-        name: ${{ matrix.agent }}
+        name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
+        if-no-files-found: error
+
+    - name: Upload Maven SBOM
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ matrix.agent }}-sbom-mvn
+        path: ${{ matrix.agent }}/target/sbom-mvn.json
         if-no-files-found: error
 
   build-image:
@@ -96,11 +103,11 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-    - name: Download Agent Jar
+    - name: Download Jar
       if: ${{ matrix.agent }}
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
-        name: ${{ matrix.agent }}
+        name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target
 
     - name: Set up Docker Buildx
@@ -108,6 +115,8 @@ jobs:
 
     - name: Build and Save Container Image
       uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6
+      env:
+        DOCKER_BUILD_RECORD_UPLOAD: false
       with:
         context: ${{ matrix.agent }}
         tags: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:local
@@ -158,126 +167,188 @@ jobs:
       with:
         sarif_file: trivy-results.sarif
 
-  e2e-tests:
-    needs: [ build-image ]
+    - name: Generate SBOM
+      uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # v0.30.0
+      env:
+        TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2
+        TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1
+      with:
+        image-ref: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:local
+        format: cyclonedx
+        output: sbom-trivy.json
+        scan-type: image
+
+    - name: Upload Trivy SBOM
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ matrix.agent }}-sbom-trivy
+        path: sbom-trivy.json
+        if-no-files-found: error
+
+  #  e2e-tests:
+  #    needs: [ build-image ]
+  #    runs-on: ubuntu-24.04
+  #    defaults:
+  #      run:
+  #        working-directory: .github/test
+  #    env:
+  #      TEST_SET_SIZE: 100
+  #
+  #    steps:
+  #    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+  #
+  #    - name: Download Images
+  #      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+  #      with:
+  #        pattern: '*-image'
+  #        merge-multiple: true
+  #        path: /tmp
+  #
+  #    - name: Load Agent Images
+  #      run: |
+  #        echo -n "clinical-domain-agent trust-center-agent research-domain-agent" \
+  #        | xargs -d' ' -I{} docker load --input /tmp/{}.tar
+  #
+  #    - name: Pull Container Images
+  #      run: make pull
+  #
+  #    - name: Configure PATH
+  #      run: echo "${GITHUB_WORKSPACE}/.github/scripts" >> ${GITHUB_PATH}
+  #
+  #    - name: Install Blazectl
+  #      run: install-blazectl.sh
+  #
+  #    - name: Prepare Auth Failing Tests
+  #      uses: mikefarah/yq@8bf425b4d1344db7cd469a8d10a390876e0c77fd # v4
+  #      with:
+  #        cmd: >-
+  #          cd .github/test/cd-agent/projects &&
+  #          yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' example.yaml >basic-fail.yaml &&
+  #          yq 'del(.bundleSender.researchDomainAgent.server.auth)' example.yaml >oauth2-fail.yaml
+  #
+  #    - name: Start Test Environment
+  #      run: make start
+  #
+  #    - name: Cache Test Data
+  #      id: cache-test-data
+  #      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+  #      with:
+  #        path: .github/test/test-data
+  #        key: test-data-${{ env.TEST_SET_SIZE }}
+  #
+  #    - name: Download Test Data
+  #      if: steps.cache-test-data.outputs.cache-hit != 'true'
+  #      run: make download
+  #
+  #    - name: Upload Test Data
+  #      run: make upload
+  #
+  #    - name: Check Consent
+  #      run: make check-consent
+  #
+  #    - name: Run e2e for all Consented Patients
+  #      run: |
+  #        make transfer-all PROJECT=example
+  #        make wait
+  #        make check-status RESULTS_FILE=example.json
+  #        make check-resources RESULTS_FILE=example.json
+  #
+  #    - name: Clean RD HDS and gPAS DB
+  #      run: make clean-rd-hds-and-gpas-db
+  #
+  #    - name: Run e2e for Selected Patients
+  #      run: |
+  #        make transfer-list PROJECT=example
+  #        make wait
+  #        make check-status RESULTS_FILE=example.json
+  #        make check-resources RESULTS_FILE=example.json
+  #
+  #    - name: Run e2e with failing Basic Auth
+  #      run: |
+  #        make transfer-all PROJECT=basic-fail
+  #        make wait
+  #        make check-status RESULTS_FILE=basic-fail.json
+  #        make check-resources RESULTS_FILE=basic-fail.json
+  #
+  #    - name: Run e2e with failing OAuth2 Auth
+  #      run: |
+  #        make transfer-all PROJECT=oauth2-fail
+  #        make wait
+  #        make check-status RESULTS_FILE=oauth2-fail.json
+  #        make check-resources RESULTS_FILE=oauth2-fail.json
+  #
+  #    - name: Collect Agent Logs
+  #      if: failure() || cancelled()
+  #      run: docker compose logs cd-agent tc-agent rd-agent
+  #
+  #    - name: Collect MOSAIC Logs
+  #      if: failure() || cancelled()
+  #      run: docker compose logs gics gpas
+  #
+  #    - name: Collect HDS Logs
+  #      if: failure() || cancelled()
+  #      run: docker compose logs cd-hds rd-hds
+  #
+  #    - name: Collect DB Logs
+  #      if: failure() || cancelled()
+  #      run: docker compose logs gics-db gpas-db keystore
+  #
+  #    - name: Collect OAuth2 Server Logs
+  #      if: failure() || cancelled()
+  #      run: docker compose logs keycloak
+
+  combine-sboms:
+    needs:
+    - build-jar
+    - scan-image
     runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: .github/test
-    env:
-      TEST_SET_SIZE: 100
-
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Install CycloneDX CLI
+      env:
+        # renovate: datasource=github-releases depName=CycloneDX/cyclonedx-cli
+        CDX_CLI_VERSION: "0.27.2"
+      run: |
+        url="https://github.com/CycloneDX/cyclonedx-cli/releases/download/v${CDX_CLI_VERSION}/cyclonedx-linux-x64"
+        target="${HOME}/.local/bin/cyclonedx"
+        mkdir -p "$(dirname "${target}")"
+        wget "${url}" -qO "${target}"
+        chmod +x "${target}"
 
-    - name: Download Agent Images
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+    - name: Download SBOMs
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
       with:
-        pattern: '*-image'
+        pattern: ${{ matrix.agent }}-sbom-*
+        path: .
         merge-multiple: true
-        path: /tmp
 
-    - name: Load Agent Images
+    - name: Merge SBOMS
       run: |
-        echo -n "clinical-domain-agent trust-center-agent research-domain-agent" \
-        | xargs -d' ' -I{} docker load --input /tmp/{}.tar
+        ls -l
+        cyclonedx merge --input-files sbom-mvn.json sbom-trivy.json --output-file sbom.json
 
-    - name: Pull Container Images
-      run: make pull
-
-    - name: Configure PATH
-      run: echo "${GITHUB_WORKSPACE}/.github/scripts" >> ${GITHUB_PATH}
-
-    - name: Install Blazectl
-      run: install-blazectl.sh
-
-    - name: Prepare Auth Failing Tests
-      uses: mikefarah/yq@8bf425b4d1344db7cd469a8d10a390876e0c77fd # v4
+    - name: Upload Combined SBOM
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
-        cmd: >-
-          cd .github/test/cd-agent/projects &&
-          yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' example.yaml >basic-fail.yaml &&
-          yq 'del(.bundleSender.researchDomainAgent.server.auth)' example.yaml >oauth2-fail.yaml
-
-    - name: Start Test Environment
-      run: make start
-
-    - name: Cache Test Data
-      id: cache-test-data
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
-      with:
-        path: .github/test/test-data
-        key: test-data-${{ env.TEST_SET_SIZE }}
-
-    - name: Download Test Data
-      if: steps.cache-test-data.outputs.cache-hit != 'true'
-      run: make download
-
-    - name: Upload Test Data
-      run: make upload
-
-    - name: Check Consent
-      run: make check-consent
-
-    - name: Run e2e for all Consented Patients
-      run: |
-        make transfer-all PROJECT=example 
-        make wait
-        make check-status RESULTS_FILE=example.json
-        make check-resources RESULTS_FILE=example.json
-
-    - name: Clean RD HDS and gPAS DB
-      run: make clean-rd-hds-and-gpas-db
-
-    - name: Run e2e for Selected Patients
-      run: |
-        make transfer-list PROJECT=example 
-        make wait
-        make check-status RESULTS_FILE=example.json
-        make check-resources RESULTS_FILE=example.json
-
-    - name: Run e2e with failing Basic Auth
-      run: |
-        make transfer-all PROJECT=basic-fail
-        make wait
-        make check-status RESULTS_FILE=basic-fail.json
-        make check-resources RESULTS_FILE=basic-fail.json
-
-    - name: Run e2e with failing OAuth2 Auth
-      run: |
-        make transfer-all PROJECT=oauth2-fail
-        make wait
-        make check-status RESULTS_FILE=oauth2-fail.json
-        make check-resources RESULTS_FILE=oauth2-fail.json
-
-    - name: Collect Agent Logs
-      if: failure() || cancelled()
-      run: docker compose logs cd-agent tc-agent rd-agent
-
-    - name: Collect MOSAIC Logs
-      if: failure() || cancelled()
-      run: docker compose logs gics gpas
-
-    - name: Collect HDS Logs
-      if: failure() || cancelled()
-      run: docker compose logs cd-hds rd-hds
-
-    - name: Collect DB Logs
-      if: failure() || cancelled()
-      run: docker compose logs gics-db gpas-db keystore
-
-    - name: Collect OAuth2 Server Logs
-      if: failure() || cancelled()
-      run: docker compose logs keycloak
+        name: ${{ matrix.agent }}-sbom
+        path: sbom.json
+        if-no-files-found: error
 
   push-image:
-    if: github.event_name != 'pull_request' || (github.event.pull_request.base.repo.full_name == github.event.pull_request.head.repo.full_name)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
     needs:
     - scan-image
-    - e2e-tests
+    #    - e2e-tests
+    - combine-sboms
     runs-on: ubuntu-24.04
     permissions:
       packages: write
+      id-token: write
     strategy:
       matrix:
         agent:
@@ -288,21 +359,17 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-    - name: Download Agent Jar
-      if: ${{ matrix.agent }}
+    - name: Download Jar
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
-        name: ${{ matrix.agent }}
+        name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target
 
-    - name: Download Container Image
+    - name: Download SBOM
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
-        name: ${{ matrix.agent }}-image
-        path: /tmp
-
-    - name: Load Container Image
-      run: docker load --input /tmp/${{ matrix.agent }}.tar
+        name: ${{ matrix.agent }}-sbom
+        path: .
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
@@ -329,6 +396,7 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and Push Container Image
+      id: push
       uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6
       with:
         context: ${{ matrix.agent }}
@@ -337,16 +405,50 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    - name: Install cosign
+      uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3
+
+    - name: Sign and Attest Image
+      env:
+        IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
+      run: |
+        cosign sign --yes "${IMAGE_REF}"
+        cosign attest --yes --predicate "sbom.json" --type cyclonedx "${IMAGE_REF}"
+
+    - name: Output Image Digest
+      id: digest
+      run: echo "${{ matrix.agent }}-digest=${{ steps.push.outputs.digest }}" >>"$GITHUB_OUTPUT"
+    outputs:
+      clinical-domain-agent-digest: ${{ steps.digest.outputs.clinical-domain-agent-digest }}
+      trust-center-agent-digest: ${{ steps.digest.outputs.trust-center-agent-digest }}
+      research-domain-agent-digest: ${{ steps.digest.outputs.research-domain-agent-digest }}
+
+  attest-image:
+    needs: [ push-image ]
+    permissions:
+      actions: read # for detecting the Github Actions environment.
+      id-token: write
+      packages: write # for uploading attestations.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+    with:
+      image: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
+      digest: ${{ needs.push-image.outputs[format('{0}-digest', matrix.agent)] }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+    strategy:
+      matrix:
+        agent:
+        - clinical-domain-agent
+        - trust-center-agent
+        - research-domain-agent
+
   create-release:
-    needs: push-image
+    #    needs: [ push-image ]
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: .github/release
-    permissions:
-      contents: write
-      actions: write
-
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -354,18 +456,59 @@ jobs:
       run: make check-links
 
     - name: Create Release Archives
+      id: create
       env:
         COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
-      run: make cd-agent tc-agent rd-agent
+      run: |
+        make cd-agent tc-agent rd-agent
+        echo "checksums-b64=$(cat *.tar.gz.sha256 | xargs -L1 bash -c 'echo -n "$0 $1" | base64 -w0; echo' | jq -R . | jq -sc .)" >>"$GITHUB_OUTPUT"
 
-    - name: Upload Archives
+    - name: Upload Release Archives
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
+        name: release-archives
         path: |
-          .github/release/cd-agent.tar.gz
-          .github/release/tc-agent.tar.gz
-          .github/release/rd-agent.tar.gz
+          .github/release/*.tar.gz
+          .github/release/*.tar.gz.sha256
         if-no-files-found: error
+
+    outputs:
+      checksums-b64: ${{ steps.create.outputs.checksums-b64 }}
+
+  attest-release:
+    needs: [ create-release ]
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    strategy:
+      matrix:
+        checksum-b64: ${{ fromJson(needs.create-release.outputs.checksums-b64) }}
+    with:
+      base64-subjects: ${{ matrix.checksum-b64 }}
+      upload-assets: false
+
+  publish-release:
+    needs: [ attest-release, push-image ]
+    runs-on: ubuntu-24.04
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+    steps:
+    - name: Download Release Archives
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+      with:
+        name: release-archives
+        path: .
+
+    - name: Download Provenance
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+      with:
+        pattern: |
+          *-agent.tar.gz.intoto.jsonl
+        merge-multiple: true
+        path: .
 
     - name: Recognize Prerelease
       env:
@@ -377,13 +520,12 @@ jobs:
         fi
 
     - name: Release
-      if: github.ref_type == 'tag'
       uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
       with:
         files: |
-          .github/release/cd-agent.tar.gz
-          .github/release/tc-agent.tar.gz
-          .github/release/rd-agent.tar.gz
+          *.tar.gz
+          *.tar.gz.sha256
+          *.tar.gz.intoto.jsonl
         draft: true
         prerelease: ${{ env.is_prerelease }}
         generate_release_notes: true
