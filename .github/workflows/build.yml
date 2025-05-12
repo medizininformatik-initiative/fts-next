@@ -192,7 +192,7 @@ jobs:
       run: install-blazectl.sh
 
     - name: Prepare Auth Failing Tests
-      uses: mikefarah/yq@734e2cd25402f10f51351c4034625043f07e7b06 # v4
+      uses: mikefarah/yq@b534aa9ee5d38001fba3cd8fe254a037e4847b37 # v4
       with:
         cmd: >-
           cd .github/test/cd-agent/projects &&
