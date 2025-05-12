@@ -80,8 +80,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        ".*\\.java"
+      "managerFilePatterns": [
+        "/.*\\.java/"
       ],
       "matchStrings": [
         "// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*\"(?<currentValue>.+?)\";"
