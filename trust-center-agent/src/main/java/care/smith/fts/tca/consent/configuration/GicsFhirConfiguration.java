@@ -2,6 +2,7 @@ package care.smith.fts.tca.consent.configuration;
 
 import static care.smith.fts.tca.consent.GicsFhirUtil.verifyGicsCapabilities;
 
+import care.smith.fts.tca.consent.GicsConfigured;
 import care.smith.fts.tca.consent.GicsFhirConsentedPatientsProvider;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.LogUtil;
@@ -16,10 +17,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
+@Conditional(GicsConfigured.class)
 @Configuration
 @ConfigurationProperties(prefix = "consent.gics.fhir")
 @Data

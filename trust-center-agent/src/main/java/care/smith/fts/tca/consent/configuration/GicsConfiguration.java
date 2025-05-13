@@ -1,12 +1,15 @@
 package care.smith.fts.tca.consent.configuration;
 
+import care.smith.fts.tca.consent.GicsConfigured;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 @Slf4j
+@Conditional(GicsConfigured.class)
 @Configuration
 @ConfigurationProperties(prefix = "consent.gics")
 @Data
