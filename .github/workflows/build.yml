@@ -329,6 +329,7 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and Push Container Image
+      id: push
       uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6
       with:
         context: ${{ matrix.agent }}
@@ -337,8 +338,16 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    - name: Output Image Digest
+      id: digest
+      run: echo "${{ matrix.agent }}-digest=${{ steps.push.outputs.digest }}" >>"$GITHUB_OUTPUT"
+    outputs:
+      clinical-domain-agent-digest: ${{ steps.digest.outputs.clinical-domain-agent-digest }}
+      trust-center-agent-digest: ${{ steps.digest.outputs.trust-center-agent-digest }}
+      research-domain-agent-digest: ${{ steps.digest.outputs.research-domain-agent-digest }}
+
   create-release:
-    needs: push-image
+    needs: [ push-image ]
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -354,8 +363,12 @@ jobs:
       run: make check-links
 
     - name: Create Release Archives
+      id: create
       env:
-        COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
+        COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        CD_AGENT_DIGEST: ${{ needs.push-image.outputs.clinical-domain-agent-digest }}
+        TC_AGENT_DIGEST: ${{ needs.push-image.outputs.trust-center-agent-digest }}
+        RD_AGENT_DIGEST: ${{ needs.push-image.outputs.research-domain-agent-digest }}
       run: make cd-agent tc-agent rd-agent
 
     - name: Upload Archives
