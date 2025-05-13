@@ -3,6 +3,7 @@ package care.smith.fts.test.connection_scenario;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -33,7 +34,12 @@ public abstract class AbstractConnectionScenarioIT {
   @TestTemplate
   @ExtendWith(ConnectionScenariosExtension.class)
   void testConnectionScenarios(ConnectionScenario scenario) {
-    createTestSteps().forEach(scenario::execute);
+    createTestSteps()
+        .forEach(
+            step -> {
+              WireMock.resetToDefault();
+              scenario.execute(step);
+            });
   }
 
   static class ConnectionScenariosExtension implements TestTemplateInvocationContextProvider {
