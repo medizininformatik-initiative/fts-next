@@ -101,7 +101,17 @@ export default withMermaid({
                 {
                   text: 'Clinical Domain', link: '/cd-agent/project', collapsed: true,
                   items: [
-                    {text: 'Cohort Selector', link: '/cd-agent/cohort-selector'},
+                    {
+                      text: 'Cohort Selector', link: '/cd-agent/cohort-selector',
+                      items: [{
+                        text: 'trustCenterAgent',
+                        link: '/cd-agent/cohort-selector/trustCenterAgent'
+                      },
+                        {
+                          text: 'fhir',
+                          link: '/cd-agent/cohort-selector/fhir'
+                        }]
+                    },
                     {text: 'Data Selector', link: '/cd-agent/data-selector'},
                     {text: 'Deidentificator', link: '/cd-agent/deidentificator'},
                     {text: 'Bundle Sender', link: '/cd-agent/bundle-sender'},

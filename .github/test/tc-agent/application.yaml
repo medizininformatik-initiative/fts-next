@@ -13,3 +13,5 @@ security:
         password: "{bcrypt}$2a$10$m0kteW3J47snneNzGTzkzeAtGo8FfODkmPP0uLXOz8uRvkc5Lqwme"
         # password: "{noop}1J5MhEhhiGh33dgt"
         role: rd-client
+
+spring.codec.max-in-memory-size: 5MB

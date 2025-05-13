@@ -5,3 +5,5 @@ security:
   auth:
     oauth2:
       issuer: http://keycloak:8080/realms/fts
+
+spring.codec.max-in-memory-size: 5MB
