@@ -60,6 +60,7 @@ jobs:
 
   ossf-scorecard:
     runs-on: ubuntu-24.04
+    if: github.ref_name == github.event.repository.default_branch || github.event_name == 'pull_request'
     permissions:
       security-events: write
       id-token: write
