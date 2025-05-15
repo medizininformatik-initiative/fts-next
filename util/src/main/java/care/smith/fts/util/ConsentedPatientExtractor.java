@@ -41,7 +41,7 @@ public interface ConsentedPatientExtractor {
    * @param policiesToCheck the set of policies to check for consent
    * @return a stream of consented patients
    */
-  private static Stream<ConsentedPatient> getConsentedPatients(
+  static Stream<ConsentedPatient> getConsentedPatients(
       String patientIdentifierSystem,
       String policySystem,
       Stream<Bundle> bundles,
@@ -121,9 +121,9 @@ public interface ConsentedPatientExtractor {
       String policySystem, Bundle bundle, Set<String> policiesToCheck) {
     return getPermitProvisionsStream(bundle)
         .map(
-            (ProvisionComponent) ->
+            (provisionComponent) ->
                 getConsentedPoliciesFromProvision(
-                    policySystem, ProvisionComponent, policiesToCheck))
+                    policySystem, provisionComponent, policiesToCheck))
         .reduce(
             new ConsentedPolicies(),
             (a, b) -> {
