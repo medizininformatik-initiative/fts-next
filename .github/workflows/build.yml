@@ -278,6 +278,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       packages: write
+      id-token: write
     strategy:
       matrix:
         agent:
@@ -337,6 +338,15 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Install cosign
+      uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3
+
+    - name: Sign Image
+      env:
+        IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
+      run: |
+        cosign sign --yes "${IMAGE_REF}"
 
     - name: Output Image Digest
       id: digest
