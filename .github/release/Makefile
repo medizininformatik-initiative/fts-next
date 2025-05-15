@@ -8,8 +8,7 @@ check-links:
 cd-agent:
 	cp -r ../test/cd-agent .
 	sed -i '/# CI_ONLY/d' ./cd-agent/compose.yaml
-	grep ":local" ./cd-agent/compose.yaml
-	sed -i "s/:local/$${COMMIT_TAG:+:$${COMMIT_TAG#v}}@$${CD_AGENT_DIGEST}/g" ./cd-agent/compose.yaml
+	sed -i "s/:\$${BUILD_ID:-local}/$${COMMIT_TAG:+:$${COMMIT_TAG#v}}@$${CD_AGENT_DIGEST}/g" ./cd-agent/compose.yaml
 	sed "s/<COMMIT_TAG>/$${COMMIT_TAG}/g" verify.sh >./cd-agent/verify.sh
 	chmod +x ./cd-agent/verify.sh
 	mkdir -p ./cd-agent/projects/example
@@ -23,8 +22,7 @@ cd-agent:
 tc-agent:
 	cp -r ../test/tc-agent .
 	sed -i '/# CI_ONLY/d' ./tc-agent/compose.yaml
-	grep ":local" ./tc-agent/compose.yaml
-	sed -i "s/:local/$${COMMIT_TAG:+:$${COMMIT_TAG#v}}@$${TC_AGENT_DIGEST}/g" ./tc-agent/compose.yaml
+	sed -i "s/:\$${BUILD_ID:-local}/$${COMMIT_TAG:+:$${COMMIT_TAG#v}}@$${TC_AGENT_DIGEST}/g" ./tc-agent/compose.yaml
 	sed "s/<COMMIT_TAG>/$${COMMIT_TAG}/g" verify.sh >./tc-agent/verify.sh
 	chmod +x ./tc-agent/verify.sh
 	cp ../../trust-center-agent/application.yaml ./tc-agent/
@@ -34,8 +32,7 @@ tc-agent:
 rd-agent:
 	cp -r ../test/rd-agent .
 	sed -i '/# CI_ONLY/d' ./rd-agent/compose.yaml
-	grep ":local" ./rd-agent/compose.yaml
-	sed -i "s/:local/$${COMMIT_TAG:+:$${COMMIT_TAG#v}}@$${RD_AGENT_DIGEST}/g" ./rd-agent/compose.yaml
+	sed -i "s/:\$${BUILD_ID:-local}/$${COMMIT_TAG:+:$${COMMIT_TAG#v}}@$${RD_AGENT_DIGEST}/g" ./rd-agent/compose.yaml
 	sed "s/<COMMIT_TAG>/$${COMMIT_TAG}/g" verify.sh >./rd-agent/verify.sh
 	chmod +x ./rd-agent/verify.sh
 	mkdir -p ./rd-agent/projects/example
