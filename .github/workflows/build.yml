@@ -514,13 +514,13 @@ jobs:
       contents: write
     steps:
     - name: Download Release Archives
-      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: release-archives
         path: .
 
     - name: Download Provenance
-      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         pattern: |
           *-agent.tar.gz.intoto.jsonl
