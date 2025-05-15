@@ -77,4 +77,38 @@ rd-agent/
 
 :::
 
+## Verification <Badge type="warning" text="Since 5.3" />
+
+To ensure trust and security in the software supply chain, verification of release artifacts
+confirms that the downloaded files are authentic, unaltered, and originate from the intended source.
+This process helps to protect users from tampered or malicious builds by using cryptographic proofs
+of provenance.
+
+For container images, we use [cosign][cosign] to sign images and attach SBOMs, stored alongside the
+image in the container registry. This allows users to confirm the image was built by the expected CI
+pipeline
+and has not been modified after publication.
+
+### Container Images
+
+Each release archive includes a verify.sh utility script for verifying the provenance of the
+container images used in the corresponding compose files, by running `./verify.sh`. Use
+`./verify.sh {{ release }}` if he image versions in the docker compose file have been updated since
+first installation. The verify script uses [cosign][cosign-cli] to check whether the image was built
+by the FTSnext GitHub actions.
+
+**Example output:**
+
+```-vue
+$ ./verify.sh {{ release }}
+# Verifying image provenance, assert image was built 
+- from github.com/medizininformatik-initiative/fts-next 
+- for tag {{ release }}
+* Using cosign ✔ 
+```
+
 [compose]: https://docs.docker.com/compose/
+
+[cosign]: https://docs.sigstore.dev/cosign/signing/overview/
+
+[cosign-cli]: https://docs.sigstore.dev/cosign/system_config/installation/
