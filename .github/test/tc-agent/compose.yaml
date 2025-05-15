@@ -5,7 +5,7 @@ networks:
 
 services:
   tc-agent:
-    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:local
+    image: ghcr.io/medizininformatik-initiative/fts/trust-center-agent:${BUILD_ID:-local}
     ports: [ ":8080" ]
     volumes:
     - ./application.yaml:/app/application.yaml
