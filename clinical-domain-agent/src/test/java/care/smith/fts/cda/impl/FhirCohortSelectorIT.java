@@ -75,38 +75,36 @@ class FhirCohortSelectorIT {
   @Nested
   public class FetchAllRequest extends AbstractConnectionScenarioIT {
     @Override
-    protected Stream<TestStep<?>> createTestSteps() {
-      return Stream.of(
-          new TestStep<ConsentedPatient>() {
-            @Override
-            public MappingBuilder requestBuilder() {
-              return fetchAllRequest();
-            }
+    protected TestStep<?> createTestStep() {
+      return new TestStep<ConsentedPatient>() {
+        @Override
+        public MappingBuilder requestBuilder() {
+          return fetchAllRequest();
+        }
 
-            @Override
-            public Flux<ConsentedPatient> executeStep() {
-              return cohortSelector.selectCohort(List.of());
-            }
-          });
+        @Override
+        public Flux<ConsentedPatient> executeStep() {
+          return cohortSelector.selectCohort(List.of());
+        }
+      };
     }
   }
 
   @Nested
   public class FetchListRequest extends AbstractConnectionScenarioIT {
     @Override
-    protected Stream<TestStep<?>> createTestSteps() {
-      return Stream.of(
-          new TestStep<ConsentedPatient>() {
-            @Override
-            public MappingBuilder requestBuilder() {
-              return fetchListRequest();
-            }
+    protected TestStep<?> createTestStep() {
+      return new TestStep<ConsentedPatient>() {
+        @Override
+        public MappingBuilder requestBuilder() {
+          return fetchListRequest();
+        }
 
-            @Override
-            public Flux<ConsentedPatient> executeStep() {
-              return cohortSelector.selectCohort(List.of("patient-1"));
-            }
-          });
+        @Override
+        public Flux<ConsentedPatient> executeStep() {
+          return cohortSelector.selectCohort(List.of("patient-1"));
+        }
+      };
     }
   }
 

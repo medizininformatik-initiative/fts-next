@@ -25,7 +25,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IIdType;
 import org.junit.jupiter.api.AfterEach;
@@ -65,24 +64,23 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
   }
 
   @Override
-  protected Stream<TestStep<?>> createTestSteps() {
-    return Stream.of(
-        new TestStep<IIdType>() {
-          @Override
-          public MappingBuilder requestBuilder() {
-            return FhirResolveServiceIT.fhirStoreRequest();
-          }
+  protected TestStep<?> createTestStep() {
+    return new TestStep<IIdType>() {
+      @Override
+      public MappingBuilder requestBuilder() {
+        return FhirResolveServiceIT.fhirStoreRequest();
+      }
 
-          @Override
-          public Mono<IIdType> executeStep() {
-            return service.resolve(PATIENT_ID);
-          }
+      @Override
+      public Mono<IIdType> executeStep() {
+        return service.resolve(PATIENT_ID);
+      }
 
-          @Override
-          public String acceptedContentType() {
-            return APPLICATION_FHIR_JSON;
-          }
-        });
+      @Override
+      public String acceptedContentType() {
+        return APPLICATION_FHIR_JSON;
+      }
+    };
   }
 
   @Test

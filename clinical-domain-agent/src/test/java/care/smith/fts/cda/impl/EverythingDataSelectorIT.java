@@ -27,7 +27,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.IdType;
@@ -87,24 +86,23 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
   }
 
   @Override
-  protected Stream<TestStep<?>> createTestSteps() {
-    return Stream.of(
-        new TestStep<ConsentedPatientBundle>() {
-          @Override
-          public MappingBuilder requestBuilder() {
-            return EverythingDataSelectorIT.fhirStoreRequestWithConsent();
-          }
+  protected TestStep<?> createTestStep() {
+    return new TestStep<ConsentedPatientBundle>() {
+      @Override
+      public MappingBuilder requestBuilder() {
+        return EverythingDataSelectorIT.fhirStoreRequestWithConsent();
+      }
 
-          @Override
-          public Flux<ConsentedPatientBundle> executeStep() {
-            return dataSelector.select(consentedPatient);
-          }
+      @Override
+      public Flux<ConsentedPatientBundle> executeStep() {
+        return dataSelector.select(consentedPatient);
+      }
 
-          @Override
-          public String acceptedContentType() {
-            return APPLICATION_FHIR_JSON_VALUE;
-          }
-        });
+      @Override
+      public String acceptedContentType() {
+        return APPLICATION_FHIR_JSON_VALUE;
+      }
+    };
   }
 
   @Test
