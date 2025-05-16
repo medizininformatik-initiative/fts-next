@@ -69,6 +69,18 @@
         "org.apache.maven.plugins:maven-failsafe-plugin"
       ],
       "groupName": "maven-surefire+failsafe"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepNames": [
+        "slsa-framework/slsa-github-generator"
+      ],
+      "matchUpdateTypes": [
+        "pinDigest"
+      ],
+      "enabled": false
     }
   ],
   "hostRules": [
