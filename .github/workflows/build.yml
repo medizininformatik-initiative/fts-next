@@ -441,7 +441,7 @@ jobs:
       actions: read # for detecting the Github Actions environment.
       id-token: write
       packages: write # for uploading attestations.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
     with:
       image: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
       digest: ${{ needs.push-image.outputs[format('{0}-digest', matrix.agent)] }}
@@ -498,7 +498,7 @@ jobs:
       actions: read
       contents: write
       id-token: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
     strategy:
       matrix:
         file: ${{ fromJson(needs.create-release.outputs.files) }}
