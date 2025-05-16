@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,7 +40,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 @SpringBootTest
 @WireMockTest
-class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
+class TCACohortSelectorIT {
 
   @Autowired MeterRegistry meterRegistry;
   @Autowired ObjectMapper om;
@@ -80,36 +81,45 @@ class TCACohortSelectorIT extends AbstractConnectionScenarioIT {
         .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
   }
 
-  @Override
-  protected Stream<TestStep<?>> createTestSteps() {
-    return Stream.of(
-        new TestStep<ConsentedPatient>() {
-          @Override
-          public MappingBuilder requestBuilder() {
-            return TCACohortSelectorIT.fetchAllRequest();
-          }
+  @Nested
+  public class FetchAllRequest extends AbstractConnectionScenarioIT {
+    @Override
+    protected TestStep<?> createTestStep() {
+      return new TestStep<ConsentedPatient>() {
+        @Override
+        public MappingBuilder requestBuilder() {
+          return TCACohortSelectorIT.fetchAllRequest();
+        }
 
-          @Override
-          public Flux<ConsentedPatient> executeStep() {
-            return TCACohortSelectorIT.cohortSelector.selectCohort(List.of());
-          }
-        },
-        new TestStep<ConsentedPatient>() {
-          @Override
-          public MappingBuilder requestBuilder() {
-            return TCACohortSelectorIT.fetchListRequest();
-          }
+        @Override
+        public Flux<ConsentedPatient> executeStep() {
+          return TCACohortSelectorIT.cohortSelector.selectCohort(List.of());
+        }
+      };
+    }
+  }
 
-          @Override
-          public Flux<ConsentedPatient> executeStep() {
-            return TCACohortSelectorIT.cohortSelector.selectCohort(List.of("id"));
-          }
+  @Nested
+  public class FetchListRequest extends AbstractConnectionScenarioIT {
+    @Override
+    protected TestStep<?> createTestStep() {
+      return new TestStep<ConsentedPatient>() {
+        @Override
+        public MappingBuilder requestBuilder() {
+          return TCACohortSelectorIT.fetchListRequest();
+        }
 
-          @Override
-          public String acceptedContentType() {
-            return APPLICATION_JSON_VALUE;
-          }
-        });
+        @Override
+        public Flux<ConsentedPatient> executeStep() {
+          return TCACohortSelectorIT.cohortSelector.selectCohort(List.of("id"));
+        }
+
+        @Override
+        public String acceptedContentType() {
+          return APPLICATION_JSON_VALUE;
+        }
+      };
+    }
   }
 
   @Test

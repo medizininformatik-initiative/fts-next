@@ -70,24 +70,23 @@ class RDABundleSenderIT extends AbstractConnectionScenarioIT {
   }
 
   @Override
-  protected Stream<TestStep<?>> createTestSteps() {
-    return Stream.of(
-        new TestStep<Result>() {
-          @Override
-          public MappingBuilder requestBuilder() {
-            return RDABundleSenderIT.rdaRequest();
-          }
+  protected TestStep<?> createTestStep() {
+    return new TestStep<Result>() {
+      @Override
+      public MappingBuilder requestBuilder() {
+        return RDABundleSenderIT.rdaRequest();
+      }
 
-          @Override
-          public Mono<Result> executeStep() {
-            return bundleSender.send(new TransportBundle(new Bundle(), "transferId"));
-          }
+      @Override
+      public Mono<Result> executeStep() {
+        return bundleSender.send(new TransportBundle(new Bundle(), "transferId"));
+      }
 
-          @Override
-          public Result returnValue() {
-            return new Result();
-          }
-        });
+      @Override
+      public Result returnValue() {
+        return new Result();
+      }
+    };
   }
 
   @Test

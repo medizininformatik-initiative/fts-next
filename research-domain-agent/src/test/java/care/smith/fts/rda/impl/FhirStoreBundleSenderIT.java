@@ -19,7 +19,6 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.AfterEach;
@@ -38,24 +37,23 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
   private static FhirStoreBundleSender bundleSender;
 
   @Override
-  protected Stream<TestStep<?>> createTestSteps() {
-    return Stream.of(
-        new TestStep<Result>() {
-          @Override
-          public MappingBuilder requestBuilder() {
-            return FhirStoreBundleSenderIT.fhirStoreRequest();
-          }
+  protected TestStep<?> createTestStep() {
+    return new TestStep<Result>() {
+      @Override
+      public MappingBuilder requestBuilder() {
+        return FhirStoreBundleSenderIT.fhirStoreRequest();
+      }
 
-          @Override
-          public Mono<Result> executeStep() {
-            return FhirStoreBundleSenderIT.bundleSender.send(new Bundle());
-          }
+      @Override
+      public Mono<Result> executeStep() {
+        return FhirStoreBundleSenderIT.bundleSender.send(new Bundle());
+      }
 
-          @Override
-          public Result returnValue() {
-            return new Result();
-          }
-        });
+      @Override
+      public Result returnValue() {
+        return new Result();
+      }
+    };
   }
 
   @BeforeEach
