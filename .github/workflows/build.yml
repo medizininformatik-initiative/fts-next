@@ -510,12 +510,13 @@ jobs:
         path: .
 
     - name: Recognize Prerelease
+      id: prerelease
       env:
         GITHUB_REF: ${{ github.ref_name }}
       # In SemVer 2.0, a prerelease version is always indicated by the presence of a hyphen
       run: |
         if [[ "${GITHUB_REF}" == *-* ]]; then
-          echo "is_prerelease=true" >>$GITHUB_ENV
+          echo "is-prerelease=true" >>"$GITHUB_OUTPUT"
         fi
 
     - name: Release
@@ -526,7 +527,7 @@ jobs:
           *.tar.gz.sha256
           *.tar.gz.intoto.jsonl
         draft: true
-        prerelease: ${{ env.is_prerelease }}
+        prerelease: ${{ steps.prerelease.outputs.is-prerelease }}
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
