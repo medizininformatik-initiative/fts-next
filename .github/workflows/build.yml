@@ -233,7 +233,7 @@ jobs:
 
     - name: Run e2e for all Consented Patients
       run: |
-        make transfer-all PROJECT=example 
+        make transfer-all PROJECT=example
         make wait
         make check-status RESULTS_FILE=example.json
         make check-resources RESULTS_FILE=example.json
@@ -243,7 +243,7 @@ jobs:
 
     - name: Run e2e for Selected Patients
       run: |
-        make transfer-list PROJECT=example 
+        make transfer-list PROJECT=example
         make wait
         make check-status RESULTS_FILE=example.json
         make check-resources RESULTS_FILE=example.json
