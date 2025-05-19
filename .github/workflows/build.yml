@@ -15,18 +15,14 @@ jobs:
   test:
     env:
       MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
-      GITHUB_TOKEN: ${{ github.token }}
     runs-on: ubuntu-24.04
     strategy:
-      max-parallel: 6
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Set up JDK 21
       uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
@@ -55,17 +51,14 @@ jobs:
     needs: [ test ]
     env:
       MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
-      GITHUB_TOKEN: ${{ github.token }}
       COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Set up JDK 21
       uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
@@ -83,6 +76,7 @@ jobs:
         name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
         if-no-files-found: error
+        retention-days: 7
 
     - name: Upload Maven SBOM
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -90,18 +84,17 @@ jobs:
         name: ${{ matrix.agent }}-sbom-mvn
         path: ${{ matrix.agent }}/target/sbom-mvn.json
         if-no-files-found: error
+        retention-days: 7
 
   build-image:
     needs: [ build-jar ]
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Jar
       if: ${{ matrix.agent }}
@@ -135,10 +128,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     permissions:
       security-events: write
     steps:
@@ -179,6 +169,7 @@ jobs:
         name: ${{ matrix.agent }}-sbom-trivy
         path: sbom-trivy.json
         if-no-files-found: error
+        retention-days: 7
 
   e2e-tests:
     needs: [ build-image ]
@@ -190,7 +181,8 @@ jobs:
       TEST_SET_SIZE: 100
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Agent Images
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -243,7 +235,7 @@ jobs:
 
     - name: Run e2e for all Consented Patients
       run: |
-        make transfer-all PROJECT=example 
+        make transfer-all PROJECT=example
         make wait
         make check-status RESULTS_FILE=example.json
         make check-resources RESULTS_FILE=example.json
@@ -253,7 +245,7 @@ jobs:
 
     - name: Run e2e for Selected Patients
       run: |
-        make transfer-list PROJECT=example 
+        make transfer-list PROJECT=example
         make wait
         make check-status RESULTS_FILE=example.json
         make check-resources RESULTS_FILE=example.json
@@ -293,16 +285,11 @@ jobs:
       run: docker compose logs keycloak
 
   combine-sboms:
-    needs:
-    - build-jar
-    - scan-image
+    needs: [ build-jar, scan-image ]
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
     - name: Install CycloneDX CLI
       env:
@@ -335,26 +322,24 @@ jobs:
         name: ${{ matrix.agent }}-sbom
         path: sbom.json
         if-no-files-found: error
+        retention-days: 7
 
   push-image:
     if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
-    needs:
-    - scan-image
-    - e2e-tests
-    - combine-sboms
+    needs: [ scan-image, e2e-tests, combine-sboms ]
     runs-on: ubuntu-24.04
     permissions:
       packages: write
       id-token: write
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
+    env:
+      DIGEST: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent )]}}
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Agent Jar
       if: ${{ matrix.agent }}
@@ -392,8 +377,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
       with:
-        images: |
-          ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
+        images: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
         tags: |
           type=schedule
           type=ref,event=branch
@@ -418,14 +402,12 @@ jobs:
     - name: Sign Image
       env:
         IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
-      run: |
-        cosign sign --yes "${IMAGE_REF}"
+      run: cosign sign --yes "${IMAGE_REF}"
 
     - name: Attest Image SBOM
       env:
         IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
-      run: |
-        cosign attest --yes --predicate "sbom.json" --type cyclonedx "${IMAGE_REF}"
+      run: cosign attest --yes --predicate "sbom.json" --type cyclonedx "${IMAGE_REF}"
 
     - name: Output Image Digest
       id: digest
@@ -445,15 +427,12 @@ jobs:
     with:
       image: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
       digest: ${{ needs.push-image.outputs[format('{0}-digest', matrix.agent)] }}
-      registry-username: ${{ github.actor }}
+      registry-username: ${{ github.repository_owner }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
   create-release:
     needs: [ push-image ]
@@ -462,7 +441,8 @@ jobs:
       run:
         working-directory: .github/release
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Check Link Targets
       run: make check-links
@@ -487,6 +467,7 @@ jobs:
           .github/release/*.tar.gz
           .github/release/*.tar.gz.sha256
         if-no-files-found: error
+        retention-days: 7
 
     outputs:
       checksums-b64: ${{ steps.create.outputs.checksums-b64 }}
@@ -522,18 +503,18 @@ jobs:
     - name: Download Provenance
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
-        pattern: |
-          *-agent.tar.gz.intoto.jsonl
+        pattern: "*-agent.tar.gz.intoto.jsonl"
         merge-multiple: true
         path: .
 
     - name: Recognize Prerelease
+      id: prerelease
       env:
         GITHUB_REF: ${{ github.ref_name }}
       # In SemVer 2.0, a prerelease version is always indicated by the presence of a hyphen
       run: |
         if [[ "${GITHUB_REF}" == *-* ]]; then
-          echo "is_prerelease=true" >>$GITHUB_ENV
+          echo "is-prerelease=true" >>"$GITHUB_OUTPUT"
         fi
 
     - name: Release
@@ -544,7 +525,5 @@ jobs:
           *.tar.gz.sha256
           *.tar.gz.intoto.jsonl
         draft: true
-        prerelease: ${{ env.is_prerelease }}
+        prerelease: ${{ steps.prerelease.outputs.is-prerelease }}
         generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
