@@ -9,7 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class StaticCohortSelectorTest {
+class ExternalCohortSelectorTest {
 
   private static final String TEST_PID = "some-091541";
 
@@ -18,19 +18,18 @@ class StaticCohortSelectorTest {
   @BeforeEach
   void setUp() {
     selector =
-        new StaticCohortSelector()
-            .create(
-                new CohortSelector.Config(), new StaticCohortSelector.Config(List.of(TEST_PID)));
+        new ExternalCohortSelector()
+            .create(new CohortSelector.Config(), new ExternalCohortSelector.Config());
   }
 
   @Test
   void testConfigType() {
-    assertThat(new StaticCohortSelector().getConfigType()).isNotNull();
+    assertThat(new ExternalCohortSelector().getConfigType()).isNotNull();
   }
 
   @Test
   void containsExactlyPatientsConfigured() {
-    create(selector.selectCohort(List.of()).map(ConsentedPatient::id))
+    create(selector.selectCohort(List.of(TEST_PID)).map(ConsentedPatient::id))
         .expectNext(TEST_PID)
         .verifyComplete();
   }
