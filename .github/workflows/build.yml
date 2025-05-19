@@ -20,10 +20,7 @@ jobs:
     strategy:
       max-parallel: 6
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -60,10 +57,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -98,10 +92,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -137,10 +128,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     permissions:
       security-events: write
     steps:
@@ -296,16 +284,11 @@ jobs:
       run: docker compose logs keycloak
 
   combine-sboms:
-    needs:
-    - build-jar
-    - scan-image
+    needs: [ build-jar, scan-image ]
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
     - name: Install CycloneDX CLI
       env:
@@ -342,20 +325,16 @@ jobs:
 
   push-image:
     if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
-    needs:
-    - scan-image
-    - e2e-tests
-    - combine-sboms
+    needs: [ scan-image, e2e-tests, combine-sboms ]
     runs-on: ubuntu-24.04
     permissions:
       packages: write
       id-token: write
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
+    env:
+      DIGEST: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent )]}}
 
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -451,10 +430,7 @@ jobs:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       matrix:
-        agent:
-        - clinical-domain-agent
-        - trust-center-agent
-        - research-domain-agent
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
   create-release:
     needs: [ push-image ]
