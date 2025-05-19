@@ -396,8 +396,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
       with:
-        images: |
-          ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
+        images: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
         tags: |
           type=schedule
           type=ref,event=branch
@@ -422,14 +421,12 @@ jobs:
     - name: Sign Image
       env:
         IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
-      run: |
-        cosign sign --yes "${IMAGE_REF}"
+      run: cosign sign --yes "${IMAGE_REF}"
 
     - name: Attest Image SBOM
       env:
         IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
-      run: |
-        cosign attest --yes --predicate "sbom.json" --type cyclonedx "${IMAGE_REF}"
+      run: cosign attest --yes --predicate "sbom.json" --type cyclonedx "${IMAGE_REF}"
 
     - name: Output Image Digest
       id: digest
@@ -527,8 +524,7 @@ jobs:
     - name: Download Provenance
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
-        pattern: |
-          *-agent.tar.gz.intoto.jsonl
+        pattern: "*-agent.tar.gz.intoto.jsonl"
         merge-multiple: true
         path: .
 
