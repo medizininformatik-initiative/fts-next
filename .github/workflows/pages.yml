@@ -15,7 +15,7 @@ permissions: read-all
 jobs:
   build:
     env:
-      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
