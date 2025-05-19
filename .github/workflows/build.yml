@@ -83,6 +83,7 @@ jobs:
         name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
         if-no-files-found: error
+        retention-days: 7
 
     - name: Upload Maven SBOM
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -90,6 +91,7 @@ jobs:
         name: ${{ matrix.agent }}-sbom-mvn
         path: ${{ matrix.agent }}/target/sbom-mvn.json
         if-no-files-found: error
+        retention-days: 7
 
   build-image:
     needs: [ build-jar ]
@@ -179,6 +181,7 @@ jobs:
         name: ${{ matrix.agent }}-sbom-trivy
         path: sbom-trivy.json
         if-no-files-found: error
+        retention-days: 7
 
   e2e-tests:
     needs: [ build-image ]
@@ -335,6 +338,7 @@ jobs:
         name: ${{ matrix.agent }}-sbom
         path: sbom.json
         if-no-files-found: error
+        retention-days: 7
 
   push-image:
     if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
@@ -487,6 +491,7 @@ jobs:
           .github/release/*.tar.gz
           .github/release/*.tar.gz.sha256
         if-no-files-found: error
+        retention-days: 7
 
     outputs:
       checksums-b64: ${{ steps.create.outputs.checksums-b64 }}
