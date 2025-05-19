@@ -1,10 +1,10 @@
 # SMITH FHIR Transfer Services (FTSnext)
 
-[![Build](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml/badge.svg)](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml)
-[![Code Coverage](https://codecov.io/gh/medizininformatik-initiative/fts-next/branch/main/graph/badge.svg)](https://codecov.io/gh/medizininformatik-initiative/fts-next)
-[![Documentation](https://img.shields.io/badge/see-Docs-blue.svg)](https://medizininformatik-initiative.github.io/fts-next)
-[![Renovate](https://img.shields.io/badge/renovate-enabled-violet.svg)](https://github.com/medizininformatik-initiative/fts-next/issues/67)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/medizininformatik-initiative/fts-next/badge)](https://scorecard.dev/viewer/?uri=github.com/medizininformatik-initiative/fts-next)
+[![Build](https://img.shields.io/github/actions/workflow/status/medizininformatik-initiative/fts-next/build.yml?logo=refinedgithub&logoColor=white)](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml)
+[![Code Coverage](https://img.shields.io/codecov/c/github/medizininformatik-initiative/fts-next?logo=codecov&logoColor=white&label=codecov)](https://codecov.io/gh/medizininformatik-initiative/fts-next)
+[![Documentation](https://img.shields.io/website?url=https%3A%2F%2Fmedizininformatik-initiative.github.io%2Ffts-next&up_message=online&up_color=blue&down_message=offline&logo=readthedocs&logoColor=white&label=docs)](https://medizininformatik-initiative.github.io/fts-next)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-violet.svg?logo=renovate&logoColor=white)](https://github.com/medizininformatik-initiative/fts-next/issues/67)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/medizininformatik-initiative/fts-next?logo=linuxfoundation&label=ossf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/medizininformatik-initiative/fts-next)
 
 FTSnext (FHIR Transfer Services) is a software system that securely transfers
 healthcare data between clinical and research domains using FHIR
