@@ -1,0 +1,30 @@
+name: GHCR Maintenance
+
+on:
+  schedule:
+  - cron: '30 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
+      fail-fast: false
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
+    - name: Cleanup
+      uses: dataaxiom/ghcr-cleanup-action@cd0cdb900b5dbf3a6f2cc869f0dbb0b8211f50c4 # v1.0.16
+      with:
+        package: "fts/${{ matrix.agent }}"
+        exclude-tags: "latest,*.*.*"
+        older-than: 7 days
+        delete-untagged: true
+        delete-ghost-images: true
+        delete-partial-images: true
+        delete-orphaned-images: true
