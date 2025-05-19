@@ -22,7 +22,8 @@ jobs:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Set up JDK 21
       uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
@@ -58,7 +59,8 @@ jobs:
       matrix:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Set up JDK 21
       uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
@@ -93,7 +95,8 @@ jobs:
       matrix:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Jar
       if: ${{ matrix.agent }}
@@ -180,7 +183,8 @@ jobs:
       TEST_SET_SIZE: 100
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Agent Images
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -336,7 +340,8 @@ jobs:
       DIGEST: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent )]}}
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Agent Jar
       if: ${{ matrix.agent }}
@@ -438,7 +443,8 @@ jobs:
       run:
         working-directory: .github/release
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Check Link Targets
       run: make check-links
