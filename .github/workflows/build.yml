@@ -15,7 +15,6 @@ jobs:
   test:
     env:
       MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -52,7 +51,6 @@ jobs:
     needs: [ test ]
     env:
       MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
     runs-on: ubuntu-24.04
     strategy:
@@ -429,7 +427,7 @@ jobs:
     with:
       image: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
       digest: ${{ needs.push-image.outputs[format('{0}-digest', matrix.agent)] }}
-      registry-username: ${{ github.actor }}
+      registry-username: ${{ github.repository_owner }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
     strategy:
@@ -529,5 +527,3 @@ jobs:
         draft: true
         prerelease: ${{ steps.prerelease.outputs.is-prerelease }}
         generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
