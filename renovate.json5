@@ -1,0 +1,82 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:best-practices",
+    ":automergeMinor",
+    ":automergeDigest",
+    ":maintainLockFilesWeekly"
+  ],
+  // Overwrite to mitigate `:ignoreModulesAndTests`
+  ignorePaths: ["**/node_modules/**", "**/bower_components/**"],
+  prConcurrentLimit: 3,
+  packageRules: [
+    {
+      // Group Jackson Updates
+      groupName: "jackson",
+      matchPackageNames: ["/com.fasterxml.jackson/"]
+    },
+    {
+      // Group HAPI Updates
+      groupName: "hapi",
+      matchPackageNames: ["/ca.uhn.hapi.fhir/"]
+    },
+    {
+      // Find `deidentifhir` in GitHub Maven packages
+      matchPackageNames: ["de.ume:deidentifhir"],
+      registryUrls: ["https://maven.pkg.github.com/UMEssen/DeidentiFHIR"]
+    },
+    {
+      // Group valkey updates from Docker- and GitHub
+      matchPackageNames: ["valkey/valkey", "valkey-io/valkey"],
+      groupName: "valkey"
+    },
+    {
+      // Custom MOSAIC images typically require test data to be updated, too
+      matchDepNames: ["ghcr.io/knoppiks/mosaic-*"],
+      automerge: false
+    },
+    {
+      // Spring boot updates may require thorough checking and junit updates
+      matchDepNames: ["spring boot"],
+      prHeader: "Check if there are transitive dependencies that need to be updated, too. e.g. `junit-platform`",
+      automerge: false
+    },
+    {
+      // JUnit must be updated alongside spring boot, disable automatic updates
+      matchDepNames: ["org.junit.jupiter:*", "org.junit.platform:*"],
+      enabled: false
+    },
+    {
+      // Group surefire and failsafe updates
+      matchDepNames: [
+        "org.apache.maven.plugins:maven-surefire-plugin",
+        "org.apache.maven.plugins:maven-failsafe-plugin"
+      ],
+      groupName: "maven-surefire+failsafe"
+    },
+    {
+      // Exclude slsa-github-generator from digest pinning, see https://github.com/slsa-framework/slsa-github-generator/issues/722
+      matchManagers: ["github-actions"],
+      matchDepNames: ["slsa-framework/slsa-github-generator"],
+      matchUpdateTypes: ["pinDigest"],
+      enabled: false
+    }
+  ],
+  hostRules: [
+    {
+      // Authenticate against GitHub API
+      matchHost: "github.com",
+      token: "{{ secrets.GITHUB_COM_TOKEN }}"
+    }
+  ],
+  customManagers: [
+    {
+      // Find `// renovate` annotated dependencies in Java source code
+      customType: "regex",
+      managerFilePatterns: ["/.*\\.java/"],
+      matchStrings: [
+        "// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*\"(?<currentValue>.+?)\";"
+      ]
+    }
+  ]
+}
