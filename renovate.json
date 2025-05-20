@@ -18,49 +18,31 @@
   "packageRules": [
     {
       "groupName": "jackson",
-      "matchPackageNames": [
-        "/com.fasterxml.jackson/"
-      ]
+      "matchPackageNames": ["/com.fasterxml.jackson/"]
     },
     {
       "groupName": "hapi",
-      "matchPackageNames": [
-        "/ca.uhn.hapi.fhir/"
-      ]
+      "matchPackageNames": ["/ca.uhn.hapi.fhir/"]
     },
     {
-      "matchPackageNames": [
-        "de.ume:deidentifhir"
-      ],
-      "registryUrls": [
-        "https://maven.pkg.github.com/UMEssen/DeidentiFHIR"
-      ]
+      "matchPackageNames": ["de.ume:deidentifhir"],
+      "registryUrls": ["https://maven.pkg.github.com/UMEssen/DeidentiFHIR"]
     },
     {
-      "matchPackageNames": [
-        "valkey/valkey",
-        "valkey-io/valkey"
-      ],
+      "matchPackageNames": ["valkey/valkey", "valkey-io/valkey"],
       "groupName": "valkey"
     },
     {
-      "matchDepNames": [
-        "ghcr.io/knoppiks/mosaic-*"
-      ],
+      "matchDepNames": ["ghcr.io/knoppiks/mosaic-*"],
       "automerge": false
     },
     {
-      "matchDepNames": [
-        "spring boot"
-      ],
+      "matchDepNames": ["spring boot"],
       "prHeader": "Check if there are transitive dependencies that need to be updated, too. e.g. `junit-platform`",
       "automerge": false
     },
     {
-      "matchDepNames": [
-        "org.junit.jupiter:*",
-        "org.junit.platform:*"
-      ],
+      "matchDepNames": ["org.junit.jupiter:*", "org.junit.platform:*"],
       "enabled": false
     },
     {
@@ -71,15 +53,9 @@
       "groupName": "maven-surefire+failsafe"
     },
     {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchDepNames": [
-        "slsa-framework/slsa-github-generator"
-      ],
-      "matchUpdateTypes": [
-        "pinDigest"
-      ],
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["slsa-framework/slsa-github-generator"],
+      "matchUpdateTypes": ["pinDigest"],
       "enabled": false
     }
   ],
@@ -92,9 +68,7 @@
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/.*\\.java/"
-      ],
+      "managerFilePatterns": ["/.*\\.java/"],
       "matchStrings": [
         "// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*\"(?<currentValue>.+?)\";"
       ]
