@@ -11,6 +11,10 @@ on:
 # Declare default permissions as read only.
 permissions: read-all
 
+env:
+  BUILD_ID: build-${{ github.run_id }}-${{ github.run_attempt }}
+  REGISTRY: ghcr.io/${{ github.repository_owner }}/fts
+
 jobs:
   test:
     env:
@@ -92,12 +96,13 @@ jobs:
     strategy:
       matrix:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
+    permissions:
+      packages: write
     steps:
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
     - name: Download Jar
-      if: ${{ matrix.agent }}
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         name: ${{ matrix.agent }}-jar
@@ -106,22 +111,36 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
 
-    - name: Build and Save Container Image
+    - name: Login to GHCR
+      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate Container Image Metadata
+      id: meta
+      uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ matrix.agent }}
+
+    - name: Build and Push Container Image
+      id: push
       uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6
-      env:
-        DOCKER_BUILD_RECORD_UPLOAD: false
-        DOCKER_BUILD_SUMMARY: false
       with:
         context: ${{ matrix.agent }}
-        tags: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:local
-        outputs: type=docker,dest=/tmp/${{ matrix.agent }}.tar
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ matrix.agent }}:${{ env.BUILD_ID }}
+        labels: ${{ steps.meta.outputs.labels }}
 
-    - name: Upload Container Image
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-      with:
-        name: ${{ matrix.agent }}-image
-        path: /tmp/${{ matrix.agent }}.tar
-        if-no-files-found: error
+    - name: Output Image Digest
+      id: digest
+      run: echo "${{ matrix.agent }}-digest=${{ steps.push.outputs.digest }}" >>"$GITHUB_OUTPUT"
+    outputs:
+      clinical-domain-agent-digest: ${{ steps.digest.outputs.clinical-domain-agent-digest }}
+      trust-center-agent-digest: ${{ steps.digest.outputs.trust-center-agent-digest }}
+      research-domain-agent-digest: ${{ steps.digest.outputs.research-domain-agent-digest }}
 
   scan-image:
     needs: [ build-image ]
@@ -132,19 +151,10 @@ jobs:
     permissions:
       security-events: write
     steps:
-    - name: Download Container Image
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-      with:
-        name: ${{ matrix.agent }}-image
-        path: /tmp
-
-    - name: Load Container Image
-      run: docker load --input /tmp/${{ matrix.agent }}.tar
-
     - name: Run Trivy Vulnerability Scanner
       uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # 0.30.0
       with:
-        image-ref: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:local
+        image-ref: ${{ env.REGISTRY }}/${{ matrix.agent }}:${{ env.BUILD_ID }}
         format: sarif
         output: trivy-results.sarif
         severity: 'CRITICAL,HIGH'
@@ -158,7 +168,7 @@ jobs:
     - name: Generate SBOM
       uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # v0.30.0
       with:
-        image-ref: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}:local
+        image-ref: ${{ env.REGISTRY }}/${{ matrix.agent }}:${{ env.BUILD_ID }}
         format: cyclonedx
         output: sbom-trivy.json
         scan-type: image
@@ -183,18 +193,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-    - name: Download Agent Images
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-      with:
-        pattern: '*-image'
-        merge-multiple: true
-        path: /tmp
-
-    - name: Load Agent Images
-      run: |
-        echo -n "clinical-domain-agent trust-center-agent research-domain-agent" \
-        | xargs -d' ' -I{} docker load --input /tmp/{}.tar
 
     - name: Pull Container Images
       run: make pull
@@ -324,13 +322,12 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
-  push-image:
+  tag-image:
     if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
-    needs: [ scan-image, e2e-tests, combine-sboms ]
+    needs: [ build-image, scan-image, e2e-tests ]
     runs-on: ubuntu-24.04
     permissions:
       packages: write
-      id-token: write
     strategy:
       matrix:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
@@ -338,33 +335,8 @@ jobs:
       DIGEST: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent )]}}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-    - name: Download Agent Jar
-      if: ${{ matrix.agent }}
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-      with:
-        name: ${{ matrix.agent }}-jar
-        path: ${{ matrix.agent }}/target
-
-    - name: Download Container Image
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-      with:
-        name: ${{ matrix.agent }}-image
-        path: /tmp
-
-    - name: Load Container Image
-      run: docker load --input /tmp/${{ matrix.agent }}.tar
-
-    - name: Download SBOM
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-      with:
-        name: ${{ matrix.agent }}-sbom
-        path: .
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
+    - name: Install crane
+      uses: iarekylew00t/crane-installer@742c36c852cb03df7b947b37aff0b65ead86f49e # v3
 
     - name: Login to GHCR
       uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
@@ -386,39 +358,52 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=raw,value=latest,enable={{is_default_branch}}
 
-    - name: Build and Push Container Image
-      id: push
-      uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6
-      with:
-        context: ${{ matrix.agent }}
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+    - name: Retag and Push Container Image
+      run: |
+        while read -r tag; do
+          crane tag "${REGISTRY}/${{ matrix.agent }}@${DIGEST}" "$(echo "${tag}" | cut -d: -f2)"
+        done <<<"${{ steps.meta.outputs.tags }}"
 
+  sign-image:
+    needs: [ build-image, combine-sboms ]
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+      id-token: write
+    strategy:
+      matrix:
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
+    env:
+      DIGEST: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent )]}}
+    steps:
     - name: Install cosign
       uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3
 
+    - name: Download SBOM
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        name: ${{ matrix.agent }}-sbom
+        path: .
+
+    - name: Login to GHCR
+      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Sign Image
       env:
-        IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
+        IMAGE_REF: ${{ env.REGISTRY }}/${{ matrix.agent }}@${{ env.DIGEST }}
       run: cosign sign --yes "${IMAGE_REF}"
 
     - name: Attest Image SBOM
       env:
-        IMAGE_REF: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}@${{ steps.push.outputs.digest }}
+        IMAGE_REF: ${{ env.REGISTRY }}/${{ matrix.agent }}@${{ env.DIGEST }}
       run: cosign attest --yes --predicate "sbom.json" --type cyclonedx "${IMAGE_REF}"
 
-    - name: Output Image Digest
-      id: digest
-      run: echo "${{ matrix.agent }}-digest=${{ steps.push.outputs.digest }}" >>"$GITHUB_OUTPUT"
-    outputs:
-      clinical-domain-agent-digest: ${{ steps.digest.outputs.clinical-domain-agent-digest }}
-      trust-center-agent-digest: ${{ steps.digest.outputs.trust-center-agent-digest }}
-      research-domain-agent-digest: ${{ steps.digest.outputs.research-domain-agent-digest }}
-
   attest-image:
-    needs: [ push-image ]
+    needs: [ build-image ]
     permissions:
       actions: read # for detecting the Github Actions environment.
       id-token: write
@@ -426,7 +411,7 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
     with:
       image: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
-      digest: ${{ needs.push-image.outputs[format('{0}-digest', matrix.agent)] }}
+      digest: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent)] }}
       registry-username: ${{ github.repository_owner }}
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
@@ -435,7 +420,7 @@ jobs:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
   create-release:
-    needs: [ push-image ]
+    needs: [ build-image ]
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -451,9 +436,9 @@ jobs:
       id: create
       env:
         COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-        CD_AGENT_DIGEST: ${{ needs.push-image.outputs.clinical-domain-agent-digest }}
-        TC_AGENT_DIGEST: ${{ needs.push-image.outputs.trust-center-agent-digest }}
-        RD_AGENT_DIGEST: ${{ needs.push-image.outputs.research-domain-agent-digest }}
+        CD_AGENT_DIGEST: ${{ needs.build-image.outputs.clinical-domain-agent-digest }}
+        TC_AGENT_DIGEST: ${{ needs.build-image.outputs.trust-center-agent-digest }}
+        RD_AGENT_DIGEST: ${{ needs.build-image.outputs.research-domain-agent-digest }}
       run: |
         make cd-agent tc-agent rd-agent
         echo "checksums-b64=$(cat *.tar.gz.sha256 | xargs -L1 bash -c 'echo -n "{\"$(echo $1 | cut -d. -f1)\": \"$(echo "$0 $1" | base64 -w0)\"}"' | jq -sc 'add')" >>"$GITHUB_OUTPUT"
@@ -488,7 +473,7 @@ jobs:
       upload-assets: false
 
   publish-release:
-    needs: [ attest-release, push-image ]
+    needs: [ attest-release, tag-image ]
     runs-on: ubuntu-24.04
     if: github.ref_type == 'tag'
     permissions:
