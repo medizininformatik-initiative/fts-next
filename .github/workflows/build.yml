@@ -18,7 +18,7 @@ env:
 jobs:
   test:
     env:
-      MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
+      MAVEN_ARGS: -B -U -T1C -Dfts.retryTimeout=false
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -59,7 +59,7 @@ jobs:
   build-jar:
     needs: [ test ]
     env:
-      MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
+      MAVEN_ARGS: -B -U -T1C -Dfts.retryTimeout=false
       COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
     runs-on: ubuntu-24.04
     strategy:
