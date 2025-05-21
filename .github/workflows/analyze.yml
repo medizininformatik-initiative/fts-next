@@ -37,7 +37,7 @@ jobs:
 
   codeql:
     env:
-      MAVEN_ARGS: -B -T1C -Dfts.retryTimeout=false
+      MAVEN_ARGS: -B -U -T1C -Dfts.retryTimeout=false
     permissions:
       security-events: write
     runs-on: ubuntu-24.04
