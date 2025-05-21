@@ -25,6 +25,11 @@ jobs:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -61,6 +66,11 @@ jobs:
       matrix:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -99,6 +109,11 @@ jobs:
     permissions:
       packages: write
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -151,6 +166,11 @@ jobs:
     permissions:
       security-events: write
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Run Trivy Vulnerability Scanner
       uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # 0.30.0
       with:
@@ -191,6 +211,11 @@ jobs:
       TEST_SET_SIZE: 100
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -289,6 +314,11 @@ jobs:
       matrix:
         agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Install CycloneDX CLI
       env:
         # Check the cyclonedx binary against a pinned checksum here, it must be updated accordingly
@@ -335,6 +365,11 @@ jobs:
       DIGEST: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent )]}}
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Install crane
       uses: iarekylew00t/crane-installer@742c36c852cb03df7b947b37aff0b65ead86f49e # v3
 
@@ -376,6 +411,11 @@ jobs:
     env:
       DIGEST: ${{ needs.build-image.outputs[format('{0}-digest', matrix.agent )]}}
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Install cosign
       uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3
 
@@ -426,6 +466,11 @@ jobs:
       run:
         working-directory: .github/release
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -479,6 +524,11 @@ jobs:
     permissions:
       contents: write
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
+
     - name: Download Release Archives
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
