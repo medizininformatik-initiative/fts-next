@@ -32,16 +32,6 @@
     <skipUnitTests>false</skipUnitTests>
   </properties>
 
-  <repositories>
-    <repository>
-      <id>github</id>
-      <url>https://maven.pkg.github.com/UMEssen/DeidentiFHIR</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
-
   <dependencyManagement>
     <dependencies>
       <dependency>
