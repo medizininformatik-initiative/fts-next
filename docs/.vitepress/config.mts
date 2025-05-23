@@ -103,14 +103,21 @@ export default withMermaid({
                   items: [
                     {
                       text: 'Cohort Selector', link: '/cd-agent/cohort-selector',
-                      items: [{
-                        text: 'trustCenterAgent',
-                        link: '/cd-agent/cohort-selector/trustCenterAgent'
-                      },
+                      items: [
+                        {
+                          text: 'trustCenterAgent',
+                          link: '/cd-agent/cohort-selector/trustCenterAgent'
+                        },
                         {
                           text: 'fhir',
                           link: '/cd-agent/cohort-selector/fhir'
-                        }]
+                        },
+                        {
+                          text: 'external',
+                          link: '/cd-agent/cohort-selector/external'
+                        },
+
+                      ]
                     },
                     {text: 'Data Selector', link: '/cd-agent/data-selector'},
                     {text: 'Deidentificator', link: '/cd-agent/deidentificator'},
