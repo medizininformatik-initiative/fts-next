@@ -9,10 +9,16 @@ start:
 	docker compose up --wait --pull missing
 
 download:
-	../scripts/download-test-data.sh ${TEST_SET_SIZE}
+	../scripts/download-test-data.sh MioAzTLMjzbPNyx ${TEST_SET_SIZE}
+
+download-checksums:
+	../scripts/download-test-data-checksums.sh MioAzTLMjzbPNyx
 
 download-with-consent:
-	../scripts/download-test-data-with-consent.sh ${TEST_SET_SIZE}
+	../scripts/download-test-data.sh 4p2JNfHa8mXmLSF ${TEST_SET_SIZE}
+
+download-with-consent-checksums:
+	../scripts/download-test-data-checksums.sh 4p2JNfHa8mXmLSF
 
 upload-consents:
 	../scripts/upload-consents.sh ${TEST_SET_SIZE}
