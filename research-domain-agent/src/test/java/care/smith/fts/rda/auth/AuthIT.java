@@ -9,7 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient.RequestHeaders
 public class AuthIT {
 
   @Nested
-  @ActiveProfiles("auth:basic")
+  @ActiveProfiles("auth_basic")
   class BasicAuthIT extends AbstractAuthIT {
     @Override
     protected RequestHeadersSpec<?> protectedEndpoint(WebClient client) {
@@ -18,7 +18,7 @@ public class AuthIT {
   }
 
   @Nested
-  @ActiveProfiles("auth:oauth2")
+  @ActiveProfiles("auth_oauth2")
   class OAuth2AuthIT extends AbstractAuthIT {
     @Override
     protected RequestHeadersSpec<?> protectedEndpoint(WebClient client) {
@@ -27,7 +27,7 @@ public class AuthIT {
   }
 
   @Nested
-  @ActiveProfiles("auth:cert")
+  @ActiveProfiles("auth_cert")
   class CertAuthIT extends AbstractAuthIT {
     @Override
     protected RequestHeadersSpec<?> protectedEndpoint(WebClient client) {
