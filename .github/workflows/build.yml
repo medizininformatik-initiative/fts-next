@@ -248,8 +248,16 @@ jobs:
         path: .github/test/test-data
         key: test-data-${{ env.TEST_SET_SIZE }}
 
+    - name: Check Test Data
+      id: check-test-data
+      continue-on-error: true
+      run: |
+        make download-checksums
+        (cd ./test-data && sha256sum -c checksums.sha256 --ignore-missing)
+
     - name: Download Test Data
       if: steps.cache-test-data.outputs.cache-hit != 'true'
+        || steps.check-test-data.outcome != 'success'
       run: make download
 
     - name: Upload Test Data
