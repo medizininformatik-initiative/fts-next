@@ -13,3 +13,7 @@ Trust Center Agent — working together to maintain privacy by ensuring the Trus
 manages IDs without accessing medical content, while researchers receive only the data
 they need without the ability to link it back to clinical sources. This elegant design
 enables valuable research while robustly protecting patient privacy.
+
+[fhir]: https://fhir.org/
+
+[smith]: https://www.smith.care
