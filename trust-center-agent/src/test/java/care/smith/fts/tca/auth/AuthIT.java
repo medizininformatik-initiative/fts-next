@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 public class AuthIT {
 
   @Nested
-  @ActiveProfiles("auth:basic")
+  @ActiveProfiles("auth_basic")
   class BasicAuthIT extends AbstractAuthIT {
     @MockitoBean RedissonClient redisClient;
     @MockitoBean private MappingProvider mappingProvider;
@@ -53,7 +53,7 @@ public class AuthIT {
   }
 
   @Nested
-  @ActiveProfiles("auth:oauth2")
+  @ActiveProfiles("auth_oauth2")
   class OAuth2AuthIT extends AbstractAuthIT {
     @MockitoBean RedissonClient redisClient;
     @MockitoBean private MappingProvider mappingProvider;
@@ -83,7 +83,7 @@ public class AuthIT {
   }
 
   @Nested
-  @ActiveProfiles("auth:cert")
+  @ActiveProfiles("auth_cert")
   class CertAuthIT extends AbstractAuthIT {
     @MockitoBean RedissonClient redisClient;
     @MockitoBean private MappingProvider mappingProvider;

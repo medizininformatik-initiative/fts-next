@@ -52,7 +52,7 @@ public abstract class AbstractAuthIT {
 
   @Test
   @DisabledIf(
-      value = "#{environment.matchesProfiles('auth:cert')}",
+      value = "#{environment.matchesProfiles('auth_cert')}",
       reason = "Doesn't apply to Cert Auth",
       loadContext = true)
   void publicEndpoint_failsWithIncorrectAuthentication() {
