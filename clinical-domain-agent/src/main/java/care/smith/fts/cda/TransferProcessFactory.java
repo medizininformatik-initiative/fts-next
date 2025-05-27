@@ -76,7 +76,8 @@ public class TransferProcessFactory {
           @NotNull Map<String, ?> config) {
 
     var impl = findImpl(stepClass, factoryClass, commonConfigClass, config);
-    return instantiate(stepClass, factoryClass, commonConfigClass, impl);
+    CC commonConfig = createConfig(commonConfigClass, config);
+    return instantiate(stepClass, factoryClass, commonConfig, impl);
   }
 
   private <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>
@@ -92,7 +93,7 @@ public class TransferProcessFactory {
 
     checkImplementationFound(factoryClass, implementations);
     checkOnlyOneImplementation(stepClass, implementations);
-    return implementations.get(0);
+    return implementations.getFirst();
   }
 
   private static <TYPE> void checkOnlyOneImplementation(
@@ -125,13 +126,12 @@ public class TransferProcessFactory {
       STEPTYPE instantiate(
           Class<STEPTYPE> stepClass,
           Class<FACTORY> factoryClass,
-          Class<CC> commonConfigClass,
+          CC commonConfig,
           Entry<String, ?> config) {
     String implName = config.getKey();
     try {
       FACTORY factoryImpl = context.getBean(implName + stepClass.getSimpleName(), factoryClass);
-      CC commonConfig = createConfig(commonConfigClass, config);
-      IC implConfig = createConfig(factoryImpl.getConfigType(), config);
+      IC implConfig = createConfig(factoryImpl.getConfigType(), config.getValue());
       return stepClass.cast(factoryImpl.create(commonConfig, implConfig));
     } catch (NoSuchBeanDefinitionException e) {
       throw new IllegalArgumentException(
@@ -140,12 +140,12 @@ public class TransferProcessFactory {
     }
   }
 
-  private <C> C createConfig(Class<C> configClass, Entry<String, ?> config) {
+  private <C> C createConfig(Class<C> configClass, Object config) {
     try {
-      return objectMapper.convertValue(config.getValue(), configClass);
+      return objectMapper.convertValue(config, configClass);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
-          "Invalid config entry '%s', \n%s".formatted(config.getKey(), config.getValue()), e);
+          "Invalid %s config: '%s'".formatted(configClass.getName(), config), e);
     }
   }
 }

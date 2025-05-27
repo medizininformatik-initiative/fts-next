@@ -19,11 +19,11 @@ public record TransferProcessDefinition(
     @NotNull BundleSender bundleSender) {
 
   public TransferProcessDefinition {
-    requireNonNull(emptyToNull(project));
-    requireNonNull(rawConfig);
-    requireNonNull(cohortSelector);
-    requireNonNull(dataSelector);
-    requireNonNull(deidentificator);
-    requireNonNull(bundleSender);
+    requireNonNull(emptyToNull(project), "Project name must not be null or empty");
+    requireNonNull(rawConfig, "Raw config must not be null");
+    requireNonNull(cohortSelector, "Cohort selector must not be null");
+    requireNonNull(dataSelector, "Data selector must not be null");
+    requireNonNull(deidentificator, "Deidentificator must not be null");
+    requireNonNull(bundleSender, "Bundle sender must not be null");
   }
 }

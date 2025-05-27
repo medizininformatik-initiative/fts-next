@@ -120,7 +120,7 @@ class TransferProcessFactoryIT {
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> factory.create(processDefinition, "example"))
-        .withMessageContaining("Invalid config entry");
+        .withMessageMatching("^Invalid \\S+ config:.*");
   }
 
   @Test
