@@ -37,7 +37,7 @@
     },
     {
       // Spring boot updates may require thorough checking and junit updates
-      extends: ["monorepo:spring-boot"],
+      matchDepNames: ["org.springframework.boot:*"],
       prHeader: "Check if there are transitive dependencies that need to be updated, too. e.g. `junit-platform`",
       automerge: false
     },
