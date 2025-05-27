@@ -11,6 +11,10 @@ on:
 # Declare default permissions as read only.
 permissions: read-all
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 env:
   BUILD_ID: build-${{ github.run_id }}-${{ github.run_attempt }}
   REGISTRY: ghcr.io/${{ github.repository_owner }}/fts
