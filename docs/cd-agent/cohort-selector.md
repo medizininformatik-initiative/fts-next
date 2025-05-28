@@ -34,3 +34,6 @@ Configuration for the [Trust Center Agent based cohort selector](./cohort-select
 
 ### `fhir`
 Configuration for the [FHIR server based cohort selector](./cohort-selector/fhir).
+
+### `external`
+Configuration for the [External cohort selector](./cohort-selector/external).
