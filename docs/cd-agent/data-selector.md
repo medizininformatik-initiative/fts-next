@@ -11,6 +11,7 @@ at the moment there is only one implementation available out-of-the-box: `everyt
 
 ```yaml
 dataSelector:
+  ignoreConsent: false
   everything:
     fhirServer:
       baseUrl: http://cd-hds:8080/fhir
@@ -23,9 +24,23 @@ dataSelector:
 
 ## Fields
 
+### `ignoreConsent` <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.3" />
+
+* **Description**: If true this tells the implementation to ignore consent.
+  The details are specific to the implementation.
+* **Type**: Boolean
+* **Default**: false
+* **Example**:
+  ```yaml
+    ignoreConsent: true
+  ```
+
 ### `everything` <Badge type="warning" text="Since 5.0" />
 
 The "everything" data selector uses the FHIR servers `patient/$everything` operation to fetch data.
+
+If ignoreConsent=false, only data within the consented period is requested from the health data
+server and patient resources without a valid consented period are skipped entirely.
 
 #### `fhirServer` <Badge type="warning" text="Since 5.0" />
 
@@ -71,4 +86,4 @@ The "everything" data selector uses the FHIR servers `patient/$everything` opera
 ## References
 
 * [Operation $everything on Patient](https://www.hl7.org/fhir/R4/patient-operation-everything.html)
-  * [Blaze Documentation](https://samply.github.io/blaze/api/operation-patient-everything)
+* [Blaze Documentation](https://samply.github.io/blaze/api/operation-patient-everything)
