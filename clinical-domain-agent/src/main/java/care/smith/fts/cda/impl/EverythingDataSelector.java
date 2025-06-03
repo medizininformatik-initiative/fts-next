@@ -89,6 +89,7 @@ public class EverythingDataSelector implements DataSelector {
   private Function<UriBuilder, URI> withConsent(ConsentedPatient patient, IIdType fhirId) {
     var period = patient.maxConsentedPeriod();
     if (period.isEmpty()) {
+      log.error("Patient has no consent configured, and ignoreConsent is false.");
       throw new IllegalArgumentException(
           "Patient has no consent configured, and ignoreConsent is false.");
     }

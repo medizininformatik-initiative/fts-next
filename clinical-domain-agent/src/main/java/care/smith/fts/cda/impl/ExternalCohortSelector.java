@@ -4,17 +4,17 @@ import static reactor.core.publisher.Flux.fromStream;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Slf4j
-@Component("staticCohortSelector")
-public class StaticCohortSelector implements CohortSelector.Factory<StaticCohortSelector.Config> {
+@Component("externalCohortSelector")
+public class ExternalCohortSelector
+    implements CohortSelector.Factory<ExternalCohortSelector.Config> {
 
-  public record Config(List<String> pids) {}
+  public record Config() {}
 
-  public StaticCohortSelector() {}
+  public ExternalCohortSelector() {}
 
   @Override
   public Class<Config> getConfigType() {
@@ -23,10 +23,9 @@ public class StaticCohortSelector implements CohortSelector.Factory<StaticCohort
 
   @Override
   public CohortSelector create(CohortSelector.Config ignored, Config config) {
-    return pids -> fromStream(config.pids().stream().map(StaticCohortSelector::staticPatient));
-  }
-
-  private static ConsentedPatient staticPatient(String id) {
-    return new ConsentedPatient(id);
+    return pids -> {
+      log.debug("pids: {}", pids);
+      return fromStream(pids.stream().map(ConsentedPatient::new));
+    };
   }
 }

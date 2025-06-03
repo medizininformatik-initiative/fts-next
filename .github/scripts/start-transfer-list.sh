@@ -14,5 +14,5 @@ fi
 share="https://speicherwolke.uni-leipzig.de/index.php/s/MioAzTLMjzbPNyx"
 
 curl -sf "${share}/download?files=authored.json" | jq -c "[to_entries | .[0:${2:-100}] | .[].key]" \
-| curl -sf -X POST --data @- -H "Content-Type: application/json" \
+| curl -sf --data @- -H "Content-Type: application/json" \
     -w "%header{Content-Location}" "${cd_agent_base_url}/api/v2/process/${1}/start"
