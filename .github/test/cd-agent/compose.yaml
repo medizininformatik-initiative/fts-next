@@ -9,13 +9,14 @@ services:
     - ./application.yaml:/app/application.yaml
     - ./projects:/app/projects
     - ../deidentifhir/:/app/projects/example/deidentifhir                                  # CI_ONLY
+    - ./ssl:/app/ssl
     depends_on:                                                                            # CI_ONLY
       cd-hds:                                                                              # CI_ONLY
         condition: service_healthy                                                         # CI_ONLY
       keycloak:                                                                            # CI_ONLY
         condition: service_healthy                                                         # CI_ONLY
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "--no-check-certificate", "https://localhost:8080/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 3

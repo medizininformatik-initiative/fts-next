@@ -2,6 +2,15 @@ logging.level:
   care.smith.fts: DEBUG
 
 spring:
+  ssl:
+    bundle:
+      pem:
+        server:
+          keystore:
+            certificate: file:ssl/server.crt
+            private-key: file:ssl/server.key
+          truststore:
+            certificate: file:ssl/ca.crt
   security:
     oauth2:
       client:
@@ -16,3 +25,18 @@ spring:
             issuer-uri: http://keycloak:8080/realms/fts
   codec:
     max-in-memory-size: 5MB
+
+server:
+  ssl:
+    bundle: server
+    client-auth: need
+
+security:
+  endpoints:
+  - path: /api/v2/**
+    role: cd-client
+  auth:
+    client-cert:
+      users:
+      - username: default
+        role: cd-client
