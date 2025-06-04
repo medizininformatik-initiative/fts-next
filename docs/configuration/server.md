@@ -58,6 +58,18 @@ the client and the server by encrypting data.
   * If the `ssl` block is commented out or omitted, SSL is not enabled, and communication occurs
     over plain text.
 
+* **Docker Compose Configuration**:
+  * When SSL is enabled, the included `compose.yml` must be configured to mount the required
+    certificate files into the container. Ensure that the SSL bundle files (certificates, private
+    keys, and CA certificates) are properly mounted as volumes or bind mounts to make them
+    accessible to the agent within the container.
+  * Health checks in the compose configuration must be updated to use `https` instead of `http` when
+    SSL is enabled. Using wget with `--no-check-certificate` or `--ca-certificate` might be
+    necessary.
+  * When client authentication is set to `need`, the health check must include a valid client
+    certificate (via wget `--certificate` and `--private-key`) to successfully authenticate with the
+    server. For `want` mode, client certificates are optional for health checks.
+
 ## References
 
 * **Spring Boot Documentation**:
