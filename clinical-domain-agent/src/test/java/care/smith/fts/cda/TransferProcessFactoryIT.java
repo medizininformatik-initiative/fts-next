@@ -43,11 +43,11 @@ class TransferProcessFactoryIT {
   }
 
   @Test
-  void ignoreCommonConfigEntries() {
+  void commonConfigEntriesDoNotThrow() {
     TransferProcessConfig processDefinition =
         new TransferProcessConfig(
             Map.of("mock", Map.of()),
-            Map.of("mock", Map.of(), "additionalFilter", Map.of()),
+            Map.of("mock", Map.of(), "ignoreConsent", false),
             Map.of("mock", Map.of()),
             Map.of("mock", Map.of()));
 

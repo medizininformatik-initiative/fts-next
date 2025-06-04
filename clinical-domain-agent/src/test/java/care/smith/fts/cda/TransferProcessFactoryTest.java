@@ -98,7 +98,7 @@ class TransferProcessFactoryTest {
     assertThat(factory.create(processDefinition, "example")).isNotNull();
 
     var implConfig = new MockDataSelector.Config();
-    var commonConfig = new DataSelector.Config(true, null);
+    var commonConfig = new DataSelector.Config(true);
     verify(dataSelectorFactory).create(commonConfig, implConfig);
   }
 }

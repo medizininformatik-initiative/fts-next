@@ -22,7 +22,6 @@ class DataSelectorTest {
 
   @Test
   void testInstantiateConfig() {
-    var filter = new DataSelector.AdditionalFilterConfig(null, null, null);
-    assertThat(new DataSelector.Config(true, filter)).isNotNull();
+    assertThat(new DataSelector.Config(true)).isNotNull();
   }
 }

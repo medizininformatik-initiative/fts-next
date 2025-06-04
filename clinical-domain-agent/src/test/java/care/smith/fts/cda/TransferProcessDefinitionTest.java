@@ -23,7 +23,7 @@ class TransferProcessDefinitionTest {
             new MockCohortSelector()
                 .create(new CohortSelector.Config(), new MockCohortSelector.Config("some")),
             new MockDataSelector()
-                .create(new DataSelector.Config(false, null), new MockDataSelector.Config()),
+                .create(new DataSelector.Config(false), new MockDataSelector.Config()),
             new MockDeidentificator()
                 .create(new Deidentificator.Config(), new MockDeidentificator.Config(false)),
             new MockBundleSender()
