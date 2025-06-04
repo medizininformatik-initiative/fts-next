@@ -60,7 +60,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
       @Autowired MeterRegistry meterRegistry) {
     wireMock = wireMockRuntime.getWireMock();
     client = clientFactory.create(clientConfig(wireMockRuntime));
-    var common = new DataSelector.Config(false, null);
+    var common = new DataSelector.Config(false);
     EverythingDataSelectorIT.meterRegistry = meterRegistry;
     dataSelector =
         new EverythingDataSelector(
@@ -112,7 +112,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
   @Test
   void noConsentSucceedsIfConsentIgnored() {
-    DataSelector.Config common = new DataSelector.Config(true, null);
+    DataSelector.Config common = new DataSelector.Config(true);
     var dataSelector = new EverythingDataSelector(common, client, pidResolver, meterRegistry, 500);
 
     wireMock.register(fhirStoreRequestWithoutConsent().willReturn(fhirResponse(new Bundle())));
