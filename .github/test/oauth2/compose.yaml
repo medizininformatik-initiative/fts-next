@@ -17,8 +17,8 @@ services:
     environment:
       KC_HEALTH_ENABLED: true
     healthcheck:
-      test: [ "CMD-SHELL", "curl -v -sf http://localhost:9000/health > /tmp/health.json && cat /tmp/health.json | tr -d '%' | jq -e '.status == \"UP\"' || exit 1" ]
+      test: [ "CMD-SHELL", "curl -v -sf http://localhost:9000/health > /tmp/health.json && cat /tmp/health.json | jq -e '.status == \"UP\"'" ]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 90s
+      start_period: 150s
