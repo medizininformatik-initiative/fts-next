@@ -2,6 +2,7 @@ package care.smith.fts.tca.consent.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.util.WebClientFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,45 +24,19 @@ class GicsConfigurationIT {
    * */
   @Test
   void getPageSize() {
-    assertThat(gicsConfiguration.getPageSize()).isEqualTo(200);
+    assertThat(gicsConfiguration.pageSize()).isEqualTo(200);
   }
 
   @Test
   void getDefaultPageSizeIfPageSizeIsNull() {
     var localGicsConfiguration = new GicsConfiguration();
     localGicsConfiguration.setPageSize(null);
-    var fhir = gicsConfiguration.getFhir();
-    fhir.setDefaultPageSize(null);
-    localGicsConfiguration.setFhir(fhir);
 
-    assertThat(localGicsConfiguration.getPageSize()).isEqualTo(null);
     assertThat(localGicsConfiguration.pageSize()).isEqualTo(50);
   }
 
   @Test
-  void getGicsFhirDefaultPageSizeIfPageSizeIsNull() {
-    var localGicsConfiguration = new GicsConfiguration();
-    localGicsConfiguration.setPageSize(null);
-
-    var fhir = gicsConfiguration.getFhir();
-    fhir.setDefaultPageSize(42);
-    localGicsConfiguration.setFhir(fhir);
-
-    assertThat(localGicsConfiguration.getPageSize()).isEqualTo(null);
-    assertThat(localGicsConfiguration.pageSize()).isEqualTo(42);
-  }
-
-  @Test
-  void gicsFhirDefaultPageSizeMayBeNull() {
-    var localGicsConfiguration = new GicsConfiguration();
-    var fhir = gicsConfiguration.getFhir();
-    fhir.setDefaultPageSize(null);
-    localGicsConfiguration.setFhir(fhir);
-    assertThat(localGicsConfiguration.getFhir().defaultPageSize()).isEqualTo(null);
-  }
-
-  @Test
-  void getBaseUrl() {
-    assertThat(gicsConfiguration.fhir.getBaseUrl()).isNotNull();
+  void gicsClientNotNull(@Autowired WebClientFactory factory) {
+    assertThat(gicsConfiguration.gicsClient(factory)).isNotNull();
   }
 }

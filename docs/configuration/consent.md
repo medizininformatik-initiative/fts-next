@@ -35,18 +35,6 @@ consent:
   ```yaml
     pageSize: 100
   ```
-  
-### `gics.fhir.defaultPageSize` <Badge type="danger" text="Deprecated" /> <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.0" />
-
-* **Deprecated**: Will be removed in version 5.4
-* **Description**: Specifies the maximum number of Consents to be included in a single request.
-  This parameter helps control memory usage and network load by limiting the size of data transfers.
-* **Type**: Integer
-* **Default**: 50
-* **Example**:
-  ```yaml
-    pageSize: 100
-  ```
 
 ## Notes
 
