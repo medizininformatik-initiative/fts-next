@@ -2,7 +2,7 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.TtpFhirGatewayUtil.handle4xxError;
 import static care.smith.fts.tca.TtpFhirGatewayUtil.handleError;
-import static care.smith.fts.tca.deidentification.configuration.GpasFhirDeIdentificationConfiguration.GPAS_OPERATIONS;
+import static care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration.GPAS_OPERATIONS;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.util.List.of;

@@ -2,6 +2,7 @@ package care.smith.fts.tca.deidentification.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.util.WebClientFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -12,15 +13,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
-class GpasFhirDeIdentificationConfigurationTest {
+class GpasDeIdentificationConfigurationTest {
 
-  @Autowired private GpasFhirDeIdentificationConfiguration gpasFhirDeIdentificationConfiguration;
+  @Autowired private GpasDeIdentificationConfiguration gpasDeIdentificationConfiguration;
 
   @MockitoBean
   RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start
 
   @Test
-  void configEntriesExist() {
-    assertThat(gpasFhirDeIdentificationConfiguration.getBaseUrl()).isNotEmpty();
+  void gpasClientNotNull(@Autowired WebClientFactory factory) {
+    assertThat(gpasDeIdentificationConfiguration.gpasClient(factory)).isNotNull();
   }
 }
