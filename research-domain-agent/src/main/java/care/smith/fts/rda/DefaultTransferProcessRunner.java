@@ -78,6 +78,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .doOnError(err -> phase.set(Phase.ERROR))
           .map(r -> new Result(receivedResources.get(), sentResources.get()))
           .doOnNext(b -> phase.set(Phase.COMPLETED))
+          .doOnNext(b -> log.info("Completed: {} - {}", b.receivedResources(), b.sentResources()))
           .onErrorComplete()
           .subscribe();
     }

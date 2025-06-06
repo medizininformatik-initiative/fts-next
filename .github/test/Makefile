@@ -30,7 +30,7 @@ transfer-all:
 	../scripts/start-transfer-all.sh ${PROJECT} >process.url
 
 transfer-list:
-	../scripts/start-transfer-list.sh ${PROJECT} ${TEST_SET_SIZE} >process.url
+	../scripts/start-transfer-list.sh ${PROJECT} 4p2JNfHa8mXmLSF ${TEST_SET_SIZE} >process.url
 
 wait:
 	../scripts/await-transfer.sh "$(shell cat process.url)"
@@ -42,7 +42,7 @@ check-status:
 	../scripts/check-status.sh "$(shell cat process.url)" ${RESULTS_FILE}
 
 check-resources:
-	../scripts/check-resources.sh ${TEST_SET_SIZE}
+	../scripts/check-resources.sh ${RESULTS_FILE} ${LAST_UPDATED}
 
 show-status:
 	curl -s "$(shell cat process.url)"

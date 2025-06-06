@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 set -euo pipefail
 
 if ! cd_hds_base_url="http://$(docker compose port cd-hds 8080)/fhir"; then
