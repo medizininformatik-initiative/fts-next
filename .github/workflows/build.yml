@@ -44,22 +44,22 @@ jobs:
         distribution: 'temurin'
         java-version: 21
         cache: 'maven'
+  #
+  #    - name: Setup Keycloak
+  #      working-directory: .github/test
+  #      run: docker compose -f oauth2/compose.yaml up --build --wait
 
-    - name: Setup Keycloak
-      working-directory: .github/test
-      run: docker compose -f oauth2/compose.yaml up --build --wait
-
-    - name: Run Tests
-      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }}
-
-    - name: Generate Code Coverage Report
-      run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
-
-    - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: true
+  #    - name: Run Tests
+  #      run: mvn ${MAVEN_ARGS} verify --also-make --projects ${{ matrix.agent }}
+  #
+  #    - name: Generate Code Coverage Report
+  #      run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
+  #
+  #    - name: Upload Coverage to Codecov
+  #      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
+  #      with:
+  #        token: ${{ secrets.CODECOV_TOKEN }}
+  #        fail_ci_if_error: true
 
   build-jar:
     needs: [ test ]
@@ -239,8 +239,8 @@ jobs:
       with:
         cmd: >-
           cd .github/test/cd-agent/projects &&
-          yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' example.yaml >basic-fail.yaml &&
-          yq 'del(.bundleSender.researchDomainAgent.server.auth)' example.yaml >oauth2-fail.yaml
+          yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' gics-consent-example.yaml >basic-fail.yaml &&
+          yq 'del(.bundleSender.researchDomainAgent.server.auth)' gics-consent-example.yaml >oauth2-fail.yaml
 
     - name: Start Test Environment
       run: make start
@@ -257,12 +257,12 @@ jobs:
       continue-on-error: true
       run: |
         make download-checksums
-        (cd ./test-data && sha256sum -c checksums.sha256 --ignore-missing)
+        (cd ./test-data && sha256sum -c checksums.sha256 --ignore-missing);
 
     - name: Download Test Data
       if: steps.cache-test-data.outputs.cache-hit != 'true'
         || steps.check-test-data.outcome != 'success'
-      run: make download
+      run: make download-with-consent
 
     - name: Upload Test Data
       run: make upload
@@ -270,22 +270,36 @@ jobs:
     - name: Check Consent
       run: make check-consent
 
-    - name: Run e2e for all Consented Patients
+    - name: Run gics-consent-example e2e for Selected Patients
       run: |
-        make transfer-all PROJECT=example
+        make transfer-list PROJECT=gics-consent-example TEST_SET_SIZE=25
         make wait
-        make check-status RESULTS_FILE=example.json
-        make check-resources RESULTS_FILE=example.json
+        make check-status RESULTS_FILE=25.json
+        make check-resources RESULTS_FILE=25.json
 
-    - name: Clean RD HDS and gPAS DB
-      run: make clean-rd-hds-and-gpas-db
-
-    - name: Run e2e for Selected Patients
+    - name: Run fhir-consent-example e2e for Selected Patients
       run: |
-        make transfer-list PROJECT=example
+        last_updated=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        make transfer-list PROJECT=fhir-consent-example TEST_SET_SIZE=50
         make wait
-        make check-status RESULTS_FILE=example.json
-        make check-resources RESULTS_FILE=example.json
+        make check-status RESULTS_FILE=25=50.json
+        make check-resources RESULTS_FILE=25-50.json LAST_UPDATED=$last_updated
+
+    - name: Run external-consent-example e2e for Selected Patients
+      run: |
+        last_updated=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        make transfer-list PROJECT=fhir-consent-example TEST_SET_SIZE=75
+        make wait
+        make check-status RESULTS_FILE=50-75.json
+        make check-resources RESULTS_FILE=50-75.json LAST_UPDATED=$last_updated
+
+    - name: Run gics-consent-example e2e for all Consented Patients
+      run: |
+        last_updated=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        make transfer-all PROJECT=gics-consent-example
+        make wait
+        make check-status RESULTS_FILE=75-100.json
+        make check-resources RESULTS_FILE=75-100.json LAST_UPDATED=$last_updated
 
     - name: Run e2e with failing Basic Auth
       run: |

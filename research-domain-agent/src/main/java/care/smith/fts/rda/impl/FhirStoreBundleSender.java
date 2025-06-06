@@ -6,6 +6,7 @@ import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;
+import care.smith.fts.util.fhir.FhirUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -27,6 +28,9 @@ final class FhirStoreBundleSender implements BundleSender {
   @Override
   public Mono<Result> send(Bundle bundle) {
     log.trace("Sending bundle");
+
+    log.debug("Bundle: {}", FhirUtils.fhirResourceToString(bundle));
+
     return hdsClient
         .post()
         .uri("")
@@ -35,7 +39,7 @@ final class FhirStoreBundleSender implements BundleSender {
         .retrieve()
         .toBodilessEntity()
         .retryWhen(defaultRetryStrategy(meterRegistry, "sendBundleToHds"))
-        .doOnNext(res -> log.trace("Response received: {}", res))
+        .doOnNext(res -> log.debug("Response received: {}", res))
         .doOnError(err -> log.debug("Error received", err))
         .map(b -> new Result());
   }
