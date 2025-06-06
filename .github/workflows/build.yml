@@ -239,8 +239,8 @@ jobs:
       with:
         cmd: >-
           cd .github/test/cd-agent/projects &&
-          yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' example.yaml >basic-fail.yaml &&
-          yq 'del(.bundleSender.researchDomainAgent.server.auth)' example.yaml >oauth2-fail.yaml
+          yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' gics-consent-example.yaml >basic-fail.yaml &&
+          yq 'del(.bundleSender.researchDomainAgent.server.auth)' gics-consent-example.yaml >oauth2-fail.yaml
 
     - name: Start Test Environment
       run: make start
@@ -270,23 +270,6 @@ jobs:
     - name: Check Consent
       run: make check-consent
 
-    - name: Run e2e for all Consented Patients
-      run: |
-        make transfer-all PROJECT=example
-        make wait
-        make check-status RESULTS_FILE=example.json
-        make check-resources RESULTS_FILE=example.json
-
-    - name: Clean RD HDS and gPAS DB
-      run: make clean-rd-hds-and-gpas-db
-
-    - name: Run e2e for Selected Patients
-      run: |
-        make transfer-list PROJECT=example
-        make wait
-        make check-status RESULTS_FILE=example.json
-        make check-resources RESULTS_FILE=example.json
-
     - name: Run e2e with failing Basic Auth
       run: |
         make transfer-all PROJECT=basic-fail
@@ -300,6 +283,13 @@ jobs:
         make wait
         make check-status RESULTS_FILE=oauth2-fail.json
         make check-resources RESULTS_FILE=oauth2-fail.json
+
+    - name: Run e2e for all Consented Patients
+      run: |
+        make transfer-all PROJECT=gics-consent-example
+        make wait
+        make check-status RESULTS_FILE=example.json
+        make check-resources RESULTS_FILE=example.json
 
     - name: Collect Agent Logs
       if: failure() || cancelled()

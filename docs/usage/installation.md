@@ -78,12 +78,14 @@ It will provide the following directory structure:
 
 ```shell [CD Agent]
 cd-agent/
-├── application.yaml       # server-related configurations, such as SSL, file paths, etc.
-├── compose.yaml           # container image reference, network settings, healthcheck
-└── projects/              # project configuration directory
-    ├── example.yaml       # example project configuration  
-    └── example/           # other files needed for the example project to function
-        └── deidentifhir/  # deidentifhir configuration used in the example project
+├── application.yaml                    # server-related configurations, such as SSL, file paths, etc.
+├── compose.yaml                        # container image reference, network settings, healthcheck
+└── projects/                           # project configuration directory
+    ├── external-consent-example.yaml   # example project configuration with external consent  
+    ├── fhir-consent-example.yaml       # example project configuration with consent from FHIR server
+    ├── gics-consent-example.yaml       # example project configuration with consent from gICS
+    └── example/                        # other files needed for the example project to function
+        └── deidentifhir/               # deidentifhir configuration used in the example project
 ```
 
 ```shell [TC Agent]

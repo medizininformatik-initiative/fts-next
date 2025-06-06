@@ -9,32 +9,35 @@ if ! rd_hds_base_url="http://$(docker compose port rd-hds 8080)/fhir"; then
   exit 2
 fi
 
+resultsFile=${1:-example.json}
+
 function countResources() {
-  curl -sf "${rd_hds_base_url}/${1}?_summary=count" | jq -r .total
+  local resourceType=$1
+  curl -sf "${rd_hds_base_url}/${resourceType}?_summary=count" | jq -r .total
 }
 
 function expectCount() {
-  jq -r ".count.${2}" <"results/${1}"
+  jq -r ".count.${1}" <"results/$resultsFile"
 }
 
 echo "Check Transferred Patient Data"
 assert "transferred patients count" \
-  "$(countResources "Patient")" "$(expectCount "${2:-example.json}" Patient)"
+  "$(countResources "Patient")" "$(expectCount Patient)"
 
 assert "transferred conditions count" \
-  "$(countResources "Encounter")" "$(expectCount "${2:-example.json}" Encounter)"
+  "$(countResources "Encounter")" "$(expectCount Encounter)"
 
 assert "transferred observations count" \
-  "$(countResources "Observation")" "$(expectCount "${2:-example.json}" Observation)"
+  "$(countResources "Observation")" "$(expectCount Observation)"
 
 assert "transferred conditions count" \
-  "$(countResources "Condition")" "$(expectCount "${2:-example.json}" Condition)"
+  "$(countResources "Condition")" "$(expectCount Condition)"
 
 assert "transferred diagnostic reports count" \
-  "$(countResources "DiagnosticReport")" "$(expectCount "${2:-example.json}" DiagnosticReport)"
+  "$(countResources "DiagnosticReport")" "$(expectCount DiagnosticReport)"
 
 assert "transferred medications count" \
-  "$(countResources "Medication")" "$(expectCount "${2:-example.json}" Medication)"
+  "$(countResources "Medication")" "$(expectCount Medication)"
 
 assert "transferred medication administration count" \
-  "$(countResources "MedicationAdministration")" "$(expectCount "${2:-example.json}" MedicationAdministration)"
+  "$(countResources "MedicationAdministration")" "$(expectCount MedicationAdministration)"

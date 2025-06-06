@@ -3,13 +3,13 @@
   "sentBundles": 0,
   "skippedBundles": 118,
   "count": {
-    "total": 21,
-    "Patient": 100,
-    "Encounter": 760,
-    "Observation": 7855,
-    "Condition": 4675,
-    "DiagnosticReport": 499,
+    "total": 0,
+    "Patient": 0,
+    "Encounter": 0,
+    "Observation": 0,
+    "Condition": 0,
+    "DiagnosticReport": 0,
     "Medication": 0,
-    "MedicationAdministration": 169
+    "MedicationAdministration": 0
   }
 }

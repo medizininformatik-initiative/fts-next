@@ -14,10 +14,10 @@ download:
 download-checksums:
 	../scripts/download-test-data-checksums.sh MioAzTLMjzbPNyx
 
-download-with-consent:
+download-with-fhir-consent:
 	../scripts/download-test-data.sh 4p2JNfHa8mXmLSF ${TEST_SET_SIZE}
 
-download-with-consent-checksums:
+download-with-fhir-consent-checksums:
 	../scripts/download-test-data-checksums.sh 4p2JNfHa8mXmLSF
 
 upload-consents:
@@ -30,7 +30,10 @@ transfer-all:
 	../scripts/start-transfer-all.sh ${PROJECT} >process.url
 
 transfer-list:
-	../scripts/start-transfer-list.sh ${PROJECT} ${TEST_SET_SIZE} >process.url
+	../scripts/start-transfer-list.sh ${PROJECT} MioAzTLMjzbPNyx ${TEST_SET_SIZE} >process.url
+
+transfer-with-fhir-consent-list:
+	../scripts/start-transfer-list.sh ${PROJECT} 4p2JNfHa8mXmLSF ${TEST_SET_SIZE} >process.url
 
 wait:
 	../scripts/await-transfer.sh "$(shell cat process.url)"
@@ -42,7 +45,7 @@ check-status:
 	../scripts/check-status.sh "$(shell cat process.url)" ${RESULTS_FILE}
 
 check-resources:
-	../scripts/check-resources.sh ${TEST_SET_SIZE}
+	../scripts/check-resources.sh ${RESULTS_FILE}
 
 show-status:
 	curl -s "$(shell cat process.url)"

@@ -29,8 +29,8 @@ The transfer processes are represented by projects. The project configuration fi
 the path set by `projects.directory` in the agents' `application.yaml`. Note that only CDA and RDA
 have projects.
 
-The `projects/example.yaml` in the cd-agent and rd-agent templates
-show the settings for an exemplary transfer project.
+The `example.yaml` files in `projects` in the cd-agent and rd-agent templates show the settings for 
+an exemplary transfer project.
 **This cannot be used as-is, as hostnames and ports differ from dic to dic**,
 _unless you run FTSnext on a single machine using docker compose only,
 which we would only recommend for development or testing purposes._

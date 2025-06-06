@@ -1,5 +1,7 @@
 check-links:
-	../scripts/check-links.sh ../test/cd-agent/projects/example.yaml
+	../scripts/check-links.sh ../test/cd-agent/projects/gics-consent-example.yaml
+	../scripts/check-links.sh ../test/cd-agent/projects/fhir-consent-example.yaml
+	../scripts/check-links.sh ../test/cd-agent/projects/external-consent-example.yaml
 	../scripts/check-links.sh ../../clinical-domain-agent/application.yaml
 	../scripts/check-links.sh ../../trust-center-agent/application.yaml
 	../scripts/check-links.sh ../test/rd-agent/projects/example.yaml
