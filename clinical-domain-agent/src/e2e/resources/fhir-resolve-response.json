@@ -1,0 +1,101 @@
+{
+  "resourceType": "Bundle",
+  "id": "DF3YJLBVGU34JYWA",
+  "type": "searchset",
+  "total": 1,
+  "link": [
+    {
+      "relation": "first",
+      "url": "http://cd-hds:8080/fhir/Patient/__page/AQAAAABA0ASqqnpPyjnoDb2T5J9meDulJFegDNnLGs-gYrZ_bEuSRvkufnFNpTezlF6hILQG2QMhRZoAe0UoQ43X09qYFFDhGBuw_7Q-tFIGFG7L6pW6MKMYMMzII8hcyIDWusdq47pJ3SU-ezHdkKkpFdA7lJ0b_lRhDNzl"
+    },
+    {
+      "relation": "self",
+      "url": "http://cd-hds:8080/fhir/Patient?identifier=http%3A%2F%2Ffts.smith.care%7Cpatient-102931&_count=50"
+    }
+  ],
+  "entry": [
+    {
+      "fullUrl": "http://cd-hds:8080/fhir/Patient/patient-102931",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-102931",
+        "meta": {
+          "versionId": "65",
+          "lastUpdated": "2025-06-16T10:27:11.090Z",
+          "profile": [
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient"
+          ]
+        },
+        "identifier": [
+          {
+            "system": "http://fts.smith.care",
+            "value": "patient-identifier-102931"
+          },
+          {
+            "use": "official",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MR",
+                  "display": "Medical Record Number"
+                }
+              ]
+            },
+            "system": "http://hospital.smarthealthit.org",
+            "value": "patient-identifier-102931"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Jacobi462",
+            "given": [
+              "Melvin857",
+              "Jeromy156"
+            ]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1990-06-21",
+        "address": [
+          {
+            "use": "home",
+            "type": "both",
+            "line": [
+              "404 Schinner Mews"
+            ],
+            "city": "Northbridge",
+            "country": "US"
+          }
+        ],
+        "maritalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+              "code": "S",
+              "display": "Never Married"
+            }
+          ]
+        },
+        "multipleBirthBoolean": false,
+        "communication": [
+          {
+            "language": {
+              "coding": [
+                {
+                  "system": "urn:ietf:bcp:47",
+                  "code": "en-US",
+                  "display": "English (United States)"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "search": {
+        "mode": "match"
+      }
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+### FTS Project Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/project
+
+### Cohort Selection Configuration
+##! Specify which cohort selection implementation should be used.
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/cohort-selector
+cohortSelector:
+  external:
+    patientIdentifierSystem: http://fts.smith.care
+
+
+### Data Selection Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/data-selector
+##! Specify which data selection implementation should be used.
+dataSelector:
+  ignoreConsent: true
+
+  # Uses FHIR server's $everything operation to fetch complete patient records
+  # See: https://www.hl7.org/fhir/operation-patient-everything.html
+  everything:
+    fhirServer:
+      # Base URL of the FHIR server endpoint
+      baseUrl: http://cd-hds:8080/fhir
+      # auth: [ ... ]
+      # ssl: [ ... ]
+    # (optional) Patient identifier resolution configuration
+    resolve:
+      # System URL for patient identifier lookup
+      patientIdentifierSystem: http://fts.smith.care
+    # (default: 500) Maximum size of bundles requested from cd-hds
+    pageSize: 500
+
+### Deidentificator Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/deidentificator
+deidentificator:
+  # Deidentifhir is used to anonymize bundles
+  # See https://github.com/UMEssen/DeidentiFHIR
+  deidentifhir:
+    trustCenterAgent:
+      server:
+        # Base URL of the Trust Center Agent server.
+        baseUrl: http://tc-agent:8080
+        # ssl: [ ... ]
+      # Deidentification parameters can be store in different or in the same TCA domain
+      # When the same domain is used, key collisions are prevented using prefixes
+      domains:
+        # TCA domain to store pseudonyms in
+        pseudonym: MII
+        # TCA domain to store pseudonym salts in
+        salt: MII
+        # TCA domain to store dateShift salts in
+        dateShift: MII
+    # Dates should be shifted a maximum of this amount
+    # specified as an ISO-8601 duration (e.g., P1D means 1 day)
+    # see https://de.wikipedia.org/wiki/ISO_8601
+    maxDateShift: P14D
+    # Should the Weekday or the time of day be preserved
+    # possible values: NONE (default), WEEKDAY, DAYTIME
+    dateShiftPreserve: NONE
+    # Deidentifhir needs additional configuration, which must be available within the agent's
+    # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
+    deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
+    scraperConfig: /app/projects/example/deidentifhir/IDScraper.profile
+
+### Bundle Sender Configuration
+##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/bundle-sender
+bundleSender:
+  # Send bundles to the RDA
+  researchDomainAgent:
+    server:
+      # Base URL of the Research Domain Agent server
+      baseUrl: http://rd-agent:8080
+      # ssl: [ ... ]
+    # Which project configuration to use in the research domain
+    # See https://medizininformatik-initiative.github.io/fts-next/rd-agent/project
+    project: example
