@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.test;
 
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static java.lang.Math.ceilDiv;
@@ -13,9 +13,11 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.Consent.ProvisionComponent;
 
+@Slf4j
 public class FhirCohortGenerator {
 
   private final String pidSystem;
@@ -61,14 +63,7 @@ public class FhirCohortGenerator {
             .flatMap(identity())
             .collect(toBundle())
             .setType(SEARCHSET);
-    System.out.println(
-        "generated page "
-            + index
-            + " of "
-            + numPages
-            + " with "
-            + bundle.getEntry().size()
-            + " entries");
+    log.debug("generated page {} of {} with {} entries", index, numPages, bundle.getEntry().size());
     if (index < (numPages - 1)) {
       bundle.addLink().setRelation("next").setUrl("/Consent?_page=" + (index + 1));
     }
@@ -95,14 +90,24 @@ public class FhirCohortGenerator {
   }
 
   private static ProvisionComponent generateProvision(String policySystem, Set<String> policies) {
-    var coding = new Coding().setSystem(policySystem).setCode(policies.iterator().next());
-    var concept = new CodeableConcept().addCoding(coding);
-    var inner =
-        new ProvisionComponent()
-            .setType(Consent.ConsentProvisionType.PERMIT)
-            .setPeriod(generatePeriod())
-            .addCode(concept);
-    return new ProvisionComponent().addProvision(inner);
+    var period = generatePeriod();
+    var provision = new ProvisionComponent();
+
+    // Create separate provision for each policy
+    for (String policy : policies) {
+      log.info("Adding policy to provision: {}", policy);
+      var coding = new Coding().setSystem(policySystem).setCode(policy);
+      var concept = new CodeableConcept().addCoding(coding);
+      var inner =
+          new ProvisionComponent()
+              .setType(Consent.ConsentProvisionType.PERMIT)
+              .setPeriod(period)
+              .addCode(concept);
+      provision.addProvision(inner);
+    }
+
+    log.info("Generated provision with {} sub-provisions", provision.getProvision().size());
+    return provision;
   }
 
   private static Period generatePeriod() {
@@ -118,13 +123,19 @@ public class FhirCohortGenerator {
   }
 
   private static Patient generatePatient(String id, String pidSystem) {
-    String pid = "patient-" + id;
     var patient = new Patient();
-    patient.setId(pid);
+    patient.setId("patient-" + id);
+
+    var meta = new Meta();
+    meta.setVersionId("38");
+    meta.setLastUpdated(new Date());
+    meta.addProfile(
+        "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
+    patient.setMeta(meta);
 
     var patientId = new Identifier();
     patientId.setSystem(pidSystem);
-    patientId.setValue(pid);
+    patientId.setValue("patient-identifier-" + id);
 
     return patient.setIdentifier(List.of(patientId));
   }
