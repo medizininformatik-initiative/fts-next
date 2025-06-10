@@ -6,6 +6,10 @@
     ':automergeDigest',
     ':maintainLockFilesWeekly',
   ],
+  description: [
+    "We use `ignorePaths` to mitigate :ignoreModulesAndTests, which would ignore java test classes",
+    "and test compose files."
+  ],
   ignorePaths: [
     '**/node_modules/**',
     '**/bower_components/**',
@@ -13,18 +17,27 @@
   prConcurrentLimit: 3,
   packageRules: [
     {
+      description: [
+        "Group Jackson Updates"
+      ],
       groupName: 'jackson',
       matchPackageNames: [
         '/com.fasterxml.jackson/',
       ],
     },
     {
+      description: [
+        "Group HAPI Updates"
+      ],
       groupName: 'hapi',
       matchPackageNames: [
         '/ca.uhn.hapi.fhir/',
       ],
     },
     {
+      description: [
+        "Find `deidentifhir` in GitHub Maven packages"
+      ],
       matchPackageNames: [
         'de.ume:deidentifhir',
       ],
@@ -33,6 +46,9 @@
       ],
     },
     {
+      description: [
+        "Group valkey updates from DockerHub and GitHub"
+      ],
       matchPackageNames: [
         'valkey/valkey',
         'valkey-io/valkey',
@@ -40,12 +56,18 @@
       groupName: 'valkey',
     },
     {
+      description: [
+        "Custom MOSAIC images typically require test data to be updated, too"
+      ],
       matchDepNames: [
         'ghcr.io/knoppiks/mosaic-*',
       ],
       automerge: false,
     },
     {
+      description: [
+        "Spring boot updates may require thorough checking and junit updates"
+      ],
       matchDepNames: [
         'org.springframework.boot:*',
       ],
@@ -53,6 +75,9 @@
       automerge: false,
     },
     {
+      description: [
+        "JUnit must be updated alongside spring boot, disable automatic updates"
+      ],
       matchDepNames: [
         'org.junit.jupiter:*',
         'org.junit.platform:*',
@@ -60,6 +85,9 @@
       enabled: false,
     },
     {
+      description: [
+        "Group surefire and failsafe updates"
+      ],
       matchDepNames: [
         'org.apache.maven.plugins:maven-surefire-plugin',
         'org.apache.maven.plugins:maven-failsafe-plugin',
@@ -67,6 +95,10 @@
       groupName: 'maven-surefire+failsafe',
     },
     {
+      description: [
+        "Exclude slsa-github-generator from digest pinning.",
+        "See https://github.com/slsa-framework/slsa-github-generator/issues/722"
+      ],
       matchManagers: [
         'github-actions',
       ],
@@ -79,6 +111,9 @@
       enabled: false,
     },
     {
+      description: [
+        "Pin GitHub actions to a specific version, rather than major only"
+      ],
       groupName: 'actions/pin-versions',
       matchDepTypes: [
         'action',
@@ -89,12 +124,18 @@
   ],
   hostRules: [
     {
+      description: [
+        "Authenticate against GitHub API"
+      ],
       matchHost: 'github.com',
       token: '{{ secrets.GITHUB_COM_TOKEN }}',
     },
   ],
   customManagers: [
     {
+      description: [
+        "Find `// renovate` annotated dependencies in Java source code"
+      ],
       customType: 'regex',
       managerFilePatterns: [
         '/.*\\.java/',
