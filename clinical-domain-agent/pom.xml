@@ -148,20 +148,6 @@
               </sources>
             </configuration>
           </execution>
-          <execution>
-            <id>add-e2e-test-resource</id>
-            <phase>generate-test-resources</phase>
-            <goals>
-              <goal>add-test-resource</goal>
-            </goals>
-            <configuration>
-              <resources>
-                <resource>
-                  <directory>src/e2e/resources</directory>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
 
@@ -197,11 +183,24 @@
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
+        <artifactId>maven-failsafe-plugin</artifactId>
         <version>3.5.3</version>
         <executions>
           <execution>
+            <id>e2e</id>
+            <phase>none</phase>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
             <configuration>
+              <includes>
+                <include>**/e2e/**E2E.java</include>
+              </includes>
+              <additionalClasspathElements>
+                <additionalClasspathElement>${project.basedir}/src/e2e/resources
+                </additionalClasspathElement>
+              </additionalClasspathElements>
             </configuration>
           </execution>
         </executions>

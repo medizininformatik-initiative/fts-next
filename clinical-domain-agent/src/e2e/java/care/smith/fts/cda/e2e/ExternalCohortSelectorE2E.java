@@ -8,11 +8,11 @@ import org.wiremock.integrations.testcontainers.WireMockContainer;
 public class ExternalCohortSelectorE2E {
   Network network = Network.newNetwork();
 
-  String buildNr;
+  String buildId = System.getenv("BUILD_ID");
 
   GenericContainer<?> cda =
       new GenericContainer<>(
-              "ghcr.io/medizininformatik-initiative/fts/clinical-domain-agent:" + buildNr)
+              "ghcr.io/medizininformatik-initiative/fts/clinical-domain-agent:" + buildId)
           .withFileSystemBind("", "/app/projects/project.yaml")
           .withNetwork(network);
 
