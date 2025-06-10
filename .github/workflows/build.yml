@@ -36,10 +36,10 @@ jobs:
         egress-policy: audit
 
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Set up JDK 21
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
       with:
         distribution: 'temurin'
         java-version: 21
@@ -56,7 +56,7 @@ jobs:
       run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
 
     - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
+      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
@@ -78,10 +78,10 @@ jobs:
         egress-policy: audit
 
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Set up JDK 21
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
       with:
         distribution: 'temurin'
         java-version: 21
@@ -91,7 +91,7 @@ jobs:
       run: mvn ${MAVEN_ARGS} -DskipTests package ${COMMIT_TAG:+-Drevision=${COMMIT_TAG#v}}
 
     - name: Upload Jar
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
@@ -99,7 +99,7 @@ jobs:
         retention-days: 7
 
     - name: Upload Maven SBOM
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: ${{ matrix.agent }}-sbom-mvn
         path: ${{ matrix.agent }}/target/sbom-mvn.json
@@ -121,19 +121,19 @@ jobs:
         egress-policy: audit
 
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Download Jar
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
+      uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
     - name: Login to GHCR
-      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
@@ -141,13 +141,13 @@ jobs:
 
     - name: Generate Container Image Metadata
       id: meta
-      uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
+      uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
       with:
         images: ${{ env.REGISTRY }}/${{ matrix.agent }}
 
     - name: Build and Push Container Image
       id: push
-      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
       with:
         context: ${{ matrix.agent }}
         platforms: linux/amd64,linux/arm64
@@ -187,7 +187,7 @@ jobs:
         timeout: '15m0s'
 
     - name: Upload Trivy Scan Results to GitHub Security Tab
-      uses: github/codeql-action/upload-sarif@fca7ace96b7d713c7035871441bd52efbe39e27e # v3
+      uses: github/codeql-action/upload-sarif@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19
       with:
         sarif_file: trivy-results.sarif
 
@@ -200,7 +200,7 @@ jobs:
         scan-type: image
 
     - name: Upload Trivy SBOM
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: ${{ matrix.agent }}-sbom-trivy
         path: sbom-trivy.json
@@ -223,7 +223,7 @@ jobs:
         egress-policy: audit
 
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Pull Container Images
       run: make pull
@@ -235,7 +235,7 @@ jobs:
       run: install-blazectl.sh
 
     - name: Prepare Auth Failing Tests
-      uses: mikefarah/yq@b534aa9ee5d38001fba3cd8fe254a037e4847b37 # v4
+      uses: mikefarah/yq@b534aa9ee5d38001fba3cd8fe254a037e4847b37 # v4.45.4
       with:
         cmd: >-
           cd .github/test/cd-agent/projects &&
@@ -247,7 +247,7 @@ jobs:
 
     - name: Cache Test Data
       id: cache-test-data
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: .github/test/test-data
         key: test-data-${{ env.TEST_SET_SIZE }}
@@ -349,7 +349,7 @@ jobs:
         chmod +x "${target}"
 
     - name: Download SBOMs
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         pattern: ${{ matrix.agent }}-sbom-*
         path: .
@@ -359,7 +359,7 @@ jobs:
       run: cyclonedx merge --input-files sbom-mvn.json sbom-trivy.json --output-file sbom.json
 
     - name: Upload Combined SBOM
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: ${{ matrix.agent }}-sbom
         path: sbom.json
@@ -385,10 +385,10 @@ jobs:
         egress-policy: audit
 
     - name: Install crane
-      uses: iarekylew00t/crane-installer@742c36c852cb03df7b947b37aff0b65ead86f49e # v3
+      uses: iarekylew00t/crane-installer@742c36c852cb03df7b947b37aff0b65ead86f49e # v3.1.7
 
     - name: Login to GHCR
-      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
@@ -396,7 +396,7 @@ jobs:
 
     - name: Generate Container Image Metadata
       id: meta
-      uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
+      uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
       with:
         images: ghcr.io/${{ github.repository_owner }}/fts/${{ matrix.agent }}
         tags: |
@@ -431,16 +431,16 @@ jobs:
         egress-policy: audit
 
     - name: Install cosign
-      uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3
+      uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
 
     - name: Download SBOM
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: ${{ matrix.agent }}-sbom
         path: .
 
     - name: Login to GHCR
-      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
@@ -486,7 +486,7 @@ jobs:
         egress-policy: audit
 
     - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Check Link Targets
       run: make check-links
@@ -504,7 +504,7 @@ jobs:
         echo "files=$(ls *.tar.gz.sha256 | cut -d. -f1 | jq -Rnc '[inputs]')" >>"$GITHUB_OUTPUT"
 
     - name: Upload Release Archives
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: release-archives
         path: |
@@ -567,7 +567,7 @@ jobs:
         fi
 
     - name: Release
-      uses: softprops/action-gh-release@d5382d3e6f2fa7bd53cb749d33091853d4985daf # v2
+      uses: softprops/action-gh-release@d5382d3e6f2fa7bd53cb749d33091853d4985daf # v2.3.0
       with:
         files: |
           *.tar.gz
