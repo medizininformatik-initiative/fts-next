@@ -88,7 +88,9 @@ jobs:
         cache: 'maven'
 
     - name: Build Agent
-      run: mvn ${MAVEN_ARGS} -DskipTests package ${COMMIT_TAG:+-Drevision=${COMMIT_TAG#v}}
+      run: |
+        mvn ${MAVEN_ARGS} -DskipTests package ${COMMIT_TAG:+-Drevision=${COMMIT_TAG#v}} \
+          -Dproject.build.outputTimestamp="$(git log -1 --date="iso-strict-local" --format="%cd")"
 
     - name: Upload Jar
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -139,11 +141,21 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Collect Info
+      id: info
+      run: |
+        echo "commit_date=$(git log -1 --date="iso-strict-local" --format="%cd")" >>"$GITHUB_OUTPUT"
+        title="$(echo "${{ matrix.agent }}" | tr '-' ' ' | sed -E 's/(^| )([a-z])/\1\u\2/g')"
+
     - name: Generate Container Image Metadata
       id: meta
       uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
       with:
         images: ${{ env.REGISTRY }}/${{ matrix.agent }}
+        labels: |
+          org.opencontainers.image.created=${{ steps.info.outputs.commit_date }}
+        annotations: |
+          org.opencontainers.image.created=${{ steps.info.outputs.commit_date }}
 
     - name: Build and Push Container Image
       id: push
@@ -154,6 +166,7 @@ jobs:
         push: true
         tags: ${{ env.REGISTRY }}/${{ matrix.agent }}:${{ env.BUILD_ID }}
         labels: ${{ steps.meta.outputs.labels }}
+        annotations: ${{ steps.meta.outputs.annotations }}
 
     - name: Output Image Digest
       id: digest
