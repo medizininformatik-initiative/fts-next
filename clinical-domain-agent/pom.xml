@@ -132,26 +132,6 @@
     <finalName>${project.artifactId}</finalName>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.6.1</version>
-        <executions>
-          <execution>
-            <id>add-e2e-test-source</id>
-            <phase>generate-test-sources</phase>
-            <goals>
-              <goal>add-test-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>src/e2e/java</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
@@ -180,32 +160,55 @@
           </execution>
         </executions>
       </plugin>
+    </plugins>
+  </build>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.5.3</version>
-        <executions>
-          <execution>
-            <id>e2e</id>
-            <phase>none</phase>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
+  <profiles>
+    <profile>
+      <id>e2e</id>
+      <properties>
+        <skipUnitTests>true</skipUnitTests>
+      </properties>
+      <build>
+        <testResources>
+          <testResource>
+            <directory>${project.basedir}/src/e2e/resources</directory>
+          </testResource>
+        </testResources>
+
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+              <execution>
+                <id>add-e2e-test-source</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/e2e/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>3.5.3</version>
             <configuration>
               <includes>
                 <include>**/e2e/**E2E.java</include>
               </includes>
-              <additionalClasspathElements>
-                <additionalClasspathElement>${project.basedir}/src/e2e/resources
-                </additionalClasspathElement>
-              </additionalClasspathElements>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
