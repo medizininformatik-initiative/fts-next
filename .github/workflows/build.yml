@@ -146,6 +146,8 @@ jobs:
       run: |
         echo "commit_date=$(git log -1 --date="iso-strict-local" --format="%cd")" >>"$GITHUB_OUTPUT"
         title="$(echo "${{ matrix.agent }}" | tr '-' ' ' | sed -E 's/(^| )([a-z])/\1\u\2/g')"
+        echo "agent_name=${title}" >>"$GITHUB_OUTPUT"
+        echo "agent_abbr=$(echo "${title}" | tr -cd [:upper:])" >>"$GITHUB_OUTPUT"
 
     - name: Generate Container Image Metadata
       id: meta
@@ -153,8 +155,12 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ matrix.agent }}
         labels: |
+          org.opencontainers.image.description=SMITH FHIR Transfer Services ${{ steps.info.outputs.agent_name }}
+          org.opencontainers.image.title=FTSnext ${{ steps.info.outputs.agent_abbr }}
           org.opencontainers.image.created=${{ steps.info.outputs.commit_date }}
         annotations: |
+          org.opencontainers.image.description=SMITH FHIR Transfer Services ${{ steps.info.outputs.agent_name }}
+          org.opencontainers.image.title=FTSnext ${{ steps.info.outputs.agent_abbr }}
           org.opencontainers.image.created=${{ steps.info.outputs.commit_date }}
 
     - name: Build and Push Container Image
