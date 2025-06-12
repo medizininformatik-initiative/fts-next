@@ -25,8 +25,8 @@ configuration file.
 
 By creating a yaml configuration file inside the [projects folder](../configuration/projects) a
 project is defined. It can later be referenced in the API using the filename without extension.
-The deployment bundle (see [Installation](../usage/installation)) contains an `example.yaml`
-project file that serves as a starting point for configuring a project, as it contains extensive
+The deployment bundle (see [Installation](../usage/installation)) contains several `example.yaml`
+project files that serves as a starting point for configuring a project, as it contains extensive
 documentation for the configuration options.
 
 The project file should contain the following entries, see the links below for documentation.
