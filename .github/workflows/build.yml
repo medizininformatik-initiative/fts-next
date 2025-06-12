@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BUILD_ID: build-${{ github.run_id }}-${{ github.run_attempt }}
+  BUILD_ID: build-${{ github.run_id }}
   REGISTRY: ghcr.io/${{ github.repository_owner }}/fts
 
 jobs:
