@@ -47,7 +47,7 @@ deidentification of FHIR bundles.
 * **Type**: String
 * **Example**:
   ```yaml
-    deidentifhirConfig: /custom/path/CDtoTransport.profile
+    deidentifhirConfig: /custom/path/TransportToRD.profile
   ```
 
 ## Notes
