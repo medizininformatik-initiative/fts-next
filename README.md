@@ -5,6 +5,7 @@
 [![Documentation](https://img.shields.io/website?url=https%3A%2F%2Fmedizininformatik-initiative.github.io%2Ffts-next&up_message=online&up_color=blue&down_message=offline&logo=readthedocs&logoColor=white&label=docs)](https://medizininformatik-initiative.github.io/fts-next)
 [![Renovate](https://img.shields.io/badge/renovate-enabled-violet.svg?logo=renovate&logoColor=white)](https://github.com/medizininformatik-initiative/fts-next/issues/67)
 [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/medizininformatik-initiative/fts-next?logo=linuxfoundation&label=ossf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/medizininformatik-initiative/fts-next)
+[![OpenSSF Best Practices](https://img.shields.io/cii/percentage/10434?logo=linuxfoundation&label=ossf%20best%20practices)](https://www.bestpractices.dev/projects/10434)
 
 FTSnext (FHIR Transfer Services) is a software system that securely transfers
 healthcare data between clinical and research domains using FHIR

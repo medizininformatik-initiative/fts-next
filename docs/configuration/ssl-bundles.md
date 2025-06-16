@@ -5,6 +5,22 @@ This page documents the `spring.ssl.bundle` section of the FTSnext agent configu
 for both server and client communication. It is structured to define SSL certificates and private
 keys for server and client keystores, as well as certificate authorities (CAs) for truststores.
 
+## Security Best Practices
+
+In line with OSSF Best Practices [crypto_pfs][crypto_pfs] and [crypto_keylength][crypto_keylength],
+this configuration enforces the use of strong cryptographic algorithms, key lengths, and ciphers by
+default.
+
+We leverage the `JAVA_TOOL_OPTIONS` environment variable to configure the following Java security
+properties: `-Djdk.tls.disabledAlgorithms`, `-Djdk.certpath.disabledAlgorithms`,
+`-Djdk.tls.ephemeralDHKeySize` and `-Djdk.tls.rejectClientInitiatedRenegotiation`. As can be seen in
+the agent [Dockerfile][Dockerfile]s.
+
+These settings enforce modern, secure protocols with **Perfect Forward Secrecy (PFS)** enabled by
+default. While these defaults prioritize security, they can be adjusted using `JAVA_TOOL_OPTIONS`
+env variable if interoperability with older systems requiring weaker key exchange methods is
+necessary.
+
 ## Configuration Example
 
 ```yaml
@@ -90,3 +106,9 @@ spring.ssl.bundle:
 ## References
 
 * [Spring Boot SSL Bundles](https://docs.spring.io/spring-boot/reference/features/ssl.html)
+
+[crypto_pfs]: https://www.bestpractices.dev/en/criteria/0#0.crypto_pfs
+
+[crypto_keylength]: https://www.bestpractices.dev/en/criteria/0#0.crypto_keylength
+
+[Dockerfile]: https://github.com/medizininformatik-initiative/fts-next/blob/main/clinical-domain-agent/Dockerfile
