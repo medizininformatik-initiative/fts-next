@@ -60,15 +60,15 @@ class FhirCohortSelectorIT {
   }
 
   private static MappingBuilder fetchAllRequest() {
-    return get(urlPathEqualTo("/Patient"))
-        .withQueryParam("_revinclude", equalTo("Consent:patient"))
+    return get(urlPathEqualTo("/Consent"))
+        .withQueryParam("_include", equalTo("Patient"))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
   private static MappingBuilder fetchListRequest() {
-    return get(urlPathEqualTo("/Patient"))
-        .withQueryParam("_revinclude", equalTo("Consent:patient"))
-        .withQueryParam("identifier", equalTo(PID_SYSTEM + "|patient-1"))
+    return get(urlPathEqualTo("/Consent"))
+        .withQueryParam("_include", equalTo("Patient"))
+        .withQueryParam("patient.identifier", equalTo(PID_SYSTEM + "%7Cpatient-1"))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
