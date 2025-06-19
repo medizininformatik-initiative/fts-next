@@ -2,8 +2,6 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static java.util.Map.entry;
-import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -12,12 +10,11 @@ import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.fhir.FhirException;
+import com.google.common.collect.ImmutableMap;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
@@ -59,17 +56,10 @@ class TCACohortSelector implements CohortSelector {
 
   private Mono<Bundle> fetchBundle(String uri, List<String> pids) {
     log.debug("fetchBundle URL: {}", uri);
-    var body =
-        constructBody(
-            config.domain(),
-            config.policySystem(),
-            config.policies(),
-            config.patientIdentifierSystem(),
-            pids);
     return tcaClient
         .post()
         .uri(uri)
-        .bodyValue(body)
+        .bodyValue(constructBody(config, pids))
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
@@ -79,36 +69,24 @@ class TCACohortSelector implements CohortSelector {
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle, List<String> pids) {
-    return ofNullable(bundle.getLink("next"))
-        .map(
-            url -> {
-              log.trace("Fetch next page from: {}", url);
-              return url;
-            })
+    return Mono.justOrEmpty(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
-        .map(uri -> fetchBundle(uri, pids))
-        .orElse(Mono.empty());
+        .doOnNext(url -> log.trace("Fetch next page from: {}", url))
+        .flatMap(uri -> fetchBundle(uri, pids));
   }
 
-  private Map<String, Object> constructBody(
-      String domain,
-      @NotNull String policySystem,
-      Set<String> policies,
-      Object patientIdentifierSystem,
-      List<String> pids) {
-    if (pids.isEmpty()) {
-      return Map.ofEntries(
-          entry("policies", policies),
-          entry("policySystem", policySystem),
-          entry("domain", domain));
-    } else {
-      return Map.ofEntries(
-          entry("policies", policies),
-          entry("policySystem", policySystem),
-          entry("patientIdentifierSystem", patientIdentifierSystem),
-          entry("domain", domain),
-          entry("pids", pids));
+  private static Map<String, Object> constructBody(
+      TCACohortSelectorConfig config, List<String> pids) {
+    var body =
+        ImmutableMap.<String, Object>builder()
+            .put("policies", config.policies())
+            .put("policySystem", config.policySystem())
+            .put("domain", config.domain());
+    if (!pids.isEmpty()) {
+      body = body.put("patientIdentifierSystem", config.patientIdentifierSystem());
+      body = body.put("pids", pids);
     }
+    return body.build();
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
