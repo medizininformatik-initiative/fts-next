@@ -2,8 +2,6 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static java.util.Map.entry;
-import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -12,12 +10,11 @@ import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.fhir.FhirException;
+import com.google.common.collect.ImmutableMap;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
@@ -79,15 +76,10 @@ class TCACohortSelector implements CohortSelector {
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle, List<String> pids) {
-    return ofNullable(bundle.getLink("next"))
-        .map(
-            url -> {
-              log.trace("Fetch next page from: {}", url);
-              return url;
-            })
+    return Mono.justOrEmpty(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
-        .map(uri -> fetchBundle(uri, pids))
-        .orElse(Mono.empty());
+        .doOnNext(url -> log.trace("Fetch next page from: {}", url))
+        .flatMap(uri -> fetchBundle(uri, pids));
   }
 
   private Map<String, Object> constructBody(
@@ -109,6 +101,7 @@ class TCACohortSelector implements CohortSelector {
           entry("domain", domain),
           entry("pids", pids));
     }
+    return body.build();
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
