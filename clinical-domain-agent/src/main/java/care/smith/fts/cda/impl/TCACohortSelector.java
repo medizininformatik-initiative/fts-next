@@ -56,17 +56,10 @@ class TCACohortSelector implements CohortSelector {
 
   private Mono<Bundle> fetchBundle(String uri, List<String> pids) {
     log.debug("fetchBundle URL: {}", uri);
-    var body =
-        constructBody(
-            config.domain(),
-            config.policySystem(),
-            config.policies(),
-            config.patientIdentifierSystem(),
-            pids);
     return tcaClient
         .post()
         .uri(uri)
-        .bodyValue(body)
+        .bodyValue(constructBody(config, pids))
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
@@ -82,24 +75,16 @@ class TCACohortSelector implements CohortSelector {
         .flatMap(uri -> fetchBundle(uri, pids));
   }
 
-  private Map<String, Object> constructBody(
-      String domain,
-      @NotNull String policySystem,
-      Set<String> policies,
-      Object patientIdentifierSystem,
-      List<String> pids) {
-    if (pids.isEmpty()) {
-      return Map.ofEntries(
-          entry("policies", policies),
-          entry("policySystem", policySystem),
-          entry("domain", domain));
-    } else {
-      return Map.ofEntries(
-          entry("policies", policies),
-          entry("policySystem", policySystem),
-          entry("patientIdentifierSystem", patientIdentifierSystem),
-          entry("domain", domain),
-          entry("pids", pids));
+  private static Map<String, Object> constructBody(
+      TCACohortSelectorConfig config, List<String> pids) {
+    var body =
+        ImmutableMap.<String, Object>builder()
+            .put("policies", config.policies())
+            .put("policySystem", config.policySystem())
+            .put("domain", config.domain());
+    if (!pids.isEmpty()) {
+      body = body.put("patientIdentifierSystem", config.patientIdentifierSystem());
+      body = body.put("pids", pids);
     }
     return body.build();
   }
