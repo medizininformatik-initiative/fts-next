@@ -1,0 +1,30 @@
+{
+  "files": [
+    "../test/cd-agent/projects/gics-consent-example.yaml",
+    "../test/cd-agent/projects/fhir-consent-example.yaml",
+    "../test/cd-agent/projects/external-consent-example.yaml",
+    "../../clinical-domain-agent/application.yaml",
+    "../../trust-center-agent/application.yaml",
+    "../test/rd-agent/projects/example.yaml",
+    "../../research-domain-agent/application.yaml"
+  ],
+  "required": [
+    "https://medizininformatik-initiative.github.io/fts-next",
+    "https://ths-greifswald.de",
+    "https://simplifier.net",
+    "https://www.hl7.org",
+    "https://github.com/UMEssen",
+    "https://de.wikipedia.org"
+  ],
+  "ignored": [
+    "http://cd-agent",
+    "http://rd-agent",
+    "http://tc-agent",
+    "http://cd-hds",
+    "http://rd-hds",
+    "http://fts.smith.care",
+    "http://localhost",
+    "http://gics",
+    "http://gpas"
+  ]
+}
