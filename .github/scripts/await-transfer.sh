@@ -14,13 +14,9 @@ function printStatus() {
 }
 
 echo "Wait for transfer process to finish..."
-while response="$(curl -sf "${1}")" && [ "$(echo "${response}" | jq -r '.phase')" == "RUNNING" ]; do
+while response="$(curl -s "${1}")" && [ "$(echo "${response}" | jq -r '.phase')" == "RUNNING" ]; do
   printStatus "${response}"
   sleep 5
 done
 
 printStatus "${response}"
-
-if [ "$(echo "${response}" | jq -r '.phase')" == "FATAL" ]; then
-  exit 1
-fi

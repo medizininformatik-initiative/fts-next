@@ -9,6 +9,7 @@ services:
     ports: [ ":8080" ]
     volumes:
     - ./application.yaml:/app/application.yaml
+    - ../ssl:/app/ssl:ro                                                                   # CI_ONLY
     networks:
     - tc-agent
     - agents                                                                               # CI_ONLY
@@ -21,7 +22,7 @@ services:
       gpas:                                                                                # CI_ONLY
         condition: service_healthy                                                         # CI_ONLY
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "--no-check-certificate", "https://localhost:8080/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 3

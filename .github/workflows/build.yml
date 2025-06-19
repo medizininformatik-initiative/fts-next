@@ -262,7 +262,7 @@ jobs:
           yq 'del(.bundleSender.researchDomainAgent.server.auth)' gics-consent-example.yaml >oauth2-fail.yaml
 
     - name: Start Test Environment
-      run: make start
+      run: make generate-certs start
 
     - name: Cache Test Data
       id: cache-test-data
