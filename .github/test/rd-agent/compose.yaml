@@ -9,6 +9,7 @@ services:
     - ./application.yaml:/app/application.yaml
     - ./projects:/app/projects
     - ../deidentifhir/:/app/projects/example/deidentifhir                                  # CI_ONLY
+    - ../ssl:/app/ssl:ro                                                                   # CI_ONLY
     depends_on:                                                                            # CI_ONLY
       rd-hds:                                                                              # CI_ONLY
         condition: service_healthy                                                         # CI_ONLY

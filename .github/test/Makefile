@@ -1,9 +1,13 @@
 .PHONY: all pull start upload transfer wait check-status check-resources show-status show-hds clean-dbs clean-rd-hds
 
-all: pull start upload transfer wait check-status check-resources show-hds clean-dbs
+all: pull generate-certs start upload transfer-all wait check-status check-resources show-hds clean-dbs
 
 pull:
 	docker compose pull -q --ignore-pull-failures
+
+generate-certs:
+	mkdir -p ./ssl
+	(cd ./ssl && ../../../util/src/main/bash/generate-certificates.sh tc-agent tca && chmod +r *.key)
 
 start:
 	docker compose up --wait --pull missing
