@@ -60,7 +60,9 @@ jobs:
 
     - name: Clear Application Yamls
       working-directory: .github/test
-      run: echo "" | tee cd-agent/application.yaml rd-agent/application.yaml tc-agent/application.yaml
+      run: |
+        echo "" | tee cd-agent/application.yaml rd-agent/application.yaml tc-agent/application.yaml
+        sed -i 's#https://localhost#http://localhost#g' tc-agent/compose.yaml
 
     - name: Build OpenAPI Specs
       working-directory: docs

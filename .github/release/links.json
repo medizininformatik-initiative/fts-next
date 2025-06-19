@@ -19,7 +19,7 @@
   "ignored": [
     "http://cd-agent",
     "http://rd-agent",
-    "http://tc-agent",
+    "https://tc-agent",
     "http://cd-hds",
     "http://rd-hds",
     "http://fts.smith.care",
