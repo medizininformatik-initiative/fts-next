@@ -3,7 +3,6 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
-import static java.util.Optional.ofNullable;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
@@ -76,10 +75,9 @@ public class EverythingDataSelector implements DataSelector {
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle) {
-    return ofNullable(bundle.getLink("next"))
+    return Mono.justOrEmpty(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
-        .map(uri -> fetchBundle(uri, UriBuilder::build))
-        .orElse(Mono.empty());
+        .flatMap(uri -> fetchBundle(uri, UriBuilder::build));
   }
 
   private Function<UriBuilder, URI> withoutConsent(IIdType fhirId) {
