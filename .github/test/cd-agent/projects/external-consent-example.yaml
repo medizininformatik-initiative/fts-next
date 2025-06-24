@@ -37,14 +37,14 @@ deidentificator:
     trustCenterAgent:
       server:
         # Base URL of the Trust Center Agent server.
-        baseUrl: http://tc-agent:8080
+        baseUrl: https://tc-agent:8080
         auth:
           basic:
             user: cd-agent
             password: Aj6cloJYsTpu+op+
             # password: "{noop}Aj6cloJYsTpu+op+"
-            role: cd-client
-        # ssl: [ ... ]
+        ssl:
+          bundle: tca
       # Deidentification parameters can be store in different or in the same TCA domain
       # When the same domain is used, key collisions are prevented using prefixes
       domains:

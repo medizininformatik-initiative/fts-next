@@ -10,15 +10,14 @@ deidentificator:
     trustCenterAgent:
       server:
         # Base URL of the Trust Center Agent server.
-        baseUrl: http://tc-agent:8080
+        baseUrl: https://tc-agent:8080
         auth:
           basic:
             user: rd-agent
             password: 1J5MhEhhiGh33dgt
             # password: "{noop}1J5MhEhhiGh33dgt"
-            role: rd-client
-        # auth: [ ... ]
-        # ssl: [ ... ]
+        ssl:
+          bundle: tca
     # Deidentifhir needs additional configuration, which must be available within the agent's
     # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
     deidentifhirConfig: /app/projects/example/deidentifhir/TransportToRD.profile
