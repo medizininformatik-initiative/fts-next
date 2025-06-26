@@ -2,9 +2,7 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static java.lang.Long.parseLong;
 import static java.lang.String.valueOf;
-import static java.time.Duration.ofMillis;
 import static java.util.stream.Collectors.toMap;
 import static reactor.function.TupleUtils.function;
 
@@ -138,23 +136,6 @@ public class FhirMappingProvider implements MappingProvider {
     return Mono.just(transferId)
         .flatMap(name -> redis.<String, String>getMapCache(name).readAllMap())
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchSecureMapping"))
-        .map(FhirMappingProvider::buildResolveResponse);
-  }
-
-  private static SecureMappingResponse buildResolveResponse(Map<String, String> map) {
-    var mutableMap = new HashMap<>(map);
-    var dateShiftValue = getDateShiftMillis(mutableMap);
-    return new SecureMappingResponse(mutableMap, dateShiftValue);
-  }
-
-  private static Duration getDateShiftMillis(HashMap<String, String> mutableMap) {
-    long dateShiftMillis;
-    try {
-      dateShiftMillis = parseLong(mutableMap.remove("dateShiftMillis"));
-    } catch (NumberFormatException e) {
-      log.error("Failed to parse dateShiftMillis", e);
-      throw new NumberFormatException("Invalid dateShiftMillis value.");
-    }
-    return ofMillis(dateShiftMillis);
+        .map(SecureMappingResponse::buildResolveResponse);
   }
 }

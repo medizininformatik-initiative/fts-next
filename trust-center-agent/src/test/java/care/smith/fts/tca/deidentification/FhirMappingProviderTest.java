@@ -253,7 +253,7 @@ class FhirMappingProviderTest {
         .willReturn(
             Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "nan")));
     create(mappingProvider.fetchSecureMapping("transferId"))
-        .expectErrorMessage("Invalid dateShiftMillis value.")
+        .expectErrorMessage("Invalid dateShiftMillis value: 'nan'")
         .verify();
   }
 
