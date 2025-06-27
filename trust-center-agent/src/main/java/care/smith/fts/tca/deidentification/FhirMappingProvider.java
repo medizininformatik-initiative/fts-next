@@ -87,7 +87,7 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /** Saves the research mapping in redis for later use by the rda. */
-  private static Function<Tuple3<String, String, String>, Mono<Duration>> saveSecureMapping(
+  static Function<Tuple3<String, String, String>, Mono<Duration>> saveSecureMapping(
       String patientId,
       Duration maxDateShift,
       @NotNull DateShiftPreserve preserve,
@@ -107,7 +107,7 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /** generate ids for all entries in the transport mapping */
-  private static Map<String, String> generateSecureMapping(
+  static Map<String, String> generateSecureMapping(
       String transportSalt, Map<String, String> transportMapping) {
     return transportMapping.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));

@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
@@ -37,17 +38,23 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RMapCacheReactive;
+import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
 import org.redisson.client.RedisTimeoutException;
@@ -257,25 +264,317 @@ class FhirMappingProviderTest {
         .verify();
   }
 
-  @Test
-  void patientIdPseudonymsFiltersMappingCorrectly() {
-    var patientId = "identifier123";
-    var patientIdPseudonym = "pseudonym456";
-    var transportMapping =
-        Map.of(
-            "Observation.obs1", "transport1",
-            "Patient.patient123", "transport2",
-            "Identifier.identifier123", "transportIdentifier",
-            "Encounter.enc1", "transport3",
-            "identifier.Patient.patient123", "transport4",
-            "Identifier.otherpatient", "transport5",
-            "some.other.Patient.patient123", "transport6");
+  @Nested
+  class SaveSecureMappingTests {
 
-    var result =
-        FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+    private static final String PATIENT_ID = "patient-id";
+    private static final String PATIENT_ID_PSEUDONYM = "pseudo-patient-id";
+    private static final String SALT = "testSalt";
+    private static final String DATE_SHIFT_SEED = "dateShiftSeed";
+    private static final Duration MAX_DATE_SHIFT = Duration.ofDays(365);
 
-    assertThat(result).hasSize(1);
-    assertThat(result).containsEntry("transportIdentifier", patientIdPseudonym);
+    @Test
+    void saveSecureMappingCreatesCorrectMapping() {
+      var transportMapping = Map.of("id1", "tid1", "id2", "tid2", "Identifier.patient-id", "tid3");
+      @SuppressWarnings("unchecked")
+      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
+
+      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
+      given(mockRMap.putAll(mapCaptor.capture())).willReturn(Mono.empty());
+
+      var saveFunction =
+          FhirMappingProvider.saveSecureMapping(
+              PATIENT_ID, MAX_DATE_SHIFT, DateShiftPreserve.NONE, transportMapping, mockRMap);
+
+      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+
+      @SuppressWarnings("unchecked")
+      Mono<Duration> result = saveFunction.apply(tuple);
+
+      create(result).expectNextMatches(Objects::nonNull).verifyComplete();
+
+      Map<String, String> savedMap = mapCaptor.getValue();
+      assertThat(savedMap).containsKey("dateShiftMillis");
+      assertThat(savedMap.get("dateShiftMillis")).matches("^-?\\d+$");
+
+      assertThat(savedMap).containsKey("tid1");
+      assertThat(savedMap).containsKey("tid2");
+      assertThat(savedMap).containsKey("tid3");
+
+      assertThat(savedMap.values()).contains(PATIENT_ID_PSEUDONYM);
+    }
+
+    @Test
+    void saveSecureMappingHandlesDifferentDateShiftPreserveOptions() {
+      var transportMapping = Map.of("id1", "tid1");
+      @SuppressWarnings("unchecked")
+      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
+      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
+
+      for (DateShiftPreserve preserve : DateShiftPreserve.values()) {
+        var saveFunction =
+            FhirMappingProvider.saveSecureMapping(
+                PATIENT_ID, MAX_DATE_SHIFT, preserve, transportMapping, mockRMap);
+
+        var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+
+        @SuppressWarnings("unchecked")
+        Mono<Duration> result = saveFunction.apply(tuple);
+
+        create(result).expectNextMatches(Objects::nonNull).verifyComplete();
+      }
+    }
+
+    @Test
+    void saveSecureMappingHandlesEmptyTransportMapping() {
+      var transportMapping = Map.<String, String>of();
+      @SuppressWarnings("unchecked")
+      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
+
+      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
+      given(mockRMap.putAll(mapCaptor.capture())).willReturn(Mono.empty());
+
+      var saveFunction =
+          FhirMappingProvider.saveSecureMapping(
+              PATIENT_ID, MAX_DATE_SHIFT, DateShiftPreserve.NONE, transportMapping, mockRMap);
+
+      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+
+      @SuppressWarnings("unchecked")
+      Mono<Duration> result = saveFunction.apply(tuple);
+
+      create(result).expectNextMatches(Objects::nonNull).verifyComplete();
+
+      Map<String, String> savedMap = mapCaptor.getValue();
+      assertThat(savedMap).containsKey("dateShiftMillis");
+      assertThat(savedMap).hasSize(1); // Only dateShiftMillis should be present
+    }
+
+    @Test
+    void saveSecureMappingHandlesRedisFailure() {
+      var transportMapping = Map.of("id1", "tid1");
+      @SuppressWarnings("unchecked")
+      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
+      given(mockRMap.putAll(anyMap())).willReturn(Mono.error(new RuntimeException("Redis error")));
+
+      var saveFunction =
+          FhirMappingProvider.saveSecureMapping(
+              PATIENT_ID, MAX_DATE_SHIFT, DateShiftPreserve.NONE, transportMapping, mockRMap);
+
+      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+
+      @SuppressWarnings("unchecked")
+      Mono<Duration> result = saveFunction.apply(tuple);
+
+      create(result).expectError(RuntimeException.class).verify();
+    }
+  }
+
+  @Nested
+  class GenerateSecureMappingTests {
+
+    @Test
+    void generateSecureMappingCreatesHashedMappings() {
+      var transportSalt = "testSalt";
+      var transportMapping = Map.of("id1", "tid1", "id2", "tid2", "id3", "tid3");
+
+      var result = FhirMappingProvider.generateSecureMapping(transportSalt, transportMapping);
+
+      assertThat(result).hasSize(3);
+      assertThat(result).containsKey("tid1");
+      assertThat(result).containsKey("tid2");
+      assertThat(result).containsKey("tid3");
+
+      // All values should be SHA-256 hashes (64 hex characters)
+      result
+          .values()
+          .forEach(
+              hash -> {
+                assertThat(hash).hasSize(64);
+                assertThat(hash).matches("^[a-f0-9]{64}$");
+              });
+    }
+
+    @Test
+    void generateSecureMappingProducesConsistentHashes() {
+      var transportSalt = "testSalt";
+      var transportMapping = Map.of("id1", "tid1", "id2", "tid2");
+
+      var result1 = FhirMappingProvider.generateSecureMapping(transportSalt, transportMapping);
+      var result2 = FhirMappingProvider.generateSecureMapping(transportSalt, transportMapping);
+
+      assertThat(result1).isEqualTo(result2);
+    }
+
+    @Test
+    void generateSecureMappingHandlesDifferentSalts() {
+      var transportMapping = Map.of("id1", "tid1");
+
+      var result1 = FhirMappingProvider.generateSecureMapping("salt1", transportMapping);
+      var result2 = FhirMappingProvider.generateSecureMapping("salt2", transportMapping);
+
+      assertThat(result1.get("tid1")).isNotEqualTo(result2.get("tid1"));
+    }
+
+    @Test
+    void generateSecureMappingHandlesEmptyMapping() {
+      var transportSalt = "testSalt";
+      var transportMapping = Map.<String, String>of();
+
+      var result = FhirMappingProvider.generateSecureMapping(transportSalt, transportMapping);
+
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    void generateSecureMappingHandlesSpecialCharacters() {
+      var transportSalt = "testSalt";
+      var transportMapping =
+          Map.of(
+              "id@#$%", "tid1",
+              "id-with-dashes", "tid2",
+              "id.with.dots", "tid3",
+              "id_with_underscores", "tid4");
+
+      var result = FhirMappingProvider.generateSecureMapping(transportSalt, transportMapping);
+
+      assertThat(result).hasSize(4);
+      result
+          .values()
+          .forEach(
+              hash -> {
+                assertThat(hash).hasSize(64);
+                assertThat(hash).matches("^[a-f0-9]{64}$");
+              });
+    }
+
+    @Test
+    void generateSecureMappingHandlesLargeMapping() {
+      var transportSalt = "testSalt";
+      var transportMapping =
+          IntStream.range(0, 1000).boxed().collect(Collectors.toMap(i -> "id" + i, i -> "tid" + i));
+
+      var result = FhirMappingProvider.generateSecureMapping(transportSalt, transportMapping);
+
+      assertThat(result).hasSize(1000);
+      result
+          .values()
+          .forEach(
+              hash -> {
+                assertThat(hash).hasSize(64);
+                assertThat(hash).matches("^[a-f0-9]{64}$");
+              });
+    }
+  }
+
+  @Nested
+  class PatientIdPseudonymsTests {
+
+    @Test
+    void patientIdPseudonymsFiltersCorrectKeys() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
+      var transportMapping =
+          Map.of(
+              "Observation.obs1", "tid1",
+              "Patient.patient123", "tid2",
+              "Encounter.enc1", "tid3",
+              "identifier.patient123", "tid4",
+              "Patient.otherpatient", "tid5",
+              "some.other.patient123", "tid6");
+
+      var result =
+          FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+
+      assertThat(result).hasSize(3);
+      assertThat(result).containsEntry("tid2", patientIdPseudonym);
+      assertThat(result).containsEntry("tid4", patientIdPseudonym);
+      assertThat(result).containsEntry("tid6", patientIdPseudonym);
+      assertThat(result).doesNotContainKey("tid1");
+      assertThat(result).doesNotContainKey("tid3");
+      assertThat(result).doesNotContainKey("tid5");
+    }
+
+    @Test
+    void patientIdPseudonymsHandlesEmptyMapping() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
+      var transportMapping = Map.<String, String>of();
+
+      var result =
+          FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    void patientIdPseudonymsHandlesNoMatches() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
+      var transportMapping =
+          Map.of(
+              "Observation.obs1", "tid1",
+              "Encounter.enc1", "tid2",
+              "Patient.differentpatient", "tid3");
+
+      var result =
+          FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    void patientIdPseudonymsHandlesExactMatch() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
+      var transportMapping = Map.of("patient123", "tid1");
+
+      var result =
+          FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+
+      assertThat(result).hasSize(1);
+      assertThat(result).containsEntry("tid1", patientIdPseudonym);
+    }
+
+    @Test
+    void patientIdPseudonymsHandlesPartialMatches() {
+      var patientId = "123";
+      var patientIdPseudonym = "pseudonym456";
+      var transportMapping =
+          Map.of(
+              "patient123", "tid1",
+              "otherpatient123", "tid2",
+              "123", "tid3",
+              "456", "tid4");
+
+      var result =
+          FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+
+      assertThat(result).hasSize(3);
+      assertThat(result).containsEntry("tid1", patientIdPseudonym);
+      assertThat(result).containsEntry("tid2", patientIdPseudonym);
+      assertThat(result).containsEntry("tid3", patientIdPseudonym);
+      assertThat(result).doesNotContainKey("tid4");
+    }
+
+    @Test
+    void patientIdPseudonymsHandlesSpecialCharacters() {
+      var patientId = "patient@#$%";
+      var patientIdPseudonym = "pseudonym456";
+      var transportMapping =
+          Map.of(
+              "some.key.patient@#$%", "tid1",
+              "anotherpatient@#$%", "tid2",
+              "patient@#$", "tid3");
+
+      var result =
+          FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+
+      assertThat(result).hasSize(2);
+      assertThat(result).containsEntry("tid1", patientIdPseudonym);
+      assertThat(result).containsEntry("tid2", patientIdPseudonym);
+      assertThat(result).doesNotContainKey("tid3");
+    }
   }
 
   @AfterEach
