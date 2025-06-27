@@ -19,7 +19,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.*;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
@@ -33,13 +33,13 @@ import reactor.util.function.Tuple3;
 @Slf4j
 @Component
 public class FhirMappingProvider implements MappingProvider {
+  private static final HashFunction hashFn = Hashing.sha256();
+
   private final GpasClient gpasClient;
   private final TransportMappingConfiguration configuration;
   private final RedissonClient redisClient;
-
   private final MeterRegistry meterRegistry;
   private final RandomStringGenerator randomStringGenerator;
-  private final HashFunction hashFn;
 
   public FhirMappingProvider(
       GpasClient gpasClient,
@@ -52,7 +52,6 @@ public class FhirMappingProvider implements MappingProvider {
     this.redisClient = redisClient;
     this.meterRegistry = meterRegistry;
     this.randomStringGenerator = randomStringGenerator;
-    this.hashFn = Hashing.sha256();
   }
 
   /**
@@ -88,7 +87,7 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /** Saves the research mapping in redis for later use by the rda. */
-  private Function<Tuple3<String, String, String>, Mono<Duration>> saveSecureMapping(
+  static Function<Tuple3<String, String, String>, Mono<Duration>> saveSecureMapping(
       String patientId,
       Duration maxDateShift,
       @NotNull DateShiftPreserve preserve,
@@ -102,20 +101,20 @@ public class FhirMappingProvider implements MappingProvider {
                   .putAll(generateSecureMapping(salt, transportMapping))
                   .putAll(patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping))
                   .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
-                  .build();
+                  .buildKeepingLast();
           return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
         });
   }
 
   /** generate ids for all entries in the transport mapping */
-  private Map<String, String> generateSecureMapping(
+  static Map<String, String> generateSecureMapping(
       String transportSalt, Map<String, String> transportMapping) {
     return transportMapping.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));
   }
 
   /** hash a transport id using the salt */
-  private String transportHash(String transportSalt, String id) {
+  private static String transportHash(String transportSalt, String id) {
     return hashFn.hashString(transportSalt + id, StandardCharsets.UTF_8).toString();
   }
 
@@ -123,11 +122,11 @@ public class FhirMappingProvider implements MappingProvider {
    * With this function we make sure that the patient's ID in the RDA is the de-identified ID stored
    * in gPAS. This ensures that we can re-identify patients.
    */
-  private static Map<String, String> patientIdPseudonyms(
+  static Map<String, String> patientIdPseudonyms(
       String patientId, String patientIdPseudonym, Map<String, String> transportMapping) {
-    return transportMapping.keySet().stream()
-        .filter(id -> id.endsWith("Patient." + patientId))
-        .collect(toMap(id -> id, id -> patientIdPseudonym));
+    return transportMapping.entrySet().stream()
+        .filter(entry -> entry.getKey().endsWith(patientId))
+        .collect(toMap(Entry::getValue, id -> patientIdPseudonym));
   }
 
   @Override
