@@ -257,6 +257,27 @@ class FhirMappingProviderTest {
         .verify();
   }
 
+  @Test
+  void patientIdPseudonymsFiltersMappingCorrectly() {
+    var patientId = "identifier123";
+    var patientIdPseudonym = "pseudonym456";
+    var transportMapping =
+        Map.of(
+            "Observation.obs1", "transport1",
+            "Patient.patient123", "transport2",
+            "Identifier.identifier123", "transportIdentifier",
+            "Encounter.enc1", "transport3",
+            "identifier.Patient.patient123", "transport4",
+            "Identifier.otherpatient", "transport5",
+            "some.other.Patient.patient123", "transport6");
+
+    var result =
+        FhirMappingProvider.patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping);
+
+    assertThat(result).hasSize(1);
+    assertThat(result).containsEntry("transportIdentifier", patientIdPseudonym);
+  }
+
   @AfterEach
   void tearDown() {
     wireMock.resetMappings();
