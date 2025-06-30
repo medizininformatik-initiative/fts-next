@@ -21,15 +21,16 @@ import java.util.*;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-public record ConsentedPatient(String id, ConsentedPolicies consentedPolicies) {
+public record ConsentedPatient(
+    String id, String patientIdentifierSystem, ConsentedPolicies consentedPolicies) {
 
   public ConsentedPatient {
     requireNonNull(id, "Patient's id cannot be null");
     requireNonNull(consentedPolicies, "Consented policies cannot be null");
   }
 
-  public ConsentedPatient(String id) {
-    this(id, new ConsentedPolicies());
+  public ConsentedPatient(String id, String patientIdentifierSystem) {
+    this(id, patientIdentifierSystem, new ConsentedPolicies());
   }
 
   public Optional<Period> maxConsentedPeriod() {

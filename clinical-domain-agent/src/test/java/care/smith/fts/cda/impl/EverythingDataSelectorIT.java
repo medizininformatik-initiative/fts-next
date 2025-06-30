@@ -68,7 +68,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
-    consentedPatient = new ConsentedPatient(PATIENT_ID, consentedPolicies);
+    consentedPatient = new ConsentedPatient(PATIENT_ID, "system", consentedPolicies);
   }
 
   private static MappingBuilder fhirStoreRequestWithoutConsent() {
@@ -107,7 +107,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
   @Test
   void noConsentErrors() {
-    create(dataSelector.select(new ConsentedPatient(PATIENT_ID))).expectError().verify();
+    create(dataSelector.select(new ConsentedPatient(PATIENT_ID, "system"))).expectError().verify();
   }
 
   @Test

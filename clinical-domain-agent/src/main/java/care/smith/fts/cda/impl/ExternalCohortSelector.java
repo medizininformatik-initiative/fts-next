@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class ExternalCohortSelector
     implements CohortSelector.Factory<ExternalCohortSelector.Config> {
 
-  public record Config() {}
+  public record Config(String patientIdentifierSystem) {}
 
   public ExternalCohortSelector() {}
 
@@ -25,7 +25,8 @@ public class ExternalCohortSelector
   public CohortSelector create(CohortSelector.Config ignored, Config config) {
     return pids -> {
       log.debug("pids: {}", pids);
-      return fromStream(pids.stream().map(ConsentedPatient::new));
+      return fromStream(
+          pids.stream().map(id -> new ConsentedPatient(id, config.patientIdentifierSystem())));
     };
   }
 }

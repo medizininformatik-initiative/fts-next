@@ -5,7 +5,8 @@
 ##! Specify which cohort selection implementation should be used.
 ##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/cohort-selector
 cohortSelector:
-  external: { }
+  external:
+    patientIdentifierSystem: http://fts.smith.care
 
 ### Data Selection Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/data-selector

@@ -61,7 +61,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     step = new DeidentifhirStep(client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry);
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem");
-    var consentedPatient = new ConsentedPatient("id1");
+    var consentedPatient = new ConsentedPatient("id1", "system");
     consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
   }
 
@@ -142,7 +142,9 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
 
   @Test
   void emptyIdsYieldEmptyMono() {
-    create(step.deidentify(new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1"))))
+    create(
+            step.deidentify(
+                new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1", "system"))))
         .expectNextCount(0)
         .verifyComplete();
   }

@@ -20,6 +20,7 @@ class TransportMappingRequestTest {
     var request =
         new TransportMappingRequest(
             "patient123",
+            "patientIdentifierSystem",
             Set.of("id1", "id2"),
             new TCADomains("pDomain", "sDomain", "dDomain"),
             Duration.ofDays(30),
@@ -29,6 +30,7 @@ class TransportMappingRequestTest {
 
     assertThat(jsonString)
         .contains("patient123")
+        .contains("patientIdentifierSystem")
         .contains("id1")
         .contains("id2")
         .contains("pDomain")
@@ -43,6 +45,7 @@ class TransportMappingRequestTest {
         """
         {
           "patientId": "patient123",
+          "patientIdentifierSystem": "patientIdentifierSystem",
           "resourceIds": ["id1", "id2"],
           "tcaDomains": {
             "pseudonym" : "pDomain",

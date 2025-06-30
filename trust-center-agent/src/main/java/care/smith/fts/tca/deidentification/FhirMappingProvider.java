@@ -6,8 +6,8 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toMap;
 import static reactor.function.TupleUtils.function;
 
-import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
+import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TCADomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
@@ -70,9 +69,7 @@ public class FhirMappingProvider implements MappingProvider {
     var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
     return sMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
-        .flatMap(
-            saveSecureMapping(
-                r.patientId(), r.maxDateShift(), r.dateShiftPreserve(), transportMapping, sMap))
+        .flatMap(saveSecureMapping(r, transportMapping, sMap))
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
   }
 
@@ -88,18 +85,21 @@ public class FhirMappingProvider implements MappingProvider {
 
   /** Saves the research mapping in redis for later use by the rda. */
   static Function<Tuple3<String, String, String>, Mono<Duration>> saveSecureMapping(
-      String patientId,
-      Duration maxDateShift,
-      @NotNull DateShiftPreserve preserve,
+      TransportMappingRequest r,
       Map<String, String> transportMapping,
       RMapReactive<String, String> rMap) {
     return function(
         (patientIdPseudonym, salt, dateShiftSeed) -> {
-          var dateShifts = generate(dateShiftSeed, maxDateShift, preserve);
+          var dateShifts = generate(dateShiftSeed, r.maxDateShift(), r.dateShiftPreserve());
           var resolveMap =
               ImmutableMap.<String, String>builder()
                   .putAll(generateSecureMapping(salt, transportMapping))
-                  .putAll(patientIdPseudonyms(patientId, patientIdPseudonym, transportMapping))
+                  .putAll(
+                      patientIdPseudonyms(
+                          r.patientId(),
+                          r.patientIdentifierSystem(),
+                          patientIdPseudonym,
+                          transportMapping))
                   .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
                   .buildKeepingLast();
           return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
@@ -123,9 +123,15 @@ public class FhirMappingProvider implements MappingProvider {
    * in gPAS. This ensures that we can re-identify patients.
    */
   static Map<String, String> patientIdPseudonyms(
-      String patientId, String patientIdPseudonym, Map<String, String> transportMapping) {
+      String patientId,
+      String patientIdentifierSystem,
+      String patientIdPseudonym,
+      Map<String, String> transportMapping) {
+    var x = NamespacingReplacementProvider.withNamespacing(patientId);
+    var name = x.getKeyForSystemAndValue(patientIdentifierSystem, patientId);
+
     return transportMapping.entrySet().stream()
-        .filter(entry -> entry.getKey().endsWith(patientId))
+        .filter(entry -> entry.getKey().equals(name))
         .collect(toMap(Entry::getValue, id -> patientIdPseudonym));
   }
 

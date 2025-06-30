@@ -36,6 +36,7 @@ class WebClientDefaultsTest {
                     """
                     {
                       "id": "patient",
+                      "patientIdentifierSystem": "system",
                       "consentedPolicies": {
                         "policies":{
                           "a":[
@@ -55,6 +56,7 @@ class WebClientDefaultsTest {
         .assertNext(
             b -> {
               assertThat(b.id()).isEqualTo("patient");
+              assertThat(b.patientIdentifierSystem()).isEqualTo("system");
               assertThat(b.consentedPolicies().policyNames()).isNotEmpty();
             })
         .verifyComplete();

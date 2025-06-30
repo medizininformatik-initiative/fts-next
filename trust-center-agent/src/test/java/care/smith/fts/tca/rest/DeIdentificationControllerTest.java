@@ -48,7 +48,12 @@ class DeIdentificationControllerTest {
     var mapName = "transferId";
     var request =
         new TransportMappingRequest(
-            "patientId1", ids, DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
+            "patientId1",
+            "patientIdentifierSystem",
+            ids,
+            DEFAULT_DOMAINS,
+            ofDays(14),
+            DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(
             Mono.just(
@@ -73,7 +78,12 @@ class DeIdentificationControllerTest {
     var domains = new TCADomains("unknown domain", "unknown domain", "unknown domain");
     var request =
         new TransportMappingRequest(
-            "id1", Set.of("id1"), domains, ofDays(14), DateShiftPreserve.NONE);
+            "id1",
+            "patientIdentifierSystem",
+            Set.of("id1"),
+            domains,
+            ofDays(14),
+            DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
 
@@ -89,7 +99,12 @@ class DeIdentificationControllerTest {
   void transportMappingIllegalArgumentException() {
     var request =
         new TransportMappingRequest(
-            "id1", Set.of("id1"), DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
+            "id1",
+            "patientIdentifierSystem",
+            Set.of("id1"),
+            DEFAULT_DOMAINS,
+            ofDays(14),
+            DateShiftPreserve.NONE);
 
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new IllegalArgumentException("Illegal argument")));
@@ -107,7 +122,12 @@ class DeIdentificationControllerTest {
     var mapName = "transferId";
     var request =
         new TransportMappingRequest(
-            "patientId1", Set.of(), DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
+            "patientId1",
+            "patientIdentifierSystem",
+            Set.of(),
+            DEFAULT_DOMAINS,
+            ofDays(14),
+            DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.just(new TransportMappingResponse(mapName, Map.of(), ofDays(1))));
 
@@ -127,7 +147,12 @@ class DeIdentificationControllerTest {
     var ids = Set.of("id1", "id2");
     var request =
         new TransportMappingRequest(
-            "id1", ids, DEFAULT_DOMAINS, ofDays(14), DateShiftPreserve.NONE);
+            "id1",
+            "patientIdentifierSystem",
+            ids,
+            DEFAULT_DOMAINS,
+            ofDays(14),
+            DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(Mono.error(new ResponseStatusException(INTERNAL_SERVER_ERROR)));
 

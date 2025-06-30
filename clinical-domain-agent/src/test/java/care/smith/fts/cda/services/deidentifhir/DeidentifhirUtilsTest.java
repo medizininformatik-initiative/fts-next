@@ -24,7 +24,7 @@ class DeidentifhirUtilsTest {
 
   @Test
   void deidentifySucceeds() throws IOException {
-    ConsentedPatient patient = new ConsentedPatient("id1");
+    ConsentedPatient patient = new ConsentedPatient("id1", "system");
 
     Map<String, String> transportIDs =
         Map.of(
