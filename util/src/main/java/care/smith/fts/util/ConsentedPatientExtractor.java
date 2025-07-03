@@ -73,7 +73,8 @@ public interface ConsentedPatientExtractor {
             pid -> {
               var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
               if (consentedPolicies.hasAllPolicies(policiesToCheck)) {
-                return Optional.of(new ConsentedPatient(pid, consentedPolicies));
+                return Optional.of(
+                    new ConsentedPatient(pid, patientIdentifierSystem, consentedPolicies));
               } else {
                 return Optional.empty();
               }

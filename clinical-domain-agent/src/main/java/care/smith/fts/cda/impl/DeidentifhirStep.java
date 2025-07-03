@@ -3,6 +3,7 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
@@ -56,7 +57,7 @@ class DeidentifhirStep implements Deidentificator {
     var ids = idatScraper.gatherIDs(bundle.bundle());
 
     return !ids.isEmpty()
-        ? fetchTransportMapping(patient.id(), ids)
+        ? fetchTransportMapping(patient, ids)
             .map(
                 response -> {
                   var transportMapping = response.transportMapping();
@@ -74,8 +75,11 @@ class DeidentifhirStep implements Deidentificator {
         : Mono.empty();
   }
 
-  private Mono<TransportMappingResponse> fetchTransportMapping(String patientId, Set<String> ids) {
-    var request = new TransportMappingRequest(patientId, ids, domains, maxDateShift, preserve);
+  private Mono<TransportMappingResponse> fetchTransportMapping(
+      ConsentedPatient patient, Set<String> ids) {
+    var request =
+        new TransportMappingRequest(
+            patient.id(), patient.patientIdentifierSystem(), ids, domains, maxDateShift, preserve);
 
     log.trace("Fetch transport mapping for {} IDs", ids.size());
     return tcaClient

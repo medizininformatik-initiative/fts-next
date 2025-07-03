@@ -14,7 +14,7 @@ class IDATScraperTest {
 
   @BeforeEach
   void setUp() {
-    ConsentedPatient patient = new ConsentedPatient("id1");
+    ConsentedPatient patient = new ConsentedPatient("id1", "system");
     var config = parseResources(IDATScraperTest.class, "IDScraper.profile");
     scraper = new IDATScraper(config, patient);
   }

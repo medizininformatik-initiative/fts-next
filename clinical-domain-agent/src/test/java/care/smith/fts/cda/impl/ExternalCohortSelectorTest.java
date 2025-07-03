@@ -17,7 +17,7 @@ class ExternalCohortSelectorTest {
   void setUp() {
     selector =
         new ExternalCohortSelector()
-            .create(new CohortSelector.Config(), new ExternalCohortSelector.Config());
+            .create(new CohortSelector.Config(), new ExternalCohortSelector.Config("system"));
   }
 
   @Test

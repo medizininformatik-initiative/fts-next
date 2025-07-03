@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 class DefaultTransferProcessRunnerTest {
 
   private static final String PATIENT_ID = "patient-150622";
-  private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID);
+  private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID, "system");
 
   private DefaultTransferProcessRunner runner;
 
@@ -66,7 +66,7 @@ class DefaultTransferProcessRunnerTest {
   @Test
   void runMockTestWithSkippedBundles() {
     var first = new AtomicBoolean(true);
-    var patient2 = new ConsentedPatient(PATIENT_ID);
+    var patient2 = new ConsentedPatient(PATIENT_ID, "system");
     var process =
         new TransferProcessDefinition(
             "test",

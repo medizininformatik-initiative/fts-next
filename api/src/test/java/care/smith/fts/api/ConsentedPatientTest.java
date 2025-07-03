@@ -15,7 +15,7 @@ class ConsentedPatientTest {
 
   @Test
   void emptyConsentYieldsEmptyMaxPeriod() {
-    ConsentedPatient patient = new ConsentedPatient("patient-122522");
+    ConsentedPatient patient = new ConsentedPatient("patient-122522", "http://fts.smith.care");
     assertThat(patient.maxConsentedPeriod()).isEmpty();
   }
 
@@ -119,7 +119,8 @@ class ConsentedPatientTest {
 
     Period period = Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00");
     consentedPolicies.put("a", period);
-    ConsentedPatient consentedPatient = new ConsentedPatient("patient", consentedPolicies);
+    ConsentedPatient consentedPatient =
+        new ConsentedPatient("patient", "http://fts.smith.care", consentedPolicies);
 
     String des = om.writeValueAsString(consentedPatient);
     ConsentedPatient ser = om.readValue(des, ConsentedPatient.class);
