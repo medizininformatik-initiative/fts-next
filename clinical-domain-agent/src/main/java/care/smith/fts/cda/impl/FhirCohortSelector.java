@@ -8,7 +8,7 @@ import static org.springframework.web.util.UriComponentsBuilder.*;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
-import care.smith.fts.util.ConsentedPatientExtractor;
+import care.smith.fts.util.GicsConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -80,7 +80,7 @@ class FhirCohortSelector implements CohortSelector {
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
     return Flux.fromStream(
-        ConsentedPatientExtractor.getConsentedPatients(
+        GicsConsentedPatientExtractor.getConsentedPatients(
             config.patientIdentifierSystem(),
             config.policySystem(),
             groupPatientsAndConsents(bundle),

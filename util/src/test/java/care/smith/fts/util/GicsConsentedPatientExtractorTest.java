@@ -9,18 +9,21 @@ import java.util.stream.Collectors;
 import org.hl7.fhir.r4.model.*;
 import org.junit.jupiter.api.Test;
 
-class ConsentedPatientExtractorTest {
+class GicsConsentedPatientExtractorTest {
 
   private static final String PATIENT_IDENTIFIER_SYSTEM = "http://hospital.com/patient";
   private static final String POLICY_SYSTEM = "http://hospital.com/policy";
   private static final Set<String> POLICIES_TO_CHECK = Set.of("POLICY_A", "POLICY_B");
 
-  private static final Bundle bundle1 = generateBundle();
-  private static final Bundle bundle2 = generateBundle();
+  private static final Bundle bundle1 = generateBundle("12345");
+  private static final Bundle bundle2 = generateBundle("67890");
 
-  private static Bundle generateBundle() {
+  private static Bundle generateBundle(String id) {
     var patient = new Patient();
-    var identifier = new Identifier().setSystem(PATIENT_IDENTIFIER_SYSTEM).setValue("12345");
+    var identifier =
+        new Identifier()
+            .setSystem("https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym")
+            .setValue(id);
     patient.addIdentifier(identifier);
 
     var consent = new Consent();
@@ -53,28 +56,33 @@ class ConsentedPatientExtractorTest {
     outerBundle.addEntry().setResource(bundle2);
 
     var consentedPatients =
-        ConsentedPatientExtractor.extractConsentedPatients(
+        GicsConsentedPatientExtractor.extractConsentedPatients(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, outerBundle, POLICIES_TO_CHECK);
 
     var result = consentedPatients.collect(Collectors.toList());
     assertThat(result).hasSize(2);
     assertThat(result.get(0).id()).isEqualTo("12345");
+    assertThat(result.get(0).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
+    assertThat(result.get(1).id()).isEqualTo("67890");
+    assertThat(result.get(1).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
   }
 
   @Test
   void extractConsentedPatient() {
     var consentedPatient =
-        ConsentedPatientExtractor.extractConsentedPatient(
+        GicsConsentedPatientExtractor.extractConsentedPatient(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
 
     assertThat(consentedPatient).isPresent();
     assertThat(consentedPatient.get().id()).isEqualTo("12345");
+    assertThat(consentedPatient.get().patientIdentifierSystem())
+        .isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
   }
 
   @Test
   void extractConsentedPatientWithUnknownPoliciesYieldsEmptyResult() {
     var consentedPatient =
-        ConsentedPatientExtractor.extractConsentedPatient(
+        GicsConsentedPatientExtractor.extractConsentedPatient(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, Set.of("Unknown Policy"));
 
     assertThat(consentedPatient).isEmpty();
@@ -83,7 +91,7 @@ class ConsentedPatientExtractorTest {
   @Test
   void hasAllPolicies() {
     var result =
-        ConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
+        GicsConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
 
     assertThat(result).isTrue();
   }

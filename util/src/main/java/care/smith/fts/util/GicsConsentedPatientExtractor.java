@@ -10,8 +10,30 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
 
-/** A utility class for extracting consented patients from FHIR bundles. */
-public interface ConsentedPatientExtractor {
+/**
+ * A utility class for extracting consented patients from FHIR bundles returned by gICS. Since gICS
+ * uses its own internal patient identifier system, but patient identifiers typically belong to
+ * external systems (such as hospital information systems). This class accepts the actual identifier
+ * system as a parameter to ensure proper patient identification in the resulting ConsentedPatient
+ * objects.
+ *
+ * <p>The extraction process:
+ *
+ * <ul>
+ *   <li>Searches for Patient resources within bundles to extract patient identifiers
+ *   <li>Examines Consent resources to determine which policies have been consented to
+ *   <li>Validates that patients have consented to all required policies
+ *   <li>Extracts consent periods from provision components
+ *   <li>Returns only patients who have provided consent for all specified policies
+ * </ul>
+ *
+ * @see ConsentedPatient
+ * @see ConsentedPolicies
+ * @see Period
+ */
+public interface GicsConsentedPatientExtractor {
+
+  String gicsPatientIdentifierSystem = "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
 
   /**
    * Extracts consented patients from the given outer bundle. It is assumed that the outer bundle is
@@ -68,7 +90,7 @@ public interface ConsentedPatientExtractor {
       String policySystem,
       Bundle bundle,
       Set<String> policiesToCheck) {
-    return getPatientIdentifier(bundle, patientIdentifierSystem)
+    return getPatientIdentifier(bundle)
         .flatMap(
             pid -> {
               var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
@@ -98,14 +120,12 @@ public interface ConsentedPatientExtractor {
    * Retrieves the patient identifier from the given bundle.
    *
    * @param bundle the bundle containing the patient resource
-   * @param patientIdentifierSystem the system used for patient identifiers
    * @return an {@link Optional} containing the patient identifier, if found
    */
-  private static Optional<String> getPatientIdentifier(
-      Bundle bundle, String patientIdentifierSystem) {
+  private static Optional<String> getPatientIdentifier(Bundle bundle) {
     return typedResourceStream(bundle, Patient.class)
         .flatMap(p -> p.getIdentifier().stream())
-        .filter(id -> id.getSystem().equals(patientIdentifierSystem))
+        .filter(id -> id.getSystem().equals(gicsPatientIdentifierSystem))
         .map(Identifier::getValue)
         .findFirst();
   }
