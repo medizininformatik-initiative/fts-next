@@ -50,10 +50,14 @@ jobs:
       run: docker compose -f oauth2/compose.yaml up --build --wait
 
     - name: Run Tests
-      run: mvn ${MAVEN_ARGS} verify
+      run: |
+        # shellcheck disable=SC2086
+        mvn ${MAVEN_ARGS} verify
 
     - name: Generate Code Coverage Report
-      run: mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
+      run: |
+        # shellcheck disable=SC2086
+        mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
 
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
@@ -89,6 +93,7 @@ jobs:
 
     - name: Build Agent
       run: |
+        # shellcheck disable=SC2086
         mvn ${MAVEN_ARGS} -DskipTests package ${COMMIT_TAG:+-Drevision=${COMMIT_TAG#v}} \
           -Dproject.build.outputTimestamp="$(git log -1 --date="iso-strict-local" --format="%cd")"
 
@@ -147,7 +152,7 @@ jobs:
         echo "commit_date=$(git log -1 --date="iso-strict-local" --format="%cd")" >>"$GITHUB_OUTPUT"
         title="$(echo "${{ matrix.agent }}" | tr '-' ' ' | sed -E 's/(^| )([a-z])/\1\u\2/g')"
         echo "agent_name=${title}" >>"$GITHUB_OUTPUT"
-        echo "agent_abbr=$(echo "${title}" | tr -cd [:upper:])" >>"$GITHUB_OUTPUT"
+        echo "agent_abbr=$(echo "${title}" | tr -cd '[:upper:]')" >>"$GITHUB_OUTPUT"
 
     - name: Generate Container Image Metadata
       id: meta
@@ -248,7 +253,7 @@ jobs:
       run: make pull
 
     - name: Configure PATH
-      run: echo "${GITHUB_WORKSPACE}/.github/scripts" >> ${GITHUB_PATH}
+      run: echo "${GITHUB_WORKSPACE}/.github/scripts" >>"${GITHUB_PATH}"
 
     - name: Install Blazectl
       run: install-blazectl.sh
@@ -354,7 +359,7 @@ jobs:
         mkdir -p "$(dirname "${target}")"
         wget "${url}" -q
         sha256sum -c <(echo "${CDX_CLI_CHECKSUM} cyclonedx-linux-x64")
-        mv cyclonedx-linux-x64 ${target}
+        mv cyclonedx-linux-x64 "${target}"
         chmod +x "${target}"
 
     - name: Download SBOMs
@@ -509,8 +514,9 @@ jobs:
         RD_AGENT_DIGEST: ${{ needs.build-image.outputs.research-domain-agent-digest }}
       run: |
         make cd-agent tc-agent rd-agent
-        echo "checksums-b64=$(cat *.tar.gz.sha256 | xargs -L1 bash -c 'echo -n "{\"$(echo $1 | cut -d. -f1)\": \"$(echo "$0 $1" | base64 -w0)\"}"' | jq -sc 'add')" >>"$GITHUB_OUTPUT"
-        echo "files=$(ls *.tar.gz.sha256 | cut -d. -f1 | jq -Rnc '[inputs]')" >>"$GITHUB_OUTPUT"
+        # shellcheck disable=SC2016
+        echo "checksums-b64=$(cat ./*.tar.gz.sha256 | xargs -L1 bash -c 'echo -n "{\"$(echo $1 | cut -d. -f1)\": \"$(echo "$0 $1" | base64 -w0)\"}"' | jq -sc 'add')" >>"$GITHUB_OUTPUT"
+        echo "files=$(find . -name "*.tar.gz.sha256" -printf "%f\n" | cut -d. -f1 | jq -R | jq -sc)" >>"$GITHUB_OUTPUT"
 
     - name: Upload Release Archives
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
