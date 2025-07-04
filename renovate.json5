@@ -5,6 +5,7 @@
     ':automergeMinor',
     ':automergeDigest',
     ':maintainLockFilesWeekly',
+    'customManagers:githubActionsVersions',
   ],
   description: [
     "We use `ignorePaths` to mitigate :ignoreModulesAndTests, which would ignore java test classes",
