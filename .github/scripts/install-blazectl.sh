@@ -1,8 +1,15 @@
-#!/bin/bash -e
+#!/bin/bash
+set -euo pipefail
 
-VERSION="0.16.0"
+VERSION="${BLAZECTL_VERSION#v}"
+CHECKSUM="${BLAZECTL_CHECKSUM}"
 
-curl -sLO "https://github.com/samply/blazectl/releases/download/v$VERSION/blazectl-$VERSION-linux-amd64.tar.gz"
+url="https://github.com/samply/blazectl/releases/download/v$VERSION/blazectl-$VERSION-linux-amd64.tar.gz"
+target="${HOME}/.local/bin/blazectl"
+mkdir -p "$(dirname "${target}")"
+wget "${url}" -q
 tar xzf "blazectl-$VERSION-linux-amd64.tar.gz"
 rm "blazectl-$VERSION-linux-amd64.tar.gz"
-sudo mv ./blazectl /usr/local/bin/blazectl
+sha256sum -c <(echo "${CHECKSUM} blazectl")
+mv blazectl "${target}"
+chmod +x "${target}"
