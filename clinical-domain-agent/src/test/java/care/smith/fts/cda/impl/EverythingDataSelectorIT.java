@@ -46,7 +46,8 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
   private static WireMock wireMock;
   private static final String PATIENT_ID = "patient-112348";
   private static final int PAGE_SIZE = 500;
-  private static final PatientIdResolver pidResolver = pid -> Mono.just(new IdType("Patient", pid));
+  private static final PatientIdResolver pidResolver =
+      patient -> Mono.just(new IdType("Patient", patient.id()));
 
   private static EverythingDataSelector dataSelector;
   private static WebClient client;
