@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.*;
 import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
@@ -40,6 +41,7 @@ import reactor.core.publisher.Mono;
 class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
   private static final String PATIENT_ID = "patient-141392";
+  public static final String PID_SYSTEM = "patientIdentifierSystem";
   private static final String KDS_PATIENT = "https://some.example.com/pid";
 
   @Autowired MeterRegistry meterRegistry;
@@ -51,7 +53,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
   void setUp(WireMockRuntimeInfo wiremockRuntime, @Autowired WebClientFactory clientFactory)
       throws Exception {
     var client = clientFactory.create(clientConfig(wiremockRuntime));
-    this.service = new FhirResolveService(KDS_PATIENT, client, meterRegistry);
+    this.service = new FhirResolveService(client, meterRegistry);
     wireMock = wiremockRuntime.getWireMock();
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = new String(requireNonNull(inStream).readAllBytes(), UTF_8);
@@ -73,7 +75,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
       @Override
       public Mono<IIdType> executeStep() {
-        return service.resolve(PATIENT_ID);
+        return service.resolve(new ConsentedPatient(PATIENT_ID, PID_SYSTEM));
       }
 
       @Override
@@ -91,7 +93,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
       wireMock.register(fhirStoreRequest().willReturn(response));
     }
 
-    create(service.resolve("external-141392"))
+    create(service.resolve(new ConsentedPatient("external-141392", PID_SYSTEM)))
         .verifyErrorMatches(
             err ->
                 err.getMessage().contains("Unable to resolve")
@@ -106,7 +108,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
       wireMock.register(fhirStoreRequest().willReturn(response));
     }
 
-    create(service.resolve("external-141392"))
+    create(service.resolve(new ConsentedPatient("external-141392", PID_SYSTEM)))
         .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
         .verifyComplete();
   }
@@ -119,7 +121,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
       wireMock.register(fhirStoreRequest().willReturn(response));
     }
 
-    create(service.resolve("external-075521"))
+    create(service.resolve(new ConsentedPatient("external-075521", PID_SYSTEM)))
         .verifyErrorMatches(
             err ->
                 err.getMessage().contains("more then one")
@@ -129,14 +131,14 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
   @Test
   void nullPatientIdThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(() -> service.resolve(null))
+        .isThrownBy(() -> service.resolve(new ConsentedPatient(null, PID_SYSTEM)))
         .withMessageContaining("null");
   }
 
   @Test
   void emptyPatientIdThrows() {
     assertThatExceptionOfType(NullPointerException.class)
-        .isThrownBy(() -> service.resolve(""))
+        .isThrownBy(() -> service.resolve(new ConsentedPatient("", PID_SYSTEM)))
         .withMessageContaining("empty");
   }
 
@@ -145,7 +147,9 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
     var fhirResolveGen = resolveSearchResponse(() -> "id1", randomUuid());
     var bundle = fhirResolveGen.generateResources().limit(2).collect(toBundle());
     wireMock.register(fhirStoreRequest().willReturn(fhirResponse(bundle)));
-    create(service.resolve(PATIENT_ID)).expectError(IllegalStateException.class).verify();
+    create(service.resolve(new ConsentedPatient(PATIENT_ID, PID_SYSTEM)))
+        .expectError(IllegalStateException.class)
+        .verify();
   }
 
   @AfterEach

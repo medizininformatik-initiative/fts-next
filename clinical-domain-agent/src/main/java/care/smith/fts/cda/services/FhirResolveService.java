@@ -5,6 +5,7 @@ import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
+import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
@@ -22,11 +23,8 @@ public class FhirResolveService implements PatientIdResolver {
 
   private final WebClient hdsClient;
   private final MeterRegistry meterRegistry;
-  private final String identifierSystem;
 
-  public FhirResolveService(
-      String identifierSystem, WebClient hdsClient, MeterRegistry meterRegistry) {
-    this.identifierSystem = identifierSystem;
+  public FhirResolveService(WebClient hdsClient, MeterRegistry meterRegistry) {
     this.hdsClient = hdsClient;
     this.meterRegistry = meterRegistry;
   }
@@ -35,30 +33,32 @@ public class FhirResolveService implements PatientIdResolver {
    * Resolves the given <code>patientId</code> to the ID of the matching {@link Patient} resource
    * object in the FHIR server accessed with the rest configuration.
    *
-   * @param patientId the patient ID (PID) to resolve
+   * @param patient the ConsentedPatient to resolve
    * @return the ID of the FHIR resource
    */
   @Override
-  public Mono<IIdType> resolve(String patientId) {
-    return this.resolveFromPatient(patientId).map(IBaseResource::getIdElement);
+  public Mono<IIdType> resolve(ConsentedPatient patient) {
+    return this.resolveFromPatient(patient).map(IBaseResource::getIdElement);
   }
 
-  private Mono<IBaseResource> resolveFromPatient(String patientId) {
-    requireNonNull(emptyToNull(patientId), "patientId must not be null or empty");
-    return fetchPatientBundle(patientId)
+  private Mono<IBaseResource> resolveFromPatient(ConsentedPatient patient) {
+    requireNonNull(emptyToNull(patient.id()), "patientId must not be null or empty");
+    return fetchPatientBundle(patient)
         .doOnNext(ps -> requireNonNull(ps, "Patient bundle must not be null"))
-        .doOnNext(ps -> checkBundleNotEmpty(ps, patientId))
-        .doOnNext(ps -> checkSinglePatient(ps, patientId))
+        .doOnNext(ps -> checkBundleNotEmpty(ps, patient.id()))
+        .doOnNext(ps -> checkSinglePatient(ps, patient.id()))
         .map(ps -> ps.getEntryFirstRep().getResource());
   }
 
-  private Mono<Bundle> fetchPatientBundle(String patientId) {
-    log.trace("fetchPatientBundle {}", patientId);
+  private Mono<Bundle> fetchPatientBundle(ConsentedPatient patient) {
+    log.trace("fetchPatientBundle {}", patient);
     return hdsClient
         .get()
         .uri(
             "/Patient",
-            uri -> uri.queryParam("identifier", identifierSystem + "|" + patientId).build())
+            uri ->
+                uri.queryParam("identifier", patient.patientIdentifierSystem() + "|" + patient.id())
+                    .build())
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
