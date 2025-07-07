@@ -9,7 +9,7 @@ import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
-import care.smith.fts.cda.services.deidentifhir.IDATScraper;
+import care.smith.fts.cda.services.deidentifhir.IdatScraper;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 class DeidentifhirStep implements Deidentificator {
   private final WebClient tcaClient;
-  private final TCADomains domains;
+  private final TcaDomains domains;
   private final Duration maxDateShift;
   private final DateShiftPreserve preserve;
   private final com.typesafe.config.Config deidentifhirConfig;
@@ -35,7 +35,7 @@ class DeidentifhirStep implements Deidentificator {
 
   public DeidentifhirStep(
       WebClient tcaClient,
-      TCADomains domains,
+      TcaDomains domains,
       Duration maxDateShift,
       DateShiftPreserve preserve,
       com.typesafe.config.Config deidentifhirConfig,
@@ -53,7 +53,7 @@ class DeidentifhirStep implements Deidentificator {
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
     var patient = bundle.consentedPatient();
-    var idatScraper = new IDATScraper(scraperConfig, patient);
+    var idatScraper = new IdatScraper(scraperConfig, patient);
     var ids = idatScraper.gatherIDs(bundle.bundle());
 
     return !ids.isEmpty()

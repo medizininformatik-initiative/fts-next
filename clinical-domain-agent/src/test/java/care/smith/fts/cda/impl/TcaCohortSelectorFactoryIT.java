@@ -11,16 +11,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class TCACohortSelectorFactoryIT {
+class TcaCohortSelectorFactoryIT {
 
   @Autowired MeterRegistry meterRegistry;
   @Autowired WebClientFactory clientFactory;
 
-  private TCACohortSelectorFactory factory;
+  private TcaCohortSelectorFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new TCACohortSelectorFactory(clientFactory, meterRegistry);
+    factory = new TcaCohortSelectorFactory(clientFactory, meterRegistry);
   }
 
   @Test
@@ -33,7 +33,7 @@ class TCACohortSelectorFactoryIT {
     assertThat(
             factory.create(
                 null,
-                new TCACohortSelectorConfig(
+                new TcaCohortSelectorConfig(
                     new HttpClientConfig("http://dummy.example.com"), null, null, null, null)))
         .isNotNull();
   }

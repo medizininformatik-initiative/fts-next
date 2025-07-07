@@ -45,14 +45,14 @@ import reactor.core.publisher.Mono;
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
 @WireMockTest
-class RDABundleSenderIT extends AbstractConnectionScenarioIT {
+class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
 
   private static final String PATIENT_ID = "patient-102931";
 
   @Autowired MeterRegistry meterRegistry;
   private WireMock wireMock;
 
-  private RDABundleSender bundleSender;
+  private RdaBundleSender bundleSender;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
@@ -60,8 +60,8 @@ class RDABundleSenderIT extends AbstractConnectionScenarioIT {
     var client = clientFactory.create(server);
     wireMock = wireMockRuntime.getWireMock();
 
-    var config = new RDABundleSenderConfig(server, "example");
-    bundleSender = new RDABundleSender(config, client, meterRegistry);
+    var config = new RdaBundleSenderConfig(server, "example");
+    bundleSender = new RdaBundleSender(config, client, meterRegistry);
   }
 
   private static MappingBuilder rdaRequest() {
@@ -74,7 +74,7 @@ class RDABundleSenderIT extends AbstractConnectionScenarioIT {
     return new TestStep<Result>() {
       @Override
       public MappingBuilder requestBuilder() {
-        return RDABundleSenderIT.rdaRequest();
+        return RdaBundleSenderIT.rdaRequest();
       }
 
       @Override

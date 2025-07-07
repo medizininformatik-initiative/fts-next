@@ -26,13 +26,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-class TCACohortSelector implements CohortSelector {
-  private final TCACohortSelectorConfig config;
+class TcaCohortSelector implements CohortSelector {
+  private final TcaCohortSelectorConfig config;
   private final WebClient tcaClient;
   private final MeterRegistry meterRegistry;
 
-  public TCACohortSelector(
-      TCACohortSelectorConfig config, WebClient tcaClient, MeterRegistry meterRegistry) {
+  public TcaCohortSelector(
+      TcaCohortSelectorConfig config, WebClient tcaClient, MeterRegistry meterRegistry) {
     this.config = config;
     this.tcaClient = tcaClient;
     this.meterRegistry = meterRegistry;
@@ -50,7 +50,7 @@ class TCACohortSelector implements CohortSelector {
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
-        .onErrorResume(WebClientException.class, TCACohortSelector::handleWebClientException)
+        .onErrorResume(WebClientException.class, TcaCohortSelector::handleWebClientException)
         .flatMap(this::extractConsentedPatients);
   }
 
@@ -63,7 +63,7 @@ class TCACohortSelector implements CohortSelector {
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
-        .onStatus(r -> r.equals(BAD_REQUEST), TCACohortSelector::handleBadRequest)
+        .onStatus(r -> r.equals(BAD_REQUEST), TcaCohortSelector::handleBadRequest)
         .bodyToMono(Bundle.class)
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchBundle"));
   }
@@ -76,7 +76,7 @@ class TCACohortSelector implements CohortSelector {
   }
 
   private static Map<String, Object> constructBody(
-      TCACohortSelectorConfig config, List<String> pids) {
+      TcaCohortSelectorConfig config, List<String> pids) {
     var body =
         ImmutableMap.<String, Object>builder()
             .put("policies", config.policies())

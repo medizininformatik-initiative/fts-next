@@ -40,7 +40,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 @SpringBootTest
 @WireMockTest
-class TCACohortSelectorIT {
+class TcaCohortSelectorIT {
 
   @Autowired MeterRegistry meterRegistry;
   @Autowired ObjectMapper om;
@@ -53,7 +53,7 @@ class TCACohortSelectorIT {
   private static final String POLICY_SYSTEM =
       "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
 
-  private static TCACohortSelector cohortSelector;
+  private static TcaCohortSelector cohortSelector;
 
   private static MockCohortSelector allCohortSelector;
   private static MockCohortSelector listCohortSelector;
@@ -62,9 +62,9 @@ class TCACohortSelectorIT {
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
     var address = "http://localhost";
     var server = new HttpClientConfig(address);
-    var config = new TCACohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
+    var config = new TcaCohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
     cohortSelector =
-        new TCACohortSelector(
+        new TcaCohortSelector(
             config, clientFactory.create(clientConfig(wireMockRuntime)), meterRegistry);
     wireMock = wireMockRuntime.getWireMock();
     allCohortSelector = MockCohortSelector.fetchAll(wireMock, POLICY_SYSTEM);
@@ -88,12 +88,12 @@ class TCACohortSelectorIT {
       return new TestStep<ConsentedPatient>() {
         @Override
         public MappingBuilder requestBuilder() {
-          return TCACohortSelectorIT.fetchAllRequest();
+          return TcaCohortSelectorIT.fetchAllRequest();
         }
 
         @Override
         public Flux<ConsentedPatient> executeStep() {
-          return TCACohortSelectorIT.cohortSelector.selectCohort(List.of());
+          return TcaCohortSelectorIT.cohortSelector.selectCohort(List.of());
         }
       };
     }
@@ -106,12 +106,12 @@ class TCACohortSelectorIT {
       return new TestStep<ConsentedPatient>() {
         @Override
         public MappingBuilder requestBuilder() {
-          return TCACohortSelectorIT.fetchListRequest();
+          return TcaCohortSelectorIT.fetchListRequest();
         }
 
         @Override
         public Flux<ConsentedPatient> executeStep() {
-          return TCACohortSelectorIT.cohortSelector.selectCohort(List.of("id"));
+          return TcaCohortSelectorIT.cohortSelector.selectCohort(List.of("id"));
         }
 
         @Override

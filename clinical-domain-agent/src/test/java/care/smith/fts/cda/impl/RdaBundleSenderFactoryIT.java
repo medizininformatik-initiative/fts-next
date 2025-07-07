@@ -11,16 +11,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class RDABundleSenderFactoryIT {
+class RdaBundleSenderFactoryIT {
 
   @Autowired MeterRegistry meterRegistry;
   @Autowired WebClientFactory clientFactory;
 
-  private RDABundleSenderFactory factory;
+  private RdaBundleSenderFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new RDABundleSenderFactory(clientFactory, meterRegistry);
+    factory = new RdaBundleSenderFactory(clientFactory, meterRegistry);
   }
 
   @Test
@@ -33,7 +33,7 @@ class RDABundleSenderFactoryIT {
     assertThat(
             factory.create(
                 null,
-                new RDABundleSenderConfig(new HttpClientConfig("http://localhost"), "example")))
+                new RdaBundleSenderConfig(new HttpClientConfig("http://localhost"), "example")))
         .isNotNull();
   }
 }

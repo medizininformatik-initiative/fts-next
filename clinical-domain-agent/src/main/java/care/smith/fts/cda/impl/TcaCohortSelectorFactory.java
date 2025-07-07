@@ -6,24 +6,24 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
 @Component("trustCenterAgentCohortSelector")
-public class TCACohortSelectorFactory implements CohortSelector.Factory<TCACohortSelectorConfig> {
+public class TcaCohortSelectorFactory implements CohortSelector.Factory<TcaCohortSelectorConfig> {
 
   private final WebClientFactory clientFactory;
   private final MeterRegistry meterRegistry;
 
-  public TCACohortSelectorFactory(WebClientFactory clientFactory, MeterRegistry meterRegistry) {
+  public TcaCohortSelectorFactory(WebClientFactory clientFactory, MeterRegistry meterRegistry) {
     this.clientFactory = clientFactory;
     this.meterRegistry = meterRegistry;
   }
 
   @Override
-  public Class<TCACohortSelectorConfig> getConfigType() {
-    return TCACohortSelectorConfig.class;
+  public Class<TcaCohortSelectorConfig> getConfigType() {
+    return TcaCohortSelectorConfig.class;
   }
 
   @Override
-  public CohortSelector create(CohortSelector.Config ignored, TCACohortSelectorConfig config) {
+  public CohortSelector create(CohortSelector.Config ignored, TcaCohortSelectorConfig config) {
     var client = clientFactory.create(config.server());
-    return new TCACohortSelector(config, client, meterRegistry);
+    return new TcaCohortSelector(config, client, meterRegistry);
   }
 }

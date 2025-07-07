@@ -7,7 +7,7 @@ import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.impl.DeidentifhirStepConfig.TCAConfig;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
-import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TcaDomains;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.File;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class DeidentifhirStepFactoryIT {
                 new DeidentifhirStepConfig(
                     new TCAConfig(
                         new HttpClientConfig("baseUrl:1234"),
-                        new TCADomains("domain", "domain", "domain")),
+                        new TcaDomains("domain", "domain", "domain")),
                     ofDays(14),
                     new File("deidentifhirConfig"),
                     new File("scraperConfig"))))

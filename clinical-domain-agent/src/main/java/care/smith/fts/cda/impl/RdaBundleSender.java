@@ -28,13 +28,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-final class RDABundleSender implements BundleSender {
-  private final RDABundleSenderConfig config;
+final class RdaBundleSender implements BundleSender {
+  private final RdaBundleSenderConfig config;
   private final WebClient rdaClient;
   private final MeterRegistry meterRegistry;
 
-  public RDABundleSender(
-      RDABundleSenderConfig config, WebClient rdaClient, MeterRegistry meterRegistry) {
+  public RdaBundleSender(
+      RdaBundleSenderConfig config, WebClient rdaClient, MeterRegistry meterRegistry) {
     this.config = config;
     this.rdaClient = rdaClient;
     this.meterRegistry = meterRegistry;
@@ -123,7 +123,7 @@ final class RDABundleSender implements BundleSender {
     if (retryAfter == null) {
       return 1L;
     } else {
-      return retryAfter.stream().findFirst().map(RDABundleSender::parseRetryAfter).orElse(1L);
+      return retryAfter.stream().findFirst().map(RdaBundleSender::parseRetryAfter).orElse(1L);
     }
   }
 

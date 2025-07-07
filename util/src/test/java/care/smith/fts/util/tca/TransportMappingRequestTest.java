@@ -22,7 +22,7 @@ class TransportMappingRequestTest {
             "patient123",
             "patientIdentifierSystem",
             Set.of("id1", "id2"),
-            new TCADomains("pDomain", "sDomain", "dDomain"),
+            new TcaDomains("pDomain", "sDomain", "dDomain"),
             Duration.ofDays(30),
             DateShiftPreserve.NONE);
 
