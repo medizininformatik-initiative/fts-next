@@ -49,7 +49,7 @@ public class EverythingDataSelector implements DataSelector {
   @Override
   public Flux<ConsentedPatientBundle> select(ConsentedPatient patient) {
     return pidResolver
-        .resolve(patient.id())
+        .resolve(patient)
         .flatMapMany(fhirId -> fetchEverything(patient, fhirId))
         .map(b -> new ConsentedPatientBundle(b, patient));
   }

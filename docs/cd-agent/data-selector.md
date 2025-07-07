@@ -55,10 +55,11 @@ server and patient resources without a valid consented period are skipped entire
       ssl: [ ... ]
   ```
 
-#### `resolve.patientIdentifierSystem` <Badge type="warning" text="Since 5.0" />
+#### `resolve.patientIdentifierSystem` <Badge type="danger" text="Deprecated" /> <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Defines the system URL used to resolve patient identifiers within the FHIR
-  server.
+  server. This option will be removed with the next release, use the `patientIdentifierSystem` in 
+  the CohortSelector instead.
 * **Type**: String
 * **Example**:
   ```yaml
