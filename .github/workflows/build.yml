@@ -259,8 +259,8 @@ jobs:
       env:
         # Check the blazectl binary against a pinned checksum here, it must be updated accordingly
         # renovate: datasource=github-releases depName=samply/blazectl
-        BLAZECTL_VERSION: v0.16.0
-        BLAZECTL_CHECKSUM: 6d1b40ed41a0b438289b552569fc3d0d4d529f20fa253dc4b914c4dbb93bb7cc
+        BLAZECTL_VERSION: v1.0.0
+        BLAZECTL_CHECKSUM: ffb6114f3f40180e83fd59bbadad02834b4287414887a89481f42a4cbe85742b
       run: install-blazectl.sh
 
     - name: Prepare Auth Failing Tests
