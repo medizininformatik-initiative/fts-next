@@ -259,7 +259,7 @@ jobs:
       env:
         # Check the blazectl binary against a pinned checksum here, it must be updated accordingly
         # renovate: datasource=github-releases depName=samply/blazectl
-        BLAZECTL_VERSION: v0.16.0
+        BLAZECTL_VERSION: v0.17.1
         BLAZECTL_CHECKSUM: 6d1b40ed41a0b438289b552569fc3d0d4d529f20fa253dc4b914c4dbb93bb7cc
       run: install-blazectl.sh
 
