@@ -4,12 +4,10 @@ import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
-import static java.util.Optional.ofNullable;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.net.URI;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -18,7 +16,6 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
-import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -26,11 +23,8 @@ public class FhirResolveService implements PatientIdResolver {
 
   private final WebClient hdsClient;
   private final MeterRegistry meterRegistry;
-  private final String identifierSystem;
 
-  public FhirResolveService(
-      String identifierSystem, WebClient hdsClient, MeterRegistry meterRegistry) {
-    this.identifierSystem = identifierSystem;
+  public FhirResolveService(WebClient hdsClient, MeterRegistry meterRegistry) {
     this.hdsClient = hdsClient;
     this.meterRegistry = meterRegistry;
   }
@@ -39,7 +33,7 @@ public class FhirResolveService implements PatientIdResolver {
    * Resolves the given <code>patientId</code> to the ID of the matching {@link Patient} resource
    * object in the FHIR server accessed with the rest configuration.
    *
-   * @param patient the patient ID (PID) to resolve
+   * @param patient the ConsentedPatient to resolve
    * @return the ID of the FHIR resource
    */
   @Override
@@ -60,7 +54,11 @@ public class FhirResolveService implements PatientIdResolver {
     log.trace("fetchPatientBundle {}", patient);
     return hdsClient
         .get()
-        .uri("/Patient", uri -> buildUri(patient, uri))
+        .uri(
+            "/Patient",
+            uri ->
+                uri.queryParam("identifier", patient.patientIdentifierSystem() + "|" + patient.id())
+                    .build())
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
@@ -69,12 +67,6 @@ public class FhirResolveService implements PatientIdResolver {
         .onErrorResume(
             WebClientException.class,
             e -> Mono.error(new TransferProcessException("Cannot resolve patient id", e)));
-  }
-
-  private URI buildUri(ConsentedPatient patient, UriBuilder uri) {
-    var selectedSystem =
-        ofNullable(this.identifierSystem).orElse(patient.patientIdentifierSystem());
-    return uri.queryParam("identifier", selectedSystem + "|" + patient.id()).build();
   }
 
   private void checkSinglePatient(Bundle patients, String patientId) {
