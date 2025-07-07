@@ -8,7 +8,6 @@ import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.google.common.net.HttpHeaders.ACCEPT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -49,13 +47,12 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
   private FhirResolveService service;
   private WireMock wireMock;
-  private WebClient client;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wiremockRuntime, @Autowired WebClientFactory clientFactory)
       throws Exception {
-    client = clientFactory.create(clientConfig(wiremockRuntime));
-    this.service = new FhirResolveService(PID_SYSTEM, client, meterRegistry);
+    var client = clientFactory.create(clientConfig(wiremockRuntime));
+    this.service = new FhirResolveService(client, meterRegistry);
     wireMock = wiremockRuntime.getWireMock();
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = new String(requireNonNull(inStream).readAllBytes(), UTF_8);
@@ -152,58 +149,6 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
     create(service.resolve(new ConsentedPatient(PATIENT_ID, PID_SYSTEM)))
         .expectError(IllegalStateException.class)
         .verify();
-  }
-
-  @Test
-  void pisFromResolverHasPrecedence() throws Exception {
-    var resolverSystem = "https://resolver.example.com/pid";
-    var serviceWithConfiguredSystem = new FhirResolveService(resolverSystem, client, meterRegistry);
-
-    var patient = new ConsentedPatient("patient-123", "https://patient.example.com/pid");
-
-    try (var inStream = getClass().getResourceAsStream("search-1.json")) {
-      var bundle = requireNonNull(inStream).readAllBytes();
-      var response = fhirResponse(new String(bundle, UTF_8));
-      wireMock.register(
-          get(urlPathEqualTo("/Patient"))
-              .withQueryParam("identifier", equalTo(resolverSystem + "|patient-123"))
-              .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON))
-              .willReturn(response));
-    }
-
-    create(serviceWithConfiguredSystem.resolve(patient))
-        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
-        .verifyComplete();
-
-    wireMock.verify(
-        getRequestedFor(urlPathEqualTo("/Patient"))
-            .withQueryParam("identifier", equalTo(resolverSystem + "|patient-123")));
-  }
-
-  @Test
-  void usePisFromConsentedPatient() throws Exception {
-    var serviceWithNullSystem = new FhirResolveService(null, client, meterRegistry);
-
-    var patientSystem = "https://patient.example.com/pid";
-    var patient = new ConsentedPatient("patient-456", patientSystem);
-
-    try (var inStream = getClass().getResourceAsStream("search-1.json")) {
-      var bundle = requireNonNull(inStream).readAllBytes();
-      var response = fhirResponse(new String(bundle, UTF_8));
-      wireMock.register(
-          get(urlPathEqualTo("/Patient"))
-              .withQueryParam("identifier", equalTo(patientSystem + "|patient-456"))
-              .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON))
-              .willReturn(response));
-    }
-
-    create(serviceWithNullSystem.resolve(patient))
-        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
-        .verifyComplete();
-
-    wireMock.verify(
-        getRequestedFor(urlPathEqualTo("/Patient"))
-            .withQueryParam("identifier", equalTo(patientSystem + "|patient-456")));
   }
 
   @AfterEach
