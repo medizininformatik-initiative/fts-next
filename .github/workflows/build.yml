@@ -256,6 +256,11 @@ jobs:
       run: echo "${GITHUB_WORKSPACE}/.github/scripts" >>"${GITHUB_PATH}"
 
     - name: Install Blazectl
+      env:
+        # Check the blazectl binary against a pinned checksum here, it must be updated accordingly
+        # renovate: datasource=github-releases depName=samply/blazectl
+        BLAZECTL_VERSION: v0.16.0
+        BLAZECTL_CHECKSUM: 6d1b40ed41a0b438289b552569fc3d0d4d529f20fa253dc4b914c4dbb93bb7cc
       run: install-blazectl.sh
 
     - name: Prepare Auth Failing Tests
@@ -347,20 +352,16 @@ jobs:
       with:
         egress-policy: audit
 
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
     - name: Install CycloneDX CLI
       env:
         # Check the cyclonedx binary against a pinned checksum here, it must be updated accordingly
         # renovate: datasource=github-releases depName=CycloneDX/cyclonedx-cli
-        CDX_CLI_VERSION: "0.27.2"
-        CDX_CLI_CHECKSUM: "5e1595542a6367378a3944bbd3008caab3de65d572345361d3b9597b1dbbaaa0"
-      run: |
-        url="https://github.com/CycloneDX/cyclonedx-cli/releases/download/v${CDX_CLI_VERSION}/cyclonedx-linux-x64"
-        target="${HOME}/.local/bin/cyclonedx"
-        mkdir -p "$(dirname "${target}")"
-        wget "${url}" -q
-        sha256sum -c <(echo "${CDX_CLI_CHECKSUM} cyclonedx-linux-x64")
-        mv cyclonedx-linux-x64 "${target}"
-        chmod +x "${target}"
+        CDX_CLI_VERSION: v0.27.2
+        CDX_CLI_CHECKSUM: 5e1595542a6367378a3944bbd3008caab3de65d572345361d3b9597b1dbbaaa0
+      run: .github/scripts/install-cyclonedx.sh
 
     - name: Download SBOMs
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
