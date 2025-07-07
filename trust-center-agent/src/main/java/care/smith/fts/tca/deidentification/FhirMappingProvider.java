@@ -9,7 +9,7 @@ import static reactor.function.TupleUtils.function;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
-import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import com.google.common.collect.ImmutableMap;
@@ -74,7 +74,7 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   private Mono<Tuple3<String, String, String>> fetchPseudonymAndSalts(
-      String patientId, TCADomains domains, Duration maxDateShift) {
+      String patientId, TcaDomains domains, Duration maxDateShift) {
     var saltKey = "Salt_" + patientId;
     var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
     return Mono.zip(

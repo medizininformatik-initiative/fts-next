@@ -10,11 +10,11 @@ import de.ume.deidentifhir.util.JavaCompat;
 import java.util.Set;
 import org.hl7.fhir.r4.model.Resource;
 
-public class IDATScraper {
+public class IdatScraper {
   private final Deidentifhir deidentiFHIR;
   private final ScrapingStorage scrapingStorage;
 
-  public IDATScraper(Config config, ConsentedPatient patient) {
+  public IdatScraper(Config config, ConsentedPatient patient) {
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patient.id());
     scrapingStorage = new ScrapingStorage(keyCreator);
 
@@ -44,6 +44,6 @@ public class IDATScraper {
    */
   public Set<String> gatherIDs(Resource resource) {
     deidentiFHIR.deidentify(resource);
-    return scrapingStorage.getGatheredIDATs();
+    return scrapingStorage.getGatheredIdats();
   }
 }

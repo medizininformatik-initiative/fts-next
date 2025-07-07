@@ -9,14 +9,14 @@ import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class IDATScraperTest {
-  IDATScraper scraper;
+class IdatScraperTest {
+  IdatScraper scraper;
 
   @BeforeEach
   void setUp() {
     ConsentedPatient patient = new ConsentedPatient("id1", "system");
-    var config = parseResources(IDATScraperTest.class, "IDScraper.profile");
-    scraper = new IDATScraper(config, patient);
+    var config = parseResources(IdatScraperTest.class, "IDScraper.profile");
+    scraper = new IdatScraper(config, patient);
   }
 
   @Test

@@ -23,7 +23,7 @@ import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
-import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TcaDomains;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -55,7 +55,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       throws IOException {
     var scrConf = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
     var deiConf = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
-    var domains = new TCADomains("domain", "domain", "domain");
+    var domains = new TcaDomains("domain", "domain", "domain");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     wireMock = wireMockRuntime.getWireMock();
     step = new DeidentifhirStep(client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry);

@@ -2,7 +2,7 @@ package care.smith.fts.cda.impl;
 
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.util.HttpClientConfig;
-import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TcaDomains;
 import java.io.File;
 import java.time.Duration;
 
@@ -21,5 +21,5 @@ public record DeidentifhirStepConfig(
     this(trustCenterAgent, maxDateShift, deidentifhirConfig, scraperConfig, DateShiftPreserve.NONE);
   }
 
-  public record TCAConfig(HttpClientConfig server, TCADomains domains) {}
+  public record TCAConfig(HttpClientConfig server, TcaDomains domains) {}
 }

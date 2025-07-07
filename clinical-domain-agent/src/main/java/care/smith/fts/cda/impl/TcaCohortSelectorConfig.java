@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Set;
 
 @JsonClassDescription("")
-public record TCACohortSelectorConfig(
+public record TcaCohortSelectorConfig(
     /* */
     @NotNull HttpClientConfig server,
     /* */

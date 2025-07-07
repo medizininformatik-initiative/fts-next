@@ -17,13 +17,13 @@ class ScrapingStorageTest {
   @Test
   void getIDReplacement() {
     assertThat(scrapingStorage.getIDReplacement("Patient", "patientId")).isEqualTo("patientId");
-    assertThat(scrapingStorage.getGatheredIDATs()).containsExactly("test.Patient:patientId");
+    assertThat(scrapingStorage.getGatheredIdats()).containsExactly("test.Patient:patientId");
   }
 
   @Test
   void getValueReplacement() {
     assertThat(scrapingStorage.getValueReplacement("Patient", "patientId")).isEqualTo("patientId");
-    assertThat(scrapingStorage.getGatheredIDATs())
+    assertThat(scrapingStorage.getGatheredIdats())
         .containsExactly("test.identifier.Patient:patientId");
   }
 }

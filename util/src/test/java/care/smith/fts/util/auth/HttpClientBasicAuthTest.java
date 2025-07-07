@@ -2,15 +2,15 @@ package care.smith.fts.util.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.springframework.web.reactive.function.client.WebClient.builder;
 
 import care.smith.fts.util.auth.HttpClientAuth.Config;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClient;
 
-public class HTTPClientCookieTokenAuthTest {
+public class HttpClientBasicAuthTest {
 
   @Test
   public void deserialization() throws JsonProcessingException {
@@ -18,8 +18,9 @@ public class HTTPClientCookieTokenAuthTest {
 
     var config =
         """
-        cookieToken:
-          token: token-090112
+        basic:
+          user: user-090058
+          password: pass-090130
         """;
 
     assertThat(om.readValue(config, Config.class)).isNotNull();
@@ -27,10 +28,11 @@ public class HTTPClientCookieTokenAuthTest {
 
   @Test
   public void clientCreated() {
-    var impl = new HttpClientCookieTokenAuth();
+    var config = new HttpClientBasicAuth.Config("user-090058", "pass-090130");
+    var auth = new HttpClientBasicAuth();
 
-    assertThatNoException()
-        .isThrownBy(
-            () -> impl.configure(new HttpClientCookieTokenAuth.Config("token-090112"), builder()));
+    var client = WebClient.builder();
+
+    assertThatNoException().isThrownBy(() -> auth.configure(config, client));
   }
 }

@@ -8,7 +8,7 @@ import java.util.Set;
 import lombok.Getter;
 
 public class ScrapingStorage implements IDReplacementProvider, IdentifierValueReplacementProvider {
-  @Getter Set<String> gatheredIDATs = new HashSet<>();
+  @Getter Set<String> gatheredIdats = new HashSet<>();
   private final KeyCreator namespacingService;
 
   public ScrapingStorage(KeyCreator namespacingService) {
@@ -17,13 +17,13 @@ public class ScrapingStorage implements IDReplacementProvider, IdentifierValueRe
 
   @Override
   public String getIDReplacement(String resourceType, String id) {
-    gatheredIDATs.add(namespacingService.getKeyForResourceTypeAndID(resourceType, id));
+    gatheredIdats.add(namespacingService.getKeyForResourceTypeAndID(resourceType, id));
     return id;
   }
 
   @Override
   public String getValueReplacement(String system, String value) {
-    gatheredIDATs.add(namespacingService.getKeyForSystemAndValue(system, value));
+    gatheredIdats.add(namespacingService.getKeyForSystemAndValue(system, value));
     return value;
   }
 }

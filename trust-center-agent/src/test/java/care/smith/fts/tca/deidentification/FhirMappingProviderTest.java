@@ -27,7 +27,7 @@ import care.smith.fts.tca.deidentification.configuration.TransportMappingConfigu
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.error.fhir.FhirException;
-import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ContentTypes;
@@ -72,7 +72,7 @@ import reactor.core.publisher.Mono;
 @Import(TestWebClientFactory.class)
 class FhirMappingProviderTest {
 
-  private static final TCADomains DEFAULT_DOMAINS = new TCADomains("domain", "domain", "domain");
+  private static final TcaDomains DEFAULT_DOMAINS = new TcaDomains("domain", "domain", "domain");
   private static final TransportMappingRequest DEFAULT_REQUEST =
       new TransportMappingRequest(
           "id1",
@@ -319,7 +319,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -356,7 +356,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -386,7 +386,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -423,7 +423,7 @@ class FhirMappingProviderTest {
                     "patient-id",
                     "patientIdentifierSystem",
                     Set.of(),
-                    new TCADomains("", "", ""),
+                    new TcaDomains("", "", ""),
                     MAX_DATE_SHIFT,
                     preserve),
                 transportMapping,
@@ -453,7 +453,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -484,7 +484,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -512,7 +512,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -557,7 +557,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -579,7 +579,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -618,7 +618,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               specialCharMapping,
@@ -644,7 +644,7 @@ class FhirMappingProviderTest {
                         "patient-id",
                         "patientIdentifierSystem",
                         Set.of(),
-                        new TCADomains("", "", ""),
+                        new TcaDomains("", "", ""),
                         MAX_DATE_SHIFT,
                         DateShiftPreserve.NONE),
                     null,
@@ -672,7 +672,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               largeMapping,
@@ -694,7 +694,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -717,7 +717,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,
@@ -755,7 +755,7 @@ class FhirMappingProviderTest {
                   "patient-id",
                   "patientIdentifierSystem",
                   Set.of(),
-                  new TCADomains("", "", ""),
+                  new TcaDomains("", "", ""),
                   MAX_DATE_SHIFT,
                   DateShiftPreserve.NONE),
               transportMapping,

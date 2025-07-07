@@ -11,7 +11,7 @@ import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.UnknownDomainException;
 import care.smith.fts.util.tca.SecureMappingResponse;
-import care.smith.fts.util.tca.TCADomains;
+import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import java.time.Duration;
@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 @ExtendWith(MockitoExtension.class)
 class DeIdentificationControllerTest {
 
-  private static final TCADomains DEFAULT_DOMAINS = new TCADomains("domain", "domain", "domain");
+  private static final TcaDomains DEFAULT_DOMAINS = new TcaDomains("domain", "domain", "domain");
 
   @Mock MappingProvider mappingProvider;
   private DeIdentificationController controller;
@@ -75,7 +75,7 @@ class DeIdentificationControllerTest {
 
   @Test
   void transportMappingUnknownDomain() {
-    var domains = new TCADomains("unknown domain", "unknown domain", "unknown domain");
+    var domains = new TcaDomains("unknown domain", "unknown domain", "unknown domain");
     var request =
         new TransportMappingRequest(
             "id1",
