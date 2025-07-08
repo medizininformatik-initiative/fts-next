@@ -48,16 +48,6 @@
     },
     {
       description: [
-        "Group valkey updates from DockerHub and GitHub"
-      ],
-      matchPackageNames: [
-        'valkey/valkey',
-        'valkey-io/valkey',
-      ],
-      groupName: 'valkey',
-    },
-    {
-      description: [
         "Custom MOSAIC images typically require test data to be updated, too"
       ],
       matchDepNames: [
@@ -142,7 +132,7 @@
         '/.*\\.java/',
       ],
       matchStrings: [
-        '// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*"(?<currentValue>.+?)";',
+        '// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*"(?<currentValue>[^@;]+?)(@(?<currentDigest>sha256:.+?))?";',
       ],
     },
   ],

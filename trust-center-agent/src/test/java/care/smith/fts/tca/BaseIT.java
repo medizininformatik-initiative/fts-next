@@ -9,13 +9,13 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 public class BaseIT {
-  // renovate: datasource=github-releases depName=valkey-io/valkey
-  private static final String VALKEY_VERSION = "8.1.2";
+  // renovate: datasource=docker depName=valkey/valkey versioning=docker
+  private static final String VALKEY_VERSION = "8.1.2-alpine";
 
   private static final WireMockServer gics = onRandomPort();
   private static final WireMockServer gpas = onRandomPort();
   private static final RedisContainer keystore =
-      new RedisContainer("valkey/valkey:" + VALKEY_VERSION + "-alpine");
+      new RedisContainer("valkey/valkey:" + VALKEY_VERSION);
 
   static {
     keystore.start();
