@@ -39,7 +39,7 @@ public class EverythingDataSelectorFactory
     if (config.resolve() != null) {
       return config.resolve().createService(hdsClient, meterRegistry);
     } else {
-      return pid -> Mono.just(new IdType("Patient", pid));
+      return patient -> Mono.just(new IdType("Patient", patient.id()));
     }
   }
 }

@@ -22,6 +22,8 @@ dataSelector:
       baseUrl: http://cd-hds:8080/fhir
       # auth: [ ... ]
       # ssl: [ ... ]
+    # DEPRECATED will be removed with the next version update
+    # Use cohortSelector.external.patientIdentifierSystem instead
     # (optional) Patient identifier resolution configuration
     resolve:
       # System URL for patient identifier lookup
