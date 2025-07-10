@@ -48,16 +48,6 @@
     },
     {
       description: [
-        "Group valkey updates from DockerHub and GitHub"
-      ],
-      matchPackageNames: [
-        'valkey/valkey',
-        'valkey-io/valkey',
-      ],
-      groupName: 'valkey',
-    },
-    {
-      description: [
         "Custom MOSAIC images typically require test data to be updated, too"
       ],
       matchDepNames: [
@@ -123,15 +113,6 @@
       versioning: 'regex:^v(?<major>\\d+)(\\.(?<minor>\\d+)\\.(?<patch>\\d+))?$',
     },
   ],
-  hostRules: [
-    {
-      description: [
-        "Authenticate against GitHub API"
-      ],
-      matchHost: 'github.com',
-      token: '{{ secrets.GITHUB_COM_TOKEN }}',
-    },
-  ],
   customManagers: [
     {
       description: [
@@ -142,7 +123,7 @@
         '/.*\\.java/',
       ],
       matchStrings: [
-        '// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*"(?<currentValue>.+?)";',
+        '// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*"(?<currentValue>[^@;]+?)(@(?<currentDigest>sha256:.+?))?";',
       ],
     },
   ],
