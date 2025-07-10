@@ -14,6 +14,8 @@ server:
     client-auth: want
     # Specify client authentication requirement: 'need' means required
     client-auth: need
+  # If running behind a reverse proxy
+  forward-headers-strategy: framework
 ```
 
 ## Fields
@@ -40,6 +42,12 @@ the client and the server by encrypting data.
     - `need`: Client authentication is mandatory. The server will terminate the connection if
       the client does not provide a valid certificate.
   * **Default**: `none` (if not specified, no client authentication is required).
+
+### `forward-headers-strategy`  <Badge type="warning" text="Since 5.0" />
+* **Description**: Configure Spring Boot to trust forwarded headers
+* **Type**: String
+  * **Allowed Values**: framework
+
 
 ## Notes
 
@@ -69,6 +77,11 @@ the client and the server by encrypting data.
   * When client authentication is set to `need`, the health check must include a valid client
     certificate (via wget `--certificate` and `--private-key`) to successfully authenticate with the
     server. For `want` mode, client certificates are optional for health checks.
+
+* **Reverse Proxy**:
+  * If the agent runs behind a reverse proxy `forward-headers-strategy: framework` is necessary for 
+    the correct construction of links. 
+
 
 ## References
 

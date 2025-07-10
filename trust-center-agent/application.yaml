@@ -1,8 +1,8 @@
 ### Spring Logging Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/logging
 # logging.level:
-  # Log level for the care.smith.fts package
-  # care.smith.fts: INFO
+# Log level for the care.smith.fts package
+# care.smith.fts: INFO
 
 ### De-Identification Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/de-identification
@@ -59,6 +59,14 @@
 #     client-auth: want
 #     # Specify client authentication requirement: 'need' means required
 #     client-auth: need
+#   # If running behind a reverse proxy
+#   forward-headers-strategy: framework
+
+### Spring WebFlux Base Path
+##!
+# spring:
+#   # Set this if there is a path in the agent's URL
+#   webflux.base-path: /
 
 ### FTS Server Security Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/security
