@@ -14,7 +14,7 @@ server:
     client-auth: want
     # Specify client authentication requirement: 'need' means required
     client-auth: need
-  # If running behind a reverse proxy
+  # Use if running behind a reverse proxy (e.g. to respect Forwarded / X-Forwarded-* headers)
   forward-headers-strategy: framework
 ```
 
@@ -44,9 +44,9 @@ the client and the server by encrypting data.
   * **Default**: `none` (if not specified, no client authentication is required).
 
 ### `forward-headers-strategy`  <Badge type="warning" text="Since 5.0" />
-* **Description**: Configure Spring Boot to trust forwarded headers
+* **Description**: Configure Spring Boot to honor forwarded headers
 * **Type**: String
-  * **Allowed Values**: framework
+  * **Recommended Value**: framework
 
 
 ## Notes
@@ -79,8 +79,8 @@ the client and the server by encrypting data.
     server. For `want` mode, client certificates are optional for health checks.
 
 * **Reverse Proxy**:
-  * If the agent runs behind a reverse proxy `forward-headers-strategy: framework` is necessary for 
-    the correct construction of links. 
+  * When behind a reverse proxy, `forward-headers-strategy: framework` ensures correct link 
+    generation using forwarded headers (e.g., `Forwarded`, `X-Forwarded-Host`).
 
 
 ## References
@@ -89,6 +89,7 @@ the client and the server by encrypting data.
   * [Spring Boot Security Reference](https://docs.spring.io/spring-security/site/docs/current/reference/html5/)
   * [Securing Spring Boot Applications With SSL](https://spring.io/blog/2023/06/07/securing-spring-boot-applications-with-ssl)
   * [Embedded Web Servers/Configure SSL](https://docs.spring.io/spring-boot/how-to/webserver.html#howto.webserver.configure-ssl)
+  * [Howto Use Web Server Behind a Proxy](https://docs.spring.io/spring-boot/how-to/webserver.html#howto.webserver.use-behind-a-proxy-server)
 
 * **SSL and TLS Concepts**:
   * [What is SSL?](https://www.ssl.com/faqs/what-is-ssl/)

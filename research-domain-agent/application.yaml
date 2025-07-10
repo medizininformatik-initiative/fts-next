@@ -43,6 +43,14 @@
 #     client-auth: want
 #     # Specify client authentication requirement: 'need' means required
 #     client-auth: need
+#   # Use if running behind a reverse proxy (e.g. to respect Forwarded / X-Forwarded-* headers)
+#   forward-headers-strategy: framework
+
+### Spring WebFlux Base Path
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/webflux
+# spring:
+#   # Prefix for all API routes (useful if the agent is served under a subpath)
+#   webflux.base-path: /
 
 ### FTS Server Security Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/security
