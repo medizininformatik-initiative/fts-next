@@ -92,6 +92,7 @@ export default withMermaid({
                 {text: 'Observability', link: '/configuration/observability'},
                 {text: 'De-Identification', link: '/configuration/de-identification'},
                 {text: 'Consent', link: '/configuration/consent'},
+                {text: 'WebFlux', link: '/configuration/webflux'},
               ]
         },
         {
