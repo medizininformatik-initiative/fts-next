@@ -44,6 +44,10 @@ jobs:
         distribution: 'temurin'
         java-version: 21
         cache: 'maven'
+        cache-dependency-path: |
+          pom.xml
+          {api,util,test-util}/pom.xml
+          ${{ matrix.agent }}/pom.xml
 
     - name: Setup Keycloak
       working-directory: .github/test
@@ -89,6 +93,10 @@ jobs:
         distribution: 'temurin'
         java-version: 21
         cache: 'maven'
+        cache-dependency-path: |
+          pom.xml
+          {api,util}/pom.xml
+          ${{ matrix.agent }}/pom.xml
 
     - name: Build Agent
       run: |
