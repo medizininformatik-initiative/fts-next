@@ -1,0 +1,19 @@
+{
+  "resourceType": "CodeSystem",
+  "status": "active",
+  "content": "complete",
+  "name": "FTS_Tags",
+  "id": "fts-tags",
+  "title": "FTS Tags",
+  "description": "A code system for tagging FTSnext processed resources.",
+  "url": "https://medizininformatik-initiative.github.io/fts-next/fhir/CodeSystem/FTS_Tags",
+  "concept": [
+    {
+      "code": "Processed",
+      "display": "processed",
+      "definition": "This resource has been processed by FTSnext"
+    }
+  ],
+  "version": "1.0.0",
+  "count": 1
+}
