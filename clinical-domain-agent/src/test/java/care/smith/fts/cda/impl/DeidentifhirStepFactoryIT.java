@@ -44,7 +44,8 @@ class DeidentifhirStepFactoryIT {
                         new TcaDomains("domain", "domain", "domain")),
                     ofDays(14),
                     new File("deidentifhirConfig"),
-                    new File("scraperConfig"))))
+                    new File("scraperConfig"),
+                    null)))
         .isNotNull();
   }
 }
