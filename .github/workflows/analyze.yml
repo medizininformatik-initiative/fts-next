@@ -34,6 +34,7 @@ jobs:
       with:
         args: "--replace --set-exit-if-changed"
         skip-commit: true
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Print diffs
       if: failure() || cancelled()
