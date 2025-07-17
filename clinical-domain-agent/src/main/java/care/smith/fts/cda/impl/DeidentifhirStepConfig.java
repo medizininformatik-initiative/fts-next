@@ -5,6 +5,7 @@ import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.tca.TcaDomains;
 import java.io.File;
 import java.time.Duration;
+import java.util.Optional;
 
 public record DeidentifhirStepConfig(
     TCAConfig trustCenterAgent,
@@ -17,8 +18,13 @@ public record DeidentifhirStepConfig(
       TCAConfig trustCenterAgent,
       Duration maxDateShift,
       File deidentifhirConfig,
-      File scraperConfig) {
-    this(trustCenterAgent, maxDateShift, deidentifhirConfig, scraperConfig, DateShiftPreserve.NONE);
+      File scraperConfig,
+      DateShiftPreserve dateShiftPreserve) {
+    this.trustCenterAgent = trustCenterAgent;
+    this.maxDateShift = maxDateShift;
+    this.deidentifhirConfig = deidentifhirConfig;
+    this.scraperConfig = scraperConfig;
+    this.dateShiftPreserve = Optional.ofNullable(dateShiftPreserve).orElse(DateShiftPreserve.NONE);
   }
 
   public record TCAConfig(HttpClientConfig server, TcaDomains domains) {}
