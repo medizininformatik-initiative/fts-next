@@ -156,10 +156,12 @@ jobs:
     - name: Collect Info
       id: info
       run: |
-        echo "commit_date=$(git log -1 --date="iso-strict-local" --format="%cd")" >>"$GITHUB_OUTPUT"
+        date="$(git log -1 --date="iso-strict-local" --format="%cd")"
+        echo "commit_date=${date}" >>"${GITHUB_OUTPUT}"
         title="$(echo "${{ matrix.agent }}" | tr '-' ' ' | sed -E 's/(^| )([a-z])/\1\u\2/g')"
-        echo "agent_name=${title}" >>"$GITHUB_OUTPUT"
-        echo "agent_abbr=$(echo "${title}" | tr -cd '[:upper:]')" >>"$GITHUB_OUTPUT"
+        echo "agent_name=${title}" >>"${GITHUB_OUTPUT}"
+        abbr="$(echo "${title}" | tr -cd '[:upper:]')"
+        echo "agent_abbr=${abbr}" >>"${GITHUB_OUTPUT}"
 
     - name: Generate Container Image Metadata
       id: meta
@@ -188,7 +190,7 @@ jobs:
 
     - name: Output Image Digest
       id: digest
-      run: echo "${{ matrix.agent }}-digest=${{ steps.push.outputs.digest }}" >>"$GITHUB_OUTPUT"
+      run: echo "${{ matrix.agent }}-digest=${{ steps.push.outputs.digest }}" >>"${GITHUB_OUTPUT}"
     outputs:
       clinical-domain-agent-digest: ${{ steps.digest.outputs.clinical-domain-agent-digest }}
       trust-center-agent-digest: ${{ steps.digest.outputs.trust-center-agent-digest }}
@@ -436,7 +438,7 @@ jobs:
     - name: Retag and Push Container Image
       run: |
         while read -r tag; do
-          crane tag "${REGISTRY}/${{ matrix.agent }}@${DIGEST}" "$(echo "${tag}" | cut -d: -f2)"
+          echo "${tag}" | cut -d: -f2 | xargs crane tag "${REGISTRY}/${{ matrix.agent }}@${DIGEST}"
         done <<<"${{ steps.meta.outputs.tags }}"
 
   sign-image:
@@ -527,8 +529,10 @@ jobs:
       run: |
         make cd-agent tc-agent rd-agent
         # shellcheck disable=SC2016
-        echo "checksums-b64=$(cat ./*.tar.gz.sha256 | xargs -L1 bash -c 'echo -n "{\"$(echo $1 | cut -d. -f1)\": \"$(echo "$0 $1" | base64 -w0)\"}"' | jq -sc 'add')" >>"$GITHUB_OUTPUT"
-        echo "files=$(find . -name "*.tar.gz.sha256" -printf "%f\n" | cut -d. -f1 | jq -R | jq -sc)" >>"$GITHUB_OUTPUT"
+        checksums="$(cat ./*.tar.gz.sha256 | xargs -L1 bash -c 'echo -n "{\"$(echo $1 | cut -d. -f1)\": \"$(echo "$0 $1" | base64 -w0)\"}"' | jq -sc 'add')"
+        echo "checksums-b64=${checksums}" >>"${GITHUB_OUTPUT}"
+        files="$(find . -name "*.tar.gz.sha256" -printf "%f\n" | cut -d. -f1 | jq -R | jq -sc)"
+        echo "files=${files}" >>"${GITHUB_OUTPUT}"
 
     - name: Upload Release Archives
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -590,7 +594,7 @@ jobs:
       # In SemVer 2.0, a prerelease version is always indicated by the presence of a hyphen
       run: |
         if [[ "${GITHUB_REF}" == *-* ]]; then
-          echo "is-prerelease=true" >>"$GITHUB_OUTPUT"
+          echo "is-prerelease=true" >>"${GITHUB_OUTPUT}"
         fi
 
     - name: Release

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Create CA
 echo "Creating CA..."
