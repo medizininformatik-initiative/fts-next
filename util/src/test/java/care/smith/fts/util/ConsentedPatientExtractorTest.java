@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import org.hl7.fhir.r4.model.*;
 import org.junit.jupiter.api.Test;
 
-class GicsConsentedPatientExtractorTest {
+class ConsentedPatientExtractorTest {
 
   private static final String PATIENT_IDENTIFIER_SYSTEM = "http://hospital.com/patient";
   private static final String POLICY_SYSTEM = "http://hospital.com/policy";
@@ -56,7 +56,7 @@ class GicsConsentedPatientExtractorTest {
     outerBundle.addEntry().setResource(bundle2);
 
     var consentedPatients =
-        GicsConsentedPatientExtractor.extractConsentedPatients(
+        ConsentedPatientExtractor.extractConsentedPatients(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, outerBundle, POLICIES_TO_CHECK);
 
     var result = consentedPatients.collect(Collectors.toList());
@@ -70,7 +70,7 @@ class GicsConsentedPatientExtractorTest {
   @Test
   void extractConsentedPatient() {
     var consentedPatient =
-        GicsConsentedPatientExtractor.extractConsentedPatient(
+        ConsentedPatientExtractor.extractConsentedPatient(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
 
     assertThat(consentedPatient).isPresent();
@@ -82,7 +82,7 @@ class GicsConsentedPatientExtractorTest {
   @Test
   void extractConsentedPatientWithUnknownPoliciesYieldsEmptyResult() {
     var consentedPatient =
-        GicsConsentedPatientExtractor.extractConsentedPatient(
+        ConsentedPatientExtractor.extractConsentedPatient(
             PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, Set.of("Unknown Policy"));
 
     assertThat(consentedPatient).isEmpty();
@@ -91,7 +91,7 @@ class GicsConsentedPatientExtractorTest {
   @Test
   void hasAllPolicies() {
     var result =
-        GicsConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
+        ConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
 
     assertThat(result).isTrue();
   }

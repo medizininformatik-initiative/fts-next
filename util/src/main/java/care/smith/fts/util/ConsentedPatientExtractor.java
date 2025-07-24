@@ -8,6 +8,7 @@ import care.smith.fts.api.Period;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 
 /**
@@ -31,9 +32,10 @@ import org.hl7.fhir.r4.model.*;
  * @see ConsentedPolicies
  * @see Period
  */
-public interface GicsConsentedPatientExtractor {
+public interface ConsentedPatientExtractor {
+  @Slf4j
+  final class Logger {}
 
-  String gicsPatientIdentifierSystem = "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
 
   /**
    * Extracts consented patients from the given outer bundle. It is assumed that the outer bundle is
@@ -68,9 +70,12 @@ public interface GicsConsentedPatientExtractor {
       String policySystem,
       Stream<Bundle> bundles,
       Set<String> policiesToCheck) {
+
     return bundles
+        .peek(b -> Logger.log.trace("Processing bundle: " + b.getIdentifier().getValue()))
         .map(
             b -> extractConsentedPatient(patientIdentifierSystem, policySystem, b, policiesToCheck))
+        .peek(p -> Logger.log.trace("Consented patient: " + p))
         .filter(Optional::isPresent)
         .map(Optional::get);
   }
@@ -90,14 +95,19 @@ public interface GicsConsentedPatientExtractor {
       String policySystem,
       Bundle bundle,
       Set<String> policiesToCheck) {
-    return getPatientIdentifier(bundle)
+    return getPatientIdentifier(bundle, patientIdentifierSystem)
         .flatMap(
             pid -> {
               var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
               if (consentedPolicies.hasAllPolicies(policiesToCheck)) {
+                Logger.log.debug("Found consented patient: {} ({}).", pid, policiesToCheck);
                 return Optional.of(
                     new ConsentedPatient(pid, patientIdentifierSystem, consentedPolicies));
               } else {
+                Logger.log.warn(
+                    ">{} has not consented to all required policies: {} - skipping patient.",
+                    pid,
+                    policiesToCheck);
                 return Optional.empty();
               }
             });
@@ -122,11 +132,14 @@ public interface GicsConsentedPatientExtractor {
    * @param bundle the bundle containing the patient resource
    * @return an {@link Optional} containing the patient identifier, if found
    */
-  private static Optional<String> getPatientIdentifier(Bundle bundle) {
+  private static Optional<String> getPatientIdentifier(Bundle bundle, String patientIdentifierSystem) {
     return typedResourceStream(bundle, Patient.class)
         .flatMap(p -> p.getIdentifier().stream())
-        .filter(id -> id.getSystem().equals(gicsPatientIdentifierSystem))
+        .peek(id -> Logger.log.trace("Found patient identifier: {}.", id))
+        .filter(id -> id.getSystem().equals(patientIdentifierSystem))
+        .peek(id -> Logger.log.trace("Found gics patient identifier after filter: {}.", id))
         .map(Identifier::getValue)
+        .peek(id -> Logger.log.trace("Found gics patient identifier after mapping: {}.", id))
         .findFirst();
   }
 

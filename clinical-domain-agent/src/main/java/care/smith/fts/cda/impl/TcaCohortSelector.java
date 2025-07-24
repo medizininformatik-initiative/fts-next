@@ -7,7 +7,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
-import care.smith.fts.util.GicsConsentedPatientExtractor;
+import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.fhir.FhirException;
 import com.google.common.collect.ImmutableMap;
@@ -91,7 +91,7 @@ class TcaCohortSelector implements CohortSelector {
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
     return Flux.fromStream(
-        GicsConsentedPatientExtractor.extractConsentedPatients(
+        ConsentedPatientExtractor.extractConsentedPatients(
             config.patientIdentifierSystem(),
             config.policySystem(),
             outerBundle,

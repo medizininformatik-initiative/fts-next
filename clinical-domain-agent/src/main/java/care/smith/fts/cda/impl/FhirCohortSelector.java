@@ -3,13 +3,12 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
-import static java.util.stream.Collectors.joining;
-import static org.springframework.web.util.UriComponentsBuilder.*;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
-import care.smith.fts.util.GicsConsentedPatientExtractor;
+import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
+import care.smith.fts.util.fhir.FhirUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
@@ -50,15 +49,16 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   private String buildFhirSearchQuery(List<String> pids) {
-    var builder = fromPath("/Consent").queryParam("_include", "Patient");
-    if (!pids.isEmpty()) {
-      var pidQuery =
-          pids.stream()
-              .map(pid -> config.patientIdentifierSystem() + "|" + pid)
-              .collect(joining(","));
-      builder = builder.queryParam("patient.identifier", pidQuery);
-    }
-    return builder.toUriString();
+    var query = new StringBuilder("/Consent?_include=Consent:patient");
+    pids.forEach(
+        pid ->
+            query
+                .append("&")
+                .append("patient.identifier=")
+                .append(config.patientIdentifierSystem())
+                .append("|")
+                .append(pid));
+    return query.toString();
   }
 
   private Mono<Bundle> fetchBundle(String uriString) {
@@ -79,8 +79,9 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
+    log.trace("Extracting consented patients from bundle {}", FhirUtils.fhirResourceToString(bundle));
     return Flux.fromStream(
-        GicsConsentedPatientExtractor.getConsentedPatients(
+        ConsentedPatientExtractor.getConsentedPatients(
             config.patientIdentifierSystem(),
             config.policySystem(),
             groupPatientsAndConsents(bundle),
@@ -89,10 +90,12 @@ class FhirCohortSelector implements CohortSelector {
 
   private static Stream<Bundle> groupPatientsAndConsents(Bundle bundle) {
     var patients = typedResourceStream(bundle, Patient.class);
+    log.trace("Grouping patients");
     return patients
         .parallel()
         .map(
             p -> {
+              log.trace("Grouping patient {} with consent resources", p.getIdElement().getIdPart());
               var inner = new Bundle().addEntry(new BundleEntryComponent().setResource(p));
               typedResourceStream(bundle, Consent.class)
                   .filter(c -> isConsentOfPatient(p, c))

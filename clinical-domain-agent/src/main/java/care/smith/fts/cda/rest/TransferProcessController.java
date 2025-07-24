@@ -96,6 +96,7 @@ public class TransferProcessController {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
+      log.trace("pids: {}", pids);
 
       var id = processRunner.start(process.get(), Optional.ofNullable(pids).orElse(List.of()));
       var jobUri = generateJobUri(uriBuilder, id);
