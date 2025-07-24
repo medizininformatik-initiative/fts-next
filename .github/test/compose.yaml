@@ -59,7 +59,7 @@ services:
       retries: 3
       start_period: 120s
   gics-db:
-    image: mysql:9.4.0@sha256:a274780a54674bdc00a74ccf2f386e7540fab3ffbe41971758fed5ade292f3a1
+    image: mysql:9.4.0@sha256:2426e028f770e7e87aaaddb1f3cef472679279c1a2d94547e7a6acc4f111f8f0
     volumes:
     - ./gics/initdb/:/docker-entrypoint-initdb.d
     command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
@@ -89,7 +89,7 @@ services:
       retries: 3
       start_period: 120s
   gpas-db:
-    image: mysql:9.4.0@sha256:a274780a54674bdc00a74ccf2f386e7540fab3ffbe41971758fed5ade292f3a1
+    image: mysql:9.4.0@sha256:2426e028f770e7e87aaaddb1f3cef472679279c1a2d94547e7a6acc4f111f8f0
     volumes:
     - ./gpas/initdb/:/docker-entrypoint-initdb.d
     command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
