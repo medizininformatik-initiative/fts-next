@@ -5,7 +5,7 @@
     "markdown-it-mathjax3": "4.3.2",
     "mermaid": "11.9.0",
     "rapidoc": "9.3.8",
-    "vitepress": "1.6.3",
+    "vitepress": "1.6.4",
     "vitepress-plugin-mermaid": "2.0.17"
   },
   "scripts": {
