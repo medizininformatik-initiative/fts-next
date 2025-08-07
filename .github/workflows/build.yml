@@ -266,10 +266,9 @@ jobs:
 
     - name: Install Blazectl
       env:
-        # Check the blazectl binary against a pinned checksum here, it must be updated accordingly
         # renovate: datasource=github-releases depName=samply/blazectl
-        BLAZECTL_VERSION: v1.0.0
-        BLAZECTL_CHECKSUM: ffb6114f3f40180e83fd59bbadad02834b4287414887a89481f42a4cbe85742b
+        BLAZECTL_VERSION: v1.1.0
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: install-blazectl.sh
 
     - name: Prepare Auth Failing Tests
