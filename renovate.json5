@@ -5,7 +5,6 @@
     ':automergeMinor',
     ':automergeDigest',
     ':maintainLockFilesWeekly',
-    'customManagers:githubActionsVersions',
   ],
   description: [
     "We use `ignorePaths` to mitigate :ignoreModulesAndTests, which would ignore java test classes",
@@ -126,5 +125,18 @@
         '// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\n[^\\n]+[A-Za-z0-9_]+?_VERSION\\s*=\\s*"(?<currentValue>[^@;]+?)(@(?<currentDigest>sha256:.+?))?";',
       ],
     },
+    {
+      description: [
+        "Like customManagers:githubActionsVersions, but also finds the digest."
+      ],
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)(workflow-templates|\\.(?:github|gitea|forgejo)/(?:workflows|actions))/.+\\.ya?ml$/",
+        "/(^|/)action\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+?) depName=(?<depName>\\S+?)(?: (?:lookupName|packageName)=(?<packageName>\\S+?))?(?: versioning=(?<versioning>\\S+?))?(?: extractVersion=(?<extractVersion>\\S+?))?\\s+\\w+?_VERSION\\s*:\\s*[\"']?(?<currentValue>.+?)[\"']?\\s+(\\w+?_CHECKSUM\\s*:\\s*[\"']?(?<currentDigest>\\w+)[\"']?)?"
+      ]
+    }
   ],
 }

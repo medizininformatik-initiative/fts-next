@@ -366,7 +366,7 @@ jobs:
     - name: Install CycloneDX CLI
       env:
         # Check the cyclonedx binary against a pinned checksum here, it must be updated accordingly
-        # renovate: datasource=github-releases depName=CycloneDX/cyclonedx-cli
+        # renovate: datasource=github-release-attachments depName=CycloneDX/cyclonedx-cli
         CDX_CLI_VERSION: v0.29.0
         CDX_CLI_CHECKSUM: 411bd30d28ca705500f0b5a7f4a896749cad1b082deb5245ece7b386e496c48c
       run: .github/scripts/install-cyclonedx.sh
