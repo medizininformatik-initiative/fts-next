@@ -22,6 +22,7 @@ public record HttpServerClientCertAuth(List<UserSpec> users) implements HttpServ
   }
 
   private static String extractCN(X509Certificate cert) {
+    log.trace("Extracting CN from certificate: {}", cert.getSubjectX500Principal());
     return cert.getSubjectX500Principal().getName().replaceFirst("CN=", "");
   }
 
