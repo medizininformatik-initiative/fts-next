@@ -11,8 +11,10 @@ import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.GicsConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -22,6 +24,7 @@ import org.hl7.fhir.r4.model.Consent;
 import org.hl7.fhir.r4.model.Patient;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
+import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,7 +43,7 @@ class FhirCohortSelector implements CohortSelector {
 
   @Override
   public Flux<ConsentedPatient> selectCohort(List<String> pids) {
-    return fetchBundle(buildFhirSearchQuery(pids))
+    return fetchBundle(b -> buildFhirSearchQuery(b, pids))
         .expand(this::fetchNextPage)
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} entries in bundle", b.getEntry().size()))
@@ -49,8 +52,8 @@ class FhirCohortSelector implements CohortSelector {
         .flatMap(this::extractConsentedPatients);
   }
 
-  private String buildFhirSearchQuery(List<String> pids) {
-    var builder = fromPath("/Consent").queryParam("_include", "Patient");
+  private URI buildFhirSearchQuery(UriBuilder builder, List<String> pids) {
+    builder.pathSegment("Consent").queryParam("_include", "Patient");
     if (!pids.isEmpty()) {
       var pidQuery =
           pids.stream()
@@ -58,13 +61,13 @@ class FhirCohortSelector implements CohortSelector {
               .collect(joining(","));
       builder = builder.queryParam("patient.identifier", pidQuery);
     }
-    return builder.toUriString();
+    return builder.build();
   }
 
-  private Mono<Bundle> fetchBundle(String uriString) {
+  private Mono<Bundle> fetchBundle(Function<UriBuilder, URI> uriBuilder) {
     return fhirClient
         .get()
-        .uri(uriString)
+        .uri(uriBuilder)
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
@@ -75,7 +78,16 @@ class FhirCohortSelector implements CohortSelector {
     return Mono.justOrEmpty(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
         .doOnNext(url -> log.trace("Fetch next page from: {}", url))
-        .flatMap(this::fetchBundle);
+        .flatMap(url -> fetchBundle(extractUriBuilder(url)));
+  }
+
+  private static Function<UriBuilder, URI> extractUriBuilder(String url) {
+    URI uri = fromUriString(url).build().toUri();
+    if (uri.isAbsolute()) {
+      return b -> uri;
+    } else {
+      return b -> b.replacePath(uri.getPath()).replaceQuery(uri.getQuery()).build();
+    }
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
