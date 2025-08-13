@@ -1,14 +1,15 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
-import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
@@ -20,9 +21,11 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,12 +51,14 @@ class FhirCohortSelectorIT {
   private FhirCohortSelector cohortSelector;
 
   private FhirCohortGenerator cohortGenerator;
+  private HttpClientConfig config;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
     var ignored = new HttpClientConfig("ignored");
     var config = new FhirCohortSelectorConfig(ignored, PID_SYSTEM, POLICY_SYSTEM, POLICIES);
-    var fhirClient = clientFactory.create(clientConfig(wireMockRuntime));
+    this.config = MockServerUtil.clientConfig(wireMockRuntime);
+    var fhirClient = clientFactory.create(this.config);
     cohortSelector = new FhirCohortSelector(config, fhirClient, meterRegistry);
     wireMock = wireMockRuntime.getWireMock();
     cohortGenerator = new FhirCohortGenerator(PID_SYSTEM, POLICY_SYSTEM, POLICIES);
@@ -65,10 +70,11 @@ class FhirCohortSelectorIT {
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
-  private static MappingBuilder fetchListRequest() {
+  private static MappingBuilder fetchListRequest(String... pids) {
+    var pidList = Stream.of(pids).map(pid -> PID_SYSTEM + "|" + pid).collect(joining(","));
     return get(urlPathEqualTo("/Consent"))
         .withQueryParam("_include", equalTo("Patient"))
-        .withQueryParam("patient.identifier", equalTo(PID_SYSTEM + "%7Cpatient-1"))
+        .withQueryParam("patient.identifier", equalTo(pidList))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
@@ -97,12 +103,12 @@ class FhirCohortSelectorIT {
       return new TestStep<ConsentedPatient>() {
         @Override
         public MappingBuilder requestBuilder() {
-          return fetchListRequest();
+          return fetchListRequest("patient-151337");
         }
 
         @Override
         public Flux<ConsentedPatient> executeStep() {
-          return cohortSelector.selectCohort(List.of("patient-1"));
+          return cohortSelector.selectCohort(List.of("patient-151337"));
         }
       };
     }
@@ -124,9 +130,11 @@ class FhirCohortSelectorIT {
   @Test
   void consentBundleForIdsSucceeds() {
     var bundle = cohortGenerator.generate();
-    wireMock.register(fetchListRequest().willReturn(fhirResponse(bundle)));
+    wireMock.register(fetchListRequest("patient-103291").willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of("patient-1"))).expectNextCount(1).verifyComplete();
+    create(cohortSelector.selectCohort(List.of("patient-103291")))
+        .expectNextCount(1)
+        .verifyComplete();
   }
 
   @Test
@@ -183,5 +191,42 @@ class FhirCohortSelectorIT {
             .willReturn(fhirResponse(bundles.get(1))));
 
     create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
+  }
+
+  /**
+   * We encode manually here as it was not clear from the docs and issues if <code>
+   * wiremock.withQueryParam()</code> really encodes values. Here we make sure that our
+   * implementation encodes only once, as was the problem in #1062.
+   */
+  @Test
+  void testUrlEncoding() {
+    var bundle = cohortGenerator.generate();
+    var query = "?_include=Patient&patient.identifier=" + PID_SYSTEM + "%7Cpatient-134622";
+    wireMock.register(
+        get(urlEqualTo("/Consent" + query))
+            .withHeader(ACCEPT, equalTo(MockServerUtil.APPLICATION_FHIR_JSON))
+            .willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of("patient-134622")))
+        .expectNextCount(1)
+        .verifyComplete();
+  }
+
+  @Test
+  void testAbsoluteUrl() {
+    var bundles = cohortGenerator.generate(2, 1, 1).toList();
+    bundles.forEach(b -> b.getLink().forEach(injectBaseUrl()));
+
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundles.getFirst())));
+    wireMock.register(
+        get(urlPathEqualTo("/Consent"))
+            .withQueryParam("_page", equalTo("1"))
+            .willReturn(fhirResponse(bundles.get(1))));
+
+    create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
+  }
+
+  private Consumer<BundleLinkComponent> injectBaseUrl() {
+    return l -> l.setUrl(config.baseUrl() + l.getUrl());
   }
 }
