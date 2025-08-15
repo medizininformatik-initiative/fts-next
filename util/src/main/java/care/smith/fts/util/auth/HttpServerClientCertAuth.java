@@ -1,5 +1,6 @@
 package care.smith.fts.util.auth;
 
+import static java.util.Arrays.stream;
 import static org.springframework.security.core.userdetails.User.withUsername;
 
 import care.smith.fts.util.auth.HttpServerAuthConfig.Endpoint;
@@ -18,11 +19,25 @@ public record HttpServerClientCertAuth(List<UserSpec> users) implements HttpServ
 
   @Override
   public ServerHttpSecurity configure(ServerHttpSecurity http) {
-    return http.x509(x509 -> x509.principalExtractor(HttpServerClientCertAuth::extractCN));
+    return http.x509(x509 -> x509.principalExtractor(HttpServerClientCertAuth::extractCn));
   }
 
-  private static String extractCN(X509Certificate cert) {
-    return cert.getSubjectX500Principal().getName().replaceFirst("CN=", "");
+  static String extractCn(X509Certificate cert) {
+    var distinguishedName = cert.getSubjectX500Principal().getName();
+    return stream(distinguishedName.split(","))
+        .filter(c -> c.startsWith("CN="))
+        .map(c -> c.substring(3))
+        .findFirst()
+        .map(
+            cn -> {
+              log.trace("Extracted CN '{}' from cert subject: {}", cn, distinguishedName);
+              return cn;
+            })
+        .orElseGet(
+            () -> {
+              log.warn("Could not extract CN from cert subject: {}", distinguishedName);
+              return "";
+            });
   }
 
   @Override
