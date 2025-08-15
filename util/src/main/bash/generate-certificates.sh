@@ -9,13 +9,13 @@ openssl req -x509 -new -key "ca.key" -days 60 -out "ca.crt" -subj "/CN=fts.smith
 # Create server certificate
 echo "Creating server certificate..."
 openssl genpkey -quiet -algorithm Ed25519 -out "server.key" >/dev/null
-openssl req -new -key "server.key" -subj "/CN=${1:-server.example.com}" \
+openssl req -new -key "server.key" -subj "/CN=${1:-server.example.com}/OU=Server/O=FTSnext" \
   | openssl x509 -req -CA "ca.crt" -CAkey "ca.key" -CAcreateserial -out "server.crt" -days 30
 
 for CLIENT_CN in "${@:2}"; do
   echo "Creating '$CLIENT_CN' client certificate for CN=$CLIENT_CN..."
   openssl genpkey -quiet -algorithm Ed25519 -out "client-${CLIENT_CN}.key" >/dev/null
-  openssl req -new -key "client-${CLIENT_CN}.key" -subj "/CN=${CLIENT_CN}" \
+  openssl req -new -key "client-${CLIENT_CN}.key" -subj "/CN=${CLIENT_CN}/OU=Client/O=FTSnext" \
     | openssl x509 -req -CA "ca.crt" -CAkey "ca.key" -CAcreateserial -out "client-${CLIENT_CN}.crt" -days 30
 done
 
