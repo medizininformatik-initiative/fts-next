@@ -61,26 +61,26 @@ class GicsFhirConsentedPatientsProviderFetchIT
           List.of("id1", "id2", "id3", "id4"));
 
   private static final String REQUEST_BODY1 =
-      """
-      {
-        "resourceType": "Parameters",
-        "parameter": [
-          {"name": "domain", "valueString": "MII"},
-          {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id1"}},
-          {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id2"}}
-      ]}
-      """;
+"""
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {"name": "domain", "valueString": "MII"},
+    {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id1"}},
+    {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id2"}}
+]}
+""";
 
   private static final String REQUEST_BODY2 =
-      """
-      {
-        "resourceType": "Parameters",
-        "parameter": [
-          {"name": "domain", "valueString": "MII"},
-          {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id3"}},
-          {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id4"}}
-      ]}
-      """;
+"""
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {"name": "domain", "valueString": "MII"},
+    {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id3"}},
+    {"name":  "personIdentifier", "valueIdentifier":  {"system":  "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym", "value": "id4"}}
+]}
+""";
 
   @BeforeEach
   @Override

@@ -230,12 +230,12 @@ public class TransferProcessController {
                       @ExampleObject(
                           name = "Example configuration",
                           value =
-                              """
-                              {"cohortSelector":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domain":"MII","patientIdentifierSystem":"https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym","policySystem":"https://ths-greifswald.de/fhir/CodeSystem/gics/Policy","policies":["IDAT_erheben","IDAT_speichern_verarbeiten","MDAT_erheben","MDAT_speichern_verarbeiten"]}},
-                               "dataSelector":{"everything":{"fhirServer":{"baseUrl":"http://cd-hds:8080/fhir"},"resolve":{"patientIdentifierSystem":"http://fts.smith.care"}}},
-                               "deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domains":{"pseudonym":"MII","salt":"MII","dateShift":"MII"}},"maxDateShift":"P14D","deidentifhirConfig":"/app/projects/example/deidentifhir/CDtoTransport.profile","scraperConfig":"/app/projects/example/deidentifhir/IDScraper.profile"}},
-                               "bundleSender":{"researchDomainAgent":{"server":{"baseUrl":"http://rd-agent:8080"},"project":"example"}}}
-                              """)
+"""
+{"cohortSelector":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domain":"MII","patientIdentifierSystem":"https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym","policySystem":"https://ths-greifswald.de/fhir/CodeSystem/gics/Policy","policies":["IDAT_erheben","IDAT_speichern_verarbeiten","MDAT_erheben","MDAT_speichern_verarbeiten"]}},
+ "dataSelector":{"everything":{"fhirServer":{"baseUrl":"http://cd-hds:8080/fhir"},"resolve":{"patientIdentifierSystem":"http://fts.smith.care"}}},
+ "deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domains":{"pseudonym":"MII","salt":"MII","dateShift":"MII"}},"maxDateShift":"P14D","deidentifhirConfig":"/app/projects/example/deidentifhir/CDtoTransport.profile","scraperConfig":"/app/projects/example/deidentifhir/IDScraper.profile"}},
+ "bundleSender":{"researchDomainAgent":{"server":{"baseUrl":"http://rd-agent:8080"},"project":"example"}}}
+""")
                     })),
         @ApiResponse(responseCode = "404", description = "The project does not exist")
       })
