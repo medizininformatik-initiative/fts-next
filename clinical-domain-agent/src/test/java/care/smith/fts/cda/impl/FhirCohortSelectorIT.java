@@ -66,14 +66,14 @@ class FhirCohortSelectorIT {
 
   private static MappingBuilder fetchAllRequest() {
     return get(urlPathEqualTo("/Consent"))
-        .withQueryParam("_include", equalTo("Patient"))
+        .withQueryParam("_include", equalTo("Consent:patient"))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
   private static MappingBuilder fetchListRequest(String... pids) {
     var pidList = Stream.of(pids).map(pid -> PID_SYSTEM + "|" + pid).collect(joining(","));
     return get(urlPathEqualTo("/Consent"))
-        .withQueryParam("_include", equalTo("Patient"))
+        .withQueryParam("_include", equalTo("Consent:patient"))
         .withQueryParam("patient.identifier", equalTo(pidList))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
@@ -201,7 +201,7 @@ class FhirCohortSelectorIT {
   @Test
   void testUrlEncoding() {
     var bundle = cohortGenerator.generate();
-    var query = "?_include=Patient&patient.identifier=" + PID_SYSTEM + "%7Cpatient-134622";
+    var query = "?_include=Consent:patient&patient.identifier=" + PID_SYSTEM + "%7Cpatient-134622";
     wireMock.register(
         get(urlEqualTo("/Consent" + query))
             .withHeader(ACCEPT, equalTo(MockServerUtil.APPLICATION_FHIR_JSON))

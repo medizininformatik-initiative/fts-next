@@ -1,0 +1,14 @@
+{
+  "phase": "COMPLETED",
+  "sentBundles": 15,
+  "skippedBundles": 0,
+  "count": {
+    "Patient": 10,
+    "Encounter": 174,
+    "Observation": 2408,
+    "Condition": 635,
+    "DiagnosticReport": 130,
+    "Medication": 0,
+    "MedicationAdministration": 0
+  }
+}
