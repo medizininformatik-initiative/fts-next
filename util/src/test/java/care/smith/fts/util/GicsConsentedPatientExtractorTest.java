@@ -68,31 +68,73 @@ class GicsConsentedPatientExtractorTest {
   }
 
   @Test
-  void extractConsentedPatient() {
-    var consentedPatient =
-        GicsConsentedPatientExtractor.extractConsentedPatient(
-            PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
+  void extractConsentedPatients_usesGicsSystemForExtraction() {
+    // Create bundle with patient using hospital system instead of gICS system
+    var bundleWithHospitalSystem = generateBundleWithHospitalSystem("12345");
+    var outerBundle = new Bundle();
+    outerBundle.addEntry().setResource(bundle1); // Uses gICS system
+    outerBundle.addEntry().setResource(bundleWithHospitalSystem); // Uses hospital system
 
-    assertThat(consentedPatient).isPresent();
-    assertThat(consentedPatient.get().id()).isEqualTo("12345");
-    assertThat(consentedPatient.get().patientIdentifierSystem())
-        .isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
+    var consentedPatients =
+        GicsConsentedPatientExtractor.extractConsentedPatients(
+            PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, outerBundle, POLICIES_TO_CHECK);
+
+    var result = consentedPatients.collect(Collectors.toList());
+    assertThat(result).hasSize(1); // Only the gICS system bundle should be found
+    assertThat(result.get(0).id()).isEqualTo("12345");
   }
 
   @Test
-  void extractConsentedPatientWithUnknownPoliciesYieldsEmptyResult() {
-    var consentedPatient =
-        GicsConsentedPatientExtractor.extractConsentedPatient(
-            PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, bundle1, Set.of("Unknown Policy"));
+  void extractConsentedPatients_returnsPassedSystemInResult() {
+    var outerBundle = new Bundle();
+    outerBundle.addEntry().setResource(bundle1);
 
-    assertThat(consentedPatient).isEmpty();
+    var consentedPatients =
+        GicsConsentedPatientExtractor.extractConsentedPatients(
+            PATIENT_IDENTIFIER_SYSTEM, POLICY_SYSTEM, outerBundle, POLICIES_TO_CHECK);
+
+    var result = consentedPatients.collect(Collectors.toList());
+    assertThat(result).hasSize(1);
+    // Result should contain the passed identifier system, not the hardcoded gICS one
+    assertThat(result.get(0).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
+    assertThat(result.get(0).patientIdentifierSystem())
+        .isNotEqualTo(GicsConsentedPatientExtractor.GICS_PATIENT_IDENTIFIER_SYSTEM);
   }
 
   @Test
-  void hasAllPolicies() {
-    var result =
-        GicsConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle1, POLICIES_TO_CHECK);
+  void getPatientIdentifier_onlyMatchesGicsSystem() {
+    var bundleWithGicsSystem = bundle1; // Uses gICS system
+    var bundleWithHospitalSystem = generateBundleWithHospitalSystem("67890");
 
-    assertThat(result).isTrue();
+    // Should find identifier in gICS bundle
+    var gicsResult = GicsConsentedPatientExtractor.getPatientIdentifier(bundleWithGicsSystem);
+    assertThat(gicsResult).isPresent();
+    assertThat(gicsResult.get()).isEqualTo("12345");
+
+    // Should NOT find identifier in hospital system bundle
+    var hospitalResult =
+        GicsConsentedPatientExtractor.getPatientIdentifier(bundleWithHospitalSystem);
+    assertThat(hospitalResult).isEmpty();
+  }
+
+  private static Bundle generateBundleWithHospitalSystem(String id) {
+    var patient = new Patient();
+    var identifier =
+        new Identifier()
+            .setSystem(PATIENT_IDENTIFIER_SYSTEM) // Uses hospital system instead of gICS
+            .setValue(id);
+    patient.addIdentifier(identifier);
+
+    var consent = new Consent();
+    consent.setProvision(
+        new Consent.ProvisionComponent()
+            .setType(Consent.ConsentProvisionType.DENY)
+            .addProvision(permittedProvisionComponent("POLICY_A"))
+            .addProvision(permittedProvisionComponent("POLICY_B")));
+
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(patient);
+    bundle.addEntry().setResource(consent);
+    return bundle;
   }
 }
