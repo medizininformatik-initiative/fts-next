@@ -59,11 +59,63 @@ public class FhirPackagerApplication implements CommandLineRunner, ExitCodeGener
       // Disable banner and web environment for cleaner CLI experience
       app.setBannerMode(org.springframework.boot.Banner.Mode.OFF);
       
+      // Add custom configuration handling for external config files
+      addExternalConfigSupport(app, args);
+      
       int exitCode = SpringApplication.exit(app.run(args));
       System.exit(exitCode);
+    } catch (org.springframework.boot.context.config.InvalidConfigDataPropertyException e) {
+      log.error("Invalid configuration: {}", e.getMessage());
+      System.exit(2);
     } catch (Exception e) {
       log.error("Application failed to start", e);
       System.exit(1);
+    }
+  }
+  
+  /**
+   * Adds support for external configuration files specified via CLI arguments.
+   * 
+   * <p>This method scans command-line arguments for --config-file or -c options
+   * and adds the specified file as an additional property source.
+   * 
+   * @param app the Spring application to configure
+   * @param args command-line arguments
+   */
+  private static void addExternalConfigSupport(SpringApplication app, String[] args) {
+    // Scan args for config file option
+    String configFile = null;
+    for (int i = 0; i < args.length - 1; i++) {
+      if ("--config-file".equals(args[i]) || "-c".equals(args[i])) {
+        configFile = args[i + 1];
+        break;
+      }
+    }
+    
+    if (configFile != null) {
+      // Add the external config file as an additional property source
+      final String finalConfigFile = configFile;
+      app.addInitializers(applicationContext -> {
+        try {
+          // The config file validation will be handled by PackagerCommand
+          // Here we just set up Spring to load it if it exists
+          applicationContext.getEnvironment().getPropertySources()
+              .addLast(new org.springframework.core.env.PropertySource<Object>("external-config") {
+                @Override
+                public Object getProperty(String name) {
+                  // This is handled by Spring Boot's standard config loading
+                  return null;
+                }
+              });
+          
+          // Set the external config location for Spring Boot to pick up
+          System.setProperty("spring.config.additional-location", "file:" + finalConfigFile);
+          
+        } catch (Exception e) {
+          log.debug("Could not add external config file: {}", e.getMessage());
+          // Don't fail here - let the PackagerCommand validation handle it
+        }
+      });
     }
   }
 

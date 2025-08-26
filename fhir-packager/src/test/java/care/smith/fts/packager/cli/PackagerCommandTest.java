@@ -11,8 +11,10 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.*;
@@ -331,6 +333,175 @@ class PackagerCommandTest {
     } finally {
       file.setReadable(true); // Restore for cleanup
       Files.deleteIfExists(tempFile);
+    }
+  }
+
+  @Test
+  void shouldRejectInvalidYamlSyntax() throws Exception {
+    // Given: Config file with invalid YAML syntax
+    URL resourceUrl = getClass().getClassLoader().getResource("invalid-yaml-syntax.yaml");
+    assertThat(resourceUrl).isNotNull();
+    
+    String[] args = {"--config-file", resourceUrl.getPath()};
+    commandLine.parseArgs(args);
+
+    // When: Call command
+    Integer result = command.call();
+
+    // Then: Should return error for invalid YAML
+    assertThat(result).isEqualTo(2);
+  }
+
+  @Test
+  void shouldRejectInvalidUrlInConfigFile() throws Exception {
+    // Given: Config file with invalid URL
+    URL resourceUrl = getClass().getClassLoader().getResource("invalid-url-config.yaml");
+    assertThat(resourceUrl).isNotNull();
+    
+    String[] args = {"--config-file", resourceUrl.getPath()};
+    commandLine.parseArgs(args);
+
+    // When: Call command
+    Integer result = command.call();
+
+    // Then: Should return error for invalid URL
+    assertThat(result).isEqualTo(2);
+  }
+
+  @Test
+  void shouldRejectInvalidTimeoutInConfigFile() throws Exception {
+    // Given: Config file with invalid timeout format
+    URL resourceUrl = getClass().getClassLoader().getResource("invalid-timeout-config.yaml");
+    assertThat(resourceUrl).isNotNull();
+    
+    String[] args = {"--config-file", resourceUrl.getPath()};
+    commandLine.parseArgs(args);
+
+    // When: Call command
+    Integer result = command.call();
+
+    // Then: Should return error for invalid timeout
+    assertThat(result).isEqualTo(2);
+  }
+
+  @Test
+  void shouldRejectNegativeTimeoutInConfigFile() throws Exception {
+    // Given: Config file with negative timeout
+    URL resourceUrl = getClass().getClassLoader().getResource("negative-timeout-config.yaml");
+    assertThat(resourceUrl).isNotNull();
+    
+    String[] args = {"--config-file", resourceUrl.getPath()};
+    commandLine.parseArgs(args);
+
+    // When: Call command
+    Integer result = command.call();
+
+    // Then: Should return error for negative timeout
+    assertThat(result).isEqualTo(2);
+  }
+
+  @Test
+  void shouldRejectNegativeRetriesInConfigFile() throws Exception {
+    // Given: Config file with negative retries
+    URL resourceUrl = getClass().getClassLoader().getResource("invalid-retries-config.yaml");
+    assertThat(resourceUrl).isNotNull();
+    
+    String[] args = {"--config-file", resourceUrl.getPath()};
+    commandLine.parseArgs(args);
+
+    // When: Call command
+    Integer result = command.call();
+
+    // Then: Should return error for negative retries
+    assertThat(result).isEqualTo(2);
+  }
+
+  @Test
+  void shouldRejectInvalidDataTypesInConfigFile() throws Exception {
+    // Given: Config file with wrong data types
+    URL resourceUrl = getClass().getClassLoader().getResource("invalid-type-config.yaml");
+    assertThat(resourceUrl).isNotNull();
+    
+    String[] args = {"--config-file", resourceUrl.getPath()};
+    commandLine.parseArgs(args);
+
+    // When: Call command
+    Integer result = command.call();
+
+    // Then: Should return error for wrong data types
+    assertThat(result).isEqualTo(2);
+  }
+
+  @Test
+  void shouldAcceptValidConfigFileFromResources() throws Exception {
+    // Given: Valid config file
+    URL resourceUrl = getClass().getClassLoader().getResource("valid-config.yaml");
+    assertThat(resourceUrl).isNotNull();
+    
+    String[] args = {"--config-file", resourceUrl.getPath()};
+    commandLine.parseArgs(args);
+
+    // When: Call command
+    Integer result = command.call();
+
+    // Then: Should succeed with valid config file
+    assertThat(result).isEqualTo(0);
+  }
+
+  @Test
+  void shouldExpandTildeInConfigFilePath() throws IOException {
+    // Given: Create a temporary config file in user home
+    String userHome = System.getProperty("user.home");
+    Path homeConfigFile = Paths.get(userHome, "test-config.yaml");
+    
+    try {
+      // Create temporary config file in home directory
+      Files.writeString(homeConfigFile, "pseudonymizer:\n  url: http://localhost:8080\n  timeout: PT30S\n  retries: 3");
+      
+      // Use tilde notation for the path
+      String[] args = {"--config-file", "~/test-config.yaml"};
+      
+      // When: Parse arguments
+      CommandLine.ParseResult result = commandLine.parseArgs(args);
+      
+      // Then: Tilde should be expanded to actual home directory
+      assertThat(result.hasMatchedOption("--config-file")).isTrue();
+      assertThat(command.getConfigFile()).isNotNull();
+      assertThat(command.getConfigFile().getAbsolutePath()).isEqualTo(homeConfigFile.toAbsolutePath().toString());
+      assertThat(command.getConfigFile().exists()).isTrue();
+      
+    } finally {
+      // Clean up temporary file
+      Files.deleteIfExists(homeConfigFile);
+    }
+  }
+
+  @Test
+  void shouldHandleTildeExpansionInValidation() throws Exception {
+    // Given: Create a valid config file in user home for validation test
+    String userHome = System.getProperty("user.home");
+    Path homeConfigFile = Paths.get(userHome, "valid-test-config.yaml");
+    
+    try {
+      // Create valid config file
+      Files.writeString(homeConfigFile, 
+          "pseudonymizer:\n" +
+          "  url: https://example.com:8080\n" +
+          "  timeout: PT45S\n" +
+          "  retries: 5\n");
+      
+      String[] args = {"--config-file", "~/valid-test-config.yaml"};
+      commandLine.parseArgs(args);
+      
+      // When: Call command (which includes validation)
+      Integer result = command.call();
+      
+      // Then: Should succeed with expanded path
+      assertThat(result).isEqualTo(0);
+      
+    } finally {
+      // Clean up
+      Files.deleteIfExists(homeConfigFile);
     }
   }
 }

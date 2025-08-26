@@ -1,0 +1,7 @@
+# Invalid YAML - malformed structure
+pseudonymizer:
+  url: "http://localhost:8080"
+  timeout: PT30S
+  retries: 3
+invalid_yaml_syntax: [
+  - missing closing bracket

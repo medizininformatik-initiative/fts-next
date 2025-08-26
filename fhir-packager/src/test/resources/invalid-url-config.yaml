@@ -1,0 +1,5 @@
+# Valid YAML but invalid URL
+pseudonymizer:
+  url: "not-a-valid-url"
+  timeout: "PT30S"
+  retries: 3

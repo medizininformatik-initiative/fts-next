@@ -1,6 +1,8 @@
 package care.smith.fts.packager.cli;
 
 import care.smith.fts.packager.config.PseudonymizerConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +12,13 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -88,10 +92,13 @@ public class PackagerCommand implements Callable<Integer> {
 
   /**
    * External configuration file path for additional settings.
+   * 
+   * <p>Supports tilde expansion (~/path/to/file) for user home directory.
    */
   @Option(
       names = {"--config-file", "-c"},
-      description = "Path to external configuration file"
+      description = "Path to external configuration file (supports ~/home/path)",
+      converter = TildeExpandingFileConverter.class
   )
   private File configFile;
 
@@ -177,7 +184,112 @@ public class PackagerCommand implements Callable<Integer> {
       throw new IllegalArgumentException("Config file is not readable: " + configFile.getAbsolutePath());
     }
     
+    // Validate config file contents if specified
+    if (configFile != null) {
+      validateConfigFile();
+    }
+    
     log.debug("All CLI arguments validated successfully");
+  }
+
+  /**
+   * Validates the contents of the external configuration file.
+   * 
+   * <p>This method parses the YAML configuration file and validates:
+   * <ul>
+   *   <li>YAML syntax is correct</li>
+   *   <li>Configuration structure is valid</li>
+   *   <li>Property values are within expected ranges</li>
+   *   <li>URLs have correct format</li>
+   * </ul>
+   *
+   * @throws IllegalArgumentException if config file contents are invalid
+   */
+  private void validateConfigFile() {
+    try {
+      ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+      
+      // Parse the YAML file into a generic map structure
+      Map<String, Object> configData = yamlMapper.readValue(configFile, Map.class);
+      log.debug("Successfully parsed config file: {}", configFile.getAbsolutePath());
+      
+      // Validate pseudonymizer configuration section if present
+      if (configData.containsKey("pseudonymizer")) {
+        validatePseudonymizerSection(configData.get("pseudonymizer"));
+      }
+      
+      log.debug("Config file validation completed successfully");
+      
+    } catch (IOException e) {
+      throw new IllegalArgumentException(
+          "Invalid YAML syntax in config file '" + configFile.getAbsolutePath() + "': " + e.getMessage(), e);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Config file validation failed for '" + configFile.getAbsolutePath() + "': " + e.getMessage(), e);
+    }
+  }
+  
+  /**
+   * Validates the pseudonymizer configuration section from the config file.
+   *
+   * @param pseudonymizerSection the pseudonymizer configuration object
+   * @throws IllegalArgumentException if any configuration is invalid
+   */
+  @SuppressWarnings("unchecked")
+  private void validatePseudonymizerSection(Object pseudonymizerSection) {
+    if (!(pseudonymizerSection instanceof Map)) {
+      throw new IllegalArgumentException("Pseudonymizer configuration must be an object/map");
+    }
+    
+    Map<String, Object> config = (Map<String, Object>) pseudonymizerSection;
+    
+    // Validate URL if present
+    if (config.containsKey("url")) {
+      Object urlValue = config.get("url");
+      if (!(urlValue instanceof String)) {
+        throw new IllegalArgumentException("Pseudonymizer URL must be a string");
+      }
+      try {
+        validateUrl((String) urlValue, "pseudonymizer.url");
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Invalid pseudonymizer.url in config file: " + e.getMessage());
+      }
+    }
+    
+    // Validate timeout if present
+    if (config.containsKey("timeout")) {
+      Object timeoutValue = config.get("timeout");
+      if (timeoutValue instanceof String) {
+        try {
+          Duration timeout = Duration.parse((String) timeoutValue);
+          if (timeout.isNegative() || timeout.isZero()) {
+            throw new IllegalArgumentException("Pseudonymizer timeout must be positive");
+          }
+        } catch (Exception e) {
+          throw new IllegalArgumentException("Invalid pseudonymizer.timeout format in config file (expected ISO-8601 duration like 'PT30S'): " + e.getMessage());
+        }
+      } else if (timeoutValue instanceof Number) {
+        // Handle numeric timeout values (seconds)
+        long timeoutSeconds = ((Number) timeoutValue).longValue();
+        if (timeoutSeconds < 1) {
+          throw new IllegalArgumentException("Pseudonymizer timeout must be at least 1 second");
+        }
+      } else {
+        throw new IllegalArgumentException("Pseudonymizer timeout must be a string (ISO-8601 duration) or number (seconds)");
+      }
+    }
+    
+    // Validate retries if present
+    if (config.containsKey("retries")) {
+      Object retriesValue = config.get("retries");
+      if (!(retriesValue instanceof Number)) {
+        throw new IllegalArgumentException("Pseudonymizer retries must be a number");
+      }
+      int retries = ((Number) retriesValue).intValue();
+      if (retries < 0) {
+        throw new IllegalArgumentException("Pseudonymizer retries must be at least 0");
+      }
+    }
   }
 
   /**
