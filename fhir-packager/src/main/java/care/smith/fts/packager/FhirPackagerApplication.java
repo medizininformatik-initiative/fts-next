@@ -1,10 +1,16 @@
 package care.smith.fts.packager;
 
+import care.smith.fts.packager.cli.PackagerCommand;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.context.ApplicationContext;
+import picocli.CommandLine;
+import picocli.spring.PicocliSpringFactory;
 
 /**
  * Main application class for the FHIR Packager CLI tool.
@@ -17,14 +23,23 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
  * <ul>
  *   <li>Runs as a CLI tool (no web server)</li>
  *   <li>Logs to stderr only to keep stdout clean for data output</li>
- *   <li>Implements CommandLineRunner for CLI execution</li>
- *   <li>Provides proper exit codes for different scenarios</li>
+ *   <li>Uses Picocli for command-line argument parsing and validation</li>
+ *   <li>Integrates Picocli with Spring for dependency injection</li>
+ *   <li>Provides proper exit codes for different scenarios (0=success, 1=error, 2=invalid args)</li>
  * </ul>
  */
 @Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
-public class FhirPackagerApplication implements CommandLineRunner {
+public class FhirPackagerApplication implements CommandLineRunner, ExitCodeGenerator {
+
+  @Autowired
+  private PackagerCommand packagerCommand;
+  
+  @Autowired
+  private ApplicationContext applicationContext;
+  
+  private int exitCode;
 
   /**
    * Main entry point for the FHIR Packager application.
@@ -56,22 +71,39 @@ public class FhirPackagerApplication implements CommandLineRunner {
    * CommandLineRunner implementation for CLI execution.
    * 
    * <p>This method is called after Spring context initialization.
-   * In Phase 1, it simply logs startup and shutdown to verify the application
-   * initializes correctly. Future phases will implement the actual CLI logic.
+   * It creates a Picocli CommandLine instance with Spring integration
+   * and executes the PackagerCommand with the provided arguments.
    * 
    * @param args command-line arguments passed to the application
    * @throws Exception if processing fails
    */
   @Override
   public void run(String... args) throws Exception {
-    log.info("FHIR Packager starting...");
+    log.debug("FHIR Packager starting with args: {}", (Object) args);
     
-    // Phase 1: Basic startup verification
-    // Future phases will implement:
-    // - CLI argument parsing with Picocli
-    // - FHIR Bundle processing
-    // - Pseudonymizer service integration
-    
-    log.info("FHIR Packager completed successfully");
+    try {
+      // Create Picocli CommandLine with Spring factory for dependency injection
+      CommandLine commandLine = new CommandLine(packagerCommand, new PicocliSpringFactory(applicationContext));
+      
+      // Execute the command and capture exit code
+      exitCode = commandLine.execute(args);
+      
+      log.debug("FHIR Packager completed with exit code: {}", exitCode);
+      
+    } catch (Exception e) {
+      log.error("Command execution failed", e);
+      exitCode = 1;
+      throw e;
+    }
+  }
+  
+  /**
+   * Provides the exit code for the Spring Boot application.
+   * 
+   * @return the exit code from command execution
+   */
+  @Override
+  public int getExitCode() {
+    return exitCode;
   }
 }
