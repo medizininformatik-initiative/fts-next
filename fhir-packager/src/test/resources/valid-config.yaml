@@ -1,0 +1,10 @@
+# Valid configuration for testing
+pseudonymizer:
+  url: "https://example.com:8080/fhir"
+  timeout: "PT45S"
+  retries: 5
+
+# Other valid Spring Boot configurations
+logging:
+  level:
+    care.smith.fts.packager: DEBUG

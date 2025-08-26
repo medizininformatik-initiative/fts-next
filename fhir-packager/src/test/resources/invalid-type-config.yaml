@@ -1,0 +1,5 @@
+# Valid YAML but wrong data types
+pseudonymizer:
+  url: 12345  # Should be string
+  timeout: "PT30S"
+  retries: "not-a-number"  # Should be number

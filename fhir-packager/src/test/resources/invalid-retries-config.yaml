@@ -1,0 +1,5 @@
+# Valid YAML but negative retries
+pseudonymizer:
+  url: "http://localhost:8080"
+  timeout: "PT30S"
+  retries: -1
