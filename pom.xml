@@ -19,6 +19,7 @@
     <module>clinical-domain-agent</module>
     <module>research-domain-agent</module>
     <module>trust-center-agent</module>
+    <module>fhir-packager</module>
   </modules>
 
   <properties>

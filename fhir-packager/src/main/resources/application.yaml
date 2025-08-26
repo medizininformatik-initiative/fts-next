@@ -1,0 +1,33 @@
+# FHIR Packager Configuration
+# This configuration file defines default settings for the FHIR Packager CLI tool
+
+# Pseudonymizer Service Configuration
+pseudonymizer:
+  url: "http://localhost:8080"
+  timeout: "PT30S"  # ISO-8601 duration: 30 seconds
+  retries: 3
+
+# Spring Boot Configuration
+spring:
+  application:
+    name: "fhir-packager"
+  main:
+    web-application-type: none  # Disable web server for CLI application
+    banner-mode: off           # Disable Spring Boot banner for cleaner CLI output
+
+# Logging Configuration
+logging:
+  level:
+    care.smith.fts.packager: INFO
+    org.springframework: WARN
+    root: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  
+# Management and Metrics (disabled for CLI)
+management:
+  endpoints:
+    enabled-by-default: false
+  health:
+    defaults:
+      enabled: false

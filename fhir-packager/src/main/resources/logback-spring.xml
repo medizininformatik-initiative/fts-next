@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Console appender that outputs to STDERR to keep STDOUT clean for data -->
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Package-specific logging levels -->
+  <logger name="care.smith.fts.packager" level="INFO" />
+  <logger name="org.springframework" level="WARN" />
+  
+  <!-- Root logger configuration -->
+  <root level="WARN">
+    <appender-ref ref="STDERR" />
+  </root>
+</configuration>
