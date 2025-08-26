@@ -1,6 +1,7 @@
-.PHONY:	compile test build coverage clinical-domain-agent trust-center-agent research-domain-agent all
+.PHONY:	compile test build coverage clinical-domain-agent trust-center-agent research-domain-agent fhir-packager all
 
 AGENTS := $(wildcard *-agent)
+PACKAGER := fhir-packager
 all: build
 	@for agent in $(AGENTS); do \
 		docker build -t ghcr.io/medizininformatik-initiative/fts/$$agent:local $$agent; \
@@ -24,3 +25,6 @@ coverage:
 $(AGENTS):
 	mvn ${MAVEN_ARGS} clean package -DskipTests --projects $@ --also-make
 	docker build -t ghcr.io/medizininformatik-initiative/fts/$@:local $@
+
+$(PACKAGER):
+	mvn ${MAVEN_ARGS} clean package -DskipTests --projects $@ --also-make

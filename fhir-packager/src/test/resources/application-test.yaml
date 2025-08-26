@@ -1,0 +1,19 @@
+# Test configuration for FHIR Packager
+# Overrides default settings for testing scenarios
+
+pseudonymizer:
+  url: "http://localhost:8080"
+  timeout: "PT30S"
+  retries: 3
+
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+
+# Reduce logging noise during tests
+logging:
+  level:
+    care.smith.fts.packager: DEBUG
+    org.springframework: WARN
+    root: WARN
