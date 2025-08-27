@@ -8,7 +8,7 @@ import static org.springframework.web.util.UriComponentsBuilder.*;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
-import care.smith.fts.util.GicsConsentedPatientExtractor;
+import care.smith.fts.util.FhirConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
@@ -53,7 +53,7 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   private URI buildFhirSearchQuery(UriBuilder builder, List<String> pids) {
-    builder.pathSegment("Consent").queryParam("_include", "Patient");
+    builder.pathSegment("Consent").queryParam("_include", "Consent:patient");
     if (!pids.isEmpty()) {
       var pidQuery =
           pids.stream()
@@ -92,7 +92,7 @@ class FhirCohortSelector implements CohortSelector {
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
     return Flux.fromStream(
-        GicsConsentedPatientExtractor.getConsentedPatients(
+        FhirConsentedPatientExtractor.getConsentedPatients(
             config.patientIdentifierSystem(),
             config.policySystem(),
             groupPatientsAndConsents(bundle),
