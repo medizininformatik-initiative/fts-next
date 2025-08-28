@@ -1,7 +1,12 @@
 package care.smith.fts.packager.cli;
 
+import care.smith.fts.packager.config.MockPseudonymizerTestConfiguration;
+import care.smith.fts.packager.service.BundleProcessor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import picocli.CommandLine;
 
@@ -13,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Integration tests for PackagerCommand with Spring Boot context.
@@ -26,9 +32,21 @@ import static org.assertj.core.api.Assertions.*;
  *   <li>Error handling and exit codes</li>
  * </ul>
  */
-@SpringBootTest
+@SpringBootTest(classes = MockPseudonymizerTestConfiguration.class)
 @ActiveProfiles("test")
-class PackagerCommandIntegrationTest {
+class PackagerCommandCliIT {
+
+  @MockBean
+  private BundleProcessor bundleProcessor;
+  
+  @Autowired
+  private PackagerCommand packageCommand;
+  
+  @BeforeEach
+  void setUp() {
+    // Reset the mock before each test to ensure clean state
+    reset(bundleProcessor);
+  }
 
   @Test
   void shouldShowHelpText() {
@@ -132,13 +150,13 @@ class PackagerCommandIntegrationTest {
 
   @Test
   void shouldAcceptValidConfiguration() throws IOException {
-    // Given: Valid config file and arguments
+    // Given: Valid config file and arguments + mocked bundle processor
     Path tempFile = Files.createTempFile("config", ".yaml");
     Files.writeString(tempFile, "pseudonymizer:\n  url: http://test.com");
+    when(bundleProcessor.processBundle()).thenReturn(0);
     
     try {
-      PackagerCommand command = new PackagerCommand();
-      CommandLine commandLine = new CommandLine(command);
+      CommandLine commandLine = new CommandLine(packageCommand);
 
       // When: Execute with valid configuration
       int exitCode = commandLine.execute(
@@ -149,8 +167,9 @@ class PackagerCommandIntegrationTest {
           "--config-file", tempFile.toString()
       );
 
-      // Then: Should succeed
+      // Then: Should succeed with valid configuration
       assertThat(exitCode).isEqualTo(0);
+      verify(bundleProcessor).processBundle();
     } finally {
       Files.deleteIfExists(tempFile);
     }
@@ -158,53 +177,64 @@ class PackagerCommandIntegrationTest {
 
   @Test
   void shouldHandleMinimalValidArguments() {
-    // Given: PackagerCommand with minimal valid arguments
-    PackagerCommand command = new PackagerCommand();
-    CommandLine commandLine = new CommandLine(command);
+    // Given: Spring-injected PackagerCommand + mocked bundle processor
+    when(bundleProcessor.processBundle()).thenReturn(0);
+    
+    CommandLine commandLine = new CommandLine(packageCommand);
 
     // When: Execute with just URL
     int exitCode = commandLine.execute("--pseudonymizer-url", "http://localhost:8080");
 
     // Then: Should succeed with defaults
     assertThat(exitCode).isEqualTo(0);
+    verify(bundleProcessor).processBundle();
   }
 
   @Test
-  void shouldValidateUrlProtocols() {
-    // Given: PackagerCommand
-    PackagerCommand command = new PackagerCommand();
-    CommandLine commandLine = new CommandLine(command);
+  void shouldValidateHttpUrl() {
+    // Given: PackagerCommand + mocked bundle processor
+    when(bundleProcessor.processBundle()).thenReturn(0);
+    
+    CommandLine commandLine = new CommandLine(packageCommand);
 
     // When & Then: HTTP should be valid
     int httpCode = commandLine.execute("--pseudonymizer-url", "http://example.com");
     assertThat(httpCode).isEqualTo(0);
+  }
 
-    // Reset command for next test
-    command = new PackagerCommand();
-    commandLine = new CommandLine(command);
+  @Test
+  void shouldValidateHttpsUrl() {
+    // Given: PackagerCommand + mocked bundle processor
+    when(bundleProcessor.processBundle()).thenReturn(0);
+    
+    CommandLine commandLine = new CommandLine(packageCommand);
 
     // When & Then: HTTPS should be valid
     int httpsCode = commandLine.execute("--pseudonymizer-url", "https://example.com");
     assertThat(httpsCode).isEqualTo(0);
+  }
 
-    // Reset command for next test
-    command = new PackagerCommand();
-    commandLine = new CommandLine(command);
+  @Test
+  void shouldRejectFtpUrl() {
+    // Given: PackagerCommand
+    CommandLine commandLine = new CommandLine(packageCommand);
 
-    // When & Then: FTP should be invalid
+    // When & Then: FTP should be invalid (fails during URL validation)
     int ftpCode = commandLine.execute("--pseudonymizer-url", "ftp://example.com");
     assertThat(ftpCode).isEqualTo(2);
   }
 
   @Test
   void shouldValidateUrlComponents() {
-    // Given: PackagerCommand
-    PackagerCommand command = new PackagerCommand();
-    CommandLine commandLine = new CommandLine(command);
+    // Given: PackagerCommand + mocked bundle processor
+    when(bundleProcessor.processBundle()).thenReturn(0);
+    
+    CommandLine commandLine = new CommandLine(packageCommand);
 
     // When & Then: URL with port should be valid
     int exitCode = commandLine.execute("--pseudonymizer-url", "https://example.com:9090/api/v1");
     assertThat(exitCode).isEqualTo(0);
+    verify(bundleProcessor).processBundle();
   }
 
   @Test

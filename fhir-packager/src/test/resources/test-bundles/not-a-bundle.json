@@ -1,0 +1,11 @@
+{
+  "resourceType": "Patient",
+  "id": "standalone-patient",
+  "name": [
+    {
+      "family": "NotABundle",
+      "given": ["This"]
+    }
+  ],
+  "gender": "unknown"
+}

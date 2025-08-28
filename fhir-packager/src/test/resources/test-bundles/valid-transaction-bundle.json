@@ -1,0 +1,24 @@
+{
+  "resourceType": "Bundle",
+  "id": "test-transaction-bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "name": [
+          {
+            "family": "Smith",
+            "given": ["Jane"]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1985-06-15"
+      },
+      "request": {
+        "method": "POST",
+        "url": "Patient"
+      }
+    }
+  ]
+}

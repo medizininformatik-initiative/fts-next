@@ -1,0 +1,18 @@
+{
+  "resourceType": "Bundle",
+  "id": "bundle-no-type",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-1",
+        "name": [
+          {
+            "family": "Test",
+            "given": ["Patient"]
+          }
+        ]
+      }
+    }
+  ]
+}

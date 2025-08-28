@@ -9,6 +9,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import picocli.CommandLine;
 import picocli.spring.PicocliSpringFactory;
 
@@ -38,6 +39,9 @@ public class FhirPackagerApplication implements CommandLineRunner, ExitCodeGener
   
   @Autowired
   private ApplicationContext applicationContext;
+  
+  @Autowired
+  private Environment environment;
   
   private int exitCode;
 
@@ -126,11 +130,21 @@ public class FhirPackagerApplication implements CommandLineRunner, ExitCodeGener
    * It creates a Picocli CommandLine instance with Spring integration
    * and executes the PackagerCommand with the provided arguments.
    * 
+   * <p>Note: During testing (when 'test' profile is active), this method
+   * skips execution to prevent hanging on stdin reads and unwanted side effects.
+   * 
    * @param args command-line arguments passed to the application
    * @throws Exception if processing fails
    */
   @Override
   public void run(String... args) throws Exception {
+    // Skip execution during tests to prevent stdin blocking and unwanted side effects
+    if (isTestProfile()) {
+      log.debug("Skipping command execution in test profile");
+      exitCode = 0;
+      return;
+    }
+    
     log.debug("FHIR Packager starting with args: {}", (Object) args);
     
     try {
@@ -147,6 +161,15 @@ public class FhirPackagerApplication implements CommandLineRunner, ExitCodeGener
       exitCode = 1;
       throw e;
     }
+  }
+  
+  /**
+   * Checks if the application is running in test profile.
+   * 
+   * @return true if 'test' profile is active
+   */
+  private boolean isTestProfile() {
+    return java.util.Arrays.asList(environment.getActiveProfiles()).contains("test");
   }
   
   /**

@@ -1,0 +1,18 @@
+{
+  "resourceType": "Patient",
+  "id": "standalone-patient",
+  "identifier": [
+    {
+      "system": "http://hospital.example.org/patients",
+      "value": "P999999"
+    }
+  ],
+  "name": [
+    {
+      "family": "NotInBundle",
+      "given": ["Standalone"]
+    }
+  ],
+  "gender": "unknown",
+  "birthDate": "1990-01-01"
+}

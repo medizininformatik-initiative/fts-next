@@ -1,0 +1,71 @@
+{
+  "resourceType": "Bundle",
+  "id": "small-test-bundle",
+  "type": "collection",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "total": 2,
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-123",
+        "identifier": [
+          {
+            "system": "http://hospital.example.org/patients",
+            "value": "P123456"
+          }
+        ],
+        "name": [
+          {
+            "family": "Doe",
+            "given": ["John", "James"],
+            "prefix": ["Mr."]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1985-03-15",
+        "address": [
+          {
+            "line": ["123 Main St"],
+            "city": "Anytown",
+            "postalCode": "12345",
+            "country": "US"
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "+1-555-123-4567",
+            "use": "home"
+          },
+          {
+            "system": "email",
+            "value": "john.doe@example.com",
+            "use": "home"
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "observation-456",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "33747-0",
+              "display": "General appearance of patient"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-123"
+        },
+        "effectiveDateTime": "2024-01-15T10:30:00Z",
+        "valueString": "Patient appears well"
+      }
+    }
+  ]
+}

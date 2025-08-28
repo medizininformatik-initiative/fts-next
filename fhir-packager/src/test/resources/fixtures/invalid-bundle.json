@@ -1,0 +1,32 @@
+{
+  "resourceType": "Bundle",
+  "id": "invalid-test-bundle",
+  "type": "collection",
+  "timestamp": "invalid-timestamp",
+  "total": 2,
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "invalid-patient",
+        "name": [
+          {
+            "family": "TestPatient",
+            "given": ["Invalid"]
+          }
+        ],
+        "birthDate": "not-a-date"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "invalid-observation",
+        "status": "invalid-status",
+        "subject": {
+          "reference": "Patient/non-existent-patient"
+        }
+      }
+    }
+  ]
+}

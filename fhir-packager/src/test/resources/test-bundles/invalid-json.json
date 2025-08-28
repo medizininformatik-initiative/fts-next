@@ -1,0 +1,6 @@
+{
+  "resourceType": "Bundle",
+  "id": "invalid-json",
+  "type": "collection"
+  // Missing comma and closing bracket intentionally
+}

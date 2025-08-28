@@ -1,33 +1,37 @@
-# FHIR Packager Configuration
-# This configuration file defines default settings for the FHIR Packager CLI tool
-
-# Pseudonymizer Service Configuration
-pseudonymizer:
-  url: "http://localhost:8080"
-  timeout: "PT30S"  # ISO-8601 duration: 30 seconds
-  retries: 3
-
-# Spring Boot Configuration
 spring:
-  application:
-    name: "fhir-packager"
   main:
     web-application-type: none  # Disable web server for CLI application
-    banner-mode: off           # Disable Spring Boot banner for cleaner CLI output
+  application:
+    name: fhir-packager
 
-# Logging Configuration
+# Pseudonymizer service configuration
+pseudonymizer:
+  url: ${PSEUDONYMIZER_URL:http://localhost:8080}
+  connect-timeout: ${PSEUDONYMIZER_CONNECT_TIMEOUT:PT10S}
+  read-timeout: ${PSEUDONYMIZER_READ_TIMEOUT:PT60S}
+  health-check-enabled: ${PSEUDONYMIZER_HEALTH_CHECK:true}
+  retry:
+    max-attempts: ${PSEUDONYMIZER_RETRY_MAX_ATTEMPTS:3}
+    initial-backoff: ${PSEUDONYMIZER_RETRY_INITIAL_BACKOFF:PT1S}
+    max-backoff: ${PSEUDONYMIZER_RETRY_MAX_BACKOFF:PT30S}
+    backoff-multiplier: ${PSEUDONYMIZER_RETRY_BACKOFF_MULTIPLIER:2.0}
+
+# Logging configuration
 logging:
   level:
-    care.smith.fts.packager: INFO
-    org.springframework: WARN
-    root: WARN
+    care.smith.fts.packager: ${LOG_LEVEL:INFO}
+    org.springframework.web.reactive.function.client: ${HTTP_LOG_LEVEL:WARN}
+    reactor.netty: ${HTTP_LOG_LEVEL:WARN}
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-  
-# Management and Metrics (disabled for CLI)
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n"
+
+# Actuator configuration (for health checks if needed)
 management:
   endpoints:
     enabled-by-default: false
-  health:
-    defaults:
+  endpoint:
+    health:
       enabled: false
+
+# Disable banner for cleaner CLI output
+spring.main.banner-mode: off

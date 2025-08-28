@@ -164,36 +164,174 @@ stdin → Bundle Reading → FHIR Pseudonymizer API → Bundle Writing → stdou
 ### Phase 4: REST API Integration
 **Goal**: Implement communication with FHIR Pseudonymizer service
 
-**Tasks**:
-1. Create `PseudonymizerClient` using Spring WebClient:
-   - Configure reactive HTTP client
-   - Implement POST to `/fhir/$de-identify`
-   - Set proper Content-Type headers
-   - Handle authentication if needed
+**Current Status**: Interface created, implementation needed
 
-2. Implement retry and timeout logic:
-   - Exponential backoff retry strategy
-   - Configurable timeout handling
-   - Circuit breaker pattern consideration
-   - Connection pool management
+**Step-by-Step Implementation Plan**:
 
-3. Add comprehensive error handling:
-   - HTTP error status mapping
-   - Network connectivity issues
-   - Service unavailability
-   - Malformed responses
+#### Step 1: Create PseudonymizerClientImpl (2-3 hours)
+1. **Create implementation class**:
+   - Location: `src/main/java/care/smith/fts/packager/service/PseudonymizerClientImpl.java`
+   - Implement `PseudonymizerClient` interface
+   - Add `@Service` and `@Slf4j` annotations
+   - Inject `PseudonymizerConfig` and `WebClient.Builder`
 
-4. Add integration tests with WireMock:
+2. **Configure WebClient**:
+   ```java
+   WebClient.builder()
+       .baseUrl(config.url())
+       .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/fhir+json")
+       .defaultHeader(HttpHeaders.ACCEPT, "application/fhir+json")
+       .clientConnector(new ReactorClientHttpConnector(
+           HttpClient.create()
+               .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) config.connectTimeout().toMillis())
+               .doOnConnected(conn -> conn
+                   .addHandlerLast(new ReadTimeoutHandler(config.readTimeout().toSeconds()))
+               )
+       ))
+       .codecs(configurer -> configurer
+           .defaultCodecs()
+           .maxInMemorySize(100 * 1024 * 1024) // 100MB
+       )
+       .build();
+   ```
+
+3. **Implement core methods**:
+   - `pseudonymize(Bundle bundle)`: POST to `/fhir/$de-identify`
+   - `checkHealth()`: GET to health endpoint with response time tracking
+   - Error mapping and timeout handling
+
+#### Step 2: Add Retry Logic with Exponential Backoff (2 hours)
+1. **Configure retry strategy**:
+   ```java
+   Retry.backoff(
+       config.retry().maxAttempts(),
+       config.retry().initialBackoff()
+   )
+   .maxBackoff(config.retry().maxBackoff())
+   .jitter(0.5)
+   .filter(this::isRetryable)
+   .doBeforeRetry(signal -> 
+       log.warn("Retry attempt {} after {} ms", 
+           signal.totalRetries() + 1, 
+           signal.totalRetriesInARow())
+   )
+   ```
+
+2. **Define retryable vs non-retryable errors**:
+   - Retryable: 503, 502, timeout, connection errors
+   - Non-retryable: 400, 401, 403, 404, parsing errors
+
+#### Step 3: Implement Comprehensive Error Handling (2 hours)
+1. **Create error mapping strategy**:
+   - WebClientResponseException → PseudonymizerResponseException
+   - TimeoutException → PseudonymizerTimeoutException  
+   - ConnectException → PseudonymizerConnectionException
+   - Include detailed error context and correlation IDs
+
+2. **Handle HTTP status codes appropriately**:
+   - 400: Bad Request → validation error with details
+   - 401/403: Authentication → auth exception
+   - 500: Server Error → service exception (retryable)
+   - 503: Service Unavailable → temporary failure (retryable)
+
+#### Step 4: Integrate with BundleProcessor (2 hours)
+1. **Replace identity transform in `processBundle(Bundle bundle)`**:
+   - Inject `PseudonymizerClient`
+   - Call `pseudonymizerClient.pseudonymize(bundle)`
+   - Add health check verification if enabled
+   - Handle reactive response with proper error mapping
+
+2. **Add progress tracking**:
+   - Log bundle size and processing metrics
+   - Track network call duration
+   - Add performance monitoring
+
+#### Step 5: Create WireMock Integration Tests (3 hours)
+1. **Create `PseudonymizerClientIntegrationTest`**:
+   - Setup WireMockServer with dynamic port
+   - Configure Spring test context
+
+2. **Test scenarios**:
    - Successful pseudonymization flow
-   - Various HTTP error scenarios
-   - Timeout and retry behavior
+   - Retry scenarios (503 → 503 → 200)
+   - Timeout handling (connect vs read timeouts)
+   - Error responses (400, 401, 500) with retry behavior
    - Large bundle handling
+
+#### Step 6: Add End-to-End Docker Integration Tests (2 hours)
+1. **Create `PackagerE2ETest` with Testcontainers**:
+   - Start FHIR Pseudonymizer container
+   - Configure random port mapping
+   - Test with real service
+
+2. **Test scenarios**:
+   - Load test bundle → process → verify pseudonymization
+   - Container failure and recovery
+   - Service unavailability handling
+
+#### Step 7: Add Authentication Support (Optional, 2 hours)
+1. **Extend PseudonymizerConfig**:
+   ```java
+   record AuthConfig(
+       AuthType type,  // NONE, BASIC, BEARER, CLIENT_CERT
+       String username,
+       String password,
+       String token
+   )
+   ```
+
+2. **Configure WebClient authentication**:
+   - Basic Auth: `addBasicAuth(username, password)`
+   - Bearer Token: `addBearerToken(token)`
+   - Test authentication scenarios
+
+#### Step 8: Performance and Load Testing (2 hours)
+1. **Create performance tests**:
+   - Test with 1MB, 10MB, 100MB bundles
+   - Measure memory usage and processing time
+   - Verify streaming behavior
+
+2. **Memory profiling**:
+   - Test with -Xmx512m constraint
+   - Verify no memory leaks
+   - Check connection pool limits
+
+#### Step 9: Documentation and Polish (1 hour)
+1. **Update documentation**:
+   - Add configuration examples
+   - Document error codes and meanings
+   - Create troubleshooting guide
+
+2. **Add operational features**:
+   - Structured logging with MDC
+   - Metrics collection hooks
+   - Graceful shutdown handling
+
+#### Step 10: Final Integration and Testing (2 hours)
+1. **Run full test suite**: `mvn clean verify`
+2. **Manual testing scenarios** with docker-compose
+3. **Performance validation**: < 1s overhead, < 2GB memory
+
+**Testing Matrix**:
+
+| Scenario | Unit Test | Integration Test | E2E Test |
+|----------|-----------|-----------------|----------|
+| Successful pseudonymization | ✓ | ✓ | ✓ |
+| Network timeout | ✓ | ✓ | ✓ |
+| Service unavailable (503) | ✓ | ✓ | ✓ |
+| Invalid bundle (400) | ✓ | ✓ | ✓ |
+| Retry with backoff | ✓ | ✓ | - |
+| Large bundle handling | ✓ | ✓ | ✓ |
+| Health check | ✓ | ✓ | ✓ |
 
 **Acceptance Criteria**:
 - Successfully communicates with FHIR Pseudonymizer service
-- Handles all common HTTP error scenarios
-- Retry logic works correctly
-- Integration tests pass with mocked service
+- Handles all common HTTP error scenarios with proper exit codes
+- Retry logic works correctly with exponential backoff
+- Integration tests pass with both mocked and real service
+- Performance meets requirements (< 1s overhead, < 2GB memory)
+- Health check functionality operational
+- Comprehensive error handling and logging
 
 ### Phase 5: End-to-End Integration
 **Goal**: Complete integration and comprehensive testing
