@@ -2,12 +2,19 @@ package care.smith.fts.packager.cli;
 
 import care.smith.fts.packager.config.PseudonymizerConfig;
 import care.smith.fts.packager.service.BundleProcessor;
+import care.smith.fts.packager.service.BundleValidator;
+import care.smith.fts.packager.service.PseudonymizerClient;
+import care.smith.fts.packager.service.PseudonymizerClientImpl;
+import care.smith.fts.packager.service.StdinReader;
+import care.smith.fts.packager.service.StdoutWriter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -55,6 +62,21 @@ public class PackagerCommand implements Callable<Integer> {
 
   @Autowired
   private BundleProcessor bundleProcessor;
+  
+  @Autowired
+  private ApplicationContext applicationContext;
+  
+  @Autowired
+  private WebClient.Builder webClientBuilder;
+  
+  @Autowired
+  private StdinReader stdinReader;
+  
+  @Autowired
+  private StdoutWriter stdoutWriter;
+  
+  @Autowired
+  private BundleValidator bundleValidator;
 
   /**
    * URL of the FHIR Pseudonymizer service endpoint.
@@ -134,23 +156,22 @@ public class PackagerCommand implements Callable<Integer> {
       validateArguments();
       
       // Apply CLI overrides to configuration
-      applyCliOverrides();
+      PseudonymizerConfig effectiveConfig = applyCliOverrides();
       
       log.info("Configuration validated successfully");
-      log.info("Pseudonymizer URL: {}", config.url());
-      log.info("Timeout: {}s connect, {}s read", config.connectTimeout().getSeconds(), config.readTimeout().getSeconds());
-      log.info("Retries: {}", config.retry().maxAttempts());
+      log.info("Pseudonymizer URL: {}", effectiveConfig.url());
+      log.info("Timeout: {}s connect, {}s read", effectiveConfig.connectTimeout().getSeconds(), effectiveConfig.readTimeout().getSeconds());
+      log.info("Retries: {}", effectiveConfig.retry().maxAttempts());
       
       if (configFile != null) {
         log.info("Config file specified: {}", configFile.getAbsolutePath());
       }
       
-      // Phase 3: Process FHIR Bundle through complete pipeline
-      // - Read from stdin
-      // - Parse and validate FHIR Bundle
-      // - Process bundle (currently identity transform)
-      // - Write to stdout
-      return bundleProcessor.processBundle();
+      // Create BundleProcessor with effective configuration
+      BundleProcessor effectiveProcessor = createBundleProcessor(effectiveConfig);
+      
+      // Process FHIR Bundle through complete pipeline
+      return effectiveProcessor.processBundle();
       
     } catch (IllegalArgumentException e) {
       log.error("Invalid argument: {}", e.getMessage());
@@ -323,10 +344,9 @@ public class PackagerCommand implements Callable<Integer> {
    * Applies CLI argument overrides to the Spring configuration.
    * CLI arguments take precedence over configuration file values.
    * 
-   * Note: Since PseudonymizerConfig is a record (immutable), we need to create a new instance
-   * with the overridden values if any CLI arguments differ from the loaded configuration.
+   * @return the effective configuration with CLI overrides applied
    */
-  private void applyCliOverrides() {
+  private PseudonymizerConfig applyCliOverrides() {
     // Check if any CLI overrides are needed
     boolean needsOverride = false;
     
@@ -355,7 +375,7 @@ public class PackagerCommand implements Callable<Integer> {
           config.retry().backoffMultiplier()
       );
       
-      config = new PseudonymizerConfig(
+      PseudonymizerConfig effectiveConfig = new PseudonymizerConfig(
           pseudonymizerUrl,
           config.connectTimeout(),
           Duration.ofSeconds(timeoutSeconds),
@@ -364,7 +384,39 @@ public class PackagerCommand implements Callable<Integer> {
       );
       
       log.info("Applied CLI overrides to configuration");
+      return effectiveConfig;
     }
+    
+    // No overrides needed, return original config
+    return config;
+  }
+  
+  /**
+   * Creates a BundleProcessor with the specified configuration.
+   * If the configuration differs from the original Spring config,
+   * creates new service instances; otherwise uses the autowired ones.
+   * 
+   * @param effectiveConfig the configuration to use
+   * @return a BundleProcessor configured with the effective config
+   */
+  private BundleProcessor createBundleProcessor(PseudonymizerConfig effectiveConfig) {
+    // If config is the same as original, use autowired processor
+    if (effectiveConfig == config) {
+      log.debug("Using autowired BundleProcessor (no config overrides)");
+      return bundleProcessor;
+    }
+    
+    // Create new services with effective config
+    log.debug("Creating new BundleProcessor with CLI overrides");
+    PseudonymizerClient effectiveClient = new PseudonymizerClientImpl(effectiveConfig, webClientBuilder);
+    
+    return new BundleProcessor(
+        stdinReader,
+        stdoutWriter,
+        bundleValidator,
+        effectiveConfig,
+        effectiveClient
+    );
   }
   
   /**

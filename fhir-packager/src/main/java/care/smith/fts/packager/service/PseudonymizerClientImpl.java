@@ -198,7 +198,7 @@ public class PseudonymizerClientImpl implements PseudonymizerClient {
     Instant startTime = Instant.now();
 
     return webClient.get()
-        .uri("/health")
+        .uri("/fhir/metadata")
         .retrieve()
         .bodyToMono(String.class)
         .retryWhen(createHealthCheckRetrySpec(startTime))

@@ -1,12 +1,18 @@
 package care.smith.fts.packager.cli;
 
 import care.smith.fts.packager.config.PseudonymizerConfig;
+import care.smith.fts.packager.service.BundleProcessor;
+import care.smith.fts.packager.service.BundleValidator;
+import care.smith.fts.packager.service.StdinReader;
+import care.smith.fts.packager.service.StdoutWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.reactive.function.client.WebClient;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -28,6 +34,24 @@ class PackagerCommandTest {
 
   @Mock
   private PseudonymizerConfig config;
+  
+  @Mock
+  private BundleProcessor bundleProcessor;
+  
+  @Mock
+  private ApplicationContext applicationContext;
+  
+  @Mock
+  private WebClient.Builder webClientBuilder;
+  
+  @Mock
+  private StdinReader stdinReader;
+  
+  @Mock
+  private StdoutWriter stdoutWriter;
+  
+  @Mock
+  private BundleValidator bundleValidator;
 
   @InjectMocks
   private PackagerCommand command;
@@ -499,5 +523,86 @@ class PackagerCommandTest {
       // Clean up
       Files.deleteIfExists(homeConfigFile);
     }
+  }
+
+  @Test
+  void shouldApplyCliOverridesCorrectly() throws Exception {
+    // Given: Original config with default values
+    PseudonymizerConfig.RetryConfig retryConfig = new PseudonymizerConfig.RetryConfig(
+        3, Duration.ofSeconds(1), Duration.ofSeconds(30), 2.0);
+    PseudonymizerConfig originalConfig = new PseudonymizerConfig(
+        "http://localhost:8080",
+        Duration.ofSeconds(10),
+        Duration.ofSeconds(60),
+        retryConfig,
+        true
+    );
+    
+    // Set up mocks
+    when(config.url()).thenReturn(originalConfig.url());
+    when(config.connectTimeout()).thenReturn(originalConfig.connectTimeout());
+    when(config.readTimeout()).thenReturn(originalConfig.readTimeout());
+    when(config.retry()).thenReturn(originalConfig.retry());
+    when(config.healthCheckEnabled()).thenReturn(originalConfig.healthCheckEnabled());
+    
+    // Note: WebClient mocking not needed for this test as we only test the applyCliOverrides method
+    
+    // Given: CLI arguments with different values
+    String[] args = {
+        "--pseudonymizer-url", "http://localhost:9999",
+        "--timeout", "45",
+        "--retries", "5"
+    };
+    
+    commandLine.parseArgs(args);
+    
+    // When: Apply CLI overrides (test the private method indirectly)
+    java.lang.reflect.Method applyOverridesMethod = PackagerCommand.class
+        .getDeclaredMethod("applyCliOverrides");
+    applyOverridesMethod.setAccessible(true);
+    PseudonymizerConfig effectiveConfig = (PseudonymizerConfig) applyOverridesMethod.invoke(command);
+    
+    // Then: Effective config should have CLI values
+    assertThat(effectiveConfig.url()).isEqualTo("http://localhost:9999");
+    assertThat(effectiveConfig.readTimeout()).isEqualTo(Duration.ofSeconds(45));
+    assertThat(effectiveConfig.retry().maxAttempts()).isEqualTo(5);
+    // Values not overridden should remain the same
+    assertThat(effectiveConfig.connectTimeout()).isEqualTo(Duration.ofSeconds(10));
+    assertThat(effectiveConfig.healthCheckEnabled()).isTrue();
+  }
+
+  @Test
+  void shouldReturnOriginalConfigWhenNoOverrides() throws Exception {
+    // Given: Original config
+    PseudonymizerConfig originalConfig = new PseudonymizerConfig(
+        "http://localhost:8080",
+        Duration.ofSeconds(10),
+        Duration.ofSeconds(60),
+        new PseudonymizerConfig.RetryConfig(),
+        true
+    );
+    
+    // Set up mocks to return the same values as CLI defaults
+    when(config.url()).thenReturn("http://localhost:8080");
+    when(config.readTimeout()).thenReturn(Duration.ofSeconds(60));
+    when(config.retry()).thenReturn(new PseudonymizerConfig.RetryConfig(3, Duration.ofSeconds(1), Duration.ofSeconds(30), 2.0));
+    
+    // Given: CLI arguments with default values (no actual overrides)
+    String[] args = {
+        "--pseudonymizer-url", "http://localhost:8080", // same as default
+        "--timeout", "60", // same as config default (not CLI default!)
+        "--retries", "3"   // same as default
+    };
+    
+    commandLine.parseArgs(args);
+    
+    // When: Apply CLI overrides
+    java.lang.reflect.Method applyOverridesMethod = PackagerCommand.class
+        .getDeclaredMethod("applyCliOverrides");
+    applyOverridesMethod.setAccessible(true);
+    PseudonymizerConfig effectiveConfig = (PseudonymizerConfig) applyOverridesMethod.invoke(command);
+    
+    // Then: Should return the original config object (same reference)
+    assertThat(effectiveConfig).isSameAs(config);
   }
 }
