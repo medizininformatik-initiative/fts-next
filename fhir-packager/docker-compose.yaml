@@ -1,0 +1,15 @@
+services:
+  fhir-pseudonymizer:
+    image: ghcr.io/miracum/fhir-pseudonymizer:v2.22.10
+    ports:
+      - "8080"  # Use random port
+    environment:
+      - PseudonymizationService=None  # No external service for local testing
+      - UseSystemTextJsonFhirSerializer=true
+      - AnonymizationEngineConfigurationPath=/config/anonymization.yaml
+    volumes:
+      - ./test-config:/config:ro
+    # Disable healthcheck since curl is not available in this minimal .NET container
+    # The external health check is handled by our scripts instead
+    healthcheck:
+      disable: true

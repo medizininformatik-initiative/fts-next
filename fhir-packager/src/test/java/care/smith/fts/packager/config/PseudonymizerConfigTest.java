@@ -20,25 +20,42 @@ import org.junit.jupiter.api.Test;
 class PseudonymizerConfigTest {
 
   private Validator validator;
-  private PseudonymizerConfig config;
 
   @BeforeEach
   void setUp() {
     validator = Validation.buildDefaultValidatorFactory().getValidator();
-    config = new PseudonymizerConfig();
   }
 
   @Test
   @DisplayName("should have correct default values")
   void shouldHaveCorrectDefaultValues() {
-    assertThat(config.getUrl()).isEqualTo("http://localhost:8080");
-    assertThat(config.getTimeout()).isEqualTo(Duration.parse("PT30S"));
-    assertThat(config.getRetries()).isEqualTo(3);
+    // Create config with defaults using the @ConstructorBinding constructor
+    var config = new PseudonymizerConfig(
+        "http://localhost:8080",
+        Duration.parse("PT10S"),
+        Duration.parse("PT60S"),
+        null, // will use default RetryConfig
+        true
+    );
+    
+    assertThat(config.url()).isEqualTo("http://localhost:8080");
+    assertThat(config.connectTimeout()).isEqualTo(Duration.parse("PT10S"));
+    assertThat(config.readTimeout()).isEqualTo(Duration.parse("PT60S"));
+    assertThat(config.retry().maxAttempts()).isEqualTo(3);
+    assertThat(config.healthCheckEnabled()).isTrue();
   }
 
   @Test
   @DisplayName("should validate successfully with default values")
   void shouldValidateSuccessfullyWithDefaultValues() {
+    var config = new PseudonymizerConfig(
+        "http://localhost:8080",
+        Duration.parse("PT10S"),
+        Duration.parse("PT60S"),
+        new PseudonymizerConfig.RetryConfig(),
+        true
+    );
+    
     Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
     
     assertThat(violations).isEmpty();
@@ -47,9 +64,20 @@ class PseudonymizerConfigTest {
   @Test
   @DisplayName("should validate successfully with custom values")
   void shouldValidateSuccessfullyWithCustomValues() {
-    config.setUrl("https://example.com:9090");
-    config.setTimeout(Duration.parse("PT60S"));
-    config.setRetries(5);
+    var retryConfig = new PseudonymizerConfig.RetryConfig(
+        5, // maxAttempts
+        Duration.ofSeconds(1),
+        Duration.ofSeconds(30),
+        2.0
+    );
+    
+    var config = new PseudonymizerConfig(
+        "https://example.com:9090",
+        Duration.parse("PT15S"),
+        Duration.parse("PT60S"),
+        retryConfig,
+        true
+    );
 
     Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
     
@@ -59,7 +87,13 @@ class PseudonymizerConfigTest {
   @Test
   @DisplayName("should fail validation when URL is null")
   void shouldFailValidationWhenUrlIsNull() {
-    config.setUrl(null);
+    var config = new PseudonymizerConfig(
+        null, // null URL
+        Duration.parse("PT10S"),
+        Duration.parse("PT60S"),
+        new PseudonymizerConfig.RetryConfig(),
+        true
+    );
 
     Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
     
@@ -68,31 +102,63 @@ class PseudonymizerConfigTest {
   }
 
   @Test
-  @DisplayName("should fail validation when timeout is null")
-  void shouldFailValidationWhenTimeoutIsNull() {
-    config.setTimeout(null);
+  @DisplayName("should fail validation when connect timeout is null")
+  void shouldFailValidationWhenConnectTimeoutIsNull() {
+    var config = new PseudonymizerConfig(
+        "http://localhost:8080",
+        null, // null connect timeout
+        Duration.parse("PT60S"),
+        new PseudonymizerConfig.RetryConfig(),
+        true
+    );
 
     Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
     
     assertThat(violations).hasSize(1);
-    assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("timeout");
+    assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("connectTimeout");
   }
 
   @Test
-  @DisplayName("should fail validation when retries is negative")
-  void shouldFailValidationWhenRetriesIsNegative() {
-    config.setRetries(-1);
+  @DisplayName("should fail validation when retry max attempts is below minimum")
+  void shouldFailValidationWhenRetryMaxAttemptsIsBelowMinimum() {
+    var retryConfig = new PseudonymizerConfig.RetryConfig(
+        0, // below minimum of 1
+        Duration.ofSeconds(1),
+        Duration.ofSeconds(30),
+        2.0
+    );
+    
+    var config = new PseudonymizerConfig(
+        "http://localhost:8080",
+        Duration.parse("PT10S"),
+        Duration.parse("PT60S"),
+        retryConfig,
+        true
+    );
 
     Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
     
     assertThat(violations).hasSize(1);
-    assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("retries");
+    assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("retry.maxAttempts");
   }
 
   @Test
-  @DisplayName("should allow zero retries")
-  void shouldAllowZeroRetries() {
-    config.setRetries(0);
+  @DisplayName("should allow valid retry attempts")
+  void shouldAllowValidRetryAttempts() {
+    var retryConfig = new PseudonymizerConfig.RetryConfig(
+        1, // minimum valid attempts
+        Duration.ofSeconds(1),
+        Duration.ofSeconds(30),
+        2.0
+    );
+    
+    var config = new PseudonymizerConfig(
+        "http://localhost:8080",
+        Duration.parse("PT10S"),
+        Duration.parse("PT60S"),
+        retryConfig,
+        true
+    );
 
     Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
     
@@ -111,7 +177,14 @@ class PseudonymizerConfigTest {
     };
 
     for (String url : validUrls) {
-      config.setUrl(url);
+      var config = new PseudonymizerConfig(
+          url,
+          Duration.parse("PT10S"),
+          Duration.parse("PT60S"),
+          new PseudonymizerConfig.RetryConfig(),
+          true
+      );
+      
       Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
       assertThat(violations).isEmpty();
     }
@@ -129,7 +202,14 @@ class PseudonymizerConfigTest {
     };
 
     for (Duration timeout : validTimeouts) {
-      config.setTimeout(timeout);
+      var config = new PseudonymizerConfig(
+          "http://localhost:8080",
+          Duration.parse("PT10S"),
+          timeout, // vary the read timeout
+          new PseudonymizerConfig.RetryConfig(),
+          true
+      );
+      
       Set<ConstraintViolation<PseudonymizerConfig>> violations = validator.validate(config);
       assertThat(violations).isEmpty();
     }

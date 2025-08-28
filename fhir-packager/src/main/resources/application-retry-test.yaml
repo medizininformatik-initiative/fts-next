@@ -1,0 +1,10 @@
+pseudonymizer:
+  url: "http://unreachable:8080"
+  connectTimeout: "PT5S"
+  readTimeout: "PT10S"
+  retry:
+    maxAttempts: 3
+    initialBackoff: "PT1S"
+    maxBackoff: "PT5S"
+    backoffMultiplier: 2.0
+  healthCheckEnabled: false

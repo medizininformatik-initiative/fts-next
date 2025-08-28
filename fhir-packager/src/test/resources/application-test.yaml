@@ -3,8 +3,10 @@
 
 pseudonymizer:
   url: "http://localhost:8080"
-  timeout: "PT30S"
+  connectTimeout: "PT10S"
+  readTimeout: "PT30S"  # Match CLI default to avoid overrides
   retries: 3
+  healthCheckEnabled: false
 
 spring:
   main:

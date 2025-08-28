@@ -1,0 +1,44 @@
+# Basic anonymization configuration for testing
+fhirVersion: R4
+
+fhirPathRules:
+  # Patient identifiers - hash them for pseudonymization
+  - path: "Patient.identifier"
+    method: "cryptoHash"
+    
+  # Patient names - redact for privacy
+  - path: "Patient.name"
+    method: "redact"
+    
+  # Birth dates - generalize to year only
+  - path: "Patient.birthDate"  
+    method: "generalize"
+    generalizationSettings:
+      cases:
+        - "yyyy"
+        
+  # Addresses - keep for testing purposes (would normally be more restrictive)
+  - path: "Patient.address"
+    method: "keep"
+    
+  # Contact information - redact
+  - path: "Patient.telecom"
+    method: "redact"
+    
+  # Observation values - keep for functionality testing
+  - path: "Observation.value*"
+    method: "keep"
+    
+  # Dates in general - shift by random amount
+  - path: "dateTime"
+    method: "dateShift"
+    dateShiftSettings:
+      dateShiftRange: 100
+      
+  # Keep resource IDs for referential integrity in testing
+  - path: "Resource.id"
+    method: "keep"
+    
+  # Keep references for testing bundle integrity
+  - path: "Reference.reference"
+    method: "keep"

@@ -17,13 +17,14 @@ import org.springframework.test.context.TestPropertySource;
  */
 @SpringBootTest
 @DisplayName("PseudonymizerConfig Integration")
-class PseudonymizerConfigIntegrationTest {
+class PseudonymizerConfigIT {
 
   @SpringBootTest
   @TestPropertySource(properties = {
     "pseudonymizer.url=https://custom-host:9090",
-    "pseudonymizer.timeout=PT45S",
-    "pseudonymizer.retries=5"
+    "pseudonymizer.connect-timeout=PT15S",
+    "pseudonymizer.read-timeout=PT45S",
+    "pseudonymizer.retry.max-attempts=5"
   })
   @DisplayName("Custom Properties")
   static class CustomPropertiesTest {
@@ -34,32 +35,33 @@ class PseudonymizerConfigIntegrationTest {
     @Test
     @DisplayName("should bind custom properties correctly")
     void shouldBindCustomPropertiesCorrectly() {
-      assertThat(config.getUrl()).isEqualTo("https://custom-host:9090");
-      assertThat(config.getTimeout()).isEqualTo(Duration.parse("PT45S"));
-      assertThat(config.getRetries()).isEqualTo(5);
+      assertThat(config.url()).isEqualTo("https://custom-host:9090");
+      assertThat(config.connectTimeout()).isEqualTo(Duration.parse("PT15S"));
+      assertThat(config.readTimeout()).isEqualTo(Duration.parse("PT45S"));
+      assertThat(config.retry().maxAttempts()).isEqualTo(5);
     }
   }
 
   @SpringBootTest
   @TestPropertySource(properties = {
-    "pseudonymizer.retries=0"
+    "pseudonymizer.retry.max-attempts=1"
   })
-  @DisplayName("Zero Retries")
-  static class ZeroRetriesTest {
+  @DisplayName("Minimum Retry Attempts")
+  static class MinimumRetryAttemptsTest {
 
     @Autowired
     private PseudonymizerConfig config;
 
     @Test
-    @DisplayName("should allow zero retries configuration")
-    void shouldAllowZeroRetriesConfiguration() {
-      assertThat(config.getRetries()).isEqualTo(0);
+    @DisplayName("should allow minimum retry attempts configuration")
+    void shouldAllowMinimumRetryAttemptsConfiguration() {
+      assertThat(config.retry().maxAttempts()).isEqualTo(1);
     }
   }
 
   @SpringBootTest
   @TestPropertySource(properties = {
-    "pseudonymizer.timeout=PT1M30S"
+    "pseudonymizer.read-timeout=PT1M30S"
   })
   @DisplayName("Complex Duration")
   static class ComplexDurationTest {
@@ -70,8 +72,8 @@ class PseudonymizerConfigIntegrationTest {
     @Test
     @DisplayName("should parse complex duration correctly")
     void shouldParseComplexDurationCorrectly() {
-      assertThat(config.getTimeout()).isEqualTo(Duration.parse("PT1M30S"));
-      assertThat(config.getTimeout().toSeconds()).isEqualTo(90);
+      assertThat(config.readTimeout()).isEqualTo(Duration.parse("PT1M30S"));
+      assertThat(config.readTimeout().toSeconds()).isEqualTo(90);
     }
   }
 }
