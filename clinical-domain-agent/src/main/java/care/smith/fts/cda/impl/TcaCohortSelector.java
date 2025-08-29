@@ -1,13 +1,15 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
+import static care.smith.fts.util.ConsentedPatientExtractor.processConsentedPatients;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
+import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
-import care.smith.fts.util.GicsConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.fhir.FhirException;
 import com.google.common.collect.ImmutableMap;
@@ -27,6 +29,8 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 class TcaCohortSelector implements CohortSelector {
+  String GICS_PATIENT_IDENTIFIER_SYSTEM =
+      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
   private final TcaCohortSelectorConfig config;
   private final WebClient tcaClient;
   private final MeterRegistry meterRegistry;
@@ -90,12 +94,14 @@ class TcaCohortSelector implements CohortSelector {
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
+    var resources = typedResourceStream(outerBundle, Bundle.class);
     return Flux.fromStream(
-        GicsConsentedPatientExtractor.extractConsentedPatients(
+        processConsentedPatients(
             config.patientIdentifierSystem(),
             config.policySystem(),
-            outerBundle,
-            config.policies()));
+            resources,
+            config.policies(),
+            b -> getPatientIdentifier(GICS_PATIENT_IDENTIFIER_SYSTEM, b)));
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {

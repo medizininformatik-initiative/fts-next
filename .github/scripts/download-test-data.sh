@@ -4,14 +4,17 @@ set -euo pipefail
 base_url="https://speicherwolke.uni-leipzig.de/public.php/webdav"
 share="${1}"
 
-mkdir -p ./test-data
+# Create directory based on share ID to avoid file collisions
+data_dir="./test-data/${share}"
+mkdir -p "${data_dir}"
 
 function download_file() {
-  curl -sLf -u "${share}:" "${base_url}/kds/${1}.json.gz" -o "./test-data/${1}.json.gz"
+  curl -sLf -u "${share}:" "${base_url}/kds/${1}.json.gz" -o "${data_dir}/${1}.json.gz"
 }
 export -f download_file
 export base_url
 export share
+export data_dir
 
 echo "Downloading test data files"
 { echo "hospitalInformation";
@@ -19,7 +22,7 @@ echo "Downloading test data files"
   curl -sLf -u "${share}:" "${base_url}/authored.json" | jq -rc "to_entries | .[0:${2:-100}] | .[].key"
 } | xargs -P8 -I{} bash -c  'download_file "{}"'
 
-curl -sLf -u "${share}:" "${base_url}/kds/checksums.sha256" >./test-data/checksums.sha256
-(cd ./test-data && sha256sum -c checksums.sha256 --ignore-missing)
+curl -sLf -u "${share}:" "${base_url}/kds/checksums.sha256" >"${data_dir}/checksums.sha256"
+(cd "${data_dir}" && sha256sum -c checksums.sha256 --ignore-missing)
 
 echo "Download finished"

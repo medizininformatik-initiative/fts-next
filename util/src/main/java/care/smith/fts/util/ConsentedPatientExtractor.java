@@ -7,15 +7,14 @@ import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.Period;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
 
 /**
- * A utility class for extracting consented patients from FHIR bundles returned by gICS. Since gICS
- * uses its own internal patient identifier system, but patient identifiers typically belong to
- * external systems (such as hospital information systems). This class accepts the actual identifier
- * system as a parameter to ensure proper patient identification in the resulting ConsentedPatient
- * objects.
+ * Interface for extracting consented patients from FHIR bundles. This interface contains all the
+ * shared logic for processing consent information as static methods, while allowing implementations
+ * to define how patient identifiers are extracted from bundles.
  *
  * <p>The extraction process:
  *
@@ -31,46 +30,29 @@ import org.hl7.fhir.r4.model.*;
  * @see ConsentedPolicies
  * @see Period
  */
-public interface GicsConsentedPatientExtractor {
-
-  String gicsPatientIdentifierSystem = "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
-
-  /**
-   * Extracts consented patients from the given outer bundle. It is assumed that the outer bundle is
-   * a collection bundle;
-   *
-   * @param patientIdentifierSystem the system used for patient identifiers
-   * @param policySystem the system used for policy codes
-   * @param outerBundle the outer bundle containing nested bundles and resources
-   * @param policiesToCheck the set of policies to check for consent
-   * @return a stream of consented patients
-   */
-  static Stream<ConsentedPatient> extractConsentedPatients(
-      String patientIdentifierSystem,
-      String policySystem,
-      Bundle outerBundle,
-      Set<String> policiesToCheck) {
-    Stream<Bundle> resources = typedResourceStream(outerBundle, Bundle.class);
-    return getConsentedPatients(patientIdentifierSystem, policySystem, resources, policiesToCheck);
-  }
+public interface ConsentedPatientExtractor {
 
   /**
    * Retrieves a stream of consented patients from the given stream of bundles.
    *
-   * @param patientIdentifierSystem the system used for patient identifiers
+   * @param patientIdentifierSystem the system used for patient identifiers in the result
    * @param policySystem the system used for policy codes
    * @param bundles the stream of bundles to process
    * @param policiesToCheck the set of policies to check for consent
+   * @param patientIdExtractor function to extract patient ID from a bundle
    * @return a stream of consented patients
    */
-  static Stream<ConsentedPatient> getConsentedPatients(
+  static Stream<ConsentedPatient> processConsentedPatients(
       String patientIdentifierSystem,
       String policySystem,
       Stream<Bundle> bundles,
-      Set<String> policiesToCheck) {
+      Set<String> policiesToCheck,
+      Function<Bundle, Optional<String>> patientIdExtractor) {
     return bundles
         .map(
-            b -> extractConsentedPatient(patientIdentifierSystem, policySystem, b, policiesToCheck))
+            b ->
+                processConsentedPatient(
+                    patientIdentifierSystem, policySystem, b, policiesToCheck, patientIdExtractor))
         .filter(Optional::isPresent)
         .map(Optional::get);
   }
@@ -78,19 +60,22 @@ public interface GicsConsentedPatientExtractor {
   /**
    * Extracts the consented patient from the given bundle.
    *
-   * @param patientIdentifierSystem the system used for patient identifiers
+   * @param patientIdentifierSystem the system used for patient identifiers in the result
    * @param policySystem the system used for policy codes
    * @param bundle the bundle from which the consented patient is extracted
    * @param policiesToCheck the policies the patient has to consent to
+   * @param patientIdExtractor function to extract patient ID from a bundle
    * @return an {@link Optional} containing a {@link ConsentedPatient}, if all policiesToCheck are
    *     consented to
    */
-  static Optional<ConsentedPatient> extractConsentedPatient(
+  static Optional<ConsentedPatient> processConsentedPatient(
       String patientIdentifierSystem,
       String policySystem,
       Bundle bundle,
-      Set<String> policiesToCheck) {
-    return getPatientIdentifier(bundle)
+      Set<String> policiesToCheck,
+      Function<Bundle, Optional<String>> patientIdExtractor) {
+    return patientIdExtractor
+        .apply(bundle)
         .flatMap(
             pid -> {
               var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
@@ -117,20 +102,6 @@ public interface GicsConsentedPatientExtractor {
   }
 
   /**
-   * Retrieves the patient identifier from the given bundle.
-   *
-   * @param bundle the bundle containing the patient resource
-   * @return an {@link Optional} containing the patient identifier, if found
-   */
-  private static Optional<String> getPatientIdentifier(Bundle bundle) {
-    return typedResourceStream(bundle, Patient.class)
-        .flatMap(p -> p.getIdentifier().stream())
-        .filter(id -> id.getSystem().equals(gicsPatientIdentifierSystem))
-        .map(Identifier::getValue)
-        .findFirst();
-  }
-
-  /**
    * Retrieves the consented policies from the given bundle.
    *
    * @param policySystem the system used for policy codes
@@ -138,7 +109,7 @@ public interface GicsConsentedPatientExtractor {
    * @param policiesToCheck the set of policies to check for consent
    * @return the consented policies
    */
-  private static ConsentedPolicies getConsentedPolicies(
+  static ConsentedPolicies getConsentedPolicies(
       String policySystem, Bundle bundle, Set<String> policiesToCheck) {
     return getPermitProvisionsStream(bundle)
         .map(
@@ -159,7 +130,7 @@ public interface GicsConsentedPatientExtractor {
    * @param bundle the bundle containing the consent resources
    * @return a stream of permit provision components
    */
-  private static Stream<Consent.ProvisionComponent> getPermitProvisionsStream(Bundle bundle) {
+  static Stream<Consent.ProvisionComponent> getPermitProvisionsStream(Bundle bundle) {
     return typedResourceStream(bundle, Consent.class)
         .flatMap(c -> c.getProvision().getProvision().stream());
   }
@@ -172,7 +143,7 @@ public interface GicsConsentedPatientExtractor {
    * @param policiesToCheck the set of policies to check for consent
    * @return the consented policies
    */
-  private static ConsentedPolicies getConsentedPoliciesFromProvision(
+  static ConsentedPolicies getConsentedPoliciesFromProvision(
       String policySystem,
       Consent.ProvisionComponent ProvisionComponent,
       Set<String> policiesToCheck) {
@@ -196,11 +167,27 @@ public interface GicsConsentedPatientExtractor {
    * @param c the codeable concept containing the policy codes
    * @return a stream of policy codes that match the policiesToCheck
    */
-  private static Stream<String> extractPolicyFromCodeableConcept(
+  static Stream<String> extractPolicyFromCodeableConcept(
       String policySystem, Set<String> policiesToCheck, CodeableConcept c) {
     return c.getCoding().stream()
         .filter(coding -> coding.getSystem().equals(policySystem))
         .map(Coding::getCode)
         .filter(policiesToCheck::contains);
+  }
+
+  /**
+   * Retrieves the patient identifier from the given bundle using the specified patient identifier
+   * system.
+   *
+   * @param patientIdentifierSystem the system used for patient identifiers
+   * @param bundle the bundle containing the patient resource
+   * @return an {@link Optional} containing the patient identifier, if found
+   */
+  static Optional<String> getPatientIdentifier(String patientIdentifierSystem, Bundle bundle) {
+    return typedResourceStream(bundle, Patient.class)
+        .flatMap(p -> p.getIdentifier().stream())
+        .filter(id -> id.getSystem().equals(patientIdentifierSystem))
+        .map(Identifier::getValue)
+        .findFirst();
   }
 }

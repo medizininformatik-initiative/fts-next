@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.ConsentedPatientExtractor.*;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
@@ -8,7 +9,6 @@ import static org.springframework.web.util.UriComponentsBuilder.*;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
-import care.smith.fts.util.GicsConsentedPatientExtractor;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
@@ -53,7 +53,7 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   private URI buildFhirSearchQuery(UriBuilder builder, List<String> pids) {
-    builder.pathSegment("Consent").queryParam("_include", "Patient");
+    builder.pathSegment("Consent").queryParam("_include", "Consent:patient");
     if (!pids.isEmpty()) {
       var pidQuery =
           pids.stream()
@@ -91,12 +91,15 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
+    var patientIdentifierSystem = config.patientIdentifierSystem();
+    var bundles = groupPatientsAndConsents(bundle);
     return Flux.fromStream(
-        GicsConsentedPatientExtractor.getConsentedPatients(
-            config.patientIdentifierSystem(),
+        processConsentedPatients(
+            patientIdentifierSystem,
             config.policySystem(),
-            groupPatientsAndConsents(bundle),
-            config.policies()));
+            bundles,
+            config.policies(),
+            b -> getPatientIdentifier(patientIdentifierSystem, b)));
   }
 
   private static Stream<Bundle> groupPatientsAndConsents(Bundle bundle) {

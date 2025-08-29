@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
   merge_group:
 
-# Declare default permissions as read only.
+# Declare default permissions as read-only.
 permissions: read-all
 
 concurrency:
@@ -295,12 +295,16 @@ jobs:
       continue-on-error: true
       run: |
         make download-checksums
-        (cd ./test-data && sha256sum -c checksums.sha256 --ignore-missing)
+        make download-with-fhir-consent-checksums
+        (cd ./test-data/MioAzTLMjzbPNyx && sha256sum -c checksums.sha256 --ignore-missing)
+        (cd ./test-data/4p2JNfHa8mXmLSF && sha256sum -c checksums.sha256 --ignore-missing)
 
     - name: Download Test Data
       if: steps.cache-test-data.outputs.cache-hit != 'true'
         || steps.check-test-data.outcome != 'success'
-      run: make download
+      run: |
+        make download
+        make download-with-fhir-consent       
 
     - name: Upload Test Data
       run: make upload
@@ -310,24 +314,35 @@ jobs:
 
     - name: Run e2e with failing Basic Auth
       run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=basic-fail
         make wait
         make check-status RESULTS_FILE=basic-fail.json
-        make check-resources RESULTS_FILE=basic-fail.json
+        check-resources.sh basic-fail.json "${LAST_UPDATED}"
 
     - name: Run e2e with failing OAuth2 Auth
       run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=oauth2-fail
         make wait
         make check-status RESULTS_FILE=oauth2-fail.json
-        make check-resources RESULTS_FILE=oauth2-fail.json
+        check-resources.sh oauth2-fail.json "${LAST_UPDATED}"
 
     - name: Run e2e for all Consented Patients
       run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=gics-consent-example
         make wait
         make check-status RESULTS_FILE=example.json
-        make check-resources RESULTS_FILE=example.json
+        check-resources.sh example.json "${LAST_UPDATED}"
+
+    - name: Run e2e for 10 Consented Patients with FHIR Consent
+      run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+        make transfer-with-fhir-consent-list PROJECT=fhir-consent-example TEST_SET_SIZE=10 
+        make wait
+        make check-status RESULTS_FILE=example-with-fhir-consent.json
+        check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
 
     - name: Collect Agent Logs
       if: failure() || cancelled()

@@ -10,10 +10,13 @@ if ! rd_hds_base_url="http://$(docker compose port rd-hds 8080)/fhir"; then
 fi
 
 resultsFile=${1:-example.json}
+baselineTimestamp=${2:-}
 
 function countResources() {
   local resourceType=$1
-  curl -sf "${rd_hds_base_url}/${resourceType}?_summary=count" | jq -r .total
+  local url="${rd_hds_base_url}/${resourceType}?_summary=count${baselineTimestamp:+"&_lastUpdated=ge${baselineTimestamp}"}"
+  
+  curl -sf "${url}" | jq -r .total
 }
 
 function expectCount() {

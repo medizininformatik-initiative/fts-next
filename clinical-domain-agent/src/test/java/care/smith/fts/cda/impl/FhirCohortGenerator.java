@@ -97,7 +97,11 @@ public class FhirCohortGenerator {
   private static ProvisionComponent generateProvision(String policySystem, Set<String> policies) {
     var coding = new Coding().setSystem(policySystem).setCode(policies.iterator().next());
     var concept = new CodeableConcept().addCoding(coding);
-    var inner = new ProvisionComponent().setPeriod(generatePeriod()).addCode(concept);
+    var inner =
+        new ProvisionComponent()
+            .setType(Consent.ConsentProvisionType.PERMIT)
+            .setPeriod(generatePeriod())
+            .addCode(concept);
     return new ProvisionComponent().addProvision(inner);
   }
 

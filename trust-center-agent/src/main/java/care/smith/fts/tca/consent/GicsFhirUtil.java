@@ -1,6 +1,6 @@
 package care.smith.fts.tca.consent;
 
-import static care.smith.fts.util.GicsConsentedPatientExtractor.hasAllPolicies;
+import static care.smith.fts.util.ConsentedPatientExtractor.hasAllPolicies;
 import static care.smith.fts.util.fhir.FhirClientUtils.fetchCapabilityStatementOperations;
 import static care.smith.fts.util.fhir.FhirClientUtils.requireOperations;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
