@@ -34,7 +34,12 @@ class TcaCohortSelectorFactoryIT {
             factory.create(
                 null,
                 new TcaCohortSelectorConfig(
-                    new HttpClientConfig("http://dummy.example.com"), null, null, null, null)))
+                    new HttpClientConfig("http://dummy.example.com"),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null)))
         .isNotNull();
   }
 }
