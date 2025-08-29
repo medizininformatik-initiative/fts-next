@@ -2,6 +2,7 @@ package care.smith.fts.packager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.packager.config.MockPseudonymizerTestConfiguration;
 import care.smith.fts.packager.config.PseudonymizerConfig;
 import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
@@ -15,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
  * 
  * <p>Tests Spring Boot application startup, configuration loading, and basic functionality.
  */
-@SpringBootTest
+@SpringBootTest(classes = MockPseudonymizerTestConfiguration.class)
 @ActiveProfiles("test")
 @DisplayName("FhirPackagerApplication")
 class FhirPackagerApplicationTest {

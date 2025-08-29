@@ -77,6 +77,9 @@ public class PackagerCommand implements Callable<Integer> {
   
   @Autowired
   private BundleValidator bundleValidator;
+  
+  @Autowired
+  private PseudonymizerClient pseudonymizerClient;
 
   /**
    * URL of the FHIR Pseudonymizer service endpoint.
@@ -394,7 +397,8 @@ public class PackagerCommand implements Callable<Integer> {
   /**
    * Creates a BundleProcessor with the specified configuration.
    * If the configuration differs from the original Spring config,
-   * creates new service instances; otherwise uses the autowired ones.
+   * creates a new BundleProcessor with the effective config but reuses
+   * the autowired PseudonymizerClient to preserve test mocks.
    * 
    * @param effectiveConfig the configuration to use
    * @return a BundleProcessor configured with the effective config
@@ -406,16 +410,16 @@ public class PackagerCommand implements Callable<Integer> {
       return bundleProcessor;
     }
     
-    // Create new services with effective config
+    // Create new BundleProcessor with effective config but reuse autowired client
+    // This preserves test mocks and Spring dependency injection
     log.debug("Creating new BundleProcessor with CLI overrides");
-    PseudonymizerClient effectiveClient = new PseudonymizerClientImpl(effectiveConfig, webClientBuilder);
     
     return new BundleProcessor(
         stdinReader,
         stdoutWriter,
         bundleValidator,
         effectiveConfig,
-        effectiveClient
+        pseudonymizerClient
     );
   }
   

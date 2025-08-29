@@ -148,9 +148,10 @@ class PackagerCommandTest {
     // Given: Invalid timeout value
     String[] args = {"--timeout", "0"};
 
-    // When & Then: Execution should fail with constraint violation
-    int exitCode = commandLine.execute(args);
-    assertThat(exitCode).isEqualTo(2);
+    // When & Then: Parsing should fail with constraint violation
+    assertThatThrownBy(() -> commandLine.parseArgs(args))
+        .isInstanceOf(CommandLine.ParameterException.class)
+        .hasMessageContaining("Timeout must be at least 1 second");
   }
 
   @Test
@@ -158,9 +159,10 @@ class PackagerCommandTest {
     // Given: Negative timeout value
     String[] args = {"--timeout", "-5"};
 
-    // When & Then: Execution should fail with constraint violation
-    int exitCode = commandLine.execute(args);
-    assertThat(exitCode).isEqualTo(2);
+    // When & Then: Parsing should fail with constraint violation
+    assertThatThrownBy(() -> commandLine.parseArgs(args))
+        .isInstanceOf(CommandLine.ParameterException.class)
+        .hasMessageContaining("Timeout must be at least 1 second");
   }
 
   @Test
@@ -168,9 +170,10 @@ class PackagerCommandTest {
     // Given: Negative retries value
     String[] args = {"--retries", "-1"};
 
-    // When & Then: Execution should fail with constraint violation
-    int exitCode = commandLine.execute(args);
-    assertThat(exitCode).isEqualTo(2);
+    // When & Then: Parsing should fail with constraint violation
+    assertThatThrownBy(() -> commandLine.parseArgs(args))
+        .isInstanceOf(CommandLine.ParameterException.class)
+        .hasMessageContaining("Retries must be at least 0");
   }
 
   @Test

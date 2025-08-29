@@ -203,7 +203,7 @@ class PseudonymizerClientImplTest {
   void testHealthCheck_Success() {
     // Given
     when(webClient.get()).thenReturn(requestHeadersUriSpec);
-    when(requestHeadersUriSpec.uri("/health")).thenReturn(requestHeadersUriSpec);
+    when(requestHeadersUriSpec.uri("/fhir/metadata")).thenReturn(requestHeadersUriSpec);
     when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
     when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just("OK"));
 
