@@ -19,5 +19,5 @@ RESEARCH_STUDY_UUID="$(uuidgen)" \
 AUTHORED="${2:-"2024-05-01T00:00:00+02:00"}" \
 envsubst "\$PATIENT_ID \$QUESTIONNAIRE_RESPONSE_UUID \$RESEARCH_STUDY_UUID \$AUTHORED" \
   <"${SCRIPT_DIR}/consent.tmpl.json" \
-  | curl -sf --data-binary @- -H "Content-Type: application/fhir+json" "${gics_base_url}/\$addConsent" \
+  | curl -sSf --data-binary @- -H "Content-Type: application/fhir+json" "${gics_base_url}/\$addConsent" \
   >/dev/null
