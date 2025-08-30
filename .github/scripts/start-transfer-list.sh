@@ -15,7 +15,7 @@ base_url="https://speicherwolke.uni-leipzig.de/public.php/webdav"
 share="${2}"
 limit="${3:-100}"
 
-curl -sLf -u "${share}:" "${base_url}/authored.json" \
+curl -sSf -u "${share}:" "${base_url}/authored.json" \
 | jq -c "[to_entries | .[0:$limit] | .[].key]" \
-| curl -sf --data @- -H "Content-Type: application/json" \
+| curl -sSf --data @- -H "Content-Type: application/json" \
     -w "%header{Content-Location}" "${cd_agent_base_url}/api/v2/process/${1}/start"

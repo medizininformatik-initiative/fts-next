@@ -16,7 +16,7 @@ function countResources() {
   local resourceType=$1
   local url="${rd_hds_base_url}/${resourceType}?_summary=count${baselineTimestamp:+"&_lastUpdated=ge${baselineTimestamp}"}"
   
-  curl -sf "${url}" | jq -r .total
+  curl -sSf "${url}" | jq -r .total
 }
 
 function expectCount() {

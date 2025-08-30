@@ -32,7 +32,7 @@ sed -i -e '/{RELEASES}/{e cat releases.json' -e ';d}' prompt.md
 # Send prompt file to Mistral API and capture the response
 jq -n --rawfile content prompt.md \
   '{"model": "mistral-medium", "messages": [{"role": "user", "content": $content}]}' \
-| curl -sf https://api.mistral.ai/v1/chat/completions -H "Content-Type: application/json" \
+| curl -sSfL https://api.mistral.ai/v1/chat/completions -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${MISTRAL_API_KEY}" --data-binary @- \
 | jq -r '.choices[0].message.content' >notes.md
 
