@@ -6,6 +6,7 @@ cohortSelector:
     patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
     policySystem: "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy"
     policies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
+    signerIdType: "Pseudonym"
 
 dataSelector:
   everything:

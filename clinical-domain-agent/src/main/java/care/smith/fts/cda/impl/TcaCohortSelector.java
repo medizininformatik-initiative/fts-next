@@ -29,8 +29,6 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 class TcaCohortSelector implements CohortSelector {
-  String GICS_PATIENT_IDENTIFIER_SYSTEM =
-      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
   private final TcaCohortSelectorConfig config;
   private final WebClient tcaClient;
   private final MeterRegistry meterRegistry;
@@ -40,6 +38,10 @@ class TcaCohortSelector implements CohortSelector {
     this.config = config;
     this.tcaClient = tcaClient;
     this.meterRegistry = meterRegistry;
+  }
+
+  private String getGicsIdentifierSystem() {
+    return "https://ths-greifswald.de/fhir/gics/identifiers/" + config.signerIdType();
   }
 
   @Override
@@ -101,7 +103,7 @@ class TcaCohortSelector implements CohortSelector {
             config.policySystem(),
             resources,
             config.policies(),
-            b -> getPatientIdentifier(GICS_PATIENT_IDENTIFIER_SYSTEM, b)));
+            b -> getPatientIdentifier(getGicsIdentifierSystem(), b)));
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {
