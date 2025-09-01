@@ -9,7 +9,7 @@ if ! gics_base_url="http://$(docker compose port gics 8080)/ttp-fhir/fhir/gics";
   exit 2
 fi
 
-summary="$(curl -XPOST -sf -H "Content-Type: application/fhir+json" \
+summary="$(curl -XPOST -sSf -H "Content-Type: application/fhir+json" \
   --data '{"resourceType": "Parameters", "parameter": [{"name": "domain", "valueString": "MII"}]}' \
   "${gics_base_url}/\$allConsentsForDomain?_summary=count")"
 
