@@ -48,8 +48,7 @@ class TcaCohortSelectorIT {
 
   private static final Set<String> POLICIES = Set.of("MDAT_erheben");
 
-  private static final String PID_SYSTEM =
-      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
+  private static final String PID_SYSTEM = "https://fts.smith.care";
   private static final String POLICY_SYSTEM =
       "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
 
@@ -62,13 +61,14 @@ class TcaCohortSelectorIT {
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
     var address = "http://localhost";
     var server = new HttpClientConfig(address);
-    var config = new TcaCohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII");
+    var config =
+        new TcaCohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII", null);
     cohortSelector =
         new TcaCohortSelector(
             config, clientFactory.create(clientConfig(wireMockRuntime)), meterRegistry);
     wireMock = wireMockRuntime.getWireMock();
-    allCohortSelector = MockCohortSelector.fetchAll(wireMock, POLICY_SYSTEM);
-    listCohortSelector = MockCohortSelector.fetch(wireMock, POLICY_SYSTEM);
+    allCohortSelector = MockCohortSelector.fetchAll(wireMock);
+    listCohortSelector = MockCohortSelector.fetch(wireMock);
   }
 
   private static MappingBuilder fetchAllRequest() {
@@ -197,5 +197,34 @@ class TcaCohortSelectorIT {
     allCohortSelector.consentForNPatientsWithPaging(
         "pid", total, maxPageSize, List.of(200, 500, 500, 200, 200, 500, 200));
     create(cohortSelector.selectCohort(List.of())).expectNextCount(7).verifyComplete();
+  }
+
+  @Test
+  void nullSignerIdTypeDefaultsToPseudonym(
+      @Autowired WebClientFactory clientFactory, WireMockRuntimeInfo wireMockRuntime) {
+    // Test that null signerIdType defaults to "Pseudonym" for backward compatibility
+    var server = new HttpClientConfig("http://localhost");
+    var configWithNull =
+        new TcaCohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII", null);
+    var configWithPseudonym =
+        new TcaCohortSelectorConfig(
+            server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII", "Pseudonym");
+
+    var selectorWithNull =
+        new TcaCohortSelector(
+            configWithNull, clientFactory.create(clientConfig(wireMockRuntime)), meterRegistry);
+    var selectorWithPseudonym =
+        new TcaCohortSelector(
+            configWithPseudonym,
+            clientFactory.create(clientConfig(wireMockRuntime)),
+            meterRegistry);
+
+    // Both should behave identically
+    var selector = MockCohortSelector.fetchAll(wireMock);
+    selector.consentForOnePatient("patient");
+
+    // Both selectors should find the same patient since null defaults to "Pseudonym"
+    create(selectorWithNull.selectCohort(List.of())).expectNextCount(1).verifyComplete();
+    create(selectorWithPseudonym.selectCohort(List.of())).expectNextCount(1).verifyComplete();
   }
 }

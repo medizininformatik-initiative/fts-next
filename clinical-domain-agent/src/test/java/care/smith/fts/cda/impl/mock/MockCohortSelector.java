@@ -40,15 +40,15 @@ public class MockCohortSelector {
   private final WireMock tca;
   private final String basePath;
 
-  public static MockCohortSelector fetchAll(WireMock tca, String policySystem) {
-    return new MockCohortSelector(tca, policySystem, "/api/v2/cd/consented-patients/fetch-all");
+  public static MockCohortSelector fetchAll(WireMock tca) {
+    return new MockCohortSelector(tca, "/api/v2/cd/consented-patients/fetch-all");
   }
 
-  public static MockCohortSelector fetch(WireMock tca, String policySystem) {
-    return new MockCohortSelector(tca, policySystem, "/api/v2/cd/consented-patients/fetch");
+  public static MockCohortSelector fetch(WireMock tca) {
+    return new MockCohortSelector(tca, "/api/v2/cd/consented-patients/fetch");
   }
 
-  public MockCohortSelector(WireMock tca, String policy_system, String basePath) {
+  public MockCohortSelector(WireMock tca, String basePath) {
     this.tca = tca;
     this.basePath = basePath;
   }
