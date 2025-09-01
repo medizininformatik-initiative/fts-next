@@ -397,8 +397,8 @@ public class PackagerCommand implements Callable<Integer> {
   /**
    * Creates a BundleProcessor with the specified configuration.
    * If the configuration differs from the original Spring config,
-   * creates a new BundleProcessor with the effective config but reuses
-   * the autowired PseudonymizerClient to preserve test mocks.
+   * creates a new BundleProcessor with the effective config and a new
+   * PseudonymizerClient configured with the effective settings.
    * 
    * @param effectiveConfig the configuration to use
    * @return a BundleProcessor configured with the effective config
@@ -410,16 +410,17 @@ public class PackagerCommand implements Callable<Integer> {
       return bundleProcessor;
     }
     
-    // Create new BundleProcessor with effective config but reuse autowired client
-    // This preserves test mocks and Spring dependency injection
-    log.debug("Creating new BundleProcessor with CLI overrides");
+    // Create new PseudonymizerClient with effective config
+    // This ensures the WebClient uses the correct URL from CLI overrides
+    log.debug("Creating new BundleProcessor and PseudonymizerClient with CLI overrides");
+    PseudonymizerClient effectiveClient = new PseudonymizerClientImpl(effectiveConfig, webClientBuilder);
     
     return new BundleProcessor(
         stdinReader,
         stdoutWriter,
         bundleValidator,
         effectiveConfig,
-        pseudonymizerClient
+        effectiveClient
     );
   }
   
