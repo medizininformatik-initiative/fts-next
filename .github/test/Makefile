@@ -56,7 +56,7 @@ check-resources:
 	../scripts/check-resources.sh ${RESULTS_FILE}
 
 show-status:
-	curl -s "$(shell cat process.url)"
+	curl -sSf "$(shell cat process.url)"
 
 list-projects:
 	../scripts/list-projects.sh

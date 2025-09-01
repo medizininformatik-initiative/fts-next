@@ -23,7 +23,7 @@ services:
     environment:
       BASE_URL: "http://cd-hds:8080"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -38,7 +38,7 @@ services:
       BASE_URL: "http://rd-hds:8080"
       ENFORCE_REFERENTIAL_INTEGRITY: "false"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -53,7 +53,7 @@ services:
       gics-db:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/gics/gicsService?wsdl" ]
+      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/gics/gicsService?wsdl" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -83,7 +83,7 @@ services:
       gpas-db:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/gpas/gpasService?wsdl" ]
+      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/gpas/gpasService?wsdl" ]
       interval: 10s
       timeout: 5s
       retries: 3

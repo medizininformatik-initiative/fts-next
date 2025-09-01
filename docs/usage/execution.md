@@ -21,7 +21,7 @@ and all patients with consent are transferred.
 For example, to start the transfer of the template's example project run:
 
 ```shell
-curl -X POST https://cd-agent:8080/api/v2/process/example/start
+curl -sSfX POST "https://cd-agent:8080/api/v2/process/example/start"
 ```
 
 ### Manual Cohort
@@ -29,8 +29,8 @@ curl -X POST https://cd-agent:8080/api/v2/process/example/start
 The other option is to have a list of IDs as payload with the start request, e.g.
 
 ```shell
-curl -X POST --data '["id1", "id2", "id3"]' -H "Content-Type: application/json" \
-  https://cd-agent:8080/api/v2/process/example/start
+curl -sSf --data '["id1", "id2", "id3"]' -H "Content-Type: application/json" \
+  "https://cd-agent:8080/api/v2/process/example/start"
 ```
 
 [API Reference for Start Endpoint](/open-api/cd-openapi.html#post-/api/v2/process/-project-/start)
@@ -40,7 +40,7 @@ curl -X POST --data '["id1", "id2", "id3"]' -H "Content-Type: application/json" 
 The response's Content-Location header contains a URL with the transfer status, e.g.
 
 ```shell
-curl "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c0eafbe8ead0"
+curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c0eafbe8ead0"
 ```
 
 The status response looks like this:
