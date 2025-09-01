@@ -283,31 +283,29 @@ jobs:
     - name: Start Test Environment
       run: make generate-certs start
 
+    - name: Download Test Data Checksums
+      run: |
+        make download-test-data-checksums
+
     - name: Cache Test Data
       id: cache-test-data
       uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
       with:
         path: .github/test/test-data
-        key: test-data-${{ env.TEST_SET_SIZE }}
+        key: test-data:${{ env.TEST_SET_SIZE }}@${{ hashFiles('.github/test/test-data/**/checksums.*') }}
 
     - name: Check Test Data
       id: check-test-data
       continue-on-error: true
-      run: |
-        make download-checksums
-        make download-with-fhir-consent-checksums
-        (cd ./test-data/MioAzTLMjzbPNyx && sha256sum -c checksums.sha256 --ignore-missing)
-        (cd ./test-data/4p2JNfHa8mXmLSF && sha256sum -c checksums.sha256 --ignore-missing)
+      run: make check-test-data
 
     - name: Download Test Data
       if: steps.cache-test-data.outputs.cache-hit != 'true'
         || steps.check-test-data.outcome != 'success'
-      run: |
-        make download
-        make download-with-fhir-consent       
+      run: make download-test-data
 
     - name: Upload Test Data
-      run: make upload
+      run: make upload-test-data
 
     - name: Check Consent
       run: make check-consent

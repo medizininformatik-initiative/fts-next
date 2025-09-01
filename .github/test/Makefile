@@ -1,6 +1,10 @@
-.PHONY: all pull start upload transfer wait check-status check-resources show-status show-hds clean-dbs clean-rd-hds
+.PHONY: all pull generate-certs start upload-consents check-consent upload-test-data \
+	transfer-all transfer-list transfer-with-fhir-consent-list wait  \
+	check-status check-resources show-status show-hds clean-dbs clean-rd-hds \
+	download-test-data download-test-data-checksums check-test-data \
+	openapi-specs list-projects show-project
 
-all: pull generate-certs start upload transfer-all wait check-status check-resources show-hds clean-dbs
+all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources show-hds clean-dbs
 
 pull:
 	docker compose pull -q --ignore-pull-failures
@@ -12,22 +16,22 @@ generate-certs:
 start:
 	docker compose up --wait --pull missing
 
-download:
-	../scripts/download-test-data.sh MioAzTLMjzbPNyx ${TEST_SET_SIZE}
-
-download-checksums:
+download-test-data-checksums:
 	../scripts/download-test-data-checksums.sh MioAzTLMjzbPNyx
+	../scripts/download-test-data-checksums.sh 4p2JNfHa8mXmLSF
 
-download-with-fhir-consent:
+download-test-data:
+	../scripts/download-test-data.sh MioAzTLMjzbPNyx ${TEST_SET_SIZE}
 	../scripts/download-test-data.sh 4p2JNfHa8mXmLSF ${TEST_SET_SIZE}
 
-download-with-fhir-consent-checksums:
-	../scripts/download-test-data-checksums.sh 4p2JNfHa8mXmLSF
+check-test-data:
+	(cd ./test-data/MioAzTLMjzbPNyx && sha256sum -c checksums.sha256 --ignore-missing)
+	(cd ./test-data/4p2JNfHa8mXmLSF && sha256sum -c checksums.sha256 --ignore-missing)
 
 upload-consents:
 	../scripts/upload-consents.sh ${TEST_SET_SIZE}
 
-upload:
+upload-test-data:
 	../scripts/upload-data.sh
 
 transfer-all:
