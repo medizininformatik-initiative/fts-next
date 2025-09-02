@@ -1,4 +1,4 @@
-.PHONY:	compile test build coverage $(AGENTS) $(PACKAGER) all
+.PHONY:	compile test build coverage $(AGENTS) fhir-packager all
 
 AGENTS := $(wildcard *-agent)
 PACKAGER := fhir-packager
