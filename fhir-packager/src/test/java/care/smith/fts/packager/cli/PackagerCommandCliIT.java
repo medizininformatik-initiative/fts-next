@@ -187,18 +187,19 @@ class PackagerCommandCliIT {
   @Test
   void shouldHandleMinimalValidArguments() throws Exception {
     // Given: PackagerCommand with minimal arguments (default config values should be valid)
-    // Since CLI default for timeout differs from config default, CLI overrides will be applied
-    // This creates a new BundleProcessor which uses the real StdinReader (not mocked)
-    // So we configure stdinReader mock to avoid hanging, expecting processing failure
-    when(stdinReader.readFromStdin()).thenThrow(new IOException("No input from stdin in test"));
+    // Since CLI defaults now match config defaults, no CLI overrides are applied
+    // This uses the autowired (mocked) BundleProcessor and PseudonymizerClient
+    // Mock successful input to demonstrate the CLI works end-to-end
+    String testBundle = "{\"resourceType\":\"Bundle\",\"type\":\"collection\",\"entry\":[]}";
+    when(stdinReader.readFromStdin()).thenReturn(testBundle);
     
     CommandLine commandLine = new CommandLine(packageCommand);
 
     // When: Execute with no arguments (uses all defaults)
     int exitCode = commandLine.execute();
 
-    // Then: Should fail with general error due to I/O issue (not validation error)
-    assertThat(exitCode).isEqualTo(1); // General processing error, not invalid args (2)
+    // Then: Should succeed with mocked components
+    assertThat(exitCode).isEqualTo(0); // Success with mocked pseudonymizer
   }
 
   @Test

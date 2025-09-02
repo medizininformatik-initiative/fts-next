@@ -32,10 +32,11 @@ class FhirPackagerApplicationTest {
   }
 
   @Test
-  @DisplayName("should load configuration with default values")
-  void shouldLoadConfigurationWithDefaultValues() {
+  @DisplayName("should load configuration with test values")
+  void shouldLoadConfigurationWithTestValues() {
     assertThat(pseudonymizerConfig.url()).isEqualTo("http://localhost:8080");
-    assertThat(pseudonymizerConfig.readTimeout()).isEqualTo(Duration.parse("PT60S"));
+    assertThat(pseudonymizerConfig.readTimeout()).isEqualTo(Duration.parse("PT30S"));
     assertThat(pseudonymizerConfig.retry().maxAttempts()).isEqualTo(3);
+    assertThat(pseudonymizerConfig.healthCheckEnabled()).isFalse();
   }
 }
