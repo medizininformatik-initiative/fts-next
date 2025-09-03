@@ -113,17 +113,14 @@ class BundleProcessingPerformanceTest {
   @Test
   @Timeout(value = 10, unit = TimeUnit.SECONDS)
   void processSmallBundle_ShouldComplete_WithinTimeLimit() throws Exception {
-    // Given
     Bundle smallBundle = createBundleWithPatients(1);
     String bundleJson = FhirUtils.fhirResourceToString(smallBundle);
     System.setIn(new ByteArrayInputStream(bundleJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     long startTime = System.currentTimeMillis();
     int exitCode = bundleProcessor.processBundle();
     long processingTime = System.currentTimeMillis() - startTime;
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     assertThat(processingTime).isLessThan(5000); // Less than 5 seconds (includes FHIR context initialization)
     
@@ -135,17 +132,14 @@ class BundleProcessingPerformanceTest {
   @Test
   @Timeout(value = 5, unit = TimeUnit.SECONDS)
   void processMediumBundle_ShouldComplete_WithinTimeLimit() throws Exception {
-    // Given
     Bundle mediumBundle = createBundleWithPatients(50);
     String bundleJson = FhirUtils.fhirResourceToString(mediumBundle);
     System.setIn(new ByteArrayInputStream(bundleJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     long startTime = System.currentTimeMillis();
     int exitCode = bundleProcessor.processBundle();
     long processingTime = System.currentTimeMillis() - startTime;
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     assertThat(processingTime).isLessThan(3000); // Less than 3 seconds for 50 patients
     
@@ -161,17 +155,14 @@ class BundleProcessingPerformanceTest {
   @Test
   @Timeout(value = 10, unit = TimeUnit.SECONDS)
   void processLargeBundle_ShouldComplete_WithinTimeLimit() throws Exception {
-    // Given
     Bundle largeBundle = createBundleWithPatientsAndObservations(100, 2);
     String bundleJson = FhirUtils.fhirResourceToString(largeBundle);
     System.setIn(new ByteArrayInputStream(bundleJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     long startTime = System.currentTimeMillis();
     int exitCode = bundleProcessor.processBundle();
     long processingTime = System.currentTimeMillis() - startTime;
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     assertThat(processingTime).isLessThan(8000); // Less than 8 seconds for large bundle
     
@@ -187,7 +178,6 @@ class BundleProcessingPerformanceTest {
   @Test
   @Timeout(value = 15, unit = TimeUnit.SECONDS)
   void processVeryLargeBundle_ShouldComplete_WithinMemoryConstraints() throws Exception {
-    // Given
     Bundle veryLargeBundle = createBundleWithPatientsAndObservations(200, 3);
     String bundleJson = FhirUtils.fhirResourceToString(veryLargeBundle);
     
@@ -198,7 +188,6 @@ class BundleProcessingPerformanceTest {
     
     System.setIn(new ByteArrayInputStream(bundleJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     long startTime = System.currentTimeMillis();
     int exitCode = bundleProcessor.processBundle();
     long processingTime = System.currentTimeMillis() - startTime;
@@ -208,7 +197,6 @@ class BundleProcessingPerformanceTest {
     long finalMemory = runtime.totalMemory() - runtime.freeMemory();
     long memoryUsed = finalMemory - initialMemory;
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     assertThat(processingTime).isLessThan(12000); // Less than 12 seconds
     
@@ -231,7 +219,6 @@ class BundleProcessingPerformanceTest {
     long[] processingTimes = new long[numberOfRuns];
 
     for (int run = 0; run < numberOfRuns; run++) {
-      // Given
       Bundle smallBundle = createBundleWithPatients(10);
       String bundleJson = FhirUtils.fhirResourceToString(smallBundle);
       System.setIn(new ByteArrayInputStream(bundleJson.getBytes(StandardCharsets.UTF_8)));
@@ -239,13 +226,11 @@ class BundleProcessingPerformanceTest {
       // Reset output stream for each run
       capturedOutput.reset();
 
-      // When
       long startTime = System.currentTimeMillis();
       int exitCode = bundleProcessor.processBundle();
       long processingTime = System.currentTimeMillis() - startTime;
       processingTimes[run] = processingTime;
 
-      // Then
       assertThat(exitCode).isEqualTo(0);
     }
 
@@ -265,7 +250,6 @@ class BundleProcessingPerformanceTest {
     long[] processingTimes = new long[bundleSizes.length];
 
     for (int i = 0; i < bundleSizes.length; i++) {
-      // Given
       Bundle bundle = createBundleWithPatients(bundleSizes[i]);
       String bundleJson = FhirUtils.fhirResourceToString(bundle);
       System.setIn(new ByteArrayInputStream(bundleJson.getBytes(StandardCharsets.UTF_8)));
@@ -273,12 +257,10 @@ class BundleProcessingPerformanceTest {
       // Reset output stream for each test
       capturedOutput.reset();
 
-      // When
       long startTime = System.currentTimeMillis();
       int exitCode = bundleProcessor.processBundle();
       processingTimes[i] = System.currentTimeMillis() - startTime;
 
-      // Then
       assertThat(exitCode).isEqualTo(0);
     }
 

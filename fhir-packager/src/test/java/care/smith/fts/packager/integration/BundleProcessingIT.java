@@ -52,14 +52,11 @@ class BundleProcessingIT {
 
   @Test
   void processBundle_WithValidCollectionBundle_ShouldProduceIdenticalOutput() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/valid-collection-bundle.json");
     System.setIn(new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     
@@ -73,14 +70,11 @@ class BundleProcessingIT {
 
   @Test
   void processBundle_WithValidTransactionBundle_ShouldProduceIdenticalOutput() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/valid-transaction-bundle.json");
     System.setIn(new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     
@@ -92,65 +86,50 @@ class BundleProcessingIT {
 
   @Test
   void processBundle_WithEmptyBundle_ShouldFailValidation() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/empty-bundle.json");
     System.setIn(new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void processBundle_WithBundleNoType_ShouldFailValidation() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/bundle-no-type.json");
     System.setIn(new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void processBundle_WithInvalidJson_ShouldFailParsing() throws Exception {
-    // Given
     String invalidJson = "{ \"resourceType\": \"Bundle\", invalid }";
     System.setIn(new ByteArrayInputStream(invalidJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void processBundle_WithNonBundleResource_ShouldFailParsing() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/not-a-bundle.json");
     System.setIn(new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void processBundle_WithNoInput_ShouldFailWithIOError() throws Exception {
-    // Given
     System.setIn(new ByteArrayInputStream(new byte[0]));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(1); // Processing error
   }
 
@@ -183,10 +162,8 @@ class BundleProcessingIT {
     
     System.setIn(new ByteArrayInputStream(largeBundle.toString().getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     
@@ -226,10 +203,8 @@ class BundleProcessingIT {
     
     System.setIn(new ByteArrayInputStream(bundleWithUtf8.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int exitCode = bundleProcessor.processBundle();
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     

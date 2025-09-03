@@ -32,27 +32,22 @@ class BundleValidatorTest {
 
   @Test
   void validateBundle_WithValidCollectionBundle_ShouldPass() throws Exception {
-    // Given
     Bundle bundle = createValidCollectionBundle();
 
-    // When & Then
     bundleValidator.validateBundle(bundle, ValidationMode.STRICT);
   }
 
   @Test
   void validateBundle_WithValidTransactionBundle_ShouldPass() throws Exception {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(Bundle.BundleType.TRANSACTION);
     bundle.addEntry(new Bundle.BundleEntryComponent().setResource(createPatient()));
 
-    // When & Then
     bundleValidator.validateBundle(bundle, ValidationMode.STRICT);
   }
 
   @Test
   void validateBundle_WithNullBundle_ShouldThrowException() {
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateBundle(null, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle cannot be null");
@@ -60,12 +55,10 @@ class BundleValidatorTest {
 
   @Test
   void validateBundle_WithNullType_StrictMode_ShouldThrowException() {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(null);
     bundle.addEntry(new Bundle.BundleEntryComponent().setResource(createPatient()));
 
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateBundle(bundle, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle type is required but was null");
@@ -73,22 +66,18 @@ class BundleValidatorTest {
 
   @Test
   void validateBundle_WithNullType_LenientMode_ShouldPass() throws Exception {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(null);
     bundle.addEntry(new Bundle.BundleEntryComponent().setResource(createPatient()));
 
-    // When & Then
     bundleValidator.validateBundle(bundle, ValidationMode.LENIENT);
   }
 
   @Test
   void validateBundle_WithEmptyEntries_StrictMode_ShouldThrowException() {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(Bundle.BundleType.COLLECTION);
 
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateBundle(bundle, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle contains no entries");
@@ -96,22 +85,18 @@ class BundleValidatorTest {
 
   @Test
   void validateBundle_WithEmptyEntries_LenientMode_ShouldPass() throws Exception {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(Bundle.BundleType.COLLECTION);
 
-    // When & Then
     bundleValidator.validateBundle(bundle, ValidationMode.LENIENT);
   }
 
   @Test
   void validateBundle_WithNullResourceInEntry_StrictMode_ShouldThrowException() {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(Bundle.BundleType.COLLECTION);
     bundle.addEntry(new Bundle.BundleEntryComponent()); // No resource
 
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateBundle(bundle, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Entry 1 contains no resource");
@@ -119,24 +104,20 @@ class BundleValidatorTest {
 
   @Test
   void validateBundle_WithNullResourceInEntry_LenientMode_ShouldPass() throws Exception {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(Bundle.BundleType.COLLECTION);
     bundle.addEntry(new Bundle.BundleEntryComponent()); // No resource
 
-    // When & Then
     bundleValidator.validateBundle(bundle, ValidationMode.LENIENT);
   }
 
   @Test
   void validateBundle_WithAllNullResources_StrictMode_ShouldThrowException() {
-    // Given
     Bundle bundle = new Bundle();
     bundle.setType(Bundle.BundleType.COLLECTION);
     bundle.addEntry(new Bundle.BundleEntryComponent());
     bundle.addEntry(new Bundle.BundleEntryComponent());
 
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateBundle(bundle, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle contains no valid resources");
@@ -144,13 +125,10 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithValidJson_ShouldReturnBundle() throws Exception {
-    // Given
     String validJson = loadTestResource("test-bundles/valid-collection-bundle.json");
 
-    // When
     Bundle result = bundleValidator.validateAndParseBundle(validJson, ValidationMode.STRICT);
 
-    // Then
     assertThat(result).isNotNull();
     assertThat(result.getType()).isEqualTo(Bundle.BundleType.COLLECTION);
     assertThat(result.getEntry()).hasSize(2);
@@ -158,10 +136,8 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithInvalidJson_ShouldThrowException() {
-    // Given
     String invalidJson = "{ invalid json }";
 
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateAndParseBundle(invalidJson, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessageContaining("Failed to parse bundle as valid FHIR JSON");
@@ -169,7 +145,6 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithNullInput_ShouldThrowException() {
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateAndParseBundle(null, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle string is null or empty");
@@ -177,7 +152,6 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithEmptyInput_ShouldThrowException() {
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateAndParseBundle("", ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle string is null or empty");
@@ -185,7 +159,6 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithWhitespaceOnly_ShouldThrowException() {
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateAndParseBundle("   \t\n  ", ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle string is null or empty");
@@ -193,10 +166,8 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithNonBundleResource_ShouldThrowException() throws Exception {
-    // Given
     String patientJson = loadTestResource("test-bundles/not-a-bundle.json");
 
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateAndParseBundle(patientJson, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessageContaining("Failed to parse bundle as valid FHIR JSON");
@@ -204,13 +175,10 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithBundleNoType_LenientMode_ShouldPass() throws Exception {
-    // Given
     String bundleJson = loadTestResource("test-bundles/bundle-no-type.json");
 
-    // When
     Bundle result = bundleValidator.validateAndParseBundle(bundleJson, ValidationMode.LENIENT);
 
-    // Then
     assertThat(result).isNotNull();
     assertThat(result.getType()).isNull();
     assertThat(result.getEntry()).hasSize(1);
@@ -218,10 +186,8 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithEmptyBundle_StrictMode_ShouldThrowException() throws Exception {
-    // Given
     String emptyBundleJson = loadTestResource("test-bundles/empty-bundle.json");
 
-    // When & Then
     assertThatThrownBy(() -> bundleValidator.validateAndParseBundle(emptyBundleJson, ValidationMode.STRICT))
         .isInstanceOf(BundleValidationException.class)
         .hasMessage("Bundle contains no entries");
@@ -229,13 +195,10 @@ class BundleValidatorTest {
 
   @Test
   void validateAndParseBundle_WithEmptyBundle_LenientMode_ShouldPass() throws Exception {
-    // Given
     String emptyBundleJson = loadTestResource("test-bundles/empty-bundle.json");
 
-    // When
     Bundle result = bundleValidator.validateAndParseBundle(emptyBundleJson, ValidationMode.LENIENT);
 
-    // Then
     assertThat(result).isNotNull();
     assertThat(result.getType()).isEqualTo(Bundle.BundleType.COLLECTION);
     assertThat(result.getEntry()).isEmpty();

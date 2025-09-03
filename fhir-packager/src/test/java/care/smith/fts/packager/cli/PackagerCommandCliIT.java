@@ -57,16 +57,13 @@ class PackagerCommandCliIT {
 
   @Test
   void shouldShowHelpText() {
-    // Given: PackagerCommand with help argument
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
     StringWriter out = new StringWriter();
     commandLine.setOut(new PrintWriter(out));
 
-    // When: Execute help command
     int exitCode = commandLine.execute("--help");
 
-    // Then: Help text should be displayed and exit code should be 0
     assertThat(exitCode).isEqualTo(0);
     String helpText = out.toString();
     assertThat(helpText).contains("fhir-packager");
@@ -80,16 +77,13 @@ class PackagerCommandCliIT {
 
   @Test
   void shouldShowVersionInfo() {
-    // Given: PackagerCommand with version argument
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
     StringWriter out = new StringWriter();
     commandLine.setOut(new PrintWriter(out));
 
-    // When: Execute version command
     int exitCode = commandLine.execute("--version");
 
-    // Then: Version should be displayed and exit code should be 0
     assertThat(exitCode).isEqualTo(0);
     String versionText = out.toString();
     assertThat(versionText).contains("1.0.0");
@@ -97,29 +91,23 @@ class PackagerCommandCliIT {
 
   @Test
   void shouldReturnInvalidArgsExitCodeForBadUrl() {
-    // Given: PackagerCommand with invalid URL
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
 
-    // When: Execute with invalid URL
     int exitCode = commandLine.execute("--pseudonymizer-url", "not-a-url");
 
-    // Then: Should return invalid arguments exit code
     assertThat(exitCode).isEqualTo(2);
   }
 
   @Test
   void shouldReturnInvalidArgsExitCodeForNegativeTimeout() {
-    // Given: PackagerCommand with negative timeout
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
     StringWriter err = new StringWriter();
     commandLine.setErr(new PrintWriter(err));
 
-    // When: Execute with negative timeout
     int exitCode = commandLine.execute("--timeout", "-5");
 
-    // Then: Should return invalid arguments exit code with error message
     assertThat(exitCode).isEqualTo(2);
     String errorText = err.toString();
     assertThat(errorText).contains("Timeout must be at least 1 second");
@@ -127,16 +115,13 @@ class PackagerCommandCliIT {
 
   @Test
   void shouldReturnInvalidArgsExitCodeForNegativeRetries() {
-    // Given: PackagerCommand with negative retries
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
     StringWriter err = new StringWriter();
     commandLine.setErr(new PrintWriter(err));
 
-    // When: Execute with negative retries
     int exitCode = commandLine.execute("--retries", "-2");
 
-    // Then: Should return invalid arguments exit code with error message
     assertThat(exitCode).isEqualTo(2);
     String errorText = err.toString();
     assertThat(errorText).contains("Retries must be at least 0");
@@ -144,20 +129,16 @@ class PackagerCommandCliIT {
 
   @Test
   void shouldReturnInvalidArgsExitCodeForNonExistentConfigFile() {
-    // Given: PackagerCommand with non-existent config file
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
 
-    // When: Execute with non-existent config file
     int exitCode = commandLine.execute("--config-file", "/does/not/exist.yaml");
 
-    // Then: Should return invalid arguments exit code
     assertThat(exitCode).isEqualTo(2);
   }
 
   @Test
   void shouldAcceptValidConfiguration() throws IOException {
-    // Given: Valid config file and arguments (no bundle processing needed for config test)
     Path tempFile = Files.createTempFile("config", ".yaml");
     Files.writeString(tempFile, "pseudonymizer:\n  url: http://test.com");
     
@@ -167,7 +148,6 @@ class PackagerCommandCliIT {
     try {
       CommandLine commandLine = new CommandLine(command);
 
-      // When: Execute with valid configuration (this will fail at bundle processing, but config validation will pass)
       int exitCode = commandLine.execute(
           "--pseudonymizer-url", "https://valid.example.com",
           "--timeout", "45",
@@ -176,7 +156,6 @@ class PackagerCommandCliIT {
           "--config-file", tempFile.toString()
       );
 
-      // Then: Should fail with general error (1) because no bundle processor, not invalid args (2)
       // This confirms that configuration validation passed
       assertThat(exitCode).isEqualTo(1);
     } finally {
@@ -186,7 +165,6 @@ class PackagerCommandCliIT {
 
   @Test
   void shouldHandleMinimalValidArguments() throws Exception {
-    // Given: PackagerCommand with minimal arguments (default config values should be valid)
     // Since CLI defaults now match config defaults, no CLI overrides are applied
     // This uses the autowired (mocked) BundleProcessor and PseudonymizerClient
     // Mock successful input to demonstrate the CLI works end-to-end
@@ -195,60 +173,49 @@ class PackagerCommandCliIT {
     
     CommandLine commandLine = new CommandLine(packageCommand);
 
-    // When: Execute with no arguments (uses all defaults)
     int exitCode = commandLine.execute();
 
-    // Then: Should succeed with mocked components
     assertThat(exitCode).isEqualTo(0); // Success with mocked pseudonymizer
   }
 
   @Test
   void shouldValidateHttpUrl() throws Exception {
-    // Given: PackagerCommand with valid HTTP URL but stdin read failure (should fail during processing, not validation)
     when(stdinReader.readFromStdin()).thenThrow(new IOException("No input available"));
     CommandLine commandLine = new CommandLine(packageCommand);
 
-    // When & Then: HTTP should be valid URL format (will fail at stdin reading, not validation)
     int httpCode = commandLine.execute("--pseudonymizer-url", "http://example.com");
     assertThat(httpCode).isEqualTo(1); // General error due to stdin read failure, not validation error (2)
   }
 
   @Test
   void shouldValidateHttpsUrl() throws Exception {
-    // Given: PackagerCommand with valid HTTPS URL but stdin read failure (should fail during processing, not validation)
     when(stdinReader.readFromStdin()).thenThrow(new IOException("No input available"));
     CommandLine commandLine = new CommandLine(packageCommand);
 
-    // When & Then: HTTPS should be valid URL format (will fail at stdin reading, not validation)
     int httpsCode = commandLine.execute("--pseudonymizer-url", "https://example.com");
     assertThat(httpsCode).isEqualTo(1); // General error due to stdin read failure, not validation error (2)
   }
 
   @Test
   void shouldRejectFtpUrl() {
-    // Given: New PackagerCommand instance (to avoid Spring bean state pollution)
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
 
-    // When & Then: FTP should be invalid (fails during URL validation)
     int ftpCode = commandLine.execute("--pseudonymizer-url", "ftp://example.com");
     assertThat(ftpCode).isEqualTo(2);
   }
 
   @Test
   void shouldValidateUrlComponents() throws Exception {
-    // Given: PackagerCommand with valid complex URL but stdin read failure (should fail during processing, not validation)
     when(stdinReader.readFromStdin()).thenThrow(new IOException("No input available"));
     CommandLine commandLine = new CommandLine(packageCommand);
 
-    // When & Then: URL with port should be valid format (will fail at stdin reading, not validation)
     int exitCode = commandLine.execute("--pseudonymizer-url", "https://example.com:9090/api/v1");
     assertThat(exitCode).isEqualTo(1); // General error due to stdin read failure, not validation error (2)
   }
 
   @Test
   void shouldRejectMalformedUrls() {
-    // Given: PackagerCommand with malformed URLs
     PackagerCommand command = new PackagerCommand();
     CommandLine commandLine = new CommandLine(command);
 
@@ -266,10 +233,8 @@ class PackagerCommandCliIT {
       command = new PackagerCommand();
       commandLine = new CommandLine(command);
       
-      // When: Execute with malformed URL
       int exitCode = commandLine.execute("--pseudonymizer-url", url);
       
-      // Then: Should return invalid arguments exit code
       assertThat(exitCode).as("URL should be rejected: " + url).isEqualTo(2);
     }
   }

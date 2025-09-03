@@ -58,14 +58,11 @@ class PackagerCommandIT {
 
   @Test
   void call_WithValidBundleInput_ShouldProcessSuccessfully() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/valid-collection-bundle.json");
     when(stdinReader.readFromStdin()).thenReturn(inputJson);
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     
@@ -76,78 +73,60 @@ class PackagerCommandIT {
 
   @Test
   void call_WithInvalidBundleInput_ShouldReturnErrorCode() throws Exception {
-    // Given
     String invalidJson = "{ \"resourceType\": \"Bundle\", invalid }";
     when(stdinReader.readFromStdin()).thenReturn(invalidJson);
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void call_WithEmptyInput_ShouldReturnErrorCode() throws Exception {
-    // Given
     when(stdinReader.readFromStdin()).thenReturn("");
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(1); // Processing error
   }
 
   @Test
   void call_WithNonBundleResource_ShouldReturnErrorCode() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/not-a-bundle.json");
     when(stdinReader.readFromStdin()).thenReturn(inputJson);
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void call_WithEmptyBundle_ShouldReturnErrorCode() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/empty-bundle.json");
     when(stdinReader.readFromStdin()).thenReturn(inputJson);
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void call_WithBundleNoType_ShouldReturnErrorCode() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/bundle-no-type.json");
     when(stdinReader.readFromStdin()).thenReturn(inputJson);
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void call_WithValidTransactionBundle_ShouldProcessSuccessfully() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/valid-transaction-bundle.json");
     when(stdinReader.readFromStdin()).thenReturn(inputJson);
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     
@@ -158,14 +137,11 @@ class PackagerCommandIT {
 
   @Test
   void call_IdentityTransform_ShouldProduceEquivalentOutput() throws Exception {
-    // Given
     String inputJson = loadTestResource("test-bundles/valid-collection-bundle.json");
     when(stdinReader.readFromStdin()).thenReturn(inputJson);
 
-    // When
     Integer exitCode = packagerCommand.call();
 
-    // Then
     assertThat(exitCode).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     

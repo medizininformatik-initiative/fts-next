@@ -78,7 +78,6 @@ class PseudonymizerRetryIT {
    */
   @Test
   void testRetryConfigurationInitialization() {
-    // Given
     var retryConfig = new PseudonymizerConfig.RetryConfig(
         5, // maxAttempts
         Duration.ofSeconds(2), // initialBackoff
@@ -94,7 +93,6 @@ class PseudonymizerRetryIT {
         false
     );
 
-    // When
     var client = new PseudonymizerClientImpl(config, WebClient.builder());
 
     // Then - Verify the configuration is accessible (this is mostly a smoke test)
@@ -121,7 +119,6 @@ class PseudonymizerRetryIT {
         true
     );
 
-    // When
     var client = new PseudonymizerClientImpl(config, WebClient.builder());
 
     // Then - Verify default values

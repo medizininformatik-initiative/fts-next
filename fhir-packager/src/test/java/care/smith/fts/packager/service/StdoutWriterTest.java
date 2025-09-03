@@ -38,26 +38,20 @@ class StdoutWriterTest {
 
   @Test
   void writeToStdout_WithSimpleText_ShouldWriteContent() throws IOException {
-    // Given
     String content = "Hello, World!";
 
-    // When
     stdoutWriter.writeToStdout(content);
 
-    // Then
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).isEqualTo("Hello, World!");
   }
 
   @Test
   void writeToStdout_WithJsonContent_ShouldWriteFormattedJson() throws IOException {
-    // Given
     String jsonContent = "{\n  \"resourceType\": \"Bundle\",\n  \"id\": \"test\"\n}";
 
-    // When
     stdoutWriter.writeToStdout(jsonContent);
 
-    // Then
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).isEqualTo(jsonContent);
     assertThat(output).contains("\"resourceType\": \"Bundle\"");
@@ -66,39 +60,30 @@ class StdoutWriterTest {
 
   @Test
   void writeToStdout_WithEmptyString_ShouldWriteNothing() throws IOException {
-    // Given
     String content = "";
 
-    // When
     stdoutWriter.writeToStdout(content);
 
-    // Then
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).isEmpty();
   }
 
   @Test
   void writeToStdout_WithUtf8Characters_ShouldHandleEncodingCorrectly() throws IOException {
-    // Given
     String content = "Ünicöde tëxt with spëcial chäracteŕs: 你好世界";
 
-    // When
     stdoutWriter.writeToStdout(content);
 
-    // Then
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).isEqualTo(content);
   }
 
   @Test
   void writeToStdout_WithMultilineContent_ShouldPreserveLineBreaks() throws IOException {
-    // Given
     String content = "Line 1\nLine 2\nLine 3";
 
-    // When
     stdoutWriter.writeToStdout(content);
 
-    // Then
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).isEqualTo("Line 1\nLine 2\nLine 3");
     assertThat(output.split("\n")).hasSize(3);
@@ -106,16 +91,13 @@ class StdoutWriterTest {
 
   @Test
   void writeToStdout_WithLargeContent_ShouldHandleLargeOutput() throws IOException {
-    // Given
     StringBuilder largeContent = new StringBuilder();
     for (int i = 0; i < 1000; i++) {
       largeContent.append("This is line ").append(i).append("\n");
     }
 
-    // When
     stdoutWriter.writeToStdout(largeContent.toString());
 
-    // Then
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).contains("This is line 0");
     assertThat(output).contains("This is line 999");
@@ -124,13 +106,10 @@ class StdoutWriterTest {
 
   @Test
   void writeToStdout_WithWhitespaceContent_ShouldPreserveWhitespace() throws IOException {
-    // Given
     String content = "   \t  \n  \r\n\t";
 
-    // When
     stdoutWriter.writeToStdout(content);
 
-    // Then
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).isEqualTo(content);
   }

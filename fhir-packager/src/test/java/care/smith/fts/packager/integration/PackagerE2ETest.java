@@ -66,7 +66,6 @@ class PackagerE2ETest {
 
   @Test
   void endToEndPseudonymization_WithValidBundle_ShouldReturnPseudonymizedBundle() throws Exception {
-    // Given
     Bundle inputBundle = createTestBundle();
     String inputJson = FhirUtils.fhirResourceToString(inputBundle);
     
@@ -85,7 +84,6 @@ class PackagerE2ETest {
     java.net.http.HttpResponse<String> response = httpClient.send(request, 
         java.net.http.HttpResponse.BodyHandlers.ofString());
     
-    // Then
     assertThat(response.statusCode()).isEqualTo(200);
     
     Bundle pseudonymizedBundle = FhirUtils.stringToFhirBundle(response.body());
@@ -106,7 +104,6 @@ class PackagerE2ETest {
 
   @Test
   void endToEndPseudonymization_WithLargeBundle_ShouldHandleSuccessfully() throws Exception {
-    // Given
     Bundle inputBundle = createLargeBundle();
     String inputJson = FhirUtils.fhirResourceToString(inputBundle);
     
@@ -125,7 +122,6 @@ class PackagerE2ETest {
     java.net.http.HttpResponse<String> response = httpClient.send(request, 
         java.net.http.HttpResponse.BodyHandlers.ofString());
     
-    // Then
     assertThat(response.statusCode()).isEqualTo(200);
     
     Bundle pseudonymizedBundle = FhirUtils.stringToFhirBundle(response.body());
@@ -141,7 +137,6 @@ class PackagerE2ETest {
 
   @Test
   void serviceHealthCheck_ShouldReturnMetadata() throws Exception {
-    // Given
     String pseudonymizerUrl = "http://localhost:" + pseudonymizerContainer.getMappedPort(8080);
     
     // When - Call the FHIR metadata endpoint
@@ -155,7 +150,6 @@ class PackagerE2ETest {
     java.net.http.HttpResponse<String> response = httpClient.send(request, 
         java.net.http.HttpResponse.BodyHandlers.ofString());
     
-    // Then
     assertThat(response.statusCode()).isEqualTo(200);
     assertThat(response.body()).contains("CapabilityStatement");
     assertThat(response.body()).contains("status");

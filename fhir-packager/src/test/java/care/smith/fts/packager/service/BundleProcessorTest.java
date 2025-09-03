@@ -75,7 +75,6 @@ class BundleProcessorTest {
 
   @Test
   void processBundle_WithValidInput_ShouldReturnSuccessExitCode() throws Exception {
-    // Given
     String validJson = loadTestResource("test-bundles/valid-collection-bundle.json");
     when(stdinReader.readFromStdin()).thenReturn(validJson);
     
@@ -85,10 +84,8 @@ class BundleProcessorTest {
     Bundle mockBundle = createValidBundle();
     when(pseudonymizerClient.pseudonymize(any(Bundle.class))).thenReturn(Mono.just(mockBundle));
 
-    // When
     int result = bundleProcessor.processBundle();
 
-    // Then
     assertThat(result).isEqualTo(0); // Success
     verify(stdinReader).readFromStdin();
     verify(bundleValidator).validateBundle(any(Bundle.class), eq(ValidationMode.STRICT));
@@ -97,62 +94,48 @@ class BundleProcessorTest {
 
   @Test
   void processBundle_WithEmptyInput_ShouldReturnErrorExitCode() throws Exception {
-    // Given
     when(stdinReader.readFromStdin()).thenReturn("");
 
-    // When
     int result = bundleProcessor.processBundle();
 
-    // Then
     assertThat(result).isEqualTo(1); // Processing error
   }
 
   @Test
   void processBundle_WithIOException_ShouldReturnErrorExitCode() throws Exception {
-    // Given
     when(stdinReader.readFromStdin()).thenThrow(new IOException("Read failed"));
 
-    // When
     int result = bundleProcessor.processBundle();
 
-    // Then
     assertThat(result).isEqualTo(1); // Processing error
   }
 
   @Test
   void processBundle_WithInvalidBundle_ShouldReturnInvalidBundleExitCode() throws Exception {
-    // Given
     String validJson = loadTestResource("test-bundles/valid-collection-bundle.json");
     when(stdinReader.readFromStdin()).thenReturn(validJson);
     doThrow(new BundleValidationException("Invalid bundle"))
         .when(bundleValidator).validateBundle(any(Bundle.class), any(ValidationMode.class));
 
-    // When
     int result = bundleProcessor.processBundle();
 
-    // Then
     assertThat(result).isEqualTo(3); // Invalid bundle
   }
 
   @Test
   void readFromStdin_WithValidInput_ShouldReturnContent() throws Exception {
-    // Given
     String input = "test content";
     when(stdinReader.readFromStdin()).thenReturn(input);
 
-    // When
     String result = bundleProcessor.readFromStdin();
 
-    // Then
     assertThat(result).isEqualTo("test content");
   }
 
   @Test
   void readFromStdin_WithEmptyInput_ShouldThrowException() throws Exception {
-    // Given
     when(stdinReader.readFromStdin()).thenReturn("   ");
 
-    // When & Then
     assertThatThrownBy(() -> bundleProcessor.readFromStdin())
         .isInstanceOf(IOException.class)
         .hasMessage("No input data received from stdin");
@@ -160,20 +143,16 @@ class BundleProcessorTest {
 
   @Test
   void parseBundle_WithValidJson_ShouldReturnBundle() throws Exception {
-    // Given
     String validJson = loadTestResource("test-bundles/valid-collection-bundle.json");
 
-    // When
     Bundle result = bundleProcessor.parseBundle(validJson);
 
-    // Then
     assertThat(result).isNotNull();
     assertThat(result.getResourceType()).isEqualTo(org.hl7.fhir.r4.model.ResourceType.Bundle);
   }
 
   @Test
   void parseBundle_WithNullInput_ShouldThrowException() {
-    // When & Then
     assertThatThrownBy(() -> bundleProcessor.parseBundle(null))
         .isInstanceOf(BundleProcessingException.class)
         .hasMessage("Bundle string is null or empty");
@@ -181,7 +160,6 @@ class BundleProcessorTest {
 
   @Test
   void parseBundle_WithEmptyInput_ShouldThrowException() {
-    // When & Then
     assertThatThrownBy(() -> bundleProcessor.parseBundle(""))
         .isInstanceOf(BundleProcessingException.class)
         .hasMessage("Bundle string is null or empty");
@@ -189,10 +167,8 @@ class BundleProcessorTest {
 
   @Test
   void parseBundle_WithInvalidJson_ShouldThrowException() {
-    // Given
     String invalidJson = "{ invalid json }";
 
-    // When & Then
     assertThatThrownBy(() -> bundleProcessor.parseBundle(invalidJson))
         .isInstanceOf(BundleProcessingException.class)
         .hasMessageContaining("Failed to parse input as FHIR Bundle");
@@ -200,24 +176,19 @@ class BundleProcessorTest {
 
   @Test
   void validateBundle_WithValidBundle_ShouldPass() throws Exception {
-    // Given
     Bundle bundle = createValidBundle();
 
-    // When
     bundleProcessor.validateBundle(bundle);
 
-    // Then
     verify(bundleValidator).validateBundle(bundle, ValidationMode.STRICT);
   }
 
   @Test
   void validateBundle_WithInvalidBundle_ShouldThrowException() throws Exception {
-    // Given
     Bundle bundle = createValidBundle();
     doThrow(new BundleValidationException("Invalid bundle"))
         .when(bundleValidator).validateBundle(bundle, ValidationMode.STRICT);
 
-    // When & Then
     assertThatThrownBy(() -> bundleProcessor.validateBundle(bundle))
         .isInstanceOf(BundleProcessingException.class)
         .hasMessageContaining("Bundle validation failed");
@@ -225,16 +196,13 @@ class BundleProcessorTest {
 
   @Test
   void processBundle_WithBundle_ShouldReturnProcessedBundle() throws Exception {
-    // Given
     Bundle inputBundle = createValidBundle();
     Bundle mockProcessedBundle = createValidBundle();
     mockProcessedBundle.setId("processed-bundle");
     when(pseudonymizerClient.pseudonymize(inputBundle)).thenReturn(Mono.just(mockProcessedBundle));
 
-    // When
     Bundle result = bundleProcessor.processBundle(inputBundle);
 
-    // Then
     assertThat(result).isNotNull();
     assertThat(result.getId()).isEqualTo("processed-bundle");
     verify(pseudonymizerClient).pseudonymize(inputBundle);
@@ -242,23 +210,18 @@ class BundleProcessorTest {
 
   @Test
   void writeToStdout_WithBundle_ShouldWriteJson() throws Exception {
-    // Given
     Bundle bundle = createValidBundle();
 
-    // When
     bundleProcessor.writeToStdout(bundle);
 
-    // Then
     verify(stdoutWriter).writeToStdout(anyString());
   }
 
   @Test
   void writeToStdout_WithIOException_ShouldThrowException() throws Exception {
-    // Given
     Bundle bundle = createValidBundle();
     doThrow(new IOException("Write failed")).when(stdoutWriter).writeToStdout(anyString());
 
-    // When & Then
     assertThatThrownBy(() -> bundleProcessor.writeToStdout(bundle))
         .isInstanceOf(IOException.class)
         .hasMessage("Write failed");
@@ -284,10 +247,8 @@ class BundleProcessorTest {
     String validJson = loadTestResource("test-bundles/valid-collection-bundle.json");
     System.setIn(new ByteArrayInputStream(validJson.getBytes(StandardCharsets.UTF_8)));
 
-    // When
     int result = realProcessor.processBundle();
 
-    // Then
     assertThat(result).isEqualTo(0);
     String output = capturedOutput.toString(StandardCharsets.UTF_8);
     assertThat(output).contains("\"resourceType\":\"Bundle\"");

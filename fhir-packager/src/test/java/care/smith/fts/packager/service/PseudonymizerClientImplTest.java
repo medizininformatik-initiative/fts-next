@@ -73,141 +73,115 @@ class PseudonymizerClientImplTest {
 
   @Test
   void testIsRetryable_ServiceUnavailable_ShouldRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.SERVICE_UNAVAILABLE.value(),
         "Service Unavailable",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isTrue();
   }
 
   @Test
   void testIsRetryable_BadGateway_ShouldRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.BAD_GATEWAY.value(),
         "Bad Gateway",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isTrue();
   }
 
   @Test
   void testIsRetryable_TooManyRequests_ShouldRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.TOO_MANY_REQUESTS.value(),
         "Too Many Requests",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isTrue();
   }
 
   @Test
   void testIsRetryable_BadRequest_ShouldNotRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.BAD_REQUEST.value(),
         "Bad Request",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isFalse();
   }
 
   @Test
   void testIsRetryable_Unauthorized_ShouldNotRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.UNAUTHORIZED.value(),
         "Unauthorized",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isFalse();
   }
 
   @Test
   void testIsRetryable_Forbidden_ShouldNotRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.FORBIDDEN.value(),
         "Forbidden",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isFalse();
   }
 
   @Test
   void testIsRetryable_NotFound_ShouldNotRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.NOT_FOUND.value(),
         "Not Found",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isFalse();
   }
 
   @Test
   void testIsRetryable_InternalServerError_ShouldRetry() {
-    // Given
     WebClientResponseException exception = WebClientResponseException.create(
         HttpStatus.INTERNAL_SERVER_ERROR.value(),
         "Internal Server Error",
         null, null, null
     );
 
-    // When
     boolean result = invokeIsRetryable(exception);
 
-    // Then
     assertThat(result).isTrue();
   }
 
   @Test
   void testHealthCheck_Success() {
-    // Given
     when(webClient.get()).thenReturn(requestHeadersUriSpec);
     when(requestHeadersUriSpec.uri("/fhir/metadata")).thenReturn(requestHeadersUriSpec);
     when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
     when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just("OK"));
 
-    // When & Then
     StepVerifier.create(client.checkHealth())
         .expectNextMatches(status -> status.healthy() && status.responseTimeMs() >= 0)
         .verifyComplete();
@@ -215,7 +189,6 @@ class PseudonymizerClientImplTest {
 
   @Test
   void testHealthCheck_DisabledInConfig() {
-    // Given
     var disabledConfig = new PseudonymizerConfig(
         "http://test:8080",
         Duration.ofSeconds(10),
@@ -226,7 +199,6 @@ class PseudonymizerClientImplTest {
     
     var disabledClient = new PseudonymizerClientImpl(disabledConfig, webClientBuilder);
 
-    // When & Then
     StepVerifier.create(disabledClient.checkHealth())
         .expectNextMatches(status -> status.healthy() && status.responseTimeMs() == 0)
         .verifyComplete();
@@ -234,7 +206,6 @@ class PseudonymizerClientImplTest {
 
   @Test
   void testPseudonymize_NullBundle_ShouldFail() {
-    // When & Then
     StepVerifier.create(client.pseudonymize(null))
         .expectError(IllegalArgumentException.class)
         .verify();
@@ -242,7 +213,6 @@ class PseudonymizerClientImplTest {
 
   @Test
   void testPseudonymize_WithCustomConfig_NullBundle_ShouldFail() {
-    // When & Then
     StepVerifier.create(client.pseudonymize(null, null))
         .expectError(IllegalArgumentException.class)
         .verify();

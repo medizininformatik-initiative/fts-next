@@ -77,7 +77,6 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void pseudonymize_WithSuccessfulResponse_ShouldReturnPseudonymizedBundle() {
-    // Given
     Bundle expectedResponse = createPseudonymizedBundle();
     String responseJson = FhirUtils.fhirResourceToString(expectedResponse);
 
@@ -87,10 +86,8 @@ class PseudonymizerClientWireMockIT {
             .withHeader("Content-Type", "application/fhir+json")
             .withBody(responseJson)));
 
-    // When
     Mono<Bundle> result = client.pseudonymize(testBundle);
 
-    // Then
     StepVerifier.create(result)
         .assertNext(bundle -> {
           assertThat(bundle).isNotNull();
@@ -103,7 +100,6 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void pseudonymize_WithServiceUnavailable_ShouldRetryAndSucceed() {
-    // Given
     Bundle expectedResponse = createPseudonymizedBundle();
     String responseJson = FhirUtils.fhirResourceToString(expectedResponse);
 
@@ -134,10 +130,8 @@ class PseudonymizerClientWireMockIT {
             .withHeader("Content-Type", "application/fhir+json")
             .withBody(responseJson)));
 
-    // When
     Mono<Bundle> result = client.pseudonymize(testBundle);
 
-    // Then
     StepVerifier.create(result)
         .assertNext(bundle -> {
           assertThat(bundle).isNotNull();
@@ -148,17 +142,14 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void pseudonymize_WithBadRequest_ShouldNotRetryAndFail() {
-    // Given
     stubFor(post(urlEqualTo("/fhir/$de-identify"))
         .willReturn(aResponse()
             .withStatus(400)
             .withHeader("Content-Type", "application/json")
             .withBody("{\"error\":\"Invalid FHIR Bundle format\"}")));
 
-    // When
     Mono<Bundle> result = client.pseudonymize(testBundle);
 
-    // Then
     StepVerifier.create(result)
         .expectErrorMatches(throwable -> 
             throwable instanceof WebClientResponseException.BadRequest)
@@ -167,17 +158,14 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void pseudonymize_WithUnauthorized_ShouldNotRetryAndFail() {
-    // Given
     stubFor(post(urlEqualTo("/fhir/$de-identify"))
         .willReturn(aResponse()
             .withStatus(401)
             .withHeader("Content-Type", "application/json")
             .withBody("{\"error\":\"Authentication required\"}")));
 
-    // When
     Mono<Bundle> result = client.pseudonymize(testBundle);
 
-    // Then
     StepVerifier.create(result)
         .expectErrorMatches(throwable -> 
             throwable instanceof WebClientResponseException.Unauthorized)
@@ -193,10 +181,8 @@ class PseudonymizerClientWireMockIT {
             .withHeader("Content-Type", "application/json")
             .withBody("{\"error\":\"Internal server error\"}")));
 
-    // When
     Mono<Bundle> result = client.pseudonymize(testBundle);
 
-    // Then
     StepVerifier.create(result)
         .expectErrorMatches(throwable -> 
             throwable instanceof WebClientResponseException.InternalServerError)
@@ -213,10 +199,8 @@ class PseudonymizerClientWireMockIT {
             .withBody(testBundleJson)
             .withFixedDelay(2000))); // 2 second delay, longer than timeout
 
-    // When
     Mono<Bundle> result = client.pseudonymize(testBundle);
 
-    // Then
     StepVerifier.create(result)
         .expectErrorMatches(throwable -> 
             throwable.getCause() instanceof java.util.concurrent.TimeoutException ||
@@ -226,7 +210,6 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void pseudonymize_WithLargeBundle_ShouldHandleSuccessfully() {
-    // Given
     Bundle largeBundle = createLargeBundleForTesting();
     String largeBundleJson = FhirUtils.fhirResourceToString(largeBundle);
     
@@ -240,10 +223,8 @@ class PseudonymizerClientWireMockIT {
             .withHeader("Content-Type", "application/fhir+json")
             .withBody(responseJson)));
 
-    // When
     Mono<Bundle> result = client.pseudonymize(largeBundle);
 
-    // Then
     StepVerifier.create(result)
         .assertNext(bundle -> {
           assertThat(bundle).isNotNull();
@@ -254,17 +235,14 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void checkHealth_WithHealthyService_ShouldReturnHealthyStatus() {
-    // Given
     stubFor(get(urlEqualTo("/fhir/metadata"))
         .willReturn(aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/fhir+json")
             .withBody("{\"resourceType\":\"CapabilityStatement\",\"status\":\"active\"}")));
 
-    // When
     Mono<PseudonymizerClient.HealthStatus> result = client.checkHealth();
 
-    // Then
     StepVerifier.create(result)
         .assertNext(status -> {
           assertThat(status.healthy()).isTrue();
@@ -276,17 +254,14 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void checkHealth_WithUnhealthyService_ShouldReturnUnhealthyStatus() {
-    // Given
     stubFor(get(urlEqualTo("/fhir/metadata"))
         .willReturn(aResponse()
             .withStatus(503)
             .withHeader("Content-Type", "application/json")
             .withBody("{\"error\":\"Service unavailable\"}")));
 
-    // When
     Mono<PseudonymizerClient.HealthStatus> result = client.checkHealth();
 
-    // Then
     StepVerifier.create(result)
         .assertNext(status -> {
           assertThat(status.healthy()).isFalse();
@@ -297,10 +272,8 @@ class PseudonymizerClientWireMockIT {
 
   @Test
   void pseudonymize_WithNullBundle_ShouldFailImmediately() {
-    // When
     Mono<Bundle> result = client.pseudonymize(null);
 
-    // Then
     StepVerifier.create(result)
         .expectErrorMatches(throwable -> 
             throwable instanceof IllegalArgumentException &&
