@@ -1,4 +1,4 @@
-.PHONY:	compile test build coverage $(AGENTS) all
+.PHONY:	compile test build coverage clinical-domain-agent trust-center-agent research-domain-agent all
 
 AGENTS := $(wildcard *-agent)
 all: build
