@@ -344,6 +344,11 @@ jobs:
         make check-status RESULTS_FILE=example-with-fhir-consent.json
         check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
 
+    - name: Run Agent e2e Tests
+      run: |
+        # shellcheck disable=SC2086
+        cd clinical-domain-agent && mvn ${MAVEN_ARGS} verify -Pe2e -Dit.test=FHIRCohortSelectorE2E    
+
     - name: Collect Agent Logs
       if: failure() || cancelled()
       run: docker compose logs cd-agent tc-agent rd-agent

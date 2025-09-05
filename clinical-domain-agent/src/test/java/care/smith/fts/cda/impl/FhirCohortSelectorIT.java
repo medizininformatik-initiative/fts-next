@@ -9,6 +9,7 @@ import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.HttpClientConfig;
@@ -103,12 +104,12 @@ class FhirCohortSelectorIT {
       return new TestStep<ConsentedPatient>() {
         @Override
         public MappingBuilder requestBuilder() {
-          return fetchListRequest("patient-151337");
+          return fetchListRequest("patient-identifier-151337");
         }
 
         @Override
         public Flux<ConsentedPatient> executeStep() {
-          return cohortSelector.selectCohort(List.of("patient-151337"));
+          return cohortSelector.selectCohort(List.of("patient-identifier-151337"));
         }
       };
     }
@@ -130,9 +131,10 @@ class FhirCohortSelectorIT {
   @Test
   void consentBundleForIdsSucceeds() {
     var bundle = cohortGenerator.generate();
-    wireMock.register(fetchListRequest("patient-103291").willReturn(fhirResponse(bundle)));
+    wireMock.register(
+        fetchListRequest("patient-identifier-103291").willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of("patient-103291")))
+    create(cohortSelector.selectCohort(List.of("patient-identifier-103291")))
         .expectNextCount(1)
         .verifyComplete();
   }
@@ -201,13 +203,16 @@ class FhirCohortSelectorIT {
   @Test
   void testUrlEncoding() {
     var bundle = cohortGenerator.generate();
-    var query = "?_include=Consent:patient&patient.identifier=" + PID_SYSTEM + "%7Cpatient-134622";
+    var query =
+        "?_include=Consent:patient&patient.identifier="
+            + PID_SYSTEM
+            + "%7Cpatient-identifier-134622";
     wireMock.register(
         get(urlEqualTo("/Consent" + query))
             .withHeader(ACCEPT, equalTo(MockServerUtil.APPLICATION_FHIR_JSON))
             .willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of("patient-134622")))
+    create(cohortSelector.selectCohort(List.of("patient-identifier-134622")))
         .expectNextCount(1)
         .verifyComplete();
   }
