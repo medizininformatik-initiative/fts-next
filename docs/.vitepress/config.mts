@@ -144,6 +144,20 @@ export default withMermaid({
           ]
         },
         {
+          text: 'Tools',
+          items: [
+            {
+              text: 'FHIR Packager', link: '/tools/fhir-packager',
+              items: [
+                {text: 'Installation', link: '/tools/fhir-packager/installation'},
+                {text: 'Configuration', link: '/tools/fhir-packager/configuration'},
+                {text: 'Usage Examples', link: '/tools/fhir-packager/usage'},
+                {text: 'Troubleshooting', link: '/tools/fhir-packager/troubleshooting'},
+              ]
+            }
+          ]
+        },
+        {
           text: "Reference",
           items: [
             {text: 'API', link: '/open-api/cd-openapi'}

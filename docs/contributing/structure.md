@@ -21,6 +21,10 @@ The project follows a structured organization to enhance readability and maintai
   Java code, Dockerfile, CI config snippets, and Maven configuration (`pom.xml`) for the Trust
   Center Agent.
 
+- `fhir-packager/`  
+  Standalone CLI tool for pseudonymizing FHIR Bundles through a REST service. Features Spring Boot
+  command-line application with configurable retry logic and comprehensive error handling.
+
 - `monitoring-util/`
   A utility module to collect metrics and visualize them via Prometheus.
 
