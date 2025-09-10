@@ -60,7 +60,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     wireMock = wireMockRuntime.getWireMock();
     step = new DeidentifhirStep(client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry);
 
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem");
+    var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");
     consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
   }
@@ -99,7 +99,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                     """
                     {
                       "patientId": "id1",
-                      "resourceIds": [ "id1.identifier.identifierSystem:id1", "id1.Patient:id1" ],
+                      "resourceIds": [ "id1.identifier.identifierSystem:identifier1", "id1.Patient:id1" ],
                       "tcaDomains": {
                         "pseudonym": "domain",
                         "salt": "domain",
@@ -131,7 +131,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                     """
                     {
                       "transferId": "transferId",
-                      "transportMapping": { "id1.identifier.identifierSystem:id1": "tident1",
+                      "transportMapping": { "id1.identifier.identifierSystem:identifier1": "tident1",
                                             "id1.Patient:id1": "tid1" },
                       "dateShiftValue": 1209600.000000000
                     }

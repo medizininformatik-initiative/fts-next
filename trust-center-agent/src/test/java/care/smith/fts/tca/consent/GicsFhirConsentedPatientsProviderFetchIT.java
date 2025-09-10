@@ -86,7 +86,8 @@ class GicsFhirConsentedPatientsProviderFetchIT
   @Override
   void setUpGicsGenerator() throws IOException {
     gicsConsentGenerator =
-        FhirGenerators.gicsResponse(randomUuid(), fromList(List.of("id1", "id2", "id3", "id4")));
+        FhirGenerators.gicsResponse(
+            randomUuid(), fromList(List.of("id1", "id2", "id3", "id4")), () -> "patient-1");
   }
 
   @Override

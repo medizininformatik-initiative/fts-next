@@ -146,7 +146,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
   @Test
   void hdsReturnsMoreThanOneResult() throws IOException {
-    var fhirResolveGen = resolveSearchResponse(() -> "id1", randomUuid());
+    var fhirResolveGen = resolveSearchResponse(() -> "id1", () -> "patient-1", randomUuid());
     var bundle = fhirResolveGen.generateResources().limit(2).collect(toBundle());
     wireMock.register(fhirStoreRequest().willReturn(fhirResponse(bundle)));
     create(service.resolve(new ConsentedPatient(PATIENT_ID, PID_SYSTEM)))

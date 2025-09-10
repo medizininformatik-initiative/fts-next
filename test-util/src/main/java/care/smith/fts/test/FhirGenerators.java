@@ -13,7 +13,10 @@ import org.hl7.fhir.r4.model.Parameters;
 public interface FhirGenerators {
 
   static FhirGenerator<Bundle> patient(
-      Supplier<String> patientId, Supplier<String> identifierSystem, Supplier<String> year)
+      Supplier<String> patientId,
+      Supplier<String> identifierSystem,
+      Supplier<String> patientIdentifier,
+      Supplier<String> year)
       throws IOException {
     return new FhirGenerator<>(
         Bundle.class,
@@ -21,33 +24,38 @@ public interface FhirGenerators {
         Map.ofEntries(
             entry("$PATIENT_ID", patientId),
             entry("$IDENTIFIER_SYSTEM", identifierSystem),
+            entry("$PATIENT_IDENTIFIER", patientIdentifier),
             entry("$YEAR", year)));
   }
 
   static FhirGenerator<Bundle> gicsResponse(Supplier<String> patientId) throws IOException {
-    return gicsResponse(randomUuid(), patientId);
+    return gicsResponse(randomUuid(), patientId, () -> "patient-1");
   }
 
   static FhirGenerator<Bundle> gicsResponse(
-      Supplier<String> questionnaireResponseId, Supplier<String> patientId) throws IOException {
+      Supplier<String> questionnaireResponseId,
+      Supplier<String> patientId,
+      Supplier<String> patientIdentifier)
+      throws IOException {
     return new FhirGenerator<>(
         Bundle.class,
         "gics-consent-response.json",
         Map.ofEntries(
             entry("$QUESTIONNAIRE_RESPONSE_ID", questionnaireResponseId),
-            entry("$PATIENT_ID", patientId)));
+            entry("$PATIENT_ID", patientId),
+            entry("$PATIENT_IDENTIFIER", patientIdentifier)));
   }
 
   static FhirGenerator<Bundle> resolveSearchResponse(
-      Supplier<String> patientId, Supplier<String> hdsId) throws IOException {
+      Supplier<String> patientId, Supplier<String> patientIdentifier, Supplier<String> hdsId)
+      throws IOException {
     return new FhirGenerator<>(
         Bundle.class,
         "resolve-search-response.json",
-        Map.ofEntries(entry("$PATIENT_ID", patientId), entry("$HDS_ID", hdsId)));
-  }
-
-  static FhirGenerator<Bundle> transportBundle() throws IOException {
-    return new FhirGenerator<>(Bundle.class, "transport-bundle.json", Map.of());
+        Map.ofEntries(
+            entry("$PATIENT_ID", patientId),
+            entry("$PATIENT_IDENTIFIER", patientIdentifier),
+            entry("$HDS_ID", hdsId)));
   }
 
   static FhirGenerator<Parameters> gpasGetOrCreateResponse(

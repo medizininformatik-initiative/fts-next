@@ -57,7 +57,8 @@ class FetchConsentControllerIT extends BaseIT {
 
   @Test
   void successfulRequest() throws IOException {
-    var consentGenerator = FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001");
+    var consentGenerator =
+        FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001", () -> "patient-1");
     gics()
         .register(
             post("/ttp-fhir/fhir/gics/$allConsentsForPerson")
@@ -82,7 +83,8 @@ class FetchConsentControllerIT extends BaseIT {
 
   @Test
   void firstRequestToGicsFails() throws IOException {
-    var consentGenerator = FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001");
+    var consentGenerator =
+        FhirGenerators.gicsResponse(randomUuid(), () -> "FTS001", () -> "patient-1");
 
     gics()
         .register(

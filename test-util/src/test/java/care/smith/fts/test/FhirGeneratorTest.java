@@ -14,7 +14,8 @@ class FhirGeneratorTest {
 
   @Test
   void serializeAndDeserializeGenerateBundle() throws IOException {
-    var gicsConsentGenerator = FhirGenerators.gicsResponse(randomUuid(), randomUuid());
+    var gicsConsentGenerator =
+        FhirGenerators.gicsResponse(randomUuid(), randomUuid(), () -> "patient-1");
     Bundle bundle = Stream.of(gicsConsentGenerator.generateResource()).collect(toBundle());
 
     assertThat(bundle).isNotNull();

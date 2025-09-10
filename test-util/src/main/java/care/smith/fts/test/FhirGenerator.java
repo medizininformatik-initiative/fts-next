@@ -53,14 +53,19 @@ public class FhirGenerator<T extends Resource> {
   }
 
   /**
-   * Replaces the template fields
+   * Replaces the template fields. Replacements are processed in descending order by key length to
+   * prevent shorter placeholders from interfering with longer ones.
    *
    * @return The template file with replaced fields
    */
   public String generateString() {
     String s = templateBuffer.toString();
-    for (Map.Entry<String, Supplier<String>> m : inputReplacements.entrySet()) {
-      s = s.replace(m.getKey(), m.getValue().get());
+    var sortedEntries =
+        inputReplacements.entrySet().stream()
+            .sorted((e1, e2) -> Integer.compare(e2.getKey().length(), e1.getKey().length()))
+            .toList();
+    for (var entry : sortedEntries) {
+      s = s.replace(entry.getKey(), entry.getValue().get());
     }
     return s;
   }

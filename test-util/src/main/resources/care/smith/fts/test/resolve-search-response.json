@@ -47,7 +47,7 @@
               ]
             },
             "system": "http://fts.smith.care",
-            "value": "$PATIENT_ID"
+            "value": "$PATIENT_IDENTIFIER"
           }
         ],
         "generalPractitioner": [

@@ -70,7 +70,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     step = new DeidentifhirStep(config, client, meterRegistry);
     wireMock = wireMockRuntime.getWireMock();
-    bundle = generateOnePatient("tid1", "2024", "identifierSystem");
+    bundle = generateOnePatient("tid1", "2024", "identifierSystem", "tidentifier1");
   }
 
   @AfterEach
@@ -109,7 +109,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                 jsonResponse(
                     """
                     {
-                      "tidPidMap": {"tid1": "pid1"},
+                      "tidPidMap": {"tid1": "pid1", "tidentifier1": "pidentifier1"},
                       "dateShiftBy": "P12D"
                     }
                     """)));

@@ -22,11 +22,11 @@ class DeidentifhirUtilTest {
 
   @Test
   void deidentify() throws IOException {
-    Map<String, String> transportIDs = Map.of("tid1", "pid1");
+    Map<String, String> transportIDs = Map.of("tid1", "pid1", "tidentifier1", "pidentifier1");
 
     Registry registry = generateRegistry(transportIDs, Duration.ofMillis(12345));
     var config = parseResources(DeidentifhirUtilTest.class, "TransportToRD.profile");
-    var transportBundle = generateOnePatient("tid1", "2023", "identifierSystem1");
+    var transportBundle = generateOnePatient("tid1", "2023", "identifierSystem1", "tidentifier1");
 
     var pseudomizedBundle =
         DeidentifhirUtil.deidentify(config, registry, transportBundle, meterRegistry);
@@ -37,6 +37,6 @@ class DeidentifhirUtilTest {
     assertThat(pseudomizedBundle.getEntry()).hasSize(1);
     assertThat(b.getEntry()).hasSize(1);
     assertThat(p.getId()).isEqualTo("Patient/pid1");
-    assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("pid1");
+    assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("pidentifier1");
   }
 }
