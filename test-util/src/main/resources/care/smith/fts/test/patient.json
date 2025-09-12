@@ -21474,7 +21474,7 @@
         "identifier": [
           {
             "system": "$IDENTIFIER_SYSTEM",
-            "value": "$PATIENT_ID"
+            "value": "$PATIENT_IDENTIFIER"
           }
         ],
         "name": [

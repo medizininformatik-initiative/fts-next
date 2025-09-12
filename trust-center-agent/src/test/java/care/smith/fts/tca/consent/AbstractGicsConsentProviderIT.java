@@ -45,7 +45,8 @@ public abstract class AbstractGicsConsentProviderIT<
 
   @BeforeEach
   void setUpGicsGenerator() throws IOException {
-    gicsConsentGenerator = FhirGenerators.gicsResponse(randomUuid(), randomUuid());
+    gicsConsentGenerator =
+        FhirGenerators.gicsResponse(randomUuid(), randomUuid(), () -> "patient-1");
   }
 
   /**

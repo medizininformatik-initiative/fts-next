@@ -28,14 +28,16 @@ class DeidentifhirUtilsTest {
 
     Map<String, String> transportIDs =
         Map.of(
-            "id1.identifier.identifierSystem1:id1", "tid1.identifier.identifierSystem1:tid1",
+            "id1.identifier.identifierSystem1:identifier1",
+                "tid1.identifier.identifierSystem1:tidentifier1",
             "id1.Patient:id1", "tid1.Patient:tid1");
 
     Registry registry = generateRegistry(patient.id(), transportIDs, Duration.ofMillis(1000));
 
     var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
 
-    var bundle = TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1");
+    var bundle =
+        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
     Bundle deidentifiedBundle = deidentify(config, registry, bundle, patient.id(), meterRegistry);
     Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
 
@@ -43,6 +45,6 @@ class DeidentifhirUtilsTest {
 
     assertThat(p.getId()).isEqualTo("Patient/tid1.Patient:tid1");
     assertThat(p.getIdentifierFirstRep().getValue())
-        .isEqualTo("tid1.identifier.identifierSystem1:tid1");
+        .isEqualTo("tid1.identifier.identifierSystem1:tidentifier1");
   }
 }

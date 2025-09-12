@@ -21,8 +21,9 @@ class IdatScraperTest {
 
   @Test
   void gatherIDs() throws IOException {
-    var bundle = generateOnePatient("id1", "2023", "identifierSystem1");
+    var bundle = generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
     assertThat(scraper.gatherIDs(bundle))
-        .containsExactlyInAnyOrder("id1.identifier.identifierSystem1:id1", "id1.Patient:id1");
+        .containsExactlyInAnyOrder(
+            "id1.identifier.identifierSystem1:identifier1", "id1.Patient:id1");
   }
 }

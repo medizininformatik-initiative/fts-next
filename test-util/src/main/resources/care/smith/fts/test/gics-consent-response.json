@@ -644,7 +644,7 @@
               ]
             },
             "system": "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym",
-            "value": "$PATIENT_ID"
+            "value": "$PATIENT_IDENTIFIER"
           }
         ]
       }
