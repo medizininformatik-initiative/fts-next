@@ -71,6 +71,10 @@ clean-dbs:
 	docker compose down cd-hds rd-hds gics-db gpas-db
 	docker compose up --wait cd-hds rd-hds gics-db gpas-db
 
+clean-rd-hds:
+	docker compose down rd-hds
+	docker compose up --wait rd-hds
+
 clean-rd-hds-and-gpas-db:
 	docker compose down rd-hds gpas-db
 	docker compose up --wait rd-hds gpas-db
