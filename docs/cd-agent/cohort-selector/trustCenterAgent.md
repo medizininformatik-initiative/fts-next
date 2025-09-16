@@ -11,7 +11,7 @@ trustCenterAgent:
     auth: [ ... ]
     ssl: [ ... ]
   domain: MII
-  patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
+  patientIdentifierSystem: "http://fts.smith.care"
   # e.g.: https://simplifier.net/medizininformatikinitiative-modulconsent/2.16.840.1.113883.3.1937.777.24.5.3--20210423105554
   policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3" # MII CS Consent Policy
   policies:
@@ -49,8 +49,7 @@ trustCenterAgent:
 
 ### `patientIdentifierSystem` <Badge type="warning" text="Since 5.0" />
 
-* **Description**: Filters patients based on their identifier system. Only patients with identifiers
-  from this system will be included.
+* **Description**: Adds the identifier system to the patients, regardless of the system in gICS.
 * **Type**: String
 * **Example**:
   ```yaml
@@ -82,6 +81,5 @@ trustCenterAgent:
 
 * The `domain` field should be chosen carefully to avoid overlapping data between namespaces.
 * Ensure that `domain` is correctly configured in the trust center.
-* The `patientIdentifierSystem` and `policySystem` fields must reference valid FHIR-based system
-  URLs.
+* The `patientIdentifierSystem` and `policySystem` fields should reference valid FHIR systems.
 * When defining policies, ensure they align with the consent requirements of your organization.

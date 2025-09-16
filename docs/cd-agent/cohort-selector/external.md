@@ -10,3 +10,15 @@ The External Cohort Selector only works, if `ignoreConsent=true` in [dataSelecto
 ```yaml
 external:
 ```
+
+### `patientIdentifierSystem` <Badge type="warning" text="Since 5.3" />
+
+* **Description**: Adds a patient identifier system to the external PIDs.
+* **Type**: String
+* **Example**:
+  ```yaml
+    patientIdentifierSystem: "https://example.org/fhir/identifiers/Patient"
+
+## Notes
+
+* The `patientIdentifierSystem` field should reference a valid FHIR system.

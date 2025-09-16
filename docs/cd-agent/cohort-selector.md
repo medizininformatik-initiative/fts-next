@@ -17,7 +17,7 @@ cohortSelector:
       auth: [ ... ]
       ssl: [ ... ]
     domain: MII
-    patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
+    patientIdentifierSystem: "http://fts.smith.care"
     # e.g.: https://simplifier.net/medizininformatikinitiative-modulconsent/2.16.840.1.113883.3.1937.777.24.5.3--20210423105554
     policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3" # MII CS Consent Policy
     policies:
