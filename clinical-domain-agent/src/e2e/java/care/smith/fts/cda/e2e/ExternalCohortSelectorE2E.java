@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
+import care.smith.fts.test.FhirGenerators;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
@@ -78,45 +79,18 @@ public class ExternalCohortSelectorE2E {
   private void configureCdHdsMocks() throws IOException {
     var cdHdsWireMock = new WireMock(cdHds.getHost(), cdHds.getPort());
 
-    var classLoader = ClassLoader.getSystemClassLoader();
-    var fhirResolveResponseStream = classLoader.getResourceAsStream("fhir-resolve-response.json");
-    var fhirResolveResponse = new String(fhirResolveResponseStream.readAllBytes());
-    cdHdsWireMock.register(
-        get(urlPathMatching("/fhir/Patient"))
-            .withQueryParam(
-                "identifier", equalTo("http://fts.smith.care|patient-identifier-102931"))
-            .willReturn(fhirResponse(fhirResolveResponse)));
+    var patient =
+        FhirGenerators.resolveSearchResponse(
+                () -> "patient-1", () -> "patient-identifier-1", () -> "resolveId")
+            .generateResource();
 
     cdHdsWireMock.register(
-        get(urlPathMatching("/fhir/Patient/patient-102931.*"))
-            .willReturn(
-                fhirResponse(
-                    """
-                    {
-                      "resourceType": "Bundle",
-                      "type": "searchset",
-                      "total": 1,
-                      "entry": [
-                        {
-                          "resource": {
-                            "resourceType": "Patient",
-                            "id": "patient-102931",
-                            "meta": {
-                              "versionId": "38",
-                              "lastUpdated": "2025-06-16T10:27:08.398Z",
-                              "profile": ["https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient"]
-                              },
-                            "identifier": [
-                              {
-                                "system": "http://fts.smith.care",
-                                "value": "patient-identifier-102931"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                    """)));
+        get(urlPathMatching("/fhir/Patient"))
+            .withQueryParam("identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
+            .willReturn(fhirResponse(patient)));
+
+    cdHdsWireMock.register(
+        get(urlPathMatching("/fhir/Patient/patient-1.*")).willReturn(fhirResponse(patient)));
 
     cdHdsWireMock.register(
         get(urlEqualTo("/metadata"))
@@ -134,7 +108,7 @@ public class ExternalCohortSelectorE2E {
                         """)));
   }
 
-  private void configureTcaMocks() throws IOException {
+  private void configureTcaMocks() {
     var tcaWireMock = new WireMock(tca.getHost(), tca.getPort());
 
     tcaWireMock.register(
@@ -145,8 +119,8 @@ public class ExternalCohortSelectorE2E {
                     {
                       "transferId": "transfer-123",
                       "transportMapping": {
-                        "patient-identifier-102931.Patient:patient-102931": "pseudonym-123",
-                        "patient-identifier-102931.identifier.http://fts.smith.care:patient-identifier-102931": "pseudonym-identifier-123"
+                        "patient-identifier-1.Patient:patient-1": "pseudonym-123",
+                        "patient-identifier-1.identifier.http://fts.smith.care:patient-identifier-1": "pseudonym-identifier-123"
                       },
                       "dateShiftValue": 1209600.000000000
                     }
@@ -214,7 +188,7 @@ public class ExternalCohortSelectorE2E {
             .post()
             .uri("/api/v2/process/example/start")
             .header("Content-Type", "application/json")
-            .bodyValue("[\"patient-identifier-102931\"]")
+            .bodyValue("[\"patient-identifier-1\"]")
             .retrieve()
             .toEntity(String.class);
 

@@ -10,6 +10,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.FhirGenerators;
+import care.smith.fts.util.fhir.FhirUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
@@ -85,15 +86,32 @@ public class TCACohortSelectorE2E {
   private void configureCdHdsMocks() throws IOException {
     var cdHdsWireMock = new WireMock(cdHds.getHost(), cdHds.getPort());
 
-    var patient =
+    var resolveResponse =
         FhirGenerators.resolveSearchResponse(
                 () -> "patient-1", () -> "patient-identifier-1", () -> "resolveId")
             .generateResource();
 
+    var cohortGenerator =
+        new FhirCohortGenerator(
+            "http://fts.smith.care",
+            "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3",
+            Set.of(
+                "2.16.840.1.113883.3.1937.777.24.5.3.3",
+                "2.16.840.1.113883.3.1937.777.24.5.3.2",
+                "2.16.840.1.113883.3.1937.777.24.5.3.7",
+                "2.16.840.1.113883.3.1937.777.24.5.3.6"));
+
+    var patient = cohortGenerator.generate();
+    System.out.println("___________________________________");
+    System.out.println(FhirUtils.fhirResourceToString(resolveResponse));
+    System.out.println("___________________________________");
+    System.out.println(FhirUtils.fhirResourceToString(patient));
+    System.out.println("___________________________________");
+
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Patient"))
             .withQueryParam("identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
-            .willReturn(fhirResponse(patient)));
+            .willReturn(fhirResponse(resolveResponse)));
 
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Patient/patient-1.*")).willReturn(fhirResponse(patient)));
@@ -111,6 +129,7 @@ public class TCACohortSelectorE2E {
                 "2.16.840.1.113883.3.1937.777.24.5.3.2",
                 "2.16.840.1.113883.3.1937.777.24.5.3.7",
                 "2.16.840.1.113883.3.1937.777.24.5.3.6"));
+
     var patient = cohortGenerator.generate();
     var tcaResponse =
         new Bundle().setEntry(List.of(new BundleEntryComponent().setResource(patient)));

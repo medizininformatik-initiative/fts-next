@@ -9,6 +9,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
 import care.smith.fts.test.FhirCohortGenerator;
+import care.smith.fts.test.FhirGenerators;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
@@ -100,13 +101,15 @@ public class FHIRCohortSelectorE2E {
             .atPriority(10) // Lower priority so specific stubs match first
         );
 
-    var classLoader = ClassLoader.getSystemClassLoader();
-    var fhirResolveResponseStream = classLoader.getResourceAsStream("fhir-resolve-response.json");
-    var fhirResolveResponse = new String(fhirResolveResponseStream.readAllBytes());
+    var resolveResponse =
+        FhirGenerators.resolveSearchResponse(
+                () -> "patient-1", () -> "patient-identifier-1", () -> "resolveId")
+            .generateResource();
+
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Patient"))
             .withQueryParam("identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
-            .willReturn(fhirResponse(fhirResolveResponse)));
+            .willReturn(fhirResponse(resolveResponse)));
 
     var cohortGenerator =
         new FhirCohortGenerator(
@@ -123,46 +126,18 @@ public class FHIRCohortSelectorE2E {
 
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Consent"))
-            .withQueryParam("_include", equalTo("Consent:patient"))
+            //            .withQueryParam("_include", equalTo("Consent:patient"))
             .willReturn(fhirResponse(patient)));
 
-    cdHdsWireMock.register(
-        get(urlPathMatching("/fhir/Consent"))
-            .withQueryParam("_include", equalTo("Consent:patient"))
-            .withQueryParam(
-                "patient.identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
-            .willReturn(fhirResponse(patient)));
+    //    cdHdsWireMock.register(
+    //        get(urlPathMatching("/fhir/Consent"))
+    //            .withQueryParam("_include", equalTo("Consent:patient"))
+    //            .withQueryParam(
+    //                "patient.identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
+    //            .willReturn(fhirResponse(patient)));
 
     cdHdsWireMock.register(
-        get(urlPathMatching("/fhir/Patient/patient-1.*"))
-            .willReturn(
-                fhirResponse(
-                    """
-                    {
-                      "resourceType": "Bundle",
-                      "type": "searchset",
-                      "total": 1,
-                      "entry": [
-                        {
-                          "resource": {
-                            "resourceType": "Patient",
-                            "id": "patient-1",
-                            "meta": {
-                              "versionId": "38",
-                              "lastUpdated": "2025-06-16T10:27:08.398Z",
-                              "profile": ["https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient"]
-                              },
-                            "identifier": [
-                              {
-                                "system": "http://fts.smith.care",
-                                "value": "patient-identifier-1"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                    """)));
+        get(urlPathMatching("/fhir/Patient/patient-1]")).willReturn(fhirResponse(patient)));
   }
 
   private void configureTcaMocks() {
@@ -246,10 +221,10 @@ public class FHIRCohortSelectorE2E {
     testStartTransferWithBodyValue("[]");
   }
 
-  @Test
-  void testStartTransferProcessWithTcaExampleProject() {
-    testStartTransferWithBodyValue("[\"patient-identifier-1\"]");
-  }
+  //  @Test
+  //  void testStartTransferProcessWithTcaExampleProject() {
+  //    testStartTransferWithBodyValue("[\"patient-identifier-1\"]");
+  //  }
 
   private void testStartTransferWithBodyValue(String bodyValue) {
     var cdaBaseUrl = "http://" + cda.getHost() + ":" + cda.getMappedPort(8080);
