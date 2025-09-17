@@ -19,6 +19,7 @@ trustCenterAgent:
   - 2.16.840.1.113883.3.1937.777.24.5.3.3    # IDAT speichern, verarbeiten
   - 2.16.840.1.113883.3.1937.777.24.5.3.6    # MDAT erheben
   - 2.16.840.1.113883.3.1937.777.24.5.3.7    # MDAT speichern, verarbeiten
+  signerIdType: "Pseudonym"
 ```
 
 ## Fields
@@ -75,6 +76,17 @@ trustCenterAgent:
   ```yaml
     policies:
     - 2.16.840.1.113883.3.1937.777.24.5.3.2    # IDAT erheben
+  ```
+
+### `signerIdType` <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.4.1" />
+
+* **Description**: Specifies the type of identifier used for consent signing in the Trust Center Agent.
+  This field is used to construct the GICS identifier system URL for patient identification.
+* **Type**: String
+* **Default**: "Pseudonym"
+* **Example**:
+  ```yaml
+    signerIdType: "Pseudonym"
   ```
 
 ## Notes
