@@ -41,7 +41,7 @@ fhir:
 * **Type**: String
 * **Example**:
   ```yaml
-    patientIdentifierSystem: "http://terminology.hl7.org/CodeSystem/v2-0203"
+    patientIdentifierSystem: "https://example.org/fhir/identifiers/Patient"
   ```
 
 ### `policySystem` <Badge type="warning" text="Since 5.3" />
@@ -67,6 +67,5 @@ fhir:
 
 ## Notes
 
-* The `patientIdentifierSystem` and `policySystem` fields must reference valid FHIR-based system
-  URLs.
+* The `patientIdentifierSystem` and `policySystem` fields should reference valid FHIR systems.
 * When defining policies, ensure they align with the consent requirements of your organization.

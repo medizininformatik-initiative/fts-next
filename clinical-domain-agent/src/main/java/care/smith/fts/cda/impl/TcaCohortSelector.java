@@ -81,15 +81,14 @@ class TcaCohortSelector implements CohortSelector {
         .flatMap(uri -> fetchBundle(uri, pids));
   }
 
-  private static Map<String, Object> constructBody(
-      TcaCohortSelectorConfig config, List<String> pids) {
+  private Map<String, Object> constructBody(TcaCohortSelectorConfig config, List<String> pids) {
     var body =
         ImmutableMap.<String, Object>builder()
             .put("policies", config.policies())
             .put("policySystem", config.policySystem())
             .put("domain", config.domain());
     if (!pids.isEmpty()) {
-      body = body.put("patientIdentifierSystem", config.patientIdentifierSystem());
+      body = body.put("patientIdentifierSystem", getGicsIdentifierSystem());
       body = body.put("pids", pids);
     }
     return body.build();

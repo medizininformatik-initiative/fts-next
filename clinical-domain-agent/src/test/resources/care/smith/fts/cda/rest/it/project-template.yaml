@@ -3,7 +3,7 @@ cohortSelector:
     server:
       baseUrl: <tc-agent>
     domain: MII
-    patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
+    patientIdentifierSystem: "http://fts.smith.care"
     policySystem: "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy"
     policies: [ "IDAT_erheben", "IDAT_speichern_verarbeiten", "MDAT_erheben", "MDAT_speichern_verarbeiten" ]
     signerIdType: "Pseudonym"

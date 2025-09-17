@@ -328,13 +328,14 @@ jobs:
         make check-status RESULTS_FILE=oauth2-fail.json
         check-resources.sh oauth2-fail.json "${LAST_UPDATED}"
 
-    - name: Run e2e for all Consented Patients
+    - name: Run e2e for all Consented Patients with gICS Consent
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=gics-consent-example
         make wait
         make check-status RESULTS_FILE=example.json
         check-resources.sh example.json "${LAST_UPDATED}"
+        check-gpas-pseudonyms.sh
 
     - name: Run e2e for 10 Consented Patients with FHIR Consent
       run: |
@@ -343,6 +344,7 @@ jobs:
         make wait
         make check-status RESULTS_FILE=example-with-fhir-consent.json
         check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
+        check-gpas-pseudonyms.sh
 
     - name: Collect Agent Logs
       if: failure() || cancelled()

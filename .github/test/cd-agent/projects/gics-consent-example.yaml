@@ -19,7 +19,7 @@ cohortSelector:
     # Domain to search for consent. This acts as a namespace for data segregation.
     domain: MII
     # Identifier system filter. Only patients with identifiers from this system will be included in the cohort.
-    patientIdentifierSystem: "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym"
+    patientIdentifierSystem: "http://fts.smith.care"
     signerIdType: "Pseudonym"
     # Policy system filter. Only policies with identifiers from this system will be considered valid.
     # see e.g.: https://simplifier.net/medizininformatikinitiative-modulconsent/2.16.840.1.113883.3.1937.777.24.5.3--20210423105554
