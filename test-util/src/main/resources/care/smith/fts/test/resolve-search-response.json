@@ -65,11 +65,11 @@
   "link": [
     {
       "relation": "self",
-      "url": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Patient?identifier=https%3A%2F%2FPOLARWPMIX.de%2Fpid%7C$PATIENT_ID&_count=50&__t=29035&__page-id=$PATIENT_ID"
+      "url": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Patient?identifier=https%3A%2F%2FPOLARWPMIX.de%2Fpid%7C$PATIENT_IDENTIFIER&_count=50&__t=29035&__page-id=$PATIENT_ID"
     },
     {
       "relation": "first",
-      "url": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Patient/__page?identifier=https%3A%2F%2FPOLARWPMIX.de%2Fpid%7C$PATIENT_ID&_count=50&__t=29035"
+      "url": "https://mii-agiop-3p.life.uni-leipzig.de/blaze/Patient/__page?identifier=https%3A%2F%2FPOLARWPMIX.de%2Fpid%7C$PATIENT_IDENTIFIER&_count=50&__t=29035"
     }
   ],
   "total": 1,

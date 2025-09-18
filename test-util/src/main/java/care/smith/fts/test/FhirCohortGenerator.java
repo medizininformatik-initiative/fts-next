@@ -1,4 +1,4 @@
-package care.smith.fts.cda.impl;
+package care.smith.fts.test;
 
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static java.lang.Math.ceilDiv;
@@ -95,14 +95,25 @@ public class FhirCohortGenerator {
   }
 
   private static ProvisionComponent generateProvision(String policySystem, Set<String> policies) {
-    var coding = new Coding().setSystem(policySystem).setCode(policies.iterator().next());
-    var concept = new CodeableConcept().addCoding(coding);
-    var inner =
-        new ProvisionComponent()
-            .setType(Consent.ConsentProvisionType.PERMIT)
-            .setPeriod(generatePeriod())
-            .addCode(concept);
-    return new ProvisionComponent().addProvision(inner);
+    var period = generatePeriod();
+    var provision = new ProvisionComponent();
+
+    // Create separate provision for each policy
+    for (String policy : policies) {
+      System.out.println("Adding policy to provision: " + policy);
+      var coding = new Coding().setSystem(policySystem).setCode(policy);
+      var concept = new CodeableConcept().addCoding(coding);
+      var inner =
+          new ProvisionComponent()
+              .setType(Consent.ConsentProvisionType.PERMIT)
+              .setPeriod(period)
+              .addCode(concept);
+      provision.addProvision(inner);
+    }
+
+    System.out.println(
+        "Generated provision with " + provision.getProvision().size() + " sub-provisions");
+    return provision;
   }
 
   private static Period generatePeriod() {
@@ -118,13 +129,19 @@ public class FhirCohortGenerator {
   }
 
   private static Patient generatePatient(String id, String pidSystem) {
-    String pid = "patient-" + id;
     var patient = new Patient();
-    patient.setId(pid);
+    patient.setId("patient-" + id);
+
+    var meta = new Meta();
+    meta.setVersionId("38");
+    meta.setLastUpdated(new Date());
+    meta.addProfile(
+        "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
+    patient.setMeta(meta);
 
     var patientId = new Identifier();
     patientId.setSystem(pidSystem);
-    patientId.setValue(pid);
+    patientId.setValue("patient-identifier-" + id);
 
     return patient.setIdentifier(List.of(patientId));
   }
