@@ -7,12 +7,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
+import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.FhirGenerators;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,7 +83,7 @@ public class ExternalCohortSelectorE2E {
   private void configureCdHdsMocks() throws IOException {
     var cdHdsWireMock = new WireMock(cdHds.getHost(), cdHds.getPort());
 
-    var patient =
+    var resolveResponse =
         FhirGenerators.resolveSearchResponse(
                 () -> "patient-1", () -> "patient-identifier-1", () -> "resolveId")
             .generateResource();
@@ -87,7 +91,20 @@ public class ExternalCohortSelectorE2E {
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Patient"))
             .withQueryParam("identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
-            .willReturn(fhirResponse(patient)));
+            .willReturn(fhirResponse(resolveResponse)));
+
+    var cohortGenerator =
+        new FhirCohortGenerator(
+            "http://fts.smith.care",
+            "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3",
+            Set.of(
+                "2.16.840.1.113883.3.1937.777.24.5.3.3",
+                "2.16.840.1.113883.3.1937.777.24.5.3.2",
+                "2.16.840.1.113883.3.1937.777.24.5.3.7",
+                "2.16.840.1.113883.3.1937.777.24.5.3.6"));
+
+    var patient =
+        new Bundle().addEntry(new BundleEntryComponent().setResource(cohortGenerator.generate()));
 
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Patient/patient-1.*")).willReturn(fhirResponse(patient)));

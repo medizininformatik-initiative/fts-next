@@ -10,7 +10,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.FhirGenerators;
-import care.smith.fts.util.fhir.FhirUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
@@ -91,6 +90,11 @@ public class TCACohortSelectorE2E {
                 () -> "patient-1", () -> "patient-identifier-1", () -> "resolveId")
             .generateResource();
 
+    cdHdsWireMock.register(
+        get(urlPathMatching("/fhir/Patient"))
+            .withQueryParam("identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
+            .willReturn(fhirResponse(resolveResponse)));
+
     var cohortGenerator =
         new FhirCohortGenerator(
             "http://fts.smith.care",
@@ -101,17 +105,8 @@ public class TCACohortSelectorE2E {
                 "2.16.840.1.113883.3.1937.777.24.5.3.7",
                 "2.16.840.1.113883.3.1937.777.24.5.3.6"));
 
-    var patient = cohortGenerator.generate();
-    System.out.println("___________________________________");
-    System.out.println(FhirUtils.fhirResourceToString(resolveResponse));
-    System.out.println("___________________________________");
-    System.out.println(FhirUtils.fhirResourceToString(patient));
-    System.out.println("___________________________________");
-
-    cdHdsWireMock.register(
-        get(urlPathMatching("/fhir/Patient"))
-            .withQueryParam("identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
-            .willReturn(fhirResponse(resolveResponse)));
+    var patient =
+        new Bundle().addEntry(new BundleEntryComponent().setResource(cohortGenerator.generate()));
 
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Patient/patient-1.*")).willReturn(fhirResponse(patient)));

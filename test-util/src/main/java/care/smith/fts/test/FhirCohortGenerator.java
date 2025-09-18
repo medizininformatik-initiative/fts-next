@@ -98,8 +98,6 @@ public class FhirCohortGenerator {
     var period = generatePeriod();
     var provision = new ProvisionComponent();
 
-    System.out.println("Generating provision for policies: " + policies);
-
     // Create separate provision for each policy
     for (String policy : policies) {
       System.out.println("Adding policy to provision: " + policy);
@@ -133,6 +131,13 @@ public class FhirCohortGenerator {
   private static Patient generatePatient(String id, String pidSystem) {
     var patient = new Patient();
     patient.setId("patient-" + id);
+
+    var meta = new Meta();
+    meta.setVersionId("38");
+    meta.setLastUpdated(new Date());
+    meta.addProfile(
+        "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
+    patient.setMeta(meta);
 
     var patientId = new Identifier();
     patientId.setSystem(pidSystem);

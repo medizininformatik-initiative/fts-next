@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,22 +124,24 @@ public class FHIRCohortSelectorE2E {
                 "2.16.840.1.113883.3.1937.777.24.5.3.6"));
 
     var patient = cohortGenerator.generate();
+
+    var patientBundle = new Bundle().addEntry(new BundleEntryComponent().setResource(patient));
     System.out.println("Patient bundle: " + fhirResourceToString(patient));
 
     cdHdsWireMock.register(
         get(urlPathMatching("/fhir/Consent"))
-            //            .withQueryParam("_include", equalTo("Consent:patient"))
+            .withQueryParam("_include", equalTo("Consent:patient"))
             .willReturn(fhirResponse(patient)));
 
-    //    cdHdsWireMock.register(
-    //        get(urlPathMatching("/fhir/Consent"))
-    //            .withQueryParam("_include", equalTo("Consent:patient"))
-    //            .withQueryParam(
-    //                "patient.identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
-    //            .willReturn(fhirResponse(patient)));
+    cdHdsWireMock.register(
+        get(urlPathMatching("/fhir/Consent"))
+            .withQueryParam("_include", equalTo("Consent:patient"))
+            .withQueryParam(
+                "patient.identifier", equalTo("http://fts.smith.care|patient-identifier-1"))
+            .willReturn(fhirResponse(patient)));
 
     cdHdsWireMock.register(
-        get(urlPathMatching("/fhir/Patient/patient-1]")).willReturn(fhirResponse(patient)));
+        get(urlPathMatching("/fhir/Patient/patient-1.*")).willReturn(fhirResponse(patientBundle)));
   }
 
   private void configureTcaMocks() {
@@ -221,10 +225,10 @@ public class FHIRCohortSelectorE2E {
     testStartTransferWithBodyValue("[]");
   }
 
-  //  @Test
-  //  void testStartTransferProcessWithTcaExampleProject() {
-  //    testStartTransferWithBodyValue("[\"patient-identifier-1\"]");
-  //  }
+  @Test
+  void testStartTransferProcessWithTcaExampleProject() {
+    testStartTransferWithBodyValue("[\"patient-identifier-1\"]");
+  }
 
   private void testStartTransferWithBodyValue(String bodyValue) {
     var cdaBaseUrl = "http://" + cda.getHost() + ":" + cda.getMappedPort(8080);
