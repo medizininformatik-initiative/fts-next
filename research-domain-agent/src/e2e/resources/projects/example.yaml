@@ -1,0 +1,15 @@
+# E2E pipeline configuration for basic RDA E2E testing
+# Uses real implementations with WireMock for external services
+
+deidentificator:
+  deidentifhir:
+    trustCenterAgent:
+      server:
+        baseUrl: http://deidentifhir:8080
+    dateShift: P0D
+    deidentifhirConfig: /app/projects/example/deidentifhir/TransportToRD.profile
+
+bundleSender:
+  fhirStore:
+    server:
+      baseUrl: http://fhir-store:8080/fhir
