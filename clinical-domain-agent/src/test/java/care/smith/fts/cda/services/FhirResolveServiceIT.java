@@ -182,7 +182,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
   @Test
   void usePisFromConsentedPatient() throws Exception {
-    var serviceWithNullSystem = new FhirResolveService(null, client, meterRegistry);
+    var serviceWithNullSystem = new FhirResolveService(client, meterRegistry);
 
     var patientSystem = "https://patient.example.com/pid";
     var patient = new ConsentedPatient("patient-456", patientSystem);

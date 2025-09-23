@@ -1,13 +1,12 @@
 package care.smith.fts.cda.impl;
 
 import care.smith.fts.api.cda.DataSelector;
+import care.smith.fts.cda.services.FhirResolveService;
 import care.smith.fts.cda.services.PatientIdResolver;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.hl7.fhir.r4.model.IdType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Component("everythingDataSelector")
 public class EverythingDataSelectorFactory
@@ -39,7 +38,9 @@ public class EverythingDataSelectorFactory
     if (config.resolve() != null) {
       return config.resolve().createService(hdsClient, meterRegistry);
     } else {
-      return patient -> Mono.just(new IdType("Patient", patient.id()));
+      // Use FhirResolveService with null identifierSystem to fall back to
+      // patient.patientIdentifierSystem()
+      return new FhirResolveService(hdsClient, meterRegistry);
     }
   }
 }
