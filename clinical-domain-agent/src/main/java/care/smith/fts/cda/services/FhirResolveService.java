@@ -35,6 +35,10 @@ public class FhirResolveService implements PatientIdResolver {
     this.meterRegistry = meterRegistry;
   }
 
+  public FhirResolveService(WebClient hdsClient, MeterRegistry meterRegistry) {
+    this(null, hdsClient, meterRegistry);
+  }
+
   /**
    * Resolves the given <code>patientId</code> to the ID of the matching {@link Patient} resource
    * object in the FHIR server accessed with the rest configuration.
