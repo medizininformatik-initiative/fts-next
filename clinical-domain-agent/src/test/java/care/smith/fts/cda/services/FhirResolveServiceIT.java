@@ -38,7 +38,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-@SpringBootTest(classes = ClinicalDomainAgent.class)
+@SpringBootTest(
+    classes = ClinicalDomainAgent.class,
+    properties = {"fts.retryTimeout=false"})
 @WireMockTest
 class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
