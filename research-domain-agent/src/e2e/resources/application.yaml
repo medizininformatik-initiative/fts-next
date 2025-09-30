@@ -1,0 +1,21 @@
+# RDA E2E test configuration
+spring:
+  application:
+    name: rda-e2e-test
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+projects:
+  directory: /app/projects
+
+logging:
+  level:
+    care.smith.fts: DEBUG
+    org.springframework.web.reactive: DEBUG
