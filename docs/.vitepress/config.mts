@@ -140,7 +140,8 @@ export default withMermaid({
             {
               text: 'De-Identification', link: '/details/deidentification', collapsed: true,
               items: [{text: 'Pseudonymization', link: '/details/pseudonymisierung'}]
-            }
+            },
+            {text: "FTS Tags", link: '/fhir/CodeSystem/FTS_Tags'}
           ]
         },
         {
