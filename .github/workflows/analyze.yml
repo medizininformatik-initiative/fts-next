@@ -30,11 +30,29 @@ jobs:
     - name: Checkout
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-    - uses: axel-op/googlejavaformat-action@c1134ebd196c4cbffb077f9476585b0be8b6afcd # v4.0.0
+    - name: Set up JDK 21
+      uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
       with:
-        args: "--replace --set-exit-if-changed"
-        skip-commit: true
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        distribution: 'temurin'
+        java-version: 21
+
+    - name: Download google-java-format
+      run: |
+        # renovate: datasource=github-releases depName=google/google-java-format
+        VERSION=1.29.0
+        CHECKSUM=aeb4e1831d56011e7e06f3393c4e17340c7cca0fd7ba9076ab8dc0624759f7f0
+        curl -fsSL -o /tmp/google-java-format.jar \
+          "https://github.com/google/google-java-format/releases/download/v${VERSION}/google-java-format-${VERSION}-all-deps.jar"
+        echo "${CHECKSUM}  /tmp/google-java-format.jar" | sha256sum --check
+
+    - name: Format Java files
+      run: |
+        java --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
+             --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
+             --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
+             --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED \
+             --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \
+             -jar /tmp/google-java-format.jar --replace --set-exit-if-changed @<(find . -name "*.java")
 
     - name: Print diffs
       if: failure() || cancelled()
