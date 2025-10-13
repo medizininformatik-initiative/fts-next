@@ -36,23 +36,23 @@ jobs:
         distribution: 'temurin'
         java-version: 21
 
-    - name: Download google-java-format
-      run: |
-        # renovate: datasource=github-releases depName=google/google-java-format
-        VERSION=1.29.0
-        CHECKSUM=aeb4e1831d56011e7e06f3393c4e17340c7cca0fd7ba9076ab8dc0624759f7f0
-        curl -fsSL -o /tmp/google-java-format.jar \
-          "https://github.com/google/google-java-format/releases/download/v${VERSION}/google-java-format-${VERSION}-all-deps.jar"
-        echo "${CHECKSUM}  /tmp/google-java-format.jar" | sha256sum --check
+    - name: Install google-java-format
+      env:
+        # renovate: datasource=github-release-attachments depName=google/google-java-format
+        JAVA_FORMAT_VERSION: v1.29.0
+        JAVA_FORMAT_CHECKSUM: aeb4e1831d56011e7e06f3393c4e17340c7cca0fd7ba9076ab8dc0624759f7f0
+      run: .github/scripts/install-google-java-format.sh
 
     - name: Format Java files
+      env:
+        JAVA_TOOL_OPTIONS: >-
+          --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
+          --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
+          --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED
+          --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
+          --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
       run: |
-        java --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
-             --add-exports jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED \
-             --add-exports jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED \
-             --add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED \
-             --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \
-             -jar /tmp/google-java-format.jar --replace --set-exit-if-changed @<(find . -name "*.java")
+        java -jar /tmp/google-java-format.jar --replace --set-exit-if-changed @<(find . -name "*.java")
 
     - name: Print diffs
       if: failure() || cancelled()
