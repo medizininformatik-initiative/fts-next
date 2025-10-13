@@ -250,7 +250,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent: [ clinical-domain-agent, research-domain-agent ]
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
     steps:
     - name: Harden Runner
       uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1

@@ -60,10 +60,19 @@ public interface FhirGenerators {
 
   static FhirGenerator<Parameters> gpasGetOrCreateResponse(
       Supplier<String> original, Supplier<String> pseudonym) throws IOException {
+    return gpasGetOrCreateResponse(original, () -> "domain", pseudonym);
+  }
+
+  static FhirGenerator<Parameters> gpasGetOrCreateResponse(
+      Supplier<String> original, Supplier<String> target, Supplier<String> pseudonym)
+      throws IOException {
     return new FhirGenerator<>(
         Parameters.class,
         "gpas-get-or-create-response.json",
-        Map.ofEntries(entry("$ORIGINAL", original), entry("$PSEUDONYM", pseudonym)));
+        Map.ofEntries(
+            entry("$ORIGINAL", original),
+            entry("$TARGET", target),
+            entry("$PSEUDONYM", pseudonym)));
   }
 
   static Supplier<String> randomUuid() {
