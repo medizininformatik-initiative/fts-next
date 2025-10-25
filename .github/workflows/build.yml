@@ -107,7 +107,7 @@ jobs:
           -Dproject.build.outputTimestamp="$(git log -1 --date="iso-strict-local" --format="%cd")"
 
     - name: Upload Jar
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
@@ -115,7 +115,7 @@ jobs:
         retention-days: 7
 
     - name: Upload Maven SBOM
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: ${{ matrix.agent }}-sbom-mvn
         path: ${{ matrix.agent }}/target/sbom-mvn.json
@@ -140,7 +140,7 @@ jobs:
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
     - name: Download Jar
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target
@@ -235,7 +235,7 @@ jobs:
         scan-type: image
 
     - name: Upload Trivy SBOM
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: ${{ matrix.agent }}-sbom-trivy
         path: sbom-trivy.json
@@ -424,7 +424,7 @@ jobs:
       run: .github/scripts/install-cyclonedx.sh
 
     - name: Download SBOMs
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         pattern: ${{ matrix.agent }}-sbom-*
         path: .
@@ -434,7 +434,7 @@ jobs:
       run: cyclonedx merge --input-files sbom-mvn.json sbom-trivy.json --output-file sbom.json
 
     - name: Upload Combined SBOM
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: ${{ matrix.agent }}-sbom
         path: sbom.json
@@ -513,7 +513,7 @@ jobs:
       uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
     - name: Download SBOM
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: ${{ matrix.agent }}-sbom
         path: .
@@ -586,7 +586,7 @@ jobs:
         echo "files=${files}" >>"${GITHUB_OUTPUT}"
 
     - name: Upload Release Archives
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: release-archives
         path: |
@@ -629,13 +629,13 @@ jobs:
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
     - name: Download Release Archives
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: release-archives
         path: .
 
     - name: Download Provenance
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         pattern: "*-agent.tar.gz.intoto.jsonl"
         merge-multiple: true
