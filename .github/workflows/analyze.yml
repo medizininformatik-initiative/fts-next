@@ -73,8 +73,8 @@ jobs:
       env:
         # Check the actionlint binary against a pinned checksum here, it must be updated accordingly
         # renovate: datasource=github-release-attachments depName=rhysd/actionlint
-        ACTIONLINT_VERSION: v1.7.8
-        ACTIONLINT_CHECKSUM: be92c2652ab7b6d08425428797ceabeb16e31a781c07bc388456b4e592f3e36a
+        ACTIONLINT_VERSION: v1.7.9
+        ACTIONLINT_CHECKSUM: 233b280d05e100837f4af1433c7b40a5dcb306e3aa68fb4f17f8a7f45a7df7b4
       run: .github/scripts/install-actionlint.sh
 
     - name: Run Actionlint
