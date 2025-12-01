@@ -2,7 +2,6 @@ package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.cda.services.FhirResolveConfig;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -27,23 +26,10 @@ class EverythingDataSelectorFactoryIT {
   }
 
   @Test
-  void testCreateWithoutResolver() {
+  void testCreate() {
     var dataSelector =
         factory.create(
-            null,
-            new EverythingDataSelectorConfig(new HttpClientConfig("http://localhost"), null, 500));
+            null, new EverythingDataSelectorConfig(new HttpClientConfig("http://localhost"), 500));
     assertThat(dataSelector).isNotNull();
-  }
-
-  @Test
-  void testCreateWithResolver() {
-    assertThat(
-            factory.create(
-                null,
-                new EverythingDataSelectorConfig(
-                    new HttpClientConfig("http://localhost"),
-                    new FhirResolveConfig("https://patient-identifier.example.com"),
-                    500)))
-        .isNotNull();
   }
 }

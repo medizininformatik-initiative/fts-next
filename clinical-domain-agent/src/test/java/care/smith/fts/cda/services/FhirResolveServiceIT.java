@@ -57,7 +57,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
   void setUp(WireMockRuntimeInfo wiremockRuntime, @Autowired WebClientFactory clientFactory)
       throws Exception {
     client = clientFactory.create(clientConfig(wiremockRuntime));
-    this.service = new FhirResolveService(PID_SYSTEM, client, meterRegistry);
+    this.service = new FhirResolveService(client, meterRegistry);
     wireMock = wiremockRuntime.getWireMock();
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = new String(requireNonNull(inStream).readAllBytes(), UTF_8);
@@ -157,35 +157,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
   }
 
   @Test
-  void pisFromResolverHasPrecedence() throws Exception {
-    var resolverSystem = "https://resolver.example.com/pid";
-    var serviceWithConfiguredSystem = new FhirResolveService(resolverSystem, client, meterRegistry);
-
-    var patient = new ConsentedPatient("patient-123", "https://patient.example.com/pid");
-
-    try (var inStream = getClass().getResourceAsStream("search-1.json")) {
-      var bundle = requireNonNull(inStream).readAllBytes();
-      var response = fhirResponse(new String(bundle, UTF_8));
-      wireMock.register(
-          get(urlPathEqualTo("/Patient"))
-              .withQueryParam("identifier", equalTo(resolverSystem + "|patient-123"))
-              .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON))
-              .willReturn(response));
-    }
-
-    create(serviceWithConfiguredSystem.resolve(patient))
-        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
-        .verifyComplete();
-
-    wireMock.verify(
-        getRequestedFor(urlPathEqualTo("/Patient"))
-            .withQueryParam("identifier", equalTo(resolverSystem + "|patient-123")));
-  }
-
-  @Test
   void usePisFromConsentedPatient() throws Exception {
-    var serviceWithNullSystem = new FhirResolveService(client, meterRegistry);
-
     var patientSystem = "https://patient.example.com/pid";
     var patient = new ConsentedPatient("patient-456", patientSystem);
 
@@ -199,7 +171,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
               .willReturn(response));
     }
 
-    create(serviceWithNullSystem.resolve(patient))
+    create(service.resolve(patient))
         .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
         .verifyComplete();
 

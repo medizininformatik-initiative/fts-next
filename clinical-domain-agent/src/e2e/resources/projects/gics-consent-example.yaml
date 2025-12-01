@@ -38,10 +38,6 @@ dataSelector:
       baseUrl: http://cd-hds:8080/fhir
       # auth: [ ... ]
       # ssl: [ ... ]
-    # (optional) Patient identifier resolution configuration
-    resolve:
-      # System URL for patient identifier lookup
-      patientIdentifierSystem: http://fts.smith.care
     # (default: 500) Maximum size of bundles requested from cd-hds
     pageSize: 500
 
