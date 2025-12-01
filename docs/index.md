@@ -4,6 +4,10 @@ title: FTSnext
 hero:
   name: FTSnext
   text: FHIR® Transfer Services
+  image:
+    light: /logo.svg
+    dark: /logo-dark.svg
+    alt: FTSnext Logo
   actions:
   - theme: brand
     text: Installation

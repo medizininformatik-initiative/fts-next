@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/public/logo-dark.svg">
+    <img src="docs/public/logo.svg" alt="FTSnext Logo" width="200">
+  </picture>
+</p>
+
 # SMITH FHIR Transfer Services (FTSnext)
 
 [![Build](https://img.shields.io/github/actions/workflow/status/medizininformatik-initiative/fts-next/build.yml?logo=refinedgithub&logoColor=white)](https://github.com/medizininformatik-initiative/fts-next/actions/workflows/build.yml)
