@@ -6,6 +6,7 @@ import static java.lang.String.valueOf;
 import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
+import care.smith.fts.tca.deidentification.CompartmentIdSplitter.CompartmentIds;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
@@ -20,12 +21,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
@@ -38,24 +35,17 @@ import reactor.core.publisher.Mono;
 public class FhirMappingProvider implements MappingProvider {
   private static final HashFunction hashFn = Hashing.sha256();
 
-  // Pattern to extract first segment after prefix: {patientId}.{segment}...
-  // For resource IDs: {patientId}.{ResourceType}:{id} → captures ResourceType
-  // For identifiers: {patientId}.identifier.{system}:{value} → captures "identifier"
-  private static final Pattern RESOURCE_ID_PATTERN = Pattern.compile("^[^.]+\\.([^.:]+)");
-
   record PseudonymData(String patientIdPseudonym, String salt, String dateShiftSeed) {}
 
   private record FetchedData(
       PseudonymData pseudonymData, Map<String, String> nonCompartmentPseudonyms) {}
-
-  private record CompartmentIds(Set<String> inCompartment, Set<String> outsideCompartment) {}
 
   private final GpasClient gpasClient;
   private final TransportMappingConfiguration configuration;
   private final RedissonClient redisClient;
   private final MeterRegistry meterRegistry;
   private final RandomStringGenerator randomStringGenerator;
-  private final PatientCompartment patientCompartment;
+  private final CompartmentIdSplitter compartmentIdSplitter;
 
   public FhirMappingProvider(
       GpasClient gpasClient,
@@ -63,13 +53,13 @@ public class FhirMappingProvider implements MappingProvider {
       TransportMappingConfiguration configuration,
       MeterRegistry meterRegistry,
       RandomStringGenerator randomStringGenerator,
-      PatientCompartment patientCompartment) {
+      CompartmentIdSplitter compartmentIdSplitter) {
     this.gpasClient = gpasClient;
     this.configuration = configuration;
     this.redisClient = redisClient;
     this.meterRegistry = meterRegistry;
     this.randomStringGenerator = randomStringGenerator;
-    this.patientCompartment = patientCompartment;
+    this.compartmentIdSplitter = compartmentIdSplitter;
   }
 
   /**
@@ -82,23 +72,18 @@ public class FhirMappingProvider implements MappingProvider {
    *   <li>Patient-compartment IDs: pseudonymized using patient-derived salt (SHA256 hash)
    *   <li>Non-compartment IDs: pseudonymized directly via gPAS
    * </ul>
-   *
-   * @param r the transport mapping request
-   * @return Map<TID, PID>
    */
   @Override
   public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
     log.trace("retrieveTransportIds patientId={}, resourceIds={}", r.patientId(), r.resourceIds());
     var transferId = randomStringGenerator.generate();
 
-    // Split IDs by compartment membership
-    var compartmentIds = splitByCompartment(r.resourceIds());
+    var compartmentIds = compartmentIdSplitter.split(r.resourceIds());
     log.trace(
         "Split IDs: {} in patient compartment, {} outside compartment",
         compartmentIds.inCompartment().size(),
         compartmentIds.outsideCompartment().size());
 
-    // Create transport mapping for all IDs
     var transportMapping =
         r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
 
@@ -122,52 +107,6 @@ public class FhirMappingProvider implements MappingProvider {
                     sMap,
                     data.pseudonymData()))
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
-  }
-
-  /** Splits resource IDs into patient-compartment and non-compartment sets. */
-  private CompartmentIds splitByCompartment(Set<String> resourceIds) {
-    Map<Boolean, Set<String>> partitioned =
-        resourceIds.stream()
-            .collect(Collectors.partitioningBy(this::isInPatientCompartment, Collectors.toSet()));
-    return new CompartmentIds(partitioned.get(true), partitioned.get(false));
-  }
-
-  /**
-   * Checks if a resource ID belongs to the patient compartment.
-   *
-   * <p>IDs are in the patient compartment if:
-   *
-   * <ul>
-   *   <li>They are identifiers (format: {patientId}.identifier.{system}:{value})
-   *   <li>Their resource type has a param key in the compartment definition
-   * </ul>
-   */
-  private boolean isInPatientCompartment(String resourceId) {
-    return extractResourceType(resourceId)
-        .map(
-            resourceType -> {
-              // "identifier" entries are patient-related
-              if ("identifier".equals(resourceType)) {
-                return true;
-              }
-              return patientCompartment.isInPatientCompartment(resourceType);
-            })
-        .orElse(true); // Default to compartment if we can't parse the ID
-  }
-
-  /**
-   * Extracts the resource type from a namespaced resource ID.
-   *
-   * @param resourceId format: {patientId}.{ResourceType}:{id} or
-   *     {patientId}.identifier.{system}:{value}
-   * @return the resource type, or empty if the ID doesn't match the expected format
-   */
-  static Optional<String> extractResourceType(String resourceId) {
-    Matcher matcher = RESOURCE_ID_PATTERN.matcher(resourceId);
-    if (matcher.find()) {
-      return Optional.of(matcher.group(1));
-    }
-    return Optional.empty();
   }
 
   /** Fetches pseudonyms from gPAS for non-compartment resource IDs. */
@@ -210,13 +149,11 @@ public class FhirMappingProvider implements MappingProvider {
       PseudonymData data) {
     var dateShifts = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
 
-    // Filter transport mapping for compartment IDs only (for salt-based hashing)
     Map<String, String> compartmentTransportMapping =
         transportMapping.entrySet().stream()
             .filter(e -> compartmentIds.inCompartment().contains(e.getKey()))
             .collect(toMap(Entry::getKey, Entry::getValue));
 
-    // Filter transport mapping for non-compartment IDs (for gPAS pseudonyms)
     Map<String, String> nonCompartmentTransportMapping =
         transportMapping.entrySet().stream()
             .filter(e -> compartmentIds.outsideCompartment().contains(e.getKey()))
@@ -224,13 +161,10 @@ public class FhirMappingProvider implements MappingProvider {
 
     var resolveMap =
         ImmutableMap.<String, String>builder()
-            // Compartment IDs: use salt-based hashing
             .putAll(generateSecureMapping(data.salt(), compartmentTransportMapping))
-            // Non-compartment IDs: use gPAS pseudonyms directly
             .putAll(
                 generateNonCompartmentMapping(
                     nonCompartmentTransportMapping, nonCompartmentPseudonyms))
-            // Patient identifier: use gPAS pseudonym
             .putAll(
                 patientIdPseudonyms(
                     r.patientId(),
@@ -284,22 +218,16 @@ public class FhirMappingProvider implements MappingProvider {
         .collect(toMap(Entry::getValue, e -> gpasPseudonyms.get(e.getKey())));
   }
 
-  /** generate ids for all entries in the transport mapping */
   static Map<String, String> generateSecureMapping(
       String transportSalt, Map<String, String> transportMapping) {
     return transportMapping.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));
   }
 
-  /** hash a transport id using the salt */
   private static String transportHash(String transportSalt, String id) {
     return hashFn.hashString(transportSalt + id, StandardCharsets.UTF_8).toString();
   }
 
-  /**
-   * With this function we make sure that the patient's ID in the RDA is the de-identified ID stored
-   * in gPAS. This ensures that we can re-identify patients.
-   */
   static Map<String, String> patientIdPseudonyms(
       String patientId,
       String patientIdentifierSystem,
@@ -307,7 +235,6 @@ public class FhirMappingProvider implements MappingProvider {
       Map<String, String> transportMapping) {
     var x = NamespacingReplacementProvider.withNamespacing(patientId);
     var name = x.getKeyForSystemAndValue(patientIdentifierSystem, patientId);
-
     return transportMapping.entrySet().stream()
         .filter(entry -> entry.getKey().equals(name))
         .collect(toMap(Entry::getValue, id -> patientIdPseudonym));

@@ -111,7 +111,7 @@ class FhirMappingProviderTest {
             transportMappingConfiguration,
             meterRegistry,
             new RandomStringGenerator(new Random(0)),
-            new PatientCompartment());
+            new CompartmentIdSplitter(new PatientCompartment()));
   }
 
   @Test
@@ -1016,36 +1016,37 @@ class FhirMappingProviderTest {
 
     @Test
     void extractsResourceTypeFromStandardFormat() {
-      assertThat(FhirMappingProvider.extractResourceType("patientId.Patient:resource-id"))
+      assertThat(CompartmentIdSplitter.extractResourceType("patientId.Patient:resource-id"))
           .hasValue("Patient");
-      assertThat(FhirMappingProvider.extractResourceType("id1.Observation:obs-123"))
+      assertThat(CompartmentIdSplitter.extractResourceType("id1.Observation:obs-123"))
           .hasValue("Observation");
-      assertThat(FhirMappingProvider.extractResourceType("abc.MedicationRequest:med-456"))
+      assertThat(CompartmentIdSplitter.extractResourceType("abc.MedicationRequest:med-456"))
           .hasValue("MedicationRequest");
     }
 
     @Test
     void extractsIdentifierFromIdentifierFormat() {
       assertThat(
-              FhirMappingProvider.extractResourceType(
+              CompartmentIdSplitter.extractResourceType(
                   "patientId.identifier.http://example.com:value123"))
           .hasValue("identifier");
       assertThat(
-              FhirMappingProvider.extractResourceType("id1.identifier.patientIdentifierSystem:id1"))
+              CompartmentIdSplitter.extractResourceType(
+                  "id1.identifier.patientIdentifierSystem:id1"))
           .hasValue("identifier");
     }
 
     @Test
     void returnsEmptyForMalformedIds() {
-      assertThat(FhirMappingProvider.extractResourceType("no-dot-separator")).isEmpty();
-      assertThat(FhirMappingProvider.extractResourceType("")).isEmpty();
+      assertThat(CompartmentIdSplitter.extractResourceType("no-dot-separator")).isEmpty();
+      assertThat(CompartmentIdSplitter.extractResourceType("")).isEmpty();
     }
 
     @Test
     void handlesSpecialCharactersInPrefix() {
-      assertThat(FhirMappingProvider.extractResourceType("patient-123.Observation:obs-id"))
+      assertThat(CompartmentIdSplitter.extractResourceType("patient-123.Observation:obs-id"))
           .hasValue("Observation");
-      assertThat(FhirMappingProvider.extractResourceType("patient_id.Condition:cond-id"))
+      assertThat(CompartmentIdSplitter.extractResourceType("patient_id.Condition:cond-id"))
           .hasValue("Condition");
     }
   }
@@ -1247,7 +1248,7 @@ class FhirMappingProviderTest {
               transportMappingConfiguration,
               meterRegistry,
               new RandomStringGenerator(new Random(0)),
-              new PatientCompartment());
+              new CompartmentIdSplitter(new PatientCompartment()));
 
       // Include a non-compartment resource (Organization)
       var ids =
