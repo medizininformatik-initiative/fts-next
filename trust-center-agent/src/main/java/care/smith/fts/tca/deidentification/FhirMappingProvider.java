@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
@@ -149,68 +148,50 @@ public class FhirMappingProvider implements MappingProvider {
       PseudonymData data) {
     var dateShifts = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
 
-    Map<String, String> compartmentTransportMapping =
-        transportMapping.entrySet().stream()
-            .filter(e -> compartmentIds.inCompartment().contains(e.getKey()))
-            .collect(toMap(Entry::getKey, Entry::getValue));
-
-    Map<String, String> nonCompartmentTransportMapping =
-        transportMapping.entrySet().stream()
-            .filter(e -> compartmentIds.outsideCompartment().contains(e.getKey()))
-            .collect(toMap(Entry::getKey, Entry::getValue));
-
     var resolveMap =
-        ImmutableMap.<String, String>builder()
-            .putAll(generateSecureMapping(data.salt(), compartmentTransportMapping))
-            .putAll(
-                generateNonCompartmentMapping(
-                    nonCompartmentTransportMapping, nonCompartmentPseudonyms))
-            .putAll(
-                patientIdPseudonyms(
-                    r.patientId(),
-                    r.patientIdentifierSystem(),
-                    data.patientIdPseudonym(),
-                    transportMapping))
-            .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
-            .buildKeepingLast();
+        buildResolveMap(
+            r,
+            transportMapping,
+            compartmentIds,
+            nonCompartmentPseudonyms,
+            data.salt(),
+            data.patientIdPseudonym(),
+            dateShifts);
 
     return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
   }
 
-  /**
-   * Saves the research mapping in redis for later use by the rda.
-   *
-   * <p>This method is kept for backward compatibility with existing tests. New code should use
-   * generateTransportMapping which handles compartment-aware ID processing.
-   */
-  static Function<PseudonymData, Mono<Duration>> saveSecureMapping(
+  private ImmutableMap<String, String> buildResolveMap(
       TransportMappingRequest r,
       Map<String, String> transportMapping,
-      RMapReactive<String, String> rMap) {
-    return data -> {
-      var dateShifts = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
-      var resolveMap =
-          ImmutableMap.<String, String>builder()
-              .putAll(generateSecureMapping(data.salt(), transportMapping))
-              .putAll(
-                  patientIdPseudonyms(
-                      r.patientId(),
-                      r.patientIdentifierSystem(),
-                      data.patientIdPseudonym(),
-                      transportMapping))
-              .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
-              .buildKeepingLast();
-      return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
-    };
+      CompartmentIds compartmentIds,
+      Map<String, String> nonCompartmentPseudonyms,
+      String salt,
+      String patientIdPseudonym,
+      DateShiftUtil.DateShifts dateShifts) {
+    var compartmentTransportMapping =
+        filterTransportMapping(transportMapping, compartmentIds.inCompartment());
+    var nonCompartmentTransportMapping =
+        filterTransportMapping(transportMapping, compartmentIds.outsideCompartment());
+
+    return ImmutableMap.<String, String>builder()
+        .putAll(generateSecureMapping(salt, compartmentTransportMapping))
+        .putAll(
+            generateNonCompartmentMapping(nonCompartmentTransportMapping, nonCompartmentPseudonyms))
+        .putAll(
+            patientIdPseudonyms(
+                r.patientId(), r.patientIdentifierSystem(), patientIdPseudonym, transportMapping))
+        .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
+        .buildKeepingLast();
   }
 
-  /**
-   * Creates the mapping from transport IDs to gPAS pseudonyms for non-compartment resources.
-   *
-   * @param transportMapping map from original ID to transport ID
-   * @param gpasPseudonyms map from original ID to gPAS pseudonym
-   * @return map from transport ID to gPAS pseudonym
-   */
+  private static Map<String, String> filterTransportMapping(
+      Map<String, String> transportMapping, Set<String> ids) {
+    return transportMapping.entrySet().stream()
+        .filter(e -> ids.contains(e.getKey()))
+        .collect(toMap(Entry::getKey, Entry::getValue));
+  }
+
   static Map<String, String> generateNonCompartmentMapping(
       Map<String, String> transportMapping, Map<String, String> gpasPseudonyms) {
     return transportMapping.entrySet().stream()

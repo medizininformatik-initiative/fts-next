@@ -1,12 +1,12 @@
 package care.smith.fts.tca.deidentification;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -26,13 +26,22 @@ public class PatientCompartment {
 
   private final Set<String> compartmentResourceTypes;
 
-  public PatientCompartment() {
-    this(DEFAULT_COMPARTMENT_DEFINITION_PATH);
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  record CompartmentDefinition(List<ResourceEntry> resource) {}
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  record ResourceEntry(String code, List<String> param) {
+    boolean isInCompartment() {
+      return param != null && !param.isEmpty();
+    }
   }
 
-  /** Package-private constructor for testing with custom resource path. */
-  PatientCompartment(String resourcePath) {
-    this.compartmentResourceTypes = loadCompartmentResourceTypes(resourcePath);
+  public PatientCompartment() {
+    this(loadCompartmentResourceTypes(DEFAULT_COMPARTMENT_DEFINITION_PATH));
+  }
+
+  PatientCompartment(Set<String> compartmentResourceTypes) {
+    this.compartmentResourceTypes = compartmentResourceTypes;
     log.info("Loaded patient compartment with {} resource types", compartmentResourceTypes.size());
   }
 
@@ -51,19 +60,18 @@ public class PatientCompartment {
     return Set.copyOf(compartmentResourceTypes);
   }
 
-  private Set<String> loadCompartmentResourceTypes(String resourcePath) {
+  static Set<String> loadCompartmentResourceTypes(String resourcePath) {
     try (InputStream is = new ClassPathResource(resourcePath).getInputStream()) {
       ObjectMapper mapper = new ObjectMapper();
-      JsonNode root = mapper.readTree(is);
-      JsonNode resources = root.get("resource");
+      CompartmentDefinition definition = mapper.readValue(is, CompartmentDefinition.class);
 
-      if (resources == null || !resources.isArray()) {
+      if (definition.resource() == null) {
         throw new IllegalStateException("Invalid compartment definition: missing resource array");
       }
 
-      return StreamSupport.stream(resources.spliterator(), false)
-          .filter(node -> node.has("param"))
-          .map(node -> node.get("code").asText())
+      return definition.resource().stream()
+          .filter(ResourceEntry::isInCompartment)
+          .map(ResourceEntry::code)
           .collect(Collectors.toUnmodifiableSet());
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load patient compartment definition", e);

@@ -79,7 +79,8 @@ class PatientCompartmentTest {
 
     @Test
     void throwsExceptionForMissingResourceFile() {
-      assertThatThrownBy(() -> new PatientCompartment("fhir/nonexistent-file.json"))
+      assertThatThrownBy(
+              () -> PatientCompartment.loadCompartmentResourceTypes("fhir/nonexistent-file.json"))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Failed to load patient compartment definition");
     }
@@ -87,16 +88,21 @@ class PatientCompartmentTest {
     @Test
     void throwsExceptionForMissingResourceArray() {
       assertThatThrownBy(
-              () -> new PatientCompartment("fhir/invalid-compartment-missing-resource.json"))
+              () ->
+                  PatientCompartment.loadCompartmentResourceTypes(
+                      "fhir/invalid-compartment-missing-resource.json"))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Invalid compartment definition: missing resource array");
     }
 
     @Test
     void throwsExceptionForNonArrayResource() {
-      assertThatThrownBy(() -> new PatientCompartment("fhir/invalid-compartment-no-array.json"))
+      assertThatThrownBy(
+              () ->
+                  PatientCompartment.loadCompartmentResourceTypes(
+                      "fhir/invalid-compartment-no-array.json"))
           .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("Invalid compartment definition: missing resource array");
+          .hasMessageContaining("Failed to load patient compartment definition");
     }
   }
 }
