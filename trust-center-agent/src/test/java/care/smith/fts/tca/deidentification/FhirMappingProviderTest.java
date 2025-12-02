@@ -110,7 +110,8 @@ class FhirMappingProviderTest {
             redisClient,
             transportMappingConfiguration,
             meterRegistry,
-            new RandomStringGenerator(new Random(0)));
+            new RandomStringGenerator(new Random(0)),
+            new PatientCompartment());
   }
 
   @Test
@@ -143,7 +144,8 @@ class FhirMappingProviderTest {
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
     given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
-    var ids = Set.of("Patient.id1", "id1.identifier.patientIdentifierSystem:id1");
+    var ids =
+        Set.of("id1.Patient:patient-resource-id", "id1.identifier.patientIdentifierSystem:id1");
     var mapName = "wSUYQUR3Y";
     var request =
         new TransportMappingRequest(
@@ -1006,6 +1008,272 @@ class FhirMappingProviderTest {
               patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
 
       assertThat(result).containsEntry("tid1", patientIdPseudonym);
+    }
+  }
+
+  @Nested
+  class ExtractResourceTypeTests {
+
+    @Test
+    void extractsResourceTypeFromStandardFormat() {
+      assertThat(FhirMappingProvider.extractResourceType("patientId.Patient:resource-id"))
+          .hasValue("Patient");
+      assertThat(FhirMappingProvider.extractResourceType("id1.Observation:obs-123"))
+          .hasValue("Observation");
+      assertThat(FhirMappingProvider.extractResourceType("abc.MedicationRequest:med-456"))
+          .hasValue("MedicationRequest");
+    }
+
+    @Test
+    void extractsIdentifierFromIdentifierFormat() {
+      assertThat(
+              FhirMappingProvider.extractResourceType(
+                  "patientId.identifier.http://example.com:value123"))
+          .hasValue("identifier");
+      assertThat(
+              FhirMappingProvider.extractResourceType("id1.identifier.patientIdentifierSystem:id1"))
+          .hasValue("identifier");
+    }
+
+    @Test
+    void returnsEmptyForMalformedIds() {
+      assertThat(FhirMappingProvider.extractResourceType("no-dot-separator")).isEmpty();
+      assertThat(FhirMappingProvider.extractResourceType("")).isEmpty();
+    }
+
+    @Test
+    void handlesSpecialCharactersInPrefix() {
+      assertThat(FhirMappingProvider.extractResourceType("patient-123.Observation:obs-id"))
+          .hasValue("Observation");
+      assertThat(FhirMappingProvider.extractResourceType("patient_id.Condition:cond-id"))
+          .hasValue("Condition");
+    }
+  }
+
+  @Nested
+  class NonCompartmentMappingTests {
+
+    @Test
+    void generateNonCompartmentMappingCreatesCorrectMapping() {
+      var transportMapping = Map.of("org-id", "tid1", "loc-id", "tid2", "med-id", "tid3");
+      var gpasPseudonyms =
+          Map.of("org-id", "org-pseudo", "loc-id", "loc-pseudo", "med-id", "med-pseudo");
+
+      var result =
+          FhirMappingProvider.generateNonCompartmentMapping(transportMapping, gpasPseudonyms);
+
+      assertThat(result).hasSize(3);
+      assertThat(result).containsEntry("tid1", "org-pseudo");
+      assertThat(result).containsEntry("tid2", "loc-pseudo");
+      assertThat(result).containsEntry("tid3", "med-pseudo");
+    }
+
+    @Test
+    void generateNonCompartmentMappingHandlesEmptyMaps() {
+      var result = FhirMappingProvider.generateNonCompartmentMapping(Map.of(), Map.of());
+
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    void generateNonCompartmentMappingFiltersUnmatchedIds() {
+      var transportMapping = Map.of("id1", "tid1", "id2", "tid2");
+      var gpasPseudonyms = Map.of("id1", "pseudo1"); // id2 not in gpasPseudonyms
+
+      var result =
+          FhirMappingProvider.generateNonCompartmentMapping(transportMapping, gpasPseudonyms);
+
+      assertThat(result).hasSize(1);
+      assertThat(result).containsEntry("tid1", "pseudo1");
+      assertThat(result).doesNotContainKey("tid2");
+    }
+  }
+
+  @Nested
+  class GpasClientBatchTests {
+
+    @Test
+    void fetchOrCreatePseudonymsWithEmptySet() {
+      var gpasClient =
+          new GpasClient(httpClientBuilder.baseUrl("http://localhost").build(), meterRegistry);
+
+      create(gpasClient.fetchOrCreatePseudonyms("domain", Set.of()))
+          .assertNext(result -> assertThat(result).isEmpty())
+          .verifyComplete();
+    }
+
+    @Test
+    void fetchOrCreatePseudonymsBatch(WireMockRuntimeInfo wireMockRuntime) {
+      var address = wireMockRuntime.getHttpBaseUrl();
+      var wireMock = wireMockRuntime.getWireMock();
+
+      // Multi-mapping response for batch call
+      var batchResponse =
+          """
+          {
+            "resourceType": "Parameters",
+            "parameter": [
+              {
+                "name": "pseudonym",
+                "part": [
+                  {"name": "original", "valueIdentifier": {"value": "org1"}},
+                  {"name": "target", "valueIdentifier": {"value": "domain"}},
+                  {"name": "pseudonym", "valueIdentifier": {"value": "org-pseudo"}}
+                ]
+              },
+              {
+                "name": "pseudonym",
+                "part": [
+                  {"name": "original", "valueIdentifier": {"value": "loc1"}},
+                  {"name": "target", "valueIdentifier": {"value": "domain"}},
+                  {"name": "pseudonym", "valueIdentifier": {"value": "loc-pseudo"}}
+                ]
+              }
+            ]
+          }
+          """;
+
+      wireMock.register(
+          post(urlEqualTo("/$pseudonymizeAllowCreate"))
+              .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+              .willReturn(fhirResponse(batchResponse)));
+
+      var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+
+      create(gpasClient.fetchOrCreatePseudonyms("domain", Set.of("org1", "loc1")))
+          .assertNext(
+              result -> {
+                assertThat(result).containsEntry("org1", "org-pseudo");
+                assertThat(result).containsEntry("loc1", "loc-pseudo");
+              })
+          .verifyComplete();
+
+      wireMock.resetMappings();
+    }
+  }
+
+  @Nested
+  class GenerateTransportMappingWithNonCompartmentTests {
+
+    @Test
+    void generateTransportMappingWithNonCompartmentIds(WireMockRuntimeInfo wireMockRuntime)
+        throws IOException {
+      var address = wireMockRuntime.getHttpBaseUrl();
+      var wireMock = wireMockRuntime.getWireMock();
+
+      // Mock responses for patient pseudonym, salt, dateShift
+      var patientPseudonymGen =
+          FhirGenerators.gpasGetOrCreateResponse(
+              fromList(List.of("id1")), fromList(List.of("patient-pseudo")));
+      var saltGen =
+          FhirGenerators.gpasGetOrCreateResponse(
+              fromList(List.of("Salt_id1")), fromList(List.of("salt-value")));
+      var dateShiftGen =
+          FhirGenerators.gpasGetOrCreateResponse(
+              fromList(List.of("PT336H_id1")), fromList(List.of("dateshift-seed")));
+      // Mock response for non-compartment IDs (Organization)
+      var nonCompartmentGen =
+          FhirGenerators.gpasGetOrCreateResponse(
+              fromList(List.of("id1.Organization:org-123")), fromList(List.of("org-pseudo")));
+
+      // Register mocks for specific request patterns
+      wireMock.register(
+          post(urlEqualTo("/$pseudonymizeAllowCreate"))
+              .withRequestBody(
+                  equalToJson(
+                      """
+                      { "resourceType": "Parameters",
+                        "parameter": [
+                          {"name": "target", "valueString": "domain"},
+                          {"name": "original", "valueString": "id1"}]}
+                      """,
+                      true,
+                      true))
+              .willReturn(fhirResponse(patientPseudonymGen.generateString())));
+
+      wireMock.register(
+          post(urlEqualTo("/$pseudonymizeAllowCreate"))
+              .withRequestBody(
+                  equalToJson(
+                      """
+                      { "resourceType": "Parameters",
+                        "parameter": [
+                          {"name": "target", "valueString": "domain"},
+                          {"name": "original", "valueString": "Salt_id1"}]}
+                      """,
+                      true,
+                      true))
+              .willReturn(fhirResponse(saltGen.generateString())));
+
+      wireMock.register(
+          post(urlEqualTo("/$pseudonymizeAllowCreate"))
+              .withRequestBody(
+                  equalToJson(
+                      """
+                      { "resourceType": "Parameters",
+                        "parameter": [
+                          {"name": "target", "valueString": "domain"},
+                          {"name": "original", "valueString": "PT336H_id1"}]}
+                      """,
+                      true,
+                      true))
+              .willReturn(fhirResponse(dateShiftGen.generateString())));
+
+      // Mock for batch non-compartment call
+      wireMock.register(
+          post(urlEqualTo("/$pseudonymizeAllowCreate"))
+              .withRequestBody(
+                  equalToJson(
+                      """
+                      { "resourceType": "Parameters",
+                        "parameter": [
+                          {"name": "target", "valueString": "domain"},
+                          {"name": "original", "valueString": "id1.Organization:org-123"}]}
+                      """,
+                      true,
+                      true))
+              .willReturn(fhirResponse(nonCompartmentGen.generateString())));
+
+      given(redisClient.reactive()).willReturn(redis);
+      given(redis.getMapCache(anyString())).willReturn(mapCache);
+      given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+      given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
+
+      var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+      var provider =
+          new FhirMappingProvider(
+              gpasClient,
+              redisClient,
+              transportMappingConfiguration,
+              meterRegistry,
+              new RandomStringGenerator(new Random(0)),
+              new PatientCompartment());
+
+      // Include a non-compartment resource (Organization)
+      var ids =
+          Set.of(
+              "id1.Patient:patient-resource-id",
+              "id1.identifier.patientIdentifierSystem:id1",
+              "id1.Organization:org-123");
+
+      var request =
+          new TransportMappingRequest(
+              "id1",
+              "patientIdentifierSystem",
+              ids,
+              DEFAULT_DOMAINS,
+              Duration.ofDays(14),
+              DateShiftPreserve.NONE);
+
+      create(provider.generateTransportMapping(request))
+          .assertNext(
+              r -> {
+                assertThat(r.transportMapping().keySet()).isEqualTo(ids);
+                assertThat(r.transportMapping()).hasSize(3);
+              })
+          .verifyComplete();
+
+      wireMock.resetMappings();
     }
   }
 
