@@ -13,41 +13,31 @@ class EverythingDataSelectorConfigTest {
 
   @Test
   void fhirServerCannotBeNull() {
-    assertThrows(
-        NullPointerException.class, () -> new EverythingDataSelectorConfig(null, null, null));
+    assertThrows(NullPointerException.class, () -> new EverythingDataSelectorConfig(null, null));
   }
 
   @Test
   void fhirServerIsReturned() {
-    assertThat(new EverythingDataSelectorConfig(FHIR_SERVER, null, null))
+    assertThat(new EverythingDataSelectorConfig(FHIR_SERVER, null))
         .extracting(EverythingDataSelectorConfig::fhirServer)
         .isEqualTo(FHIR_SERVER);
   }
 
   @Test
-  void emptyResolveIsValid() {
-    assertThat(new EverythingDataSelectorConfig(FHIR_SERVER, null, null))
-        .extracting(EverythingDataSelectorConfig::resolve)
-        .isNull();
-  }
-
-  @Test
   void zeroPageSizeIsInvalid() {
     assertThrows(
-        IllegalArgumentException.class,
-        () -> new EverythingDataSelectorConfig(FHIR_SERVER, null, 0));
+        IllegalArgumentException.class, () -> new EverythingDataSelectorConfig(FHIR_SERVER, 0));
   }
 
   @Test
   void negativePageSizeIsInvalid() {
     assertThrows(
-        IllegalArgumentException.class,
-        () -> new EverythingDataSelectorConfig(FHIR_SERVER, null, -1));
+        IllegalArgumentException.class, () -> new EverythingDataSelectorConfig(FHIR_SERVER, -1));
   }
 
   @Test
   void nullPageSizeUsesDefault() {
-    assertThat(new EverythingDataSelectorConfig(FHIR_SERVER, null, null))
+    assertThat(new EverythingDataSelectorConfig(FHIR_SERVER, null))
         .extracting(EverythingDataSelectorConfig::pageSize)
         .isEqualTo(DEFAULT_PAGE_SIZE);
   }
@@ -55,7 +45,7 @@ class EverythingDataSelectorConfigTest {
   @Test
   void positivePageSizeIsvalid() {
     final int somePageSize = 15;
-    assertThat(new EverythingDataSelectorConfig(FHIR_SERVER, null, somePageSize))
+    assertThat(new EverythingDataSelectorConfig(FHIR_SERVER, somePageSize))
         .extracting(EverythingDataSelectorConfig::pageSize)
         .isEqualTo(somePageSize);
   }

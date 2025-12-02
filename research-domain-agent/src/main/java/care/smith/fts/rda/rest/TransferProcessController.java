@@ -231,10 +231,8 @@ public class TransferProcessController {
                           name = "Example configuration",
                           value =
 """
-{"cohortSelector":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domain":"MII","patientIdentifierSystem":"http://fts.smith.care","policySystem":"https://ths-greifswald.de/fhir/CodeSystem/gics/Policy","policies":["IDAT_erheben","IDAT_speichern_verarbeiten","MDAT_erheben","MDAT_speichern_verarbeiten"]}},
- "dataSelector":{"everything":{"fhirServer":{"baseUrl":"http://cd-hds:8080/fhir"},"resolve":{"patientIdentifierSystem":"http://fts.smith.care"}}},
- "deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"},"domains":{"pseudonym":"MII","salt":"MII","dateShift":"MII"}},"maxDateShift":"P14D","deidentifhirConfig":"/app/projects/example/deidentifhir/CDtoTransport.profile","scraperConfig":"/app/projects/example/deidentifhir/IDScraper.profile"}},
- "bundleSender":{"researchDomainAgent":{"server":{"baseUrl":"http://rd-agent:8080"},"project":"example"}}}
+{"deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"}},"dateShift":"P0D","deidentifhirConfig":"/app/projects/example/deidentifhir/TransportToRD.profile"}},
+ "bundleSender":{"fhirStore":{"server":{"baseUrl":"http://rd-hds:8080/fhir"}}}}
 """)
                     })),
         @ApiResponse(responseCode = "404", description = "The project does not exist")

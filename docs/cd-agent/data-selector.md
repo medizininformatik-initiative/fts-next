@@ -17,8 +17,6 @@ dataSelector:
       baseUrl: http://cd-hds:8080/fhir
       auth: [ ... ]
       ssl: [ ... ]
-    resolve:
-      patientIdentifierSystem: http://fts.smith.care
     pageSize: 500
 ```
 
@@ -55,18 +53,6 @@ server and patient resources without a valid consented period are skipped entire
       ssl: [ ... ]
   ```
 
-#### `resolve.patientIdentifierSystem` <Badge type="danger" text="Deprecated" /> <Badge type="warning" text="Since 5.0" />
-
-* **Description**: Defines the system URL used to resolve patient identifiers within the FHIR
-  server. This option will be removed with the next release, use the `patientIdentifierSystem` in 
-  the CohortSelector instead.
-* **Type**: String
-* **Example**:
-  ```yaml
-    resolve:
-      patientIdentifierSystem: http://custom.identifier.system
-  ```
-
 #### `pageSize` <Badge type="tip" text="Optional" /> <Badge type="warning" text="Since 5.1" />
 
 * **Description**: Specifies the maximum number of FHIR resources to be included in a single bundle
@@ -80,9 +66,9 @@ server and patient resources without a valid consented period are skipped entire
 
 ## Notes
 
-* The `patientIdentifierSystem` field must be a valid system URL used for resolving patient
-  identifiers in the FHIR server.
 * Ensure the FHIR server endpoint is accessible and configured correctly for data retrieval.
+* Patient identifiers are resolved using the `patientIdentifierSystem` configured in the
+  [CohortSelector](./cohort-selector.md).
 
 ## References
 

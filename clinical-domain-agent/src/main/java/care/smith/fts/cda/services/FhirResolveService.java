@@ -4,7 +4,6 @@ import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
-import static java.util.Optional.ofNullable;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.util.error.TransferProcessException;
@@ -26,17 +25,10 @@ public class FhirResolveService implements PatientIdResolver {
 
   private final WebClient hdsClient;
   private final MeterRegistry meterRegistry;
-  private final String identifierSystem;
-
-  public FhirResolveService(
-      String identifierSystem, WebClient hdsClient, MeterRegistry meterRegistry) {
-    this.identifierSystem = identifierSystem;
-    this.hdsClient = hdsClient;
-    this.meterRegistry = meterRegistry;
-  }
 
   public FhirResolveService(WebClient hdsClient, MeterRegistry meterRegistry) {
-    this(null, hdsClient, meterRegistry);
+    this.hdsClient = hdsClient;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -76,9 +68,8 @@ public class FhirResolveService implements PatientIdResolver {
   }
 
   private URI buildUri(ConsentedPatient patient, UriBuilder uri) {
-    var selectedSystem =
-        ofNullable(this.identifierSystem).orElse(patient.patientIdentifierSystem());
-    return uri.queryParam("identifier", selectedSystem + "|" + patient.id()).build();
+    return uri.queryParam("identifier", patient.patientIdentifierSystem() + "|" + patient.id())
+        .build();
   }
 
   private void checkSinglePatient(Bundle patients, String patientId) {
