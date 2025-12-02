@@ -7,14 +7,23 @@ import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
 import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 
 public class IdatScraper {
   private final Deidentifhir deidentiFHIR;
   private final ScrapingStorage scrapingStorage;
+  private final CompartmentMembershipChecker compartmentChecker;
+  private final String patientId;
 
-  public IdatScraper(Config config, ConsentedPatient patient) {
+  public IdatScraper(
+      Config config, ConsentedPatient patient, CompartmentMembershipChecker compartmentChecker) {
+    this.compartmentChecker = compartmentChecker;
+    this.patientId = patient.id();
+
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patient.id());
     scrapingStorage = new ScrapingStorage(keyCreator);
 
@@ -40,10 +49,39 @@ public class IdatScraper {
   /**
    * Gather all IDs contained in the provided bundle and return them as a Set.
    *
+   * <p>Resources in the patient compartment will have IDs prefixed with the patient ID. Resources
+   * not in the compartment will have IDs without the patient prefix.
+   *
    * @return a Set of all IDs gathered in the Resource
    */
   public Set<String> gatherIDs(Resource resource) {
+    // Pre-compute compartment membership for all resources
+    Map<String, Boolean> membership = precomputeCompartmentMembership(resource);
+    scrapingStorage.setCompartmentMembership(membership);
+
     deidentiFHIR.deidentify(resource);
     return scrapingStorage.getGatheredIdats();
+  }
+
+  private Map<String, Boolean> precomputeCompartmentMembership(Resource resource) {
+    Map<String, Boolean> membership = new HashMap<>();
+
+    if (resource instanceof Bundle bundle) {
+      for (var entry : bundle.getEntry()) {
+        if (entry.hasResource()) {
+          Resource r = entry.getResource();
+          String key = r.fhirType() + ":" + r.getIdPart();
+          boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientId);
+          membership.put(key, inCompartment);
+        }
+      }
+    } else {
+      // Single resource - check if it's in the compartment
+      String key = resource.fhirType() + ":" + resource.getIdPart();
+      boolean inCompartment = compartmentChecker.isInPatientCompartment(resource, patientId);
+      membership.put(key, inCompartment);
+    }
+
+    return membership;
   }
 }

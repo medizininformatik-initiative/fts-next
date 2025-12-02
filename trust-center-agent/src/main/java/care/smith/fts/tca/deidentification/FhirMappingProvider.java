@@ -77,7 +77,7 @@ public class FhirMappingProvider implements MappingProvider {
     log.trace("retrieveTransportIds patientId={}, resourceIds={}", r.patientId(), r.resourceIds());
     var transferId = randomStringGenerator.generate();
 
-    var compartmentIds = compartmentIdSplitter.split(r.resourceIds());
+    var compartmentIds = compartmentIdSplitter.split(r.resourceIds(), r.patientId());
     log.trace(
         "Split IDs: {} in patient compartment, {} outside compartment",
         compartmentIds.inCompartment().size(),

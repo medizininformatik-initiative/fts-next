@@ -20,6 +20,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.ClinicalDomainAgent;
+import care.smith.fts.cda.services.deidentifhir.CompartmentMembershipChecker;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
@@ -51,14 +52,17 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   void setUp(
       WireMockRuntimeInfo wireMockRuntime,
       @Autowired WebClientFactory clientFactory,
-      @Autowired MeterRegistry meterRegistry)
+      @Autowired MeterRegistry meterRegistry,
+      @Autowired CompartmentMembershipChecker compartmentChecker)
       throws IOException {
     var scrConf = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
     var deiConf = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var domains = new TcaDomains("domain", "domain", "domain");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     wireMock = wireMockRuntime.getWireMock();
-    step = new DeidentifhirStep(client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry);
+    step =
+        new DeidentifhirStep(
+            client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry, compartmentChecker);
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");

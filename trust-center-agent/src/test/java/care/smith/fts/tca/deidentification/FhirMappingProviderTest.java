@@ -107,7 +107,7 @@ class FhirMappingProviderTest {
             transportMappingConfiguration,
             meterRegistry,
             new RandomStringGenerator(new Random(0)),
-            new CompartmentIdSplitter(new PatientCompartment()));
+            new CompartmentIdSplitter());
   }
 
   @Test
@@ -484,46 +484,6 @@ class FhirMappingProviderTest {
   }
 
   @Nested
-  class ExtractResourceTypeTests {
-
-    @Test
-    void extractsResourceTypeFromStandardFormat() {
-      assertThat(CompartmentIdSplitter.extractResourceType("patientId.Patient:resource-id"))
-          .hasValue("Patient");
-      assertThat(CompartmentIdSplitter.extractResourceType("id1.Observation:obs-123"))
-          .hasValue("Observation");
-      assertThat(CompartmentIdSplitter.extractResourceType("abc.MedicationRequest:med-456"))
-          .hasValue("MedicationRequest");
-    }
-
-    @Test
-    void extractsIdentifierFromIdentifierFormat() {
-      assertThat(
-              CompartmentIdSplitter.extractResourceType(
-                  "patientId.identifier.http://example.com:value123"))
-          .hasValue("identifier");
-      assertThat(
-              CompartmentIdSplitter.extractResourceType(
-                  "id1.identifier.patientIdentifierSystem:id1"))
-          .hasValue("identifier");
-    }
-
-    @Test
-    void returnsEmptyForMalformedIds() {
-      assertThat(CompartmentIdSplitter.extractResourceType("no-dot-separator")).isEmpty();
-      assertThat(CompartmentIdSplitter.extractResourceType("")).isEmpty();
-    }
-
-    @Test
-    void handlesSpecialCharactersInPrefix() {
-      assertThat(CompartmentIdSplitter.extractResourceType("patient-123.Observation:obs-id"))
-          .hasValue("Observation");
-      assertThat(CompartmentIdSplitter.extractResourceType("patient_id.Condition:cond-id"))
-          .hasValue("Condition");
-    }
-  }
-
-  @Nested
   class NonCompartmentMappingTests {
 
     @Test
@@ -692,7 +652,10 @@ class FhirMappingProviderTest {
                       true))
               .willReturn(fhirResponse(dateShiftGen.generateString())));
 
-      // Mock for batch non-compartment call
+      // Mock for batch non-compartment call (Organization has no patient prefix)
+      var nonCompartmentGenNew =
+          FhirGenerators.gpasGetOrCreateResponse(
+              fromList(List.of("Organization:org-123")), fromList(List.of("org-pseudo")));
       wireMock.register(
           post(urlEqualTo("/$pseudonymizeAllowCreate"))
               .withRequestBody(
@@ -701,11 +664,11 @@ class FhirMappingProviderTest {
                       { "resourceType": "Parameters",
                         "parameter": [
                           {"name": "target", "valueString": "domain"},
-                          {"name": "original", "valueString": "id1.Organization:org-123"}]}
+                          {"name": "original", "valueString": "Organization:org-123"}]}
                       """,
                       true,
                       true))
-              .willReturn(fhirResponse(nonCompartmentGen.generateString())));
+              .willReturn(fhirResponse(nonCompartmentGenNew.generateString())));
 
       given(redisClient.reactive()).willReturn(redis);
       given(redis.getMapCache(anyString())).willReturn(mapCache);
@@ -720,14 +683,14 @@ class FhirMappingProviderTest {
               transportMappingConfiguration,
               meterRegistry,
               new RandomStringGenerator(new Random(0)),
-              new CompartmentIdSplitter(new PatientCompartment()));
+              new CompartmentIdSplitter());
 
-      // Include a non-compartment resource (Organization)
+      // Non-compartment resources (Organization) no longer have patient prefix
       var ids =
           Set.of(
               "id1.Patient:patient-resource-id",
               "id1.identifier.patientIdentifierSystem:id1",
-              "id1.Organization:org-123");
+              "Organization:org-123");
 
       var request =
           new TransportMappingRequest(

@@ -8,6 +8,7 @@ import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
+import care.smith.fts.cda.services.deidentifhir.CompartmentMembershipChecker;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IdatScraper;
 import care.smith.fts.util.error.TransferProcessException;
@@ -32,6 +33,7 @@ class DeidentifhirStep implements Deidentificator {
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
   private final MeterRegistry meterRegistry;
+  private final CompartmentMembershipChecker compartmentChecker;
 
   public DeidentifhirStep(
       WebClient tcaClient,
@@ -40,7 +42,8 @@ class DeidentifhirStep implements Deidentificator {
       DateShiftPreserve preserve,
       com.typesafe.config.Config deidentifhirConfig,
       com.typesafe.config.Config scraperConfig,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      CompartmentMembershipChecker compartmentChecker) {
     this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
@@ -48,12 +51,13 @@ class DeidentifhirStep implements Deidentificator {
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
     this.meterRegistry = meterRegistry;
+    this.compartmentChecker = compartmentChecker;
   }
 
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
     var patient = bundle.consentedPatient();
-    var idatScraper = new IdatScraper(scraperConfig, patient);
+    var idatScraper = new IdatScraper(scraperConfig, patient, compartmentChecker);
     var ids = idatScraper.gatherIDs(bundle.bundle());
 
     return !ids.isEmpty()
