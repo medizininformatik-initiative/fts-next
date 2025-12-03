@@ -56,6 +56,7 @@ class IdatScraperTest {
   @Test
   void gatherIDs_singlePatientResource() throws IOException {
     // Single Patient resource (not in a bundle) - tests the non-bundle branch
+    // with a resource that IS the patient (in compartment)
     var patientResource =
         generateOnePatient(PATIENT_ID, "2023", "identifierSystem1", "identifier1")
             .getEntryFirstRep()
@@ -65,5 +66,21 @@ class IdatScraperTest {
 
     // Patient IS the patient, so should have prefix
     assertThat(ids).contains("id1.Patient:id1");
+  }
+
+  @Test
+  void gatherIDs_singlePatientResource_differentPatient() throws IOException {
+    // Single Patient resource that is NOT the patient we're scraping for
+    // Tests non-bundle branch with resource NOT in compartment
+    var differentPatient =
+        generateOnePatient("different-patient", "2023", "identifierSystem1", "identifier2")
+            .getEntryFirstRep()
+            .getResource();
+
+    var ids = scraper.gatherIDs(differentPatient);
+
+    // Different patient should NOT have the patient prefix (not in compartment)
+    assertThat(ids).contains("Patient:different-patient");
+    assertThat(ids).doesNotContain("id1.Patient:different-patient");
   }
 }
