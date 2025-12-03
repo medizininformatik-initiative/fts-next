@@ -270,5 +270,35 @@ class CompartmentMembershipCheckerTest {
 
       assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
+
+    @Test
+    @DisplayName("full URL reference ending with Patient/ID -> IN compartment")
+    void fullUrlReference_isInCompartment() {
+      var sr = new ServiceRequest();
+      sr.setId("sr15");
+      sr.setSubject(new Reference("http://example.com/fhir/Patient/" + PATIENT_ID));
+
+      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("reference with trailing path after ID -> IN compartment")
+    void referenceWithTrailingPath_isInCompartment() {
+      var sr = new ServiceRequest();
+      sr.setId("sr16");
+      sr.setSubject(new Reference("Patient/" + PATIENT_ID + "/_history/1"));
+
+      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("reference with query params after ID -> IN compartment")
+    void referenceWithQueryParams_isInCompartment() {
+      var sr = new ServiceRequest();
+      sr.setId("sr17");
+      sr.setSubject(new Reference("Patient/" + PATIENT_ID + "?_format=json"));
+
+      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+    }
   }
 }
