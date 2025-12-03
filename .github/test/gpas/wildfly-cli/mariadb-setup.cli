@@ -1,0 +1,9 @@
+# Install MariaDB JDBC module
+module add --name=org.mariadb --resources=/tmp/mariadb-java-client-3.4.1.jar --dependencies=javax.api,javax.transaction.api
+
+# Register MariaDB driver
+/subsystem=datasources/jdbc-driver=mariadb:add(driver-name=mariadb,driver-module-name=org.mariadb,driver-class-name=org.mariadb.jdbc.Driver)
+
+# Update gpas datasource to use MariaDB driver
+/subsystem=datasources/data-source=gpasDS:write-attribute(name=driver-name,value=mariadb)
+/subsystem=datasources/data-source=gpasDS:write-attribute(name=connection-url,value=jdbc:mariadb://gpas-db:3306/gpas)
