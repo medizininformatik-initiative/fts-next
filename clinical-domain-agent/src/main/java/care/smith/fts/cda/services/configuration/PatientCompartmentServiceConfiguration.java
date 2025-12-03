@@ -36,18 +36,17 @@ public class PatientCompartmentServiceConfiguration {
   }
 
   @Bean
-  public PatientCompartmentService patientCompartmentService() {
-    var resourceTypeToParams = loadCompartmentDefinition();
+  public PatientCompartmentService patientCompartmentService(ObjectMapper objectMapper) {
+    var resourceTypeToParams = loadCompartmentDefinition(objectMapper);
     log.info(
         "Loaded patient compartment service with {} resource types having compartment params",
         resourceTypeToParams.values().stream().filter(params -> !params.isEmpty()).count());
     return new PatientCompartmentService(resourceTypeToParams);
   }
 
-  private Map<String, List<String>> loadCompartmentDefinition() {
+  private Map<String, List<String>> loadCompartmentDefinition(ObjectMapper objectMapper) {
     try (InputStream is = new ClassPathResource(getCompartmentDefinitionPath()).getInputStream()) {
-      ObjectMapper mapper = new ObjectMapper();
-      CompartmentDefinition definition = mapper.readValue(is, CompartmentDefinition.class);
+      CompartmentDefinition definition = objectMapper.readValue(is, CompartmentDefinition.class);
 
       if (definition.resource() == null) {
         throw new IllegalStateException("Invalid compartment definition: missing resource array");

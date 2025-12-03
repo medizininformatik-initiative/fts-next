@@ -36,7 +36,7 @@ public class WebClientDefaults implements WebClientCustomizer {
   public void customize(WebClient.Builder builder) {
     builder
         .clientConnector(new JdkClientHttpConnector(httpClient))
-        .filter((r, n) -> n.exchange(r).timeout(ofSeconds(10)))
+        .filter((r, n) -> n.exchange(r).timeout(ofSeconds(30)))
         .codecs(this::configureObjectMapper);
   }
 

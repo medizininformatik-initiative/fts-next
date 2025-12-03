@@ -5,16 +5,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import care.smith.fts.cda.services.PatientCompartmentService;
 import care.smith.fts.cda.services.configuration.PatientCompartmentServiceConfiguration.ResourceEntry;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class PatientCompartmentServiceConfigurationTest {
 
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
   @Test
   void loadsCompartmentDefinitionFromClasspath() {
     var config = new PatientCompartmentServiceConfiguration();
-    PatientCompartmentService service = config.patientCompartmentService();
+    PatientCompartmentService service = config.patientCompartmentService(objectMapper);
 
     // Verify ServiceRequest has correct params from compartment definition
     assertThat(service.getParamsForResourceType("ServiceRequest"))
@@ -73,7 +76,7 @@ class PatientCompartmentServiceConfigurationTest {
             }
           };
 
-      assertThatThrownBy(config::patientCompartmentService)
+      assertThatThrownBy(() -> config.patientCompartmentService(objectMapper))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Failed to load patient compartment definition");
     }
@@ -88,7 +91,7 @@ class PatientCompartmentServiceConfigurationTest {
             }
           };
 
-      assertThatThrownBy(config::patientCompartmentService)
+      assertThatThrownBy(() -> config.patientCompartmentService(objectMapper))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Invalid compartment definition: missing resource array");
     }
@@ -103,7 +106,7 @@ class PatientCompartmentServiceConfigurationTest {
             }
           };
 
-      var service = config.patientCompartmentService();
+      var service = config.patientCompartmentService(objectMapper);
 
       // First entry for TestResource has ["subject"], second has ["performer"]
       // The merge function (a, b) -> a means first one wins

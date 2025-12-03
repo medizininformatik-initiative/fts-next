@@ -10,19 +10,26 @@ import de.ume.deidentifhir.util.JavaCompat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 
+@Slf4j
 public class IdatScraper {
   private final Deidentifhir deidentiFHIR;
   private final ScrapingStorage scrapingStorage;
   private final CompartmentMembershipChecker compartmentChecker;
-  private final String patientId;
+  private final String patientIdentifier;
+  private final String patientResourceId;
 
   public IdatScraper(
-      Config config, ConsentedPatient patient, CompartmentMembershipChecker compartmentChecker) {
+      Config config,
+      ConsentedPatient patient,
+      CompartmentMembershipChecker compartmentChecker,
+      String patientResourceId) {
     this.compartmentChecker = compartmentChecker;
-    this.patientId = patient.id();
+    this.patientIdentifier = patient.id();
+    this.patientResourceId = patientResourceId;
 
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patient.id());
     scrapingStorage = new ScrapingStorage(keyCreator);
@@ -67,18 +74,24 @@ public class IdatScraper {
     Map<String, Boolean> membership = new HashMap<>();
 
     if (resource instanceof Bundle bundle) {
+      log.trace(
+          "Checking compartment membership with patientResourceId: {} for patient identifier: {}",
+          patientResourceId,
+          patientIdentifier);
+
       for (var entry : bundle.getEntry()) {
         if (entry.hasResource()) {
           Resource r = entry.getResource();
           String key = r.fhirType() + ":" + r.getIdPart();
-          boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientId);
+          boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientResourceId);
           membership.put(key, inCompartment);
         }
       }
     } else {
       // Single resource - check if it's in the compartment
       String key = resource.fhirType() + ":" + resource.getIdPart();
-      boolean inCompartment = compartmentChecker.isInPatientCompartment(resource, patientId);
+      boolean inCompartment =
+          compartmentChecker.isInPatientCompartment(resource, patientResourceId);
       membership.put(key, inCompartment);
     }
 

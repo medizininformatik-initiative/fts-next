@@ -57,7 +57,8 @@ class DeidentifhirStep implements Deidentificator {
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
     var patient = bundle.consentedPatient();
-    var idatScraper = new IdatScraper(scraperConfig, patient, compartmentChecker);
+    var idatScraper =
+        new IdatScraper(scraperConfig, patient, compartmentChecker, bundle.patientResourceId());
     var ids = idatScraper.gatherIDs(bundle.bundle());
 
     return !ids.isEmpty()

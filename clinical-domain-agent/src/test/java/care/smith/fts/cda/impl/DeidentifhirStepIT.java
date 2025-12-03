@@ -66,7 +66,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");
-    consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
+    consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient, "id1");
   }
 
   private static MappingBuilder transportMappingRequest() {
@@ -148,7 +148,8 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   void emptyIdsYieldEmptyMono() {
     create(
             step.deidentify(
-                new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1", "system"))))
+                new ConsentedPatientBundle(
+                    new Bundle(), new ConsentedPatient("id1", "system"), "id1")))
         .expectNextCount(0)
         .verifyComplete();
   }

@@ -157,7 +157,13 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return deidentification
           .flatMap(b -> process.bundleSender().send(b), config.maxSendConcurrency)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles))
-          .onErrorContinue((e, r) -> status.updateAndGet(TransferProcessStatus::incSkippedBundles));
+          .onErrorContinue(
+              (e, r) -> {
+                log.warn(
+                    "[Process {}] Bundle skipped due to error: {}", processId(), e.getMessage());
+                log.debug("[Process {}] Bundle skip stack trace", processId(), e);
+                status.updateAndGet(TransferProcessStatus::incSkippedBundles);
+              });
     }
 
     private void onComplete() {

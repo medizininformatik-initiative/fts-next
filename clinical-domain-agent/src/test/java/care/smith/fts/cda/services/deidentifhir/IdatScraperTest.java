@@ -32,7 +32,7 @@ class IdatScraperTest {
                 "Organization", List.of()));
     compartmentChecker = new CompartmentMembershipChecker(compartmentService);
 
-    scraper = new IdatScraper(config, patient, compartmentChecker);
+    scraper = new IdatScraper(config, patient, compartmentChecker, PATIENT_ID);
   }
 
   @Test
