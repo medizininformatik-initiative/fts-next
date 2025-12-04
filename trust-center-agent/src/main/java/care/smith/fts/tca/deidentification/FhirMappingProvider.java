@@ -44,21 +44,18 @@ public class FhirMappingProvider implements MappingProvider {
   private final RedissonClient redisClient;
   private final MeterRegistry meterRegistry;
   private final RandomStringGenerator randomStringGenerator;
-  private final CompartmentIdSplitter compartmentIdSplitter;
 
   public FhirMappingProvider(
       GpasClient gpasClient,
       RedissonClient redisClient,
       TransportMappingConfiguration configuration,
       MeterRegistry meterRegistry,
-      RandomStringGenerator randomStringGenerator,
-      CompartmentIdSplitter compartmentIdSplitter) {
+      RandomStringGenerator randomStringGenerator) {
     this.gpasClient = gpasClient;
     this.configuration = configuration;
     this.redisClient = redisClient;
     this.meterRegistry = meterRegistry;
     this.randomStringGenerator = randomStringGenerator;
-    this.compartmentIdSplitter = compartmentIdSplitter;
   }
 
   /**
@@ -77,7 +74,7 @@ public class FhirMappingProvider implements MappingProvider {
     log.trace("retrieveTransportIds patientId={}, resourceIds={}", r.patientId(), r.resourceIds());
     var transferId = randomStringGenerator.generate();
 
-    var compartmentIds = compartmentIdSplitter.split(r.resourceIds(), r.patientId());
+    var compartmentIds = CompartmentIdSplitter.split(r.resourceIds(), r.patientId());
     log.trace(
         "Split IDs: {} in patient compartment, {} outside compartment",
         compartmentIds.inCompartment().size(),

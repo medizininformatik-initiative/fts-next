@@ -3,7 +3,6 @@ package care.smith.fts.tca.deidentification;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.stereotype.Component;
 
 /**
  * Splits resource IDs into patient-compartment and non-compartment categories.
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Component;
  * <p>The CDA determines actual compartment membership by checking if the resource's compartment
  * param fields reference the patient. The TCA only needs to check the prefix.
  */
-@Component
 public class CompartmentIdSplitter {
 
   public record CompartmentIds(Set<String> inCompartment, Set<String> outsideCompartment) {}
@@ -31,7 +29,7 @@ public class CompartmentIdSplitter {
    * @param patientId the patient ID to check for as prefix
    * @return record containing IDs in and outside the patient compartment
    */
-  public CompartmentIds split(Set<String> resourceIds, String patientId) {
+  public static CompartmentIds split(Set<String> resourceIds, String patientId) {
     String prefix = patientId + ".";
     Map<Boolean, Set<String>> partitioned =
         resourceIds.stream()

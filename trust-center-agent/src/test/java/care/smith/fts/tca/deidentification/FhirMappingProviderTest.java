@@ -106,8 +106,7 @@ class FhirMappingProviderTest {
             redisClient,
             transportMappingConfiguration,
             meterRegistry,
-            new RandomStringGenerator(new Random(0)),
-            new CompartmentIdSplitter());
+            new RandomStringGenerator(new Random(0)));
   }
 
   @Test
@@ -688,8 +687,7 @@ class FhirMappingProviderTest {
               redisClient,
               transportMappingConfiguration,
               meterRegistry,
-              new RandomStringGenerator(new Random(0)),
-              new CompartmentIdSplitter());
+              new RandomStringGenerator(new Random(0)));
 
       // Non-compartment resources (Organization) no longer have patient prefix
       var ids =
