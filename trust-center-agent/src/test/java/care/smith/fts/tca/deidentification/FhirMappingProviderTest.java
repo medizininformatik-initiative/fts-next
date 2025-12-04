@@ -527,8 +527,10 @@ class FhirMappingProviderTest {
 
     @Test
     void fetchOrCreatePseudonymsWithEmptySet() {
+      var gpasConfig = new GpasDeIdentificationConfiguration();
       var gpasClient =
-          new GpasClient(httpClientBuilder.baseUrl("http://localhost").build(), meterRegistry);
+          new GpasClient(
+              httpClientBuilder.baseUrl("http://localhost").build(), meterRegistry, gpasConfig);
 
       create(gpasClient.fetchOrCreatePseudonyms("domain", Set.of()))
           .assertNext(result -> assertThat(result).isEmpty())
@@ -571,7 +573,9 @@ class FhirMappingProviderTest {
               .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
               .willReturn(fhirResponse(batchResponse)));
 
-      var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+      var gpasConfig = new GpasDeIdentificationConfiguration();
+      var gpasClient =
+          new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, gpasConfig);
 
       create(gpasClient.fetchOrCreatePseudonyms("domain", Set.of("org1", "loc1")))
           .assertNext(
@@ -675,7 +679,9 @@ class FhirMappingProviderTest {
       given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
       given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
-      var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+      var gpasConfig = new GpasDeIdentificationConfiguration();
+      var gpasClient =
+          new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, gpasConfig);
       var provider =
           new FhirMappingProvider(
               gpasClient,

@@ -13,6 +13,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
 import static reactor.test.StepVerifier.create;
 
+import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.error.fhir.FhirException;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -49,7 +50,8 @@ class GpasClientTest {
   void setUp(WireMockRuntimeInfo wireMockRuntime) {
     var address = wireMockRuntime.getHttpBaseUrl();
     wireMock = wireMockRuntime.getWireMock();
-    gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+    var config = new GpasDeIdentificationConfiguration();
+    gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, config);
   }
 
   @AfterEach
