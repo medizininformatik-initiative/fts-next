@@ -23,6 +23,7 @@ import static org.springframework.http.HttpStatus.OK;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.DateShiftPreserve;
+import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
@@ -99,7 +100,9 @@ class FhirMappingProviderTest {
 
     given(redisClient.reactive()).willReturn(redis);
 
-    var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+    var gpasConfig = new GpasDeIdentificationConfiguration();
+    var gpasClient =
+        new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, gpasConfig);
 
     mappingProvider =
         new FhirMappingProvider(
@@ -325,7 +328,8 @@ class FhirMappingProviderTest {
               transportMapping,
               mockRMap);
 
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
       @SuppressWarnings("unchecked")
       Mono<Duration> result = saveFunction.apply(tuple);
@@ -348,7 +352,8 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
       var function =
           FhirMappingProvider.saveSecureMapping(
@@ -377,7 +382,8 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
       ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
       var function =
@@ -429,7 +435,8 @@ class FhirMappingProviderTest {
                 transportMapping,
                 mockRMap);
 
-        var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+        var tuple =
+            new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
         @SuppressWarnings("unchecked")
         Mono<Duration> result = saveFunction.apply(tuple);
@@ -459,7 +466,8 @@ class FhirMappingProviderTest {
               transportMapping,
               mockRMap);
 
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
       @SuppressWarnings("unchecked")
       Mono<Duration> result = saveFunction.apply(tuple);
@@ -490,7 +498,8 @@ class FhirMappingProviderTest {
               transportMapping,
               mockRMap);
 
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
       @SuppressWarnings("unchecked")
       Mono<Duration> result = saveFunction.apply(tuple);
@@ -503,7 +512,8 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
       ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
       var function =
@@ -547,8 +557,10 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple1 = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, "salt1", DATE_SHIFT_SEED);
-      var tuple2 = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, "salt2", DATE_SHIFT_SEED);
+      var tuple1 =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, "salt1", DATE_SHIFT_SEED);
+      var tuple2 =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, "salt2", DATE_SHIFT_SEED);
       ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
       var function1 =
@@ -604,7 +616,8 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
       Map<String, String> specialCharMapping =
           Map.of(
@@ -633,7 +646,8 @@ class FhirMappingProviderTest {
     void shouldHandleNullTransportMappingGracefully() {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
       org.junit.jupiter.api.Assertions.assertThrows(
           NullPointerException.class,
@@ -658,7 +672,8 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
 
       // Create large mapping
       var largeMapping = new java.util.HashMap<String, String>();
@@ -686,7 +701,7 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of("", "", "");
+      var tuple = new FhirMappingProvider.PseudonymData("", "", "");
 
       var function =
           FhirMappingProvider.saveSecureMapping(
@@ -708,7 +723,8 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
       ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
       var function =
@@ -746,7 +762,8 @@ class FhirMappingProviderTest {
       @SuppressWarnings("unchecked")
       var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
       given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = reactor.util.function.Tuples.of(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
+      var tuple =
+          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
       ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
 
       var function =

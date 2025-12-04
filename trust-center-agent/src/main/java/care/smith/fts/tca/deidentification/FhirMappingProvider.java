@@ -3,8 +3,8 @@ package care.smith.fts.tca.deidentification;
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.lang.String.valueOf;
+import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
-import static reactor.function.TupleUtils.function;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
@@ -27,12 +27,13 @@ import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple3;
 
 @Slf4j
 @Component
 public class FhirMappingProvider implements MappingProvider {
   private static final HashFunction hashFn = Hashing.sha256();
+
+  record PseudonymData(String patientIdPseudonym, String salt, String dateShiftSeed) {}
 
   private final GpasClient gpasClient;
   private final TransportMappingConfiguration configuration;
@@ -73,37 +74,43 @@ public class FhirMappingProvider implements MappingProvider {
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
   }
 
-  private Mono<Tuple3<String, String, String>> fetchPseudonymAndSalts(
+  private Mono<PseudonymData> fetchPseudonymAndSalts(
       String patientId, TcaDomains domains, Duration maxDateShift) {
     var saltKey = "Salt_" + patientId;
     var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
     return Mono.zip(
-        gpasClient.fetchOrCreatePseudonym(domains.pseudonym(), patientId),
-        gpasClient.fetchOrCreatePseudonym(domains.salt(), saltKey),
-        gpasClient.fetchOrCreatePseudonym(domains.dateShift(), dateShiftKey));
+            gpasClient
+                .fetchOrCreatePseudonyms(domains.pseudonym(), of(patientId))
+                .map(m -> m.get(patientId)),
+            gpasClient
+                .fetchOrCreatePseudonyms(domains.salt(), of(saltKey))
+                .map(m -> m.get(saltKey)),
+            gpasClient
+                .fetchOrCreatePseudonyms(domains.dateShift(), of(dateShiftKey))
+                .map(m -> m.get(dateShiftKey)))
+        .map(t -> new PseudonymData(t.getT1(), t.getT2(), t.getT3()));
   }
 
   /** Saves the research mapping in redis for later use by the rda. */
-  static Function<Tuple3<String, String, String>, Mono<Duration>> saveSecureMapping(
+  static Function<PseudonymData, Mono<Duration>> saveSecureMapping(
       TransportMappingRequest r,
       Map<String, String> transportMapping,
       RMapReactive<String, String> rMap) {
-    return function(
-        (patientIdPseudonym, salt, dateShiftSeed) -> {
-          var dateShifts = generate(dateShiftSeed, r.maxDateShift(), r.dateShiftPreserve());
-          var resolveMap =
-              ImmutableMap.<String, String>builder()
-                  .putAll(generateSecureMapping(salt, transportMapping))
-                  .putAll(
-                      patientIdPseudonyms(
-                          r.patientId(),
-                          r.patientIdentifierSystem(),
-                          patientIdPseudonym,
-                          transportMapping))
-                  .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
-                  .buildKeepingLast();
-          return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
-        });
+    return data -> {
+      var dateShifts = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
+      var resolveMap =
+          ImmutableMap.<String, String>builder()
+              .putAll(generateSecureMapping(data.salt(), transportMapping))
+              .putAll(
+                  patientIdPseudonyms(
+                      r.patientId(),
+                      r.patientIdentifierSystem(),
+                      data.patientIdPseudonym(),
+                      transportMapping))
+              .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
+              .buildKeepingLast();
+      return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
+    };
   }
 
   /** generate ids for all entries in the transport mapping */
