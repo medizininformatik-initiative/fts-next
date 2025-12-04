@@ -46,9 +46,14 @@ services:
 
   # Trust Center
   gics:
-    image: ghcr.io/knoppiks/mosaic-gics:2024.3.1@sha256:ae7bdfafb11f340ea91d0990b06e96301b76e9041383c5284708486cdb0865b3
+    image: mosaicgreifswald/gics:2025.1.2@sha256:fab13df280dfd4a00451d373902ec4c91d945109b7cc5eb299ff49681ca352dd
     ports: [ ":8080" ]
-    networks: [ "trust-center", "gics" ]
+    networks: [ "gics", "trust-center" ]
+    environment:
+      TTP_GICS_DB_HOST: "gics-db"
+      WF_NO_ADMIN: "true"
+      TTP_DISABLE_NOTI_CLIENT: "true"
+      TTP_DISABLE_NOTI_SERVICE: "true"
     depends_on:
       gics-db:
         condition: service_healthy
@@ -76,9 +81,14 @@ services:
       retries: 3
       start_period: 120s
   gpas:
-    image: ghcr.io/knoppiks/mosaic-gpas:2024.3.0@sha256:8837d3a5eb1d538c456debbfd9f186b50fed271c82f5959a0bc121eefd14a8d4
+    image: mosaicgreifswald/gpas:2025.1.3@sha256:05933c8cbf56aabcf93477b258a7987f6cd532590718199532d8a093182dc79c
     ports: [ ":8080" ]
-    networks: [ "trust-center", "gpas" ]
+    networks: [ "gpas", "trust-center" ]
+    environment:
+      TTP_GPAS_DB_HOST: "gpas-db"
+      WF_NO_ADMIN: "true"
+      TTP_DISABLE_NOTI_CLIENT: "true"
+      TTP_DISABLE_NOTI_SERVICE: "true"
     depends_on:
       gpas-db:
         condition: service_healthy
