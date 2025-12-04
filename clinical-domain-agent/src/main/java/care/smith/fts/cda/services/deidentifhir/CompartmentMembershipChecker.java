@@ -134,7 +134,7 @@ public class CompartmentMembershipChecker {
   }
 
   private boolean referencesPatient(Reference reference, String patientId) {
-    if (reference == null || reference.isEmpty()) {
+    if (reference.isEmpty()) {
       return false;
     }
 
