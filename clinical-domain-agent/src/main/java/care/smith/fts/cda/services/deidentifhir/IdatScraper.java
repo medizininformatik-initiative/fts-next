@@ -80,12 +80,10 @@ public class IdatScraper {
           patientIdentifier);
 
       for (var entry : bundle.getEntry()) {
-        if (entry.hasResource()) {
-          Resource r = entry.getResource();
-          String key = r.fhirType() + ":" + r.getIdPart();
-          boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientResourceId);
-          membership.put(key, inCompartment);
-        }
+        Resource r = entry.getResource();
+        String key = r.fhirType() + ":" + r.getIdPart();
+        boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientResourceId);
+        membership.put(key, inCompartment);
       }
     } else {
       // Single resource - check if it's in the compartment
