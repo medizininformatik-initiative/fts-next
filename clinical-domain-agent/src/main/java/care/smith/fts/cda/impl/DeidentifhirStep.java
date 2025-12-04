@@ -34,6 +34,7 @@ class DeidentifhirStep implements Deidentificator {
   private final com.typesafe.config.Config scraperConfig;
   private final MeterRegistry meterRegistry;
   private final CompartmentMembershipChecker compartmentChecker;
+  private final boolean usePatientResourceIdForCompartment;
 
   public DeidentifhirStep(
       WebClient tcaClient,
@@ -43,7 +44,8 @@ class DeidentifhirStep implements Deidentificator {
       com.typesafe.config.Config deidentifhirConfig,
       com.typesafe.config.Config scraperConfig,
       MeterRegistry meterRegistry,
-      CompartmentMembershipChecker compartmentChecker) {
+      CompartmentMembershipChecker compartmentChecker,
+      boolean usePatientResourceIdForCompartment) {
     this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
@@ -52,13 +54,16 @@ class DeidentifhirStep implements Deidentificator {
     this.scraperConfig = scraperConfig;
     this.meterRegistry = meterRegistry;
     this.compartmentChecker = compartmentChecker;
+    this.usePatientResourceIdForCompartment = usePatientResourceIdForCompartment;
   }
 
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
     var patient = bundle.consentedPatient();
+    var patientIdForCompartment =
+        usePatientResourceIdForCompartment ? bundle.patientResourceId() : patient.id();
     var idatScraper =
-        new IdatScraper(scraperConfig, patient, compartmentChecker, bundle.patientResourceId());
+        new IdatScraper(scraperConfig, patient, compartmentChecker, patientIdForCompartment);
     var ids = idatScraper.gatherIDs(bundle.bundle());
 
     return !ids.isEmpty()

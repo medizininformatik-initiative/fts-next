@@ -62,7 +62,15 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     wireMock = wireMockRuntime.getWireMock();
     step =
         new DeidentifhirStep(
-            client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry, compartmentChecker);
+            client,
+            domains,
+            ofDays(14),
+            NONE,
+            deiConf,
+            scrConf,
+            meterRegistry,
+            compartmentChecker,
+            true);
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");

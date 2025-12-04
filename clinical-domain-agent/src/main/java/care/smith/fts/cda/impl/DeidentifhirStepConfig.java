@@ -12,19 +12,23 @@ public record DeidentifhirStepConfig(
     Duration maxDateShift,
     File deidentifhirConfig,
     File scraperConfig,
-    DateShiftPreserve dateShiftPreserve) {
+    DateShiftPreserve dateShiftPreserve,
+    Boolean usePatientResourceIdForCompartment) {
 
   public DeidentifhirStepConfig(
       TCAConfig trustCenterAgent,
       Duration maxDateShift,
       File deidentifhirConfig,
       File scraperConfig,
-      DateShiftPreserve dateShiftPreserve) {
+      DateShiftPreserve dateShiftPreserve,
+      Boolean usePatientResourceIdForCompartment) {
     this.trustCenterAgent = trustCenterAgent;
     this.maxDateShift = maxDateShift;
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
     this.dateShiftPreserve = Optional.ofNullable(dateShiftPreserve).orElse(DateShiftPreserve.NONE);
+    this.usePatientResourceIdForCompartment =
+        Optional.ofNullable(usePatientResourceIdForCompartment).orElse(true);
   }
 
   public record TCAConfig(HttpClientConfig server, TcaDomains domains) {}

@@ -9,7 +9,13 @@ public class DeidentifhirStepConfigTest {
 
   @Test
   void missingDateShiftPreserveDefaultsToNone() {
-    var config = new DeidentifhirStepConfig(null, null, null, null, null);
+    var config = new DeidentifhirStepConfig(null, null, null, null, null, null);
     assertThat(config.dateShiftPreserve()).isEqualTo(DateShiftPreserve.NONE);
+  }
+
+  @Test
+  void missingUsePatientResourceIdForCompartmentDefaultsToTrue() {
+    var config = new DeidentifhirStepConfig(null, null, null, null, null, null);
+    assertThat(config.usePatientResourceIdForCompartment()).isTrue();
   }
 }

@@ -47,6 +47,7 @@ class DeidentifhirStepFactoryIT {
                     ofDays(14),
                     new File("deidentifhirConfig"),
                     new File("scraperConfig"),
+                    null,
                     null)))
         .isNotNull();
   }
