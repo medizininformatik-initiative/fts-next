@@ -21,15 +21,18 @@ public class IdatScraper {
   private final CompartmentMembershipChecker compartmentChecker;
   private final String patientIdentifier;
   private final String patientResourceId;
+  private final boolean enableCompartmentNamespacing;
 
   public IdatScraper(
       Config config,
       ConsentedPatient patient,
       CompartmentMembershipChecker compartmentChecker,
-      String patientResourceId) {
+      String patientResourceId,
+      boolean enableCompartmentNamespacing) {
     this.compartmentChecker = compartmentChecker;
     this.patientIdentifier = patient.id();
     this.patientResourceId = patientResourceId;
+    this.enableCompartmentNamespacing = enableCompartmentNamespacing;
 
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patient.id());
     scrapingStorage = new ScrapingStorage(keyCreator);
@@ -71,6 +74,12 @@ public class IdatScraper {
   }
 
   private Map<String, Boolean> precomputeCompartmentMembership(Bundle bundle) {
+    if (!enableCompartmentNamespacing) {
+      // When disabled, return empty map - ScrapingStorage defaults to all-in-compartment
+      log.trace("Compartment namespacing disabled, treating all resources as in-compartment");
+      return Map.of();
+    }
+
     Map<String, Boolean> membership = new HashMap<>();
 
     log.trace(

@@ -13,7 +13,7 @@ public record DeidentifhirStepConfig(
     File deidentifhirConfig,
     File scraperConfig,
     DateShiftPreserve dateShiftPreserve,
-    Boolean usePatientResourceIdForCompartment) {
+    Boolean enableCompartmentNamespacing) {
 
   public DeidentifhirStepConfig(
       TCAConfig trustCenterAgent,
@@ -21,14 +21,14 @@ public record DeidentifhirStepConfig(
       File deidentifhirConfig,
       File scraperConfig,
       DateShiftPreserve dateShiftPreserve,
-      Boolean usePatientResourceIdForCompartment) {
+      Boolean enableCompartmentNamespacing) {
     this.trustCenterAgent = trustCenterAgent;
     this.maxDateShift = maxDateShift;
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
     this.dateShiftPreserve = Optional.ofNullable(dateShiftPreserve).orElse(DateShiftPreserve.NONE);
-    this.usePatientResourceIdForCompartment =
-        Optional.ofNullable(usePatientResourceIdForCompartment).orElse(true);
+    this.enableCompartmentNamespacing =
+        Optional.ofNullable(enableCompartmentNamespacing).orElse(false);
   }
 
   public record TCAConfig(HttpClientConfig server, TcaDomains domains) {}

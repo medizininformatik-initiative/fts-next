@@ -14,8 +14,8 @@ public class DeidentifhirStepConfigTest {
   }
 
   @Test
-  void missingUsePatientResourceIdForCompartmentDefaultsToTrue() {
+  void missingEnableCompartmentNamespacingDefaultsToFalse() {
     var config = new DeidentifhirStepConfig(null, null, null, null, null, null);
-    assertThat(config.usePatientResourceIdForCompartment()).isTrue();
+    assertThat(config.enableCompartmentNamespacing()).isFalse();
   }
 }

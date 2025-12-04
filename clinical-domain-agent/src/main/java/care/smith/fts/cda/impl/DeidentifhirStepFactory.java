@@ -44,6 +44,6 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
         parseFile(requireNonNull(implConfig.scraperConfig())),
         meterRegistry,
         compartmentChecker,
-        implConfig.usePatientResourceIdForCompartment());
+        implConfig.enableCompartmentNamespacing());
   }
 }
