@@ -28,9 +28,27 @@ public class CompartmentMembershipChecker {
    * search parameter names (e.g., "patient"), but resources use field names (e.g., "subject").
    */
   private static final Map<String, List<String>> SEARCH_PARAM_TO_FIELD =
-      Map.of(
-          "patient", List.of("subject", "patient"),
-          "subject", List.of("subject"));
+      Map.ofEntries(
+          Map.entry("patient", List.of("subject", "patient")),
+          Map.entry("subject", List.of("subject")),
+          Map.entry("policy-holder", List.of("policyHolder")));
+
+  /**
+   * Maps (resourceType, searchParam) to nested paths for cases where the reference is not at the
+   * top level. Paths use dot notation (e.g., "participant.actor" means
+   * resource.participant[].actor).
+   */
+  private static final Map<String, Map<String, List<String>>> NESTED_PATHS =
+      Map.ofEntries(
+          Map.entry("Appointment", Map.of("actor", List.of("participant.actor"))),
+          Map.entry("CareTeam", Map.of("participant", List.of("participant.member"))),
+          Map.entry("RequestGroup", Map.of("participant", List.of("action.participant.actor"))),
+          Map.entry("Claim", Map.of("payee", List.of("payee.party"))),
+          Map.entry("ExplanationOfBenefit", Map.of("payee", List.of("payee.party"))),
+          Map.entry("Composition", Map.of("attester", List.of("attester.party"))),
+          Map.entry("MedicationAdministration", Map.of("performer", List.of("performer.actor"))),
+          Map.entry("Group", Map.of("member", List.of("member.entity"))),
+          Map.entry("Patient", Map.of("link", List.of("link.other"))));
 
   private final PatientCompartmentService patientCompartmentService;
 
@@ -88,7 +106,15 @@ public class CompartmentMembershipChecker {
   }
 
   private List<Reference> getReferencesForParam(Resource resource, String paramName) {
-    // Get possible field names for this search parameter
+    String resourceType = resource.fhirType();
+
+    // First, check for nested paths specific to this resource type
+    List<Reference> nestedRefs = getReferencesFromNestedPaths(resource, resourceType, paramName);
+    if (!nestedRefs.isEmpty()) {
+      return nestedRefs;
+    }
+
+    // Fall back to top-level field lookup
     List<String> fieldNames = SEARCH_PARAM_TO_FIELD.getOrDefault(paramName, List.of(paramName));
 
     for (String fieldName : fieldNames) {
@@ -131,6 +157,74 @@ public class CompartmentMembershipChecker {
         resource.fhirType(),
         resource.getIdPart());
     return List.of();
+  }
+
+  private List<Reference> getReferencesFromNestedPaths(
+      Resource resource, String resourceType, String paramName) {
+    Map<String, List<String>> paramPaths = NESTED_PATHS.get(resourceType);
+    if (paramPaths == null) {
+      return List.of();
+    }
+
+    List<String> paths = paramPaths.get(paramName);
+    if (paths == null) {
+      return List.of();
+    }
+
+    List<Reference> allRefs = new java.util.ArrayList<>();
+    for (String path : paths) {
+      List<Reference> refs = traversePath(resource, path);
+      allRefs.addAll(refs);
+    }
+
+    if (!allRefs.isEmpty()) {
+      log.trace(
+          "Found {} references via nested path for param '{}' in {}/{}",
+          allRefs.size(),
+          paramName,
+          resourceType,
+          resource.getIdPart());
+    }
+    return allRefs;
+  }
+
+  /**
+   * Traverses a dot-separated path through a resource to find Reference values. Handles both single
+   * values and lists at each level.
+   */
+  private List<Reference> traversePath(org.hl7.fhir.r4.model.Base current, String path) {
+    if (current == null || path == null || path.isEmpty()) {
+      return List.of();
+    }
+
+    String[] parts = path.split("\\.", 2);
+    String fieldName = parts[0];
+    String remainingPath = parts.length > 1 ? parts[1] : null;
+
+    try {
+      Property prop = current.getNamedProperty(fieldName);
+      if (prop == null || prop.getValues().isEmpty()) {
+        return List.of();
+      }
+
+      // If this is the last part of the path, extract References
+      if (remainingPath == null) {
+        return prop.getValues().stream()
+            .filter(Reference.class::isInstance)
+            .map(Reference.class::cast)
+            .toList();
+      }
+
+      // Otherwise, continue traversing each value
+      List<Reference> results = new java.util.ArrayList<>();
+      for (org.hl7.fhir.r4.model.Base value : prop.getValues()) {
+        results.addAll(traversePath(value, remainingPath));
+      }
+      return results;
+    } catch (Exception e) {
+      log.trace("Error traversing path '{}' from {}: {}", path, current.fhirType(), e.getMessage());
+      return List.of();
+    }
   }
 
   private boolean referencesPatient(Reference reference, String patientId) {

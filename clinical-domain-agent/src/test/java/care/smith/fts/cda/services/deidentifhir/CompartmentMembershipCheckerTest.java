@@ -8,6 +8,9 @@ import static org.mockito.Mockito.when;
 import care.smith.fts.cda.services.PatientCompartmentService;
 import java.util.List;
 import java.util.Map;
+import org.hl7.fhir.r4.model.Appointment;
+import org.hl7.fhir.r4.model.CareTeam;
+import org.hl7.fhir.r4.model.Coverage;
 import org.hl7.fhir.r4.model.Organization;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
@@ -27,12 +30,18 @@ class CompartmentMembershipCheckerTest {
   void setUp() {
     // ServiceRequest has params ["subject", "performer"] according to compartment definition
     // Organization has no params (never in compartment)
+    // Appointment has "actor" which requires nested path: participant.actor
+    // CareTeam has "participant" which requires nested path: participant.member
+    // Coverage has "policy-holder" which maps to field "policyHolder"
     var compartmentService =
         new PatientCompartmentService(
             Map.of(
                 "ServiceRequest", List.of("subject", "performer"),
                 "Organization", List.of(),
-                "Observation", List.of("subject", "performer")));
+                "Observation", List.of("subject", "performer"),
+                "Appointment", List.of("actor"),
+                "CareTeam", List.of("participant"),
+                "Coverage", List.of("policy-holder", "subscriber", "beneficiary")));
     checker = new CompartmentMembershipChecker(compartmentService);
   }
 
@@ -168,6 +177,139 @@ class CompartmentMembershipCheckerTest {
       sr.addPerformer(new Reference("Organization/org1"));
 
       assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+    }
+  }
+
+  @Nested
+  @DisplayName("Nested path resolution - Appointment (participant.actor)")
+  class AppointmentNestedPathTests {
+
+    @Test
+    @DisplayName("participant.actor references patient -> IN compartment")
+    void participantActorReferencesPatient_isInCompartment() {
+      var appointment = new Appointment();
+      appointment.setId("apt1");
+      var participant = appointment.addParticipant();
+      participant.setActor(new Reference("Patient/" + PATIENT_ID));
+
+      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("multiple participants, one references patient -> IN compartment")
+    void multipleParticipants_oneReferencesPatient_isInCompartment() {
+      var appointment = new Appointment();
+      appointment.setId("apt2");
+      appointment.addParticipant().setActor(new Reference("Practitioner/doc1"));
+      appointment.addParticipant().setActor(new Reference("Patient/" + PATIENT_ID));
+      appointment.addParticipant().setActor(new Reference("Location/loc1"));
+
+      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("no participant references patient -> NOT in compartment")
+    void noParticipantReferencesPatient_notInCompartment() {
+      var appointment = new Appointment();
+      appointment.setId("apt3");
+      appointment.addParticipant().setActor(new Reference("Practitioner/doc1"));
+      appointment.addParticipant().setActor(new Reference("Location/loc1"));
+
+      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
+    }
+
+    @Test
+    @DisplayName("empty appointment -> NOT in compartment")
+    void emptyAppointment_notInCompartment() {
+      var appointment = new Appointment();
+      appointment.setId("apt4");
+
+      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
+    }
+  }
+
+  @Nested
+  @DisplayName("Nested path resolution - CareTeam (participant.member)")
+  class CareTeamNestedPathTests {
+
+    @Test
+    @DisplayName("participant.member references patient -> IN compartment")
+    void participantMemberReferencesPatient_isInCompartment() {
+      var careTeam = new CareTeam();
+      careTeam.setId("ct1");
+      var participant = careTeam.addParticipant();
+      participant.setMember(new Reference("Patient/" + PATIENT_ID));
+
+      assertThat(checker.isInPatientCompartment(careTeam, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("multiple participants, one member references patient -> IN compartment")
+    void multipleParticipants_oneMemberReferencesPatient_isInCompartment() {
+      var careTeam = new CareTeam();
+      careTeam.setId("ct2");
+      careTeam.addParticipant().setMember(new Reference("Practitioner/doc1"));
+      careTeam.addParticipant().setMember(new Reference("Patient/" + PATIENT_ID));
+      careTeam.addParticipant().setMember(new Reference("Organization/org1"));
+
+      assertThat(checker.isInPatientCompartment(careTeam, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("no participant member references patient -> NOT in compartment")
+    void noParticipantMemberReferencesPatient_notInCompartment() {
+      var careTeam = new CareTeam();
+      careTeam.setId("ct3");
+      careTeam.addParticipant().setMember(new Reference("Practitioner/doc1"));
+
+      assertThat(checker.isInPatientCompartment(careTeam, PATIENT_ID)).isFalse();
+    }
+  }
+
+  @Nested
+  @DisplayName("Simple mapping - Coverage (policy-holder -> policyHolder)")
+  class CoverageSimpleMappingTests {
+
+    @Test
+    @DisplayName("policyHolder references patient -> IN compartment")
+    void policyHolderReferencesPatient_isInCompartment() {
+      var coverage = new Coverage();
+      coverage.setId("cov1");
+      coverage.setPolicyHolder(new Reference("Patient/" + PATIENT_ID));
+
+      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("subscriber references patient -> IN compartment")
+    void subscriberReferencesPatient_isInCompartment() {
+      var coverage = new Coverage();
+      coverage.setId("cov2");
+      coverage.setSubscriber(new Reference("Patient/" + PATIENT_ID));
+
+      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("beneficiary references patient -> IN compartment")
+    void beneficiaryReferencesPatient_isInCompartment() {
+      var coverage = new Coverage();
+      coverage.setId("cov3");
+      coverage.setBeneficiary(new Reference("Patient/" + PATIENT_ID));
+
+      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("no fields reference patient -> NOT in compartment")
+    void noFieldsReferencePatient_notInCompartment() {
+      var coverage = new Coverage();
+      coverage.setId("cov4");
+      coverage.setPolicyHolder(new Reference("RelatedPerson/rp1"));
+      coverage.setSubscriber(new Reference("RelatedPerson/rp2"));
+      coverage.setBeneficiary(new Reference("Patient/differentPatient"));
+
+      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isFalse();
     }
   }
 
