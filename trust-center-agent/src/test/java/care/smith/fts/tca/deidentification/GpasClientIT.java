@@ -4,14 +4,18 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Set.of;
+import static org.assertj.core.api.Assertions.assertThat;
+import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.AbstractFhirClientIT;
 import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
+import java.util.Set;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -86,5 +90,12 @@ public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, Map<S
       GpasClient specificClient, String request) {
     String[] parts = request.split(":");
     return specificClient.fetchOrCreatePseudonyms(parts[0], of(parts[1]));
+  }
+
+  @Test
+  void fetchOrCreatePseudonymsReturnsEmptyMapForEmptyInput() {
+    create(client.fetchOrCreatePseudonyms("domain", Set.of()))
+        .assertNext(result -> assertThat(result).isEmpty())
+        .verifyComplete();
   }
 }
