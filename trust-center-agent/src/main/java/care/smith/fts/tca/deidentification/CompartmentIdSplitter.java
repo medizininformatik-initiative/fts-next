@@ -17,9 +17,9 @@ import java.util.stream.Collectors;
  * <p>The CDA determines actual compartment membership by checking if the resource's compartment
  * param fields reference the patient. The TCA only needs to check the prefix.
  */
-public class CompartmentIdSplitter {
+public interface CompartmentIdSplitter {
 
-  public record CompartmentIds(Set<String> inCompartment, Set<String> outsideCompartment) {}
+  record CompartmentIds(Set<String> inCompartment, Set<String> outsideCompartment) {}
 
   /**
    * Splits resource IDs into patient-compartment and non-compartment sets based on patient ID
@@ -29,7 +29,7 @@ public class CompartmentIdSplitter {
    * @param patientId the patient ID to check for as prefix
    * @return record containing IDs in and outside the patient compartment
    */
-  public static CompartmentIds split(Set<String> resourceIds, String patientId) {
+  static CompartmentIds split(Set<String> resourceIds, String patientId) {
     String prefix = patientId + ".";
     Map<Boolean, Set<String>> partitioned =
         resourceIds.stream()
