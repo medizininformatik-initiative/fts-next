@@ -61,35 +61,27 @@ public class IdatScraper {
    *
    * @return a Set of all IDs gathered in the Resource
    */
-  public Set<String> gatherIDs(Resource resource) {
+  public Set<String> gatherIDs(Bundle bundle) {
     // Pre-compute compartment membership for all resources
-    Map<String, Boolean> membership = precomputeCompartmentMembership(resource);
+    Map<String, Boolean> membership = precomputeCompartmentMembership(bundle);
     scrapingStorage.setCompartmentMembership(membership);
 
-    deidentiFHIR.deidentify(resource);
+    deidentiFHIR.deidentify(bundle);
     return scrapingStorage.getGatheredIdats();
   }
 
-  private Map<String, Boolean> precomputeCompartmentMembership(Resource resource) {
+  private Map<String, Boolean> precomputeCompartmentMembership(Bundle bundle) {
     Map<String, Boolean> membership = new HashMap<>();
 
-    if (resource instanceof Bundle bundle) {
-      log.trace(
-          "Checking compartment membership with patientResourceId: {} for patient identifier: {}",
-          patientResourceId,
-          patientIdentifier);
+    log.trace(
+        "Checking compartment membership with patientResourceId: {} for patient identifier: {}",
+        patientResourceId,
+        patientIdentifier);
 
-      for (var entry : bundle.getEntry()) {
-        Resource r = entry.getResource();
-        String key = r.fhirType() + ":" + r.getIdPart();
-        boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientResourceId);
-        membership.put(key, inCompartment);
-      }
-    } else {
-      // Single resource - check if it's in the compartment
-      String key = resource.fhirType() + ":" + resource.getIdPart();
-      boolean inCompartment =
-          compartmentChecker.isInPatientCompartment(resource, patientResourceId);
+    for (var entry : bundle.getEntry()) {
+      Resource r = entry.getResource();
+      String key = r.fhirType() + ":" + r.getIdPart();
+      boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientResourceId);
       membership.put(key, inCompartment);
     }
 
