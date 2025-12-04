@@ -3,10 +3,13 @@ package care.smith.fts.tca.deidentification;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.util.Set.of;
 
 import care.smith.fts.tca.AbstractFhirClientIT;
+import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.Map;
 import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.junit.jupiter.api.BeforeEach;
 import org.redisson.api.RedissonClient;
@@ -17,7 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @SpringBootTest
-public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, String> {
+public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, Map<String, String>> {
 
   @Autowired WebClient.Builder httpClientBuilder;
 
@@ -44,7 +47,8 @@ public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, Strin
 
   @Override
   protected GpasClient createClient(String baseUrl) {
-    return new GpasClient(httpClientBuilder.baseUrl(baseUrl).build(), meterRegistry);
+    var config = new GpasDeIdentificationConfiguration();
+    return new GpasClient(httpClientBuilder.baseUrl(baseUrl).build(), meterRegistry, config);
   }
 
   @Override
@@ -62,9 +66,9 @@ public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, Strin
   }
 
   @Override
-  protected Mono<String> executeRequest(String request) {
+  protected Mono<Map<String, String>> executeRequest(String request) {
     String[] parts = request.split(":");
-    return client.fetchOrCreatePseudonym(parts[0], parts[1]);
+    return client.fetchOrCreatePseudonyms(parts[0], of(parts[1]));
   }
 
   @Override
@@ -78,8 +82,9 @@ public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, Strin
   }
 
   @Override
-  protected Mono<String> executeRequestWithClient(GpasClient specificClient, String request) {
+  protected Mono<Map<String, String>> executeRequestWithClient(
+      GpasClient specificClient, String request) {
     String[] parts = request.split(":");
-    return specificClient.fetchOrCreatePseudonym(parts[0], parts[1]);
+    return specificClient.fetchOrCreatePseudonyms(parts[0], of(parts[1]));
   }
 }

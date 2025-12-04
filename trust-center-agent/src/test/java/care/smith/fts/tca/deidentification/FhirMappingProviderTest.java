@@ -23,6 +23,7 @@ import static org.springframework.http.HttpStatus.OK;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.DateShiftPreserve;
+import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
@@ -99,7 +100,9 @@ class FhirMappingProviderTest {
 
     given(redisClient.reactive()).willReturn(redis);
 
-    var gpasClient = new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry);
+    var gpasConfig = new GpasDeIdentificationConfiguration();
+    var gpasClient =
+        new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, gpasConfig);
 
     mappingProvider =
         new FhirMappingProvider(

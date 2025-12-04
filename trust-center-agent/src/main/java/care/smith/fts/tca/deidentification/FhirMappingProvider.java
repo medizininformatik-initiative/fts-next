@@ -3,6 +3,7 @@ package care.smith.fts.tca.deidentification;
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.lang.String.valueOf;
+import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 import static reactor.function.TupleUtils.function;
 
@@ -78,9 +79,13 @@ public class FhirMappingProvider implements MappingProvider {
     var saltKey = "Salt_" + patientId;
     var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
     return Mono.zip(
-        gpasClient.fetchOrCreatePseudonym(domains.pseudonym(), patientId),
-        gpasClient.fetchOrCreatePseudonym(domains.salt(), saltKey),
-        gpasClient.fetchOrCreatePseudonym(domains.dateShift(), dateShiftKey));
+        gpasClient
+            .fetchOrCreatePseudonyms(domains.pseudonym(), of(patientId))
+            .map(m -> m.get(patientId)),
+        gpasClient.fetchOrCreatePseudonyms(domains.salt(), of(saltKey)).map(m -> m.get(saltKey)),
+        gpasClient
+            .fetchOrCreatePseudonyms(domains.dateShift(), of(dateShiftKey))
+            .map(m -> m.get(dateShiftKey)));
   }
 
   /** Saves the research mapping in redis for later use by the rda. */

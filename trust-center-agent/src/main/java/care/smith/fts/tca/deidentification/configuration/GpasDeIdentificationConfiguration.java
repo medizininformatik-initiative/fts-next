@@ -27,6 +27,12 @@ public class GpasDeIdentificationConfiguration {
   public static final List<String> GPAS_OPERATIONS = List.of("pseudonymizeAllowCreate");
   private HttpClientConfig fhir;
 
+  /** Maximum number of IDs to include in a single batch request to gPAS. */
+  private int batchSize = 100;
+
+  /** Maximum number of concurrent batch requests to gPAS. */
+  private int concurrency = 4;
+
   @Bean("gpasFhirHttpClient")
   public WebClient gpasClient(WebClientFactory clientFactory) {
     return clientFactory.create(fhir);
