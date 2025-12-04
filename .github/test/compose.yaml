@@ -99,18 +99,18 @@ services:
       retries: 3
       start_period: 120s
   gpas-db:
-    image: mariadb:11.4
+    image: mysql:9.5.0@sha256:fe036967257bf11aab7184e371920c5b629f0dd36cbefdf4ccd2ae18cc900dbd
     volumes:
     - ./gpas/initdb/:/docker-entrypoint-initdb.d
     command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
     environment:
-      MARIADB_ROOT_PASSWORD: root
-      MARIADB_DATABASE: gpas
-      MARIADB_USER: gpas_user
-      MARIADB_PASSWORD: gpas_password
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gpas
+      MYSQL_USER: gpas_user
+      MYSQL_PASSWORD: gpas_password
     networks: [ "gpas" ]
     healthcheck:
-      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugpas_user", "-pgpas_password" ]
       interval: 10s
       timeout: 5s
       retries: 3
