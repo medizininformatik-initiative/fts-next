@@ -35,9 +35,12 @@ class IdatScraperTest {
   @Test
   void gatherIDs() throws IOException {
     var bundle = generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
-    assertThat(scraper.gatherIDs(bundle))
+    var ids = scraper.gatherIDs(bundle);
+
+    assertThat(ids.compartment())
         .containsExactlyInAnyOrder(
             "id1.identifier.identifierSystem1:identifier1", "id1.Patient:id1");
+    assertThat(ids.nonCompartment()).isEmpty();
   }
 
   @Test
@@ -47,6 +50,6 @@ class IdatScraperTest {
 
     var ids = scraper.gatherIDs(bundle);
 
-    assertThat(ids).isEmpty();
+    assertThat(ids.isEmpty()).isTrue();
   }
 }

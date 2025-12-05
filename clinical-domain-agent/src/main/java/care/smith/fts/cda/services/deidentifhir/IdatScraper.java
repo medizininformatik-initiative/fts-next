@@ -16,6 +16,13 @@ import org.hl7.fhir.r4.model.Resource;
 
 @Slf4j
 public class IdatScraper {
+
+  public record GatheredIds(Set<String> compartment, Set<String> nonCompartment) {
+    public boolean isEmpty() {
+      return compartment.isEmpty() && nonCompartment.isEmpty();
+    }
+  }
+
   private final Deidentifhir deidentiFHIR;
   private final ScrapingStorage scrapingStorage;
   private final PatientCompartmentService patientCompartmentService;
@@ -57,20 +64,21 @@ public class IdatScraper {
   }
 
   /**
-   * Gather all IDs contained in the provided bundle and return them as a Set.
+   * Gather all IDs contained in the provided bundle and return them separated by compartment.
    *
    * <p>Resources in the patient compartment will have IDs prefixed with the patient ID. Resources
    * not in the compartment will have IDs without the patient prefix.
    *
-   * @return a Set of all IDs gathered in the Resource
+   * @return a GatheredIds record containing compartment and non-compartment IDs
    */
-  public Set<String> gatherIDs(Bundle bundle) {
+  public GatheredIds gatherIDs(Bundle bundle) {
     // Pre-compute compartment membership for all resources
     Map<String, Boolean> membership = precomputeCompartmentMembership(bundle);
     scrapingStorage.setCompartmentMembership(membership);
 
     deidentiFHIR.deidentify(bundle);
-    return scrapingStorage.getGatheredIdats();
+    return new GatheredIds(
+        scrapingStorage.getCompartmentIds(), scrapingStorage.getNonCompartmentIds());
   }
 
   private Map<String, Boolean> precomputeCompartmentMembership(Bundle bundle) {

@@ -46,6 +46,7 @@ public class SecureMappingE2E extends AbstractTcaE2E {
             Set.of(
                 "patient-id-1.Patient:patient-id-1",
                 "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1"),
+            Set.of(),
             tcaDomains,
             Duration.ofDays(14),
             DateShiftPreserve.NONE);

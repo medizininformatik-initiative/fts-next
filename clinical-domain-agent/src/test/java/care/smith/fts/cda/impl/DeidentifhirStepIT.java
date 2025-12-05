@@ -111,7 +111,8 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                     """
                     {
                       "patientId": "id1",
-                      "resourceIds": [ "id1.identifier.identifierSystem:identifier1", "id1.Patient:id1" ],
+                      "compartmentResourceIds": [ "id1.identifier.identifierSystem:identifier1", "id1.Patient:id1" ],
+                      "nonCompartmentResourceIds": [],
                       "tcaDomains": {
                         "pseudonym": "domain",
                         "salt": "domain",

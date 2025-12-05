@@ -6,7 +6,6 @@ import static java.lang.String.valueOf;
 import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
-import care.smith.fts.tca.deidentification.CompartmentIdSplitter.CompartmentIds;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
@@ -19,6 +18,7 @@ import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -62,7 +62,7 @@ public class FhirMappingProvider implements MappingProvider {
    * For all provided IDs fetch the id:pid pairs from gPAS. Then create TransportIDs (id:tid pairs).
    * Store tid:pid in the key-value-store.
    *
-   * <p>IDs are split into two categories:
+   * <p>IDs are received in two categories:
    *
    * <ul>
    *   <li>Patient-compartment IDs: pseudonymized using patient-derived salt (SHA256 hash)
@@ -71,25 +71,29 @@ public class FhirMappingProvider implements MappingProvider {
    */
   @Override
   public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
-    log.trace("retrieveTransportIds patientId={}, resourceIds={}", r.patientId(), r.resourceIds());
+    log.trace(
+        "retrieveTransportIds patientId={}, compartmentIds={}, nonCompartmentIds={}",
+        r.patientId(),
+        r.compartmentResourceIds().size(),
+        r.nonCompartmentResourceIds().size());
     var transferId = randomStringGenerator.generate();
 
-    var compartmentIds = CompartmentIdSplitter.split(r.resourceIds(), r.patientId());
-    log.trace(
-        "Split IDs: {} in patient compartment, {} outside compartment",
-        compartmentIds.inCompartment().size(),
-        compartmentIds.outsideCompartment().size());
+    var compartmentIds = r.compartmentResourceIds();
+    var nonCompartmentIds = r.nonCompartmentResourceIds();
+
+    // Combine both sets for transport mapping
+    var allIds = new HashSet<>(compartmentIds);
+    allIds.addAll(nonCompartmentIds);
 
     var transportMapping =
-        r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
+        allIds.stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
 
     var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
     return sMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
         .flatMap(
             pseudonymData ->
-                fetchNonCompartmentPseudonyms(
-                        compartmentIds.outsideCompartment(), r.tcaDomains().pseudonym())
+                fetchNonCompartmentPseudonyms(nonCompartmentIds, r.tcaDomains().pseudonym())
                     .map(
                         nonCompartmentPseudonyms ->
                             new FetchedData(pseudonymData, nonCompartmentPseudonyms)))
@@ -99,6 +103,7 @@ public class FhirMappingProvider implements MappingProvider {
                     r,
                     transportMapping,
                     compartmentIds,
+                    nonCompartmentIds,
                     data.nonCompartmentPseudonyms(),
                     sMap,
                     data.pseudonymData()))
@@ -139,7 +144,8 @@ public class FhirMappingProvider implements MappingProvider {
   private Mono<Duration> saveSecureMappingWithCompartment(
       TransportMappingRequest r,
       Map<String, String> transportMapping,
-      CompartmentIds compartmentIds,
+      Set<String> compartmentIds,
+      Set<String> nonCompartmentIds,
       Map<String, String> nonCompartmentPseudonyms,
       RMapReactive<String, String> rMap,
       PseudonymData data) {
@@ -150,6 +156,7 @@ public class FhirMappingProvider implements MappingProvider {
             r,
             transportMapping,
             compartmentIds,
+            nonCompartmentIds,
             nonCompartmentPseudonyms,
             data.salt(),
             data.patientIdPseudonym(),
@@ -161,15 +168,15 @@ public class FhirMappingProvider implements MappingProvider {
   private ImmutableMap<String, String> buildResolveMap(
       TransportMappingRequest r,
       Map<String, String> transportMapping,
-      CompartmentIds compartmentIds,
+      Set<String> compartmentIds,
+      Set<String> nonCompartmentIds,
       Map<String, String> nonCompartmentPseudonyms,
       String salt,
       String patientIdPseudonym,
       DateShiftUtil.DateShifts dateShifts) {
-    var compartmentTransportMapping =
-        filterTransportMapping(transportMapping, compartmentIds.inCompartment());
+    var compartmentTransportMapping = filterTransportMapping(transportMapping, compartmentIds);
     var nonCompartmentTransportMapping =
-        filterTransportMapping(transportMapping, compartmentIds.outsideCompartment());
+        filterTransportMapping(transportMapping, nonCompartmentIds);
 
     return ImmutableMap.<String, String>builder()
         .putAll(generateSecureMapping(salt, compartmentTransportMapping))

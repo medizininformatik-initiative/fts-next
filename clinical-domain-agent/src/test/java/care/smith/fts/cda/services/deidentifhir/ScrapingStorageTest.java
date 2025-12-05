@@ -26,7 +26,8 @@ class ScrapingStorageTest {
     var result = storage.getIDReplacement("Observation", "obs1");
 
     assertThat(result).isEqualTo("obs1");
-    assertThat(storage.getGatheredIdats()).contains("patient123.Observation:obs1");
+    assertThat(storage.getCompartmentIds()).contains("patient123.Observation:obs1");
+    assertThat(storage.getNonCompartmentIds()).isEmpty();
   }
 
   @Test
@@ -36,8 +37,8 @@ class ScrapingStorageTest {
     var result = storage.getIDReplacement("Organization", "org1");
 
     assertThat(result).isEqualTo("org1");
-    assertThat(storage.getGatheredIdats()).contains("Organization:org1");
-    assertThat(storage.getGatheredIdats()).doesNotContain("patient123.Organization:org1");
+    assertThat(storage.getNonCompartmentIds()).contains("Organization:org1");
+    assertThat(storage.getCompartmentIds()).isEmpty();
   }
 
   @Test
@@ -46,7 +47,7 @@ class ScrapingStorageTest {
     var result = storage.getIDReplacement("Unknown", "unknown1");
 
     assertThat(result).isEqualTo("unknown1");
-    assertThat(storage.getGatheredIdats()).contains("patient123.Unknown:unknown1");
+    assertThat(storage.getCompartmentIds()).contains("patient123.Unknown:unknown1");
   }
 
   @Test
@@ -54,11 +55,11 @@ class ScrapingStorageTest {
     var result = storage.getValueReplacement("urn:system", "value123");
 
     assertThat(result).isEqualTo("value123");
-    assertThat(storage.getGatheredIdats()).contains("patient123.identifier.urn:system:value123");
+    assertThat(storage.getCompartmentIds()).contains("patient123.identifier.urn:system:value123");
   }
 
   @Test
-  void gatheredIdats_accumulatesAcrossMultipleCalls() {
+  void ids_accumulatesAcrossMultipleCalls() {
     storage.setCompartmentMembership(
         Map.of(
             "Observation:obs1", true,
@@ -68,10 +69,9 @@ class ScrapingStorageTest {
     storage.getIDReplacement("Organization", "org1");
     storage.getValueReplacement("system", "value1");
 
-    assertThat(storage.getGatheredIdats())
+    assertThat(storage.getCompartmentIds())
         .containsExactlyInAnyOrder(
-            "patient123.Observation:obs1",
-            "Organization:org1",
-            "patient123.identifier.system:value1");
+            "patient123.Observation:obs1", "patient123.identifier.system:value1");
+    assertThat(storage.getNonCompartmentIds()).containsExactly("Organization:org1");
   }
 }

@@ -10,12 +10,12 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IdatScraper;
+import care.smith.fts.cda.services.deidentifhir.IdatScraper.GatheredIds;
 import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -89,12 +89,21 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private Mono<TransportMappingResponse> fetchTransportMapping(
-      ConsentedPatient patient, Set<String> ids) {
+      ConsentedPatient patient, GatheredIds ids) {
     var request =
         new TransportMappingRequest(
-            patient.id(), patient.patientIdentifierSystem(), ids, domains, maxDateShift, preserve);
+            patient.id(),
+            patient.patientIdentifierSystem(),
+            ids.compartment(),
+            ids.nonCompartment(),
+            domains,
+            maxDateShift,
+            preserve);
 
-    log.trace("Fetch transport mapping for {} IDs", ids.size());
+    log.trace(
+        "Fetch transport mapping for {} compartment + {} non-compartment IDs",
+        ids.compartment().size(),
+        ids.nonCompartment().size());
     return tcaClient
         .post()
         .uri("/api/v2/cd/transport-mapping")

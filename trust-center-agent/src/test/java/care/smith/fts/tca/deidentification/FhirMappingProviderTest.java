@@ -75,6 +75,7 @@ class FhirMappingProviderTest {
           "id1",
           "patientIdentifierSystem",
           Set.of("id1"),
+          Set.of(),
           DEFAULT_DOMAINS,
           Duration.ofDays(14),
           DateShiftPreserve.NONE);
@@ -147,6 +148,7 @@ class FhirMappingProviderTest {
             "id1",
             "patientIdentifierSystem",
             ids,
+            Set.of(),
             DEFAULT_DOMAINS,
             Duration.ofDays(14),
             DateShiftPreserve.NONE);
@@ -689,26 +691,28 @@ class FhirMappingProviderTest {
               meterRegistry,
               new RandomStringGenerator(new Random(0)));
 
-      // Non-compartment resources (Organization) no longer have patient prefix
-      var ids =
-          Set.of(
-              "id1.Patient:patient-resource-id",
-              "id1.identifier.patientIdentifierSystem:id1",
-              "Organization:org-123");
+      // Non-compartment resources (Organization) sent separately
+      var compartmentIds =
+          Set.of("id1.Patient:patient-resource-id", "id1.identifier.patientIdentifierSystem:id1");
+      var nonCompartmentIds = Set.of("Organization:org-123");
 
       var request =
           new TransportMappingRequest(
               "id1",
               "patientIdentifierSystem",
-              ids,
+              compartmentIds,
+              nonCompartmentIds,
               DEFAULT_DOMAINS,
               Duration.ofDays(14),
               DateShiftPreserve.NONE);
 
+      var allIds = new java.util.HashSet<>(compartmentIds);
+      allIds.addAll(nonCompartmentIds);
+
       create(provider.generateTransportMapping(request))
           .assertNext(
               r -> {
-                assertThat(r.transportMapping().keySet()).isEqualTo(ids);
+                assertThat(r.transportMapping().keySet()).isEqualTo(allIds);
                 assertThat(r.transportMapping()).hasSize(3);
               })
           .verifyComplete();

@@ -10,7 +10,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 public class ScrapingStorage implements IDReplacementProvider, IdentifierValueReplacementProvider {
-  @Getter Set<String> gatheredIdats = new HashSet<>();
+  @Getter Set<String> compartmentIds = new HashSet<>();
+  @Getter Set<String> nonCompartmentIds = new HashSet<>();
   private final KeyCreator namespacingService;
 
   /**
@@ -31,17 +32,17 @@ public class ScrapingStorage implements IDReplacementProvider, IdentifierValueRe
     String key;
     if (inCompartment) {
       key = namespacingService.getKeyForResourceTypeAndID(resourceType, id);
+      compartmentIds.add(key);
     } else {
-      // Not in compartment: no patientId prefix
       key = resourceType + ":" + id;
+      nonCompartmentIds.add(key);
     }
-    gatheredIdats.add(key);
     return id;
   }
 
   @Override
   public String getValueReplacement(String system, String value) {
-    gatheredIdats.add(namespacingService.getKeyForSystemAndValue(system, value));
+    compartmentIds.add(namespacingService.getKeyForSystemAndValue(system, value));
     return value;
   }
 }
