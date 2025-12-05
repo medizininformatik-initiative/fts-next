@@ -314,6 +314,75 @@ class CompartmentMembershipCheckerTest {
   }
 
   @Nested
+  @DisplayName("Edge cases for nested path resolution")
+  class NestedPathEdgeCasesTests {
+
+    @Test
+    @DisplayName("resource in NESTED_PATHS but param not in inner map -> falls back to top-level")
+    void resourceInNestedPathsButParamNotInMap_fallsBackToTopLevel() {
+      // Appointment is in NESTED_PATHS with "actor" param, but we test with "patient" param
+      // which is NOT in Appointment's nested paths map, triggering line 171 (paths == null)
+      var compartmentService =
+          new PatientCompartmentService(Map.of("Appointment", List.of("patient")));
+      var checkerWithDifferentParam = new CompartmentMembershipChecker(compartmentService);
+
+      var appointment = new Appointment();
+      appointment.setId("apt-edge1");
+      // "patient" param would fall back to top-level lookup, which won't find anything
+      // because Appointment doesn't have a top-level "patient" field
+
+      assertThat(checkerWithDifferentParam.isInPatientCompartment(appointment, PATIENT_ID))
+          .isFalse();
+    }
+
+    @Test
+    @DisplayName("participant exists but actor is null -> empty refs from traversePath")
+    void participantExistsButActorNull_emptyRefs() {
+      // Tests line 207: prop.getValues().isEmpty() at the final path segment
+      var appointment = new Appointment();
+      appointment.setId("apt-edge2");
+      var participant = appointment.addParticipant();
+      // participant exists but actor is not set (null)
+
+      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
+    }
+
+    @Test
+    @DisplayName("deeply nested path with missing intermediate property")
+    void deeplyNestedPathWithMissingIntermediate_emptyRefs() {
+      // RequestGroup has path "action.participant.actor" - tests traversal through empty lists
+      var compartmentService =
+          new PatientCompartmentService(Map.of("RequestGroup", List.of("participant")));
+      var checkerForRequestGroup = new CompartmentMembershipChecker(compartmentService);
+
+      var requestGroup = new org.hl7.fhir.r4.model.RequestGroup();
+      requestGroup.setId("rg1");
+      // action list is empty, so traversePath returns empty at first segment
+
+      assertThat(checkerForRequestGroup.isInPatientCompartment(requestGroup, PATIENT_ID)).isFalse();
+    }
+
+    @Test
+    @DisplayName("exception during nested path traversal is handled gracefully")
+    void exceptionDuringNestedPathTraversal_handledGracefully() {
+      // Configure a checker that uses Appointment (which has nested paths)
+      var compartmentService =
+          new PatientCompartmentService(Map.of("Appointment", List.of("actor")));
+      var checkerWithMock = new CompartmentMembershipChecker(compartmentService);
+
+      // Mock resource that throws when traversing nested path
+      Resource mockResource = mock(Resource.class);
+      when(mockResource.fhirType()).thenReturn("Appointment");
+      when(mockResource.getIdPart()).thenReturn("mock-apt");
+      when(mockResource.getNamedProperty("participant"))
+          .thenThrow(new RuntimeException("Simulated traversal error"));
+
+      // Should handle exception gracefully and return false
+      assertThat(checkerWithMock.isInPatientCompartment(mockResource, PATIENT_ID)).isFalse();
+    }
+  }
+
+  @Nested
   @DisplayName("Edge cases for reference handling")
   class ReferenceEdgeCasesTests {
 
