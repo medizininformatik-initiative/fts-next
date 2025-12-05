@@ -5,7 +5,6 @@ import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.ConsentedPatient;
-import care.smith.fts.cda.services.PatientCompartmentService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +15,7 @@ import org.junit.jupiter.api.Test;
 class IdatScraperTest {
   private static final String PATIENT_ID = "id1";
   private IdatScraper scraper;
-  private CompartmentMembershipChecker compartmentChecker;
+  private PatientCompartmentService patientCompartmentService;
 
   @BeforeEach
   void setUp() {
@@ -24,15 +23,14 @@ class IdatScraperTest {
     var config = parseResources(IdatScraperTest.class, "IDScraper.profile");
 
     // Patient resource is in compartment (IS the patient)
-    var compartmentService =
-        new PatientCompartmentService(
-            Map.of(
-                "Patient", List.of("link"),
-                "ServiceRequest", List.of("subject", "performer"),
-                "Organization", List.of()));
-    compartmentChecker = new CompartmentMembershipChecker(compartmentService);
+    Map<String, List<String>> compartmentParams =
+        Map.of(
+            "Patient", List.of("link"),
+            "ServiceRequest", List.of("subject", "performer"),
+            "Organization", List.of());
+    patientCompartmentService = new PatientCompartmentService(compartmentParams);
 
-    scraper = new IdatScraper(config, patient, compartmentChecker, PATIENT_ID, false);
+    scraper = new IdatScraper(config, patient, patientCompartmentService, PATIENT_ID, false);
   }
 
   @Test

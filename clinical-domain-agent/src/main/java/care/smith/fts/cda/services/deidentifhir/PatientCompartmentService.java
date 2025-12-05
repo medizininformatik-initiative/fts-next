@@ -1,13 +1,17 @@
 package care.smith.fts.cda.services.deidentifhir;
 
-import care.smith.fts.cda.services.PatientCompartmentService;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Property;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,8 +24,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
-public class CompartmentMembershipChecker {
+public class PatientCompartmentService {
 
   /**
    * Maps search parameter names to their corresponding field names. The compartment definition uses
@@ -50,7 +53,46 @@ public class CompartmentMembershipChecker {
           Map.entry("Group", Map.of("member", List.of("member.entity"))),
           Map.entry("Patient", Map.of("link", List.of("link.other"))));
 
-  private final PatientCompartmentService patientCompartmentService;
+  private final Map<String, List<String>> patientCompartmentParams;
+
+  public PatientCompartmentService(Map<String, List<String>> patientCompartmentParams) {
+    this.patientCompartmentParams = patientCompartmentParams;
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record CompartmentDefinition(List<ResourceEntry> resource) {}
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record ResourceEntry(String code, List<String> param) {
+    public List<String> paramsOrEmpty() {
+      return param != null ? param : List.of();
+    }
+  }
+
+  /**
+   * Loads the patient compartment definition from a classpath resource.
+   *
+   * @param objectMapper the ObjectMapper to use for JSON parsing
+   * @param resourcePath the classpath resource path to load from
+   * @return a map of resource type to compartment params
+   */
+  public static Map<String, List<String>> loadCompartmentDefinition(
+      ObjectMapper objectMapper, String resourcePath) {
+    try (InputStream is = new ClassPathResource(resourcePath).getInputStream()) {
+      CompartmentDefinition definition = objectMapper.readValue(is, CompartmentDefinition.class);
+
+      if (definition.resource() == null) {
+        throw new IllegalStateException("Invalid compartment definition: missing resource array");
+      }
+
+      return definition.resource().stream()
+          .collect(
+              Collectors.toUnmodifiableMap(
+                  ResourceEntry::code, ResourceEntry::paramsOrEmpty, (a, b) -> a));
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to load patient compartment definition", e);
+    }
+  }
 
   /**
    * Checks if a resource is in the patient compartment.
@@ -68,7 +110,7 @@ public class CompartmentMembershipChecker {
       return true;
     }
 
-    List<String> params = patientCompartmentService.getParamsForResourceType(resourceType);
+    List<String> params = patientCompartmentParams.getOrDefault(resourceType, List.of());
 
     if (params.isEmpty()) {
       log.trace("Resource type {} has no compartment params, not in compartment", resourceType);

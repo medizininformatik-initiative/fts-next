@@ -1,12 +1,12 @@
-package care.smith.fts.cda.services.configuration;
+package care.smith.fts.cda.services.deidentifhir.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import care.smith.fts.cda.services.PatientCompartmentService;
-import care.smith.fts.cda.services.configuration.PatientCompartmentServiceConfiguration.ResourceEntry;
+import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService.ResourceEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -17,28 +17,28 @@ class PatientCompartmentServiceConfigurationTest {
   @Test
   void loadsCompartmentDefinitionFromClasspath() {
     var config = new PatientCompartmentServiceConfiguration();
-    PatientCompartmentService service = config.patientCompartmentService(objectMapper);
+    Map<String, List<String>> params = config.patientCompartmentParams(objectMapper);
 
     // Verify ServiceRequest has correct params from compartment definition
-    assertThat(service.getParamsForResourceType("ServiceRequest"))
+    assertThat(params.getOrDefault("ServiceRequest", List.of()))
         .containsExactlyInAnyOrder("subject", "performer");
 
     // Verify Observation has correct params
-    assertThat(service.getParamsForResourceType("Observation"))
+    assertThat(params.getOrDefault("Observation", List.of()))
         .containsExactlyInAnyOrder("subject", "performer");
 
     // Verify Organization has no params (not in compartment)
-    assertThat(service.getParamsForResourceType("Organization")).isEmpty();
+    assertThat(params.getOrDefault("Organization", List.of())).isEmpty();
 
     // Verify Medication has no params (not in compartment)
-    assertThat(service.getParamsForResourceType("Medication")).isEmpty();
+    assertThat(params.getOrDefault("Medication", List.of())).isEmpty();
 
     // Verify Patient has link param
-    assertThat(service.getParamsForResourceType("Patient")).containsExactly("link");
+    assertThat(params.getOrDefault("Patient", List.of())).containsExactly("link");
 
     // Verify hasCompartmentParams works correctly
-    assertThat(service.hasCompartmentParams("ServiceRequest")).isTrue();
-    assertThat(service.hasCompartmentParams("Organization")).isFalse();
+    assertThat(params.getOrDefault("ServiceRequest", List.of())).isNotEmpty();
+    assertThat(params.getOrDefault("Organization", List.of())).isEmpty();
   }
 
   @Nested
@@ -76,7 +76,7 @@ class PatientCompartmentServiceConfigurationTest {
             }
           };
 
-      assertThatThrownBy(() -> config.patientCompartmentService(objectMapper))
+      assertThatThrownBy(() -> config.patientCompartmentParams(objectMapper))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Failed to load patient compartment definition");
     }
@@ -91,7 +91,7 @@ class PatientCompartmentServiceConfigurationTest {
             }
           };
 
-      assertThatThrownBy(() -> config.patientCompartmentService(objectMapper))
+      assertThatThrownBy(() -> config.patientCompartmentParams(objectMapper))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Invalid compartment definition: missing resource array");
     }
@@ -106,11 +106,11 @@ class PatientCompartmentServiceConfigurationTest {
             }
           };
 
-      var service = config.patientCompartmentService(objectMapper);
+      var params = config.patientCompartmentParams(objectMapper);
 
       // First entry for TestResource has ["subject"], second has ["performer"]
       // The merge function (a, b) -> a means first one wins
-      assertThat(service.getParamsForResourceType("TestResource")).containsExactly("subject");
+      assertThat(params.getOrDefault("TestResource", List.of())).containsExactly("subject");
     }
   }
 }

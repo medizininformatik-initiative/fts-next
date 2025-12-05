@@ -18,7 +18,7 @@ import org.hl7.fhir.r4.model.Resource;
 public class IdatScraper {
   private final Deidentifhir deidentiFHIR;
   private final ScrapingStorage scrapingStorage;
-  private final CompartmentMembershipChecker compartmentChecker;
+  private final PatientCompartmentService patientCompartmentService;
   private final String patientIdentifier;
   private final String patientResourceId;
   private final boolean enableCompartmentNamespacing;
@@ -26,10 +26,10 @@ public class IdatScraper {
   public IdatScraper(
       Config config,
       ConsentedPatient patient,
-      CompartmentMembershipChecker compartmentChecker,
+      PatientCompartmentService patientCompartmentService,
       String patientResourceId,
       boolean enableCompartmentNamespacing) {
-    this.compartmentChecker = compartmentChecker;
+    this.patientCompartmentService = patientCompartmentService;
     this.patientIdentifier = patient.id();
     this.patientResourceId = patientResourceId;
     this.enableCompartmentNamespacing = enableCompartmentNamespacing;
@@ -90,7 +90,7 @@ public class IdatScraper {
     for (var entry : bundle.getEntry()) {
       Resource r = entry.getResource();
       String key = r.fhirType() + ":" + r.getIdPart();
-      boolean inCompartment = compartmentChecker.isInPatientCompartment(r, patientResourceId);
+      boolean inCompartment = patientCompartmentService.isInPatientCompartment(r, patientResourceId);
       membership.put(key, inCompartment);
     }
 

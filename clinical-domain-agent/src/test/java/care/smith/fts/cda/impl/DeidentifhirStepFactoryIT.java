@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.impl.DeidentifhirStepConfig.TCAConfig;
-import care.smith.fts.cda.services.deidentifhir.CompartmentMembershipChecker;
+import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TcaDomains;
@@ -21,13 +21,13 @@ class DeidentifhirStepFactoryIT {
 
   @Autowired private MeterRegistry meterRegistry;
   @Autowired private WebClientFactory clientFactory;
-  @Autowired private CompartmentMembershipChecker compartmentChecker;
+  @Autowired private PatientCompartmentService patientCompartmentService;
 
   private DeidentifhirStepFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new DeidentifhirStepFactory(clientFactory, meterRegistry, compartmentChecker);
+    factory = new DeidentifhirStepFactory(clientFactory, meterRegistry, patientCompartmentService);
   }
 
   @Test

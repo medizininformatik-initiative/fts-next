@@ -8,7 +8,7 @@ import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
-import care.smith.fts.cda.services.deidentifhir.CompartmentMembershipChecker;
+import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.IdatScraper;
 import care.smith.fts.util.error.TransferProcessException;
@@ -33,7 +33,7 @@ class DeidentifhirStep implements Deidentificator {
   private final com.typesafe.config.Config deidentifhirConfig;
   private final com.typesafe.config.Config scraperConfig;
   private final MeterRegistry meterRegistry;
-  private final CompartmentMembershipChecker compartmentChecker;
+  private final PatientCompartmentService patientCompartmentService;
   private final boolean enableCompartmentNamespacing;
 
   public DeidentifhirStep(
@@ -44,7 +44,7 @@ class DeidentifhirStep implements Deidentificator {
       com.typesafe.config.Config deidentifhirConfig,
       com.typesafe.config.Config scraperConfig,
       MeterRegistry meterRegistry,
-      CompartmentMembershipChecker compartmentChecker,
+      PatientCompartmentService patientCompartmentService,
       boolean enableCompartmentNamespacing) {
     this.tcaClient = tcaClient;
     this.domains = domains;
@@ -53,7 +53,7 @@ class DeidentifhirStep implements Deidentificator {
     this.deidentifhirConfig = deidentifhirConfig;
     this.scraperConfig = scraperConfig;
     this.meterRegistry = meterRegistry;
-    this.compartmentChecker = compartmentChecker;
+    this.patientCompartmentService = patientCompartmentService;
     this.enableCompartmentNamespacing = enableCompartmentNamespacing;
   }
 
@@ -64,7 +64,7 @@ class DeidentifhirStep implements Deidentificator {
         new IdatScraper(
             scraperConfig,
             patient,
-            compartmentChecker,
+            patientCompartmentService,
             bundle.patientResourceId(),
             enableCompartmentNamespacing);
     var ids = idatScraper.gatherIDs(bundle.bundle());

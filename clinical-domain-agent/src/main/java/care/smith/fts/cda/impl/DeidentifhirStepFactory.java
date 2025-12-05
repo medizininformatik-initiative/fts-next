@@ -4,7 +4,7 @@ import static com.typesafe.config.ConfigFactory.parseFile;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.cda.Deidentificator;
-import care.smith.fts.cda.services.deidentifhir.CompartmentMembershipChecker;
+import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
@@ -14,15 +14,15 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
 
   private final WebClientFactory clientFactory;
   private final MeterRegistry meterRegistry;
-  private final CompartmentMembershipChecker compartmentChecker;
+  private final PatientCompartmentService patientCompartmentService;
 
   public DeidentifhirStepFactory(
       WebClientFactory clientFactory,
       MeterRegistry meterRegistry,
-      CompartmentMembershipChecker compartmentChecker) {
+      PatientCompartmentService patientCompartmentService) {
     this.clientFactory = clientFactory;
     this.meterRegistry = meterRegistry;
-    this.compartmentChecker = compartmentChecker;
+    this.patientCompartmentService = patientCompartmentService;
   }
 
   @Override
@@ -43,7 +43,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
         parseFile(requireNonNull(implConfig.deidentifhirConfig())),
         parseFile(requireNonNull(implConfig.scraperConfig())),
         meterRegistry,
-        compartmentChecker,
+        patientCompartmentService,
         implConfig.enableCompartmentNamespacing());
   }
 }

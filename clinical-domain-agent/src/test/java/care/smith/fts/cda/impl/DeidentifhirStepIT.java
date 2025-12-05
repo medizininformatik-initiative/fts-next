@@ -20,7 +20,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.ClinicalDomainAgent;
-import care.smith.fts.cda.services.deidentifhir.CompartmentMembershipChecker;
+import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
@@ -53,7 +53,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       WireMockRuntimeInfo wireMockRuntime,
       @Autowired WebClientFactory clientFactory,
       @Autowired MeterRegistry meterRegistry,
-      @Autowired CompartmentMembershipChecker compartmentChecker)
+      @Autowired PatientCompartmentService patientCompartmentService)
       throws IOException {
     var scrConf = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
     var deiConf = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
@@ -69,7 +69,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             deiConf,
             scrConf,
             meterRegistry,
-            compartmentChecker,
+            patientCompartmentService,
             true);
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");

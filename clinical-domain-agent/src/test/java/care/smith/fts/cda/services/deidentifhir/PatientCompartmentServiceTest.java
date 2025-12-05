@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import care.smith.fts.cda.services.PatientCompartmentService;
 import java.util.List;
 import java.util.Map;
 import org.hl7.fhir.r4.model.Appointment;
@@ -20,11 +19,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class CompartmentMembershipCheckerTest {
+class PatientCompartmentServiceTest {
 
   private static final String PATIENT_ID = "patient123";
 
-  private CompartmentMembershipChecker checker;
+  private PatientCompartmentService service;
 
   @BeforeEach
   void setUp() {
@@ -33,16 +32,15 @@ class CompartmentMembershipCheckerTest {
     // Appointment has "actor" which requires nested path: participant.actor
     // CareTeam has "participant" which requires nested path: participant.member
     // Coverage has "policy-holder" which maps to field "policyHolder"
-    var compartmentService =
-        new PatientCompartmentService(
-            Map.of(
-                "ServiceRequest", List.of("subject", "performer"),
-                "Organization", List.of(),
-                "Observation", List.of("subject", "performer"),
-                "Appointment", List.of("actor"),
-                "CareTeam", List.of("participant"),
-                "Coverage", List.of("policy-holder", "subscriber", "beneficiary")));
-    checker = new CompartmentMembershipChecker(compartmentService);
+    Map<String, List<String>> compartmentParams =
+        Map.of(
+            "ServiceRequest", List.of("subject", "performer"),
+            "Organization", List.of(),
+            "Observation", List.of("subject", "performer"),
+            "Appointment", List.of("actor"),
+            "CareTeam", List.of("participant"),
+            "Coverage", List.of("policy-holder", "subscriber", "beneficiary"));
+    service = new PatientCompartmentService(compartmentParams);
   }
 
   @Nested
@@ -56,7 +54,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr1");
       sr.setSubject(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -67,7 +65,7 @@ class CompartmentMembershipCheckerTest {
       sr.setSubject(new Reference("Group/group1"));
       sr.addPerformer(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -78,7 +76,7 @@ class CompartmentMembershipCheckerTest {
       sr.setSubject(new Reference("Patient/" + PATIENT_ID));
       sr.addPerformer(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -89,7 +87,7 @@ class CompartmentMembershipCheckerTest {
       sr.setSubject(new Reference("Group/group1"));
       sr.addPerformer(new Reference("Organization/org1"));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -102,7 +100,7 @@ class CompartmentMembershipCheckerTest {
       sr.addPerformer(new Reference("Organization/org1"));
       sr.setRequester(new Reference("Patient/" + PATIENT_ID)); // Not a compartment param!
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -112,7 +110,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr6");
       sr.setSubject(new Reference("Patient/differentPatient"));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -121,7 +119,7 @@ class CompartmentMembershipCheckerTest {
       var sr = new ServiceRequest();
       sr.setId("sr7");
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
   }
 
@@ -135,7 +133,7 @@ class CompartmentMembershipCheckerTest {
       var org = new Organization();
       org.setId("org1");
 
-      assertThat(checker.isInPatientCompartment(org, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(org, PATIENT_ID)).isFalse();
     }
   }
 
@@ -149,7 +147,7 @@ class CompartmentMembershipCheckerTest {
       var patient = new org.hl7.fhir.r4.model.Patient();
       patient.setId(PATIENT_ID);
 
-      assertThat(checker.isInPatientCompartment(patient, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(patient, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -158,7 +156,7 @@ class CompartmentMembershipCheckerTest {
       var patient = new org.hl7.fhir.r4.model.Patient();
       patient.setId("differentPatient");
 
-      assertThat(checker.isInPatientCompartment(patient, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(patient, PATIENT_ID)).isFalse();
     }
   }
 
@@ -176,7 +174,7 @@ class CompartmentMembershipCheckerTest {
       sr.addPerformer(new Reference("Patient/" + PATIENT_ID));
       sr.addPerformer(new Reference("Organization/org1"));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
     }
   }
 
@@ -192,7 +190,7 @@ class CompartmentMembershipCheckerTest {
       var participant = appointment.addParticipant();
       participant.setActor(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(appointment, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -204,7 +202,7 @@ class CompartmentMembershipCheckerTest {
       appointment.addParticipant().setActor(new Reference("Patient/" + PATIENT_ID));
       appointment.addParticipant().setActor(new Reference("Location/loc1"));
 
-      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(appointment, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -215,7 +213,7 @@ class CompartmentMembershipCheckerTest {
       appointment.addParticipant().setActor(new Reference("Practitioner/doc1"));
       appointment.addParticipant().setActor(new Reference("Location/loc1"));
 
-      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -224,7 +222,7 @@ class CompartmentMembershipCheckerTest {
       var appointment = new Appointment();
       appointment.setId("apt4");
 
-      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
     }
   }
 
@@ -240,7 +238,7 @@ class CompartmentMembershipCheckerTest {
       var participant = careTeam.addParticipant();
       participant.setMember(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(careTeam, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(careTeam, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -252,7 +250,7 @@ class CompartmentMembershipCheckerTest {
       careTeam.addParticipant().setMember(new Reference("Patient/" + PATIENT_ID));
       careTeam.addParticipant().setMember(new Reference("Organization/org1"));
 
-      assertThat(checker.isInPatientCompartment(careTeam, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(careTeam, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -262,7 +260,7 @@ class CompartmentMembershipCheckerTest {
       careTeam.setId("ct3");
       careTeam.addParticipant().setMember(new Reference("Practitioner/doc1"));
 
-      assertThat(checker.isInPatientCompartment(careTeam, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(careTeam, PATIENT_ID)).isFalse();
     }
   }
 
@@ -277,7 +275,7 @@ class CompartmentMembershipCheckerTest {
       coverage.setId("cov1");
       coverage.setPolicyHolder(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -287,7 +285,7 @@ class CompartmentMembershipCheckerTest {
       coverage.setId("cov2");
       coverage.setSubscriber(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -297,7 +295,7 @@ class CompartmentMembershipCheckerTest {
       coverage.setId("cov3");
       coverage.setBeneficiary(new Reference("Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(coverage, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -309,7 +307,7 @@ class CompartmentMembershipCheckerTest {
       coverage.setSubscriber(new Reference("RelatedPerson/rp2"));
       coverage.setBeneficiary(new Reference("Patient/differentPatient"));
 
-      assertThat(checker.isInPatientCompartment(coverage, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(coverage, PATIENT_ID)).isFalse();
     }
   }
 
@@ -322,9 +320,8 @@ class CompartmentMembershipCheckerTest {
     void resourceInNestedPathsButParamNotInMap_fallsBackToTopLevel() {
       // Appointment is in NESTED_PATHS with "actor" param, but we test with "patient" param
       // which is NOT in Appointment's nested paths map, triggering line 171 (paths == null)
-      var compartmentService =
-          new PatientCompartmentService(Map.of("Appointment", List.of("patient")));
-      var checkerWithDifferentParam = new CompartmentMembershipChecker(compartmentService);
+      var compartmentParams = Map.of("Appointment", List.of("patient"));
+      var checkerWithDifferentParam = new PatientCompartmentService(compartmentParams);
 
       var appointment = new Appointment();
       appointment.setId("apt-edge1");
@@ -344,16 +341,15 @@ class CompartmentMembershipCheckerTest {
       var participant = appointment.addParticipant();
       // participant exists but actor is not set (null)
 
-      assertThat(checker.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(appointment, PATIENT_ID)).isFalse();
     }
 
     @Test
     @DisplayName("deeply nested path with missing intermediate property")
     void deeplyNestedPathWithMissingIntermediate_emptyRefs() {
       // RequestGroup has path "action.participant.actor" - tests traversal through empty lists
-      var compartmentService =
-          new PatientCompartmentService(Map.of("RequestGroup", List.of("participant")));
-      var checkerForRequestGroup = new CompartmentMembershipChecker(compartmentService);
+      var compartmentParams = Map.of("RequestGroup", List.of("participant"));
+      var checkerForRequestGroup = new PatientCompartmentService(compartmentParams);
 
       var requestGroup = new org.hl7.fhir.r4.model.RequestGroup();
       requestGroup.setId("rg1");
@@ -366,9 +362,8 @@ class CompartmentMembershipCheckerTest {
     @DisplayName("exception during nested path traversal is handled gracefully")
     void exceptionDuringNestedPathTraversal_handledGracefully() {
       // Configure a checker that uses Appointment (which has nested paths)
-      var compartmentService =
-          new PatientCompartmentService(Map.of("Appointment", List.of("actor")));
-      var checkerWithMock = new CompartmentMembershipChecker(compartmentService);
+      var compartmentParams = Map.of("Appointment", List.of("actor"));
+      var checkerWithMock = new PatientCompartmentService(compartmentParams);
 
       // Mock resource that throws when traversing nested path
       Resource mockResource = mock(Resource.class);
@@ -393,7 +388,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr9");
       sr.setSubject(null);
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -403,7 +398,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr10");
       sr.setSubject(new Reference());
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -415,7 +410,7 @@ class CompartmentMembershipCheckerTest {
       ref.setDisplay("Some display"); // Has display but no reference value
       sr.setSubject(ref);
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -425,15 +420,14 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr12");
       sr.setSubject(new Reference("RelatedPerson/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
     @DisplayName("invalid param name does not cause exception")
     void invalidParamName_handledGracefully() {
-      var compartmentService =
-          new PatientCompartmentService(Map.of("ServiceRequest", List.of("nonExistentParam")));
-      var checkerWithInvalidParam = new CompartmentMembershipChecker(compartmentService);
+      var compartmentParams = Map.of("ServiceRequest", List.of("nonExistentParam"));
+      var checkerWithInvalidParam = new PatientCompartmentService(compartmentParams);
 
       var sr = new ServiceRequest();
       sr.setId("sr13");
@@ -446,9 +440,8 @@ class CompartmentMembershipCheckerTest {
     @Test
     @DisplayName("exception during property lookup is handled gracefully")
     void exceptionDuringPropertyLookup_handledGracefully() {
-      var compartmentService =
-          new PatientCompartmentService(Map.of("TestResource", List.of("subject")));
-      var checkerWithMock = new CompartmentMembershipChecker(compartmentService);
+      var compartmentParams = Map.of("TestResource", List.of("subject"));
+      var checkerWithMock = new PatientCompartmentService(compartmentParams);
 
       // Create a mock resource that throws when getNamedProperty is called
       Resource mockResource = mock(Resource.class);
@@ -468,7 +461,7 @@ class CompartmentMembershipCheckerTest {
       var patient = new org.hl7.fhir.r4.model.Patient();
       // Don't set ID, so getIdPart() returns null
 
-      assertThat(checker.isInPatientCompartment(patient, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(patient, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -479,7 +472,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr14");
       sr.setSubject(new Reference(PATIENT_ID)); // Just ID, no "Patient/" prefix
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isFalse();
     }
 
     @Test
@@ -489,7 +482,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr15");
       sr.setSubject(new Reference("http://example.com/fhir/Patient/" + PATIENT_ID));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -499,7 +492,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr16");
       sr.setSubject(new Reference("Patient/" + PATIENT_ID + "/_history/1"));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
     }
 
     @Test
@@ -509,7 +502,7 @@ class CompartmentMembershipCheckerTest {
       sr.setId("sr17");
       sr.setSubject(new Reference("Patient/" + PATIENT_ID + "?_format=json"));
 
-      assertThat(checker.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
+      assertThat(service.isInPatientCompartment(sr, PATIENT_ID)).isTrue();
     }
   }
 }
