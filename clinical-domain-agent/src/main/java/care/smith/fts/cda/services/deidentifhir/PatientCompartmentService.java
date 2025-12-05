@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Property;
@@ -203,21 +204,13 @@ public class PatientCompartmentService {
 
   private List<Reference> getReferencesFromNestedPaths(
       Resource resource, String resourceType, String paramName) {
-    Map<String, List<String>> paramPaths = NESTED_PATHS.get(resourceType);
-    if (paramPaths == null) {
-      return List.of();
-    }
-
-    List<String> paths = paramPaths.get(paramName);
-    if (paths == null) {
-      return List.of();
-    }
-
-    List<Reference> allRefs = new java.util.ArrayList<>();
-    for (String path : paths) {
-      List<Reference> refs = traversePath(resource, path);
-      allRefs.addAll(refs);
-    }
+    List<Reference> allRefs =
+        Optional.ofNullable(NESTED_PATHS.get(resourceType))
+            .map(paramPaths -> paramPaths.get(paramName))
+            .stream()
+            .flatMap(List::stream)
+            .flatMap(path -> traversePath(resource, path).stream())
+            .toList();
 
     if (!allRefs.isEmpty()) {
       log.trace(
