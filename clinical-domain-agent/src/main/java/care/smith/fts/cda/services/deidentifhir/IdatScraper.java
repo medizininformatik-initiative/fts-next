@@ -90,7 +90,8 @@ public class IdatScraper {
     for (var entry : bundle.getEntry()) {
       Resource r = entry.getResource();
       String key = r.fhirType() + ":" + r.getIdPart();
-      boolean inCompartment = patientCompartmentService.isInPatientCompartment(r, patientResourceId);
+      boolean inCompartment =
+          patientCompartmentService.isInPatientCompartment(r, patientResourceId);
       membership.put(key, inCompartment);
     }
 

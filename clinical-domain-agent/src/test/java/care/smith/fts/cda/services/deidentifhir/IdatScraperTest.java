@@ -13,13 +13,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class IdatScraperTest {
-  private static final String PATIENT_ID = "id1";
   private IdatScraper scraper;
   private PatientCompartmentService patientCompartmentService;
 
   @BeforeEach
   void setUp() {
-    ConsentedPatient patient = new ConsentedPatient(PATIENT_ID, "identifierSystem1");
+    ConsentedPatient patient = new ConsentedPatient("id1", "identifierSystem1");
     var config = parseResources(IdatScraperTest.class, "IDScraper.profile");
 
     // Patient resource is in compartment (IS the patient)
@@ -30,12 +29,12 @@ class IdatScraperTest {
             "Organization", List.of());
     patientCompartmentService = new PatientCompartmentService(compartmentParams);
 
-    scraper = new IdatScraper(config, patient, patientCompartmentService, PATIENT_ID, false);
+    scraper = new IdatScraper(config, patient, patientCompartmentService, "id1", false);
   }
 
   @Test
   void gatherIDs() throws IOException {
-    var bundle = generateOnePatient(PATIENT_ID, "2023", "identifierSystem1", "identifier1");
+    var bundle = generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
     assertThat(scraper.gatherIDs(bundle))
         .containsExactlyInAnyOrder(
             "id1.identifier.identifierSystem1:identifier1", "id1.Patient:id1");
