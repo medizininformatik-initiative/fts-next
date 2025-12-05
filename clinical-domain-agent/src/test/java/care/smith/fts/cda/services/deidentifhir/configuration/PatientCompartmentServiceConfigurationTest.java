@@ -3,6 +3,7 @@ package care.smith.fts.cda.services.deidentifhir.configuration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService;
 import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService.ResourceEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -68,45 +69,29 @@ class PatientCompartmentServiceConfigurationTest {
 
     @Test
     void missingResourceFile_throwsIllegalStateException() {
-      var config =
-          new PatientCompartmentServiceConfiguration() {
-            @Override
-            protected String getCompartmentDefinitionPath() {
-              return "fhir/non-existent-file.json";
-            }
-          };
-
-      assertThatThrownBy(() -> config.patientCompartmentParams(objectMapper))
+      assertThatThrownBy(
+              () ->
+                  PatientCompartmentService.loadCompartmentDefinition(
+                      objectMapper, "fhir/non-existent-file.json"))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Failed to load patient compartment definition");
     }
 
     @Test
     void nullResourceArray_throwsIllegalStateException() {
-      var config =
-          new PatientCompartmentServiceConfiguration() {
-            @Override
-            protected String getCompartmentDefinitionPath() {
-              return "fhir/compartmentdefinition-null-resource.json";
-            }
-          };
-
-      assertThatThrownBy(() -> config.patientCompartmentParams(objectMapper))
+      assertThatThrownBy(
+              () ->
+                  PatientCompartmentService.loadCompartmentDefinition(
+                      objectMapper, "fhir/compartmentdefinition-null-resource.json"))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Invalid compartment definition: missing resource array");
     }
 
     @Test
     void duplicateResourceCodes_firstOneWins() {
-      var config =
-          new PatientCompartmentServiceConfiguration() {
-            @Override
-            protected String getCompartmentDefinitionPath() {
-              return "fhir/compartmentdefinition-with-duplicates.json";
-            }
-          };
-
-      var params = config.patientCompartmentParams(objectMapper);
+      var params =
+          PatientCompartmentService.loadCompartmentDefinition(
+              objectMapper, "fhir/compartmentdefinition-with-duplicates.json");
 
       // First entry for TestResource has ["subject"], second has ["performer"]
       // The merge function (a, b) -> a means first one wins

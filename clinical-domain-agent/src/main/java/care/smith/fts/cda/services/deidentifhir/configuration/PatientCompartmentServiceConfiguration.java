@@ -12,19 +12,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PatientCompartmentServiceConfiguration {
 
-  private static final String DEFAULT_COMPARTMENT_DEFINITION_PATH =
+  private static final String COMPARTMENT_DEFINITION_PATH =
       "fhir/compartmentdefinition-patient.json";
-
-  /** Override this method in tests to use a different resource path. */
-  protected String getCompartmentDefinitionPath() {
-    return DEFAULT_COMPARTMENT_DEFINITION_PATH;
-  }
 
   @Bean
   public Map<String, List<String>> patientCompartmentParams(ObjectMapper objectMapper) {
     var resourceTypeToParams =
         PatientCompartmentService.loadCompartmentDefinition(
-            objectMapper, getCompartmentDefinitionPath());
+            objectMapper, COMPARTMENT_DEFINITION_PATH);
     log.info(
         "Loaded patient compartment params with {} resource types having compartment params",
         resourceTypeToParams.values().stream().filter(params -> !params.isEmpty()).count());
