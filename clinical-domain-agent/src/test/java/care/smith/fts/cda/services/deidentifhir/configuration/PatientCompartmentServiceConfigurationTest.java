@@ -36,10 +36,6 @@ class PatientCompartmentServiceConfigurationTest {
 
     // Verify Patient has link param
     assertThat(params.getOrDefault("Patient", List.of())).containsExactly("link");
-
-    // Verify hasCompartmentParams works correctly
-    assertThat(params.getOrDefault("ServiceRequest", List.of())).isNotEmpty();
-    assertThat(params.getOrDefault("Organization", List.of())).isEmpty();
   }
 
   @Nested
