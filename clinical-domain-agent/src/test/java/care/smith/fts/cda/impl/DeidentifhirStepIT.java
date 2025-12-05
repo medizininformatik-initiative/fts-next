@@ -21,6 +21,7 @@ import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
+import care.smith.fts.cda.services.deidentifhir.PatientCompartmentService;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TcaDomains;
@@ -51,18 +52,29 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   void setUp(
       WireMockRuntimeInfo wireMockRuntime,
       @Autowired WebClientFactory clientFactory,
-      @Autowired MeterRegistry meterRegistry)
+      @Autowired MeterRegistry meterRegistry,
+      @Autowired PatientCompartmentService patientCompartmentService)
       throws IOException {
     var scrConf = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
     var deiConf = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var domains = new TcaDomains("domain", "domain", "domain");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     wireMock = wireMockRuntime.getWireMock();
-    step = new DeidentifhirStep(client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry);
+    step =
+        new DeidentifhirStep(
+            client,
+            domains,
+            ofDays(14),
+            NONE,
+            deiConf,
+            scrConf,
+            meterRegistry,
+            patientCompartmentService,
+            true);
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");
-    consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
+    consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient, "id1");
   }
 
   private static MappingBuilder transportMappingRequest() {
@@ -99,7 +111,8 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                     """
                     {
                       "patientId": "id1",
-                      "resourceIds": [ "id1.identifier.identifierSystem:identifier1", "id1.Patient:id1" ],
+                      "compartmentResourceIds": [ "id1.identifier.identifierSystem:identifier1", "id1.Patient:id1" ],
+                      "nonCompartmentResourceIds": [],
                       "tcaDomains": {
                         "pseudonym": "domain",
                         "salt": "domain",
@@ -144,7 +157,8 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   void emptyIdsYieldEmptyMono() {
     create(
             step.deidentify(
-                new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1", "system"))))
+                new ConsentedPatientBundle(
+                    new Bundle(), new ConsentedPatient("id1", "system"), "id1")))
         .expectNextCount(0)
         .verifyComplete();
   }

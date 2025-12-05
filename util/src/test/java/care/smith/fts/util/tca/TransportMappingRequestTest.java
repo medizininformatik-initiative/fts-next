@@ -22,6 +22,7 @@ class TransportMappingRequestTest {
             "patient123",
             "patientIdentifierSystem",
             Set.of("id1", "id2"),
+            Set.of("id3"),
             new TcaDomains("pDomain", "sDomain", "dDomain"),
             Duration.ofDays(30),
             DateShiftPreserve.NONE);
@@ -33,6 +34,7 @@ class TransportMappingRequestTest {
         .contains("patientIdentifierSystem")
         .contains("id1")
         .contains("id2")
+        .contains("id3")
         .contains("pDomain")
         .contains("sDomain")
         .contains("dDomain")
@@ -46,7 +48,8 @@ class TransportMappingRequestTest {
         {
           "patientId": "patient123",
           "patientIdentifierSystem": "patientIdentifierSystem",
-          "resourceIds": ["id1", "id2"],
+          "compartmentResourceIds": ["id1", "id2"],
+          "nonCompartmentResourceIds": ["id3"],
           "tcaDomains": {
             "pseudonym" : "pDomain",
             "salt" : "sDomain",
@@ -59,7 +62,8 @@ class TransportMappingRequestTest {
     TransportMappingRequest request = objectMapper.readValue(json, TransportMappingRequest.class);
 
     assertThat(request.patientId()).isEqualTo("patient123");
-    assertThat(request.resourceIds()).containsExactlyInAnyOrder("id1", "id2");
+    assertThat(request.compartmentResourceIds()).containsExactlyInAnyOrder("id1", "id2");
+    assertThat(request.nonCompartmentResourceIds()).containsExactly("id3");
     assertThat(request.tcaDomains().pseudonym()).isEqualTo("pDomain");
     assertThat(request.tcaDomains().salt()).isEqualTo("sDomain");
     assertThat(request.tcaDomains().dateShift()).isEqualTo("dDomain");

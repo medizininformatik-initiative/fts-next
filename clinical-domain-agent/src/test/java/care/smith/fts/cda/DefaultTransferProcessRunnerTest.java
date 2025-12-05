@@ -49,7 +49,9 @@ class DefaultTransferProcessRunnerTest {
             "test",
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
-            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            p ->
+                fromIterable(
+                    List.of(new ConsentedPatientBundle(new Bundle(), PATIENT, PATIENT_ID))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
 
@@ -72,7 +74,9 @@ class DefaultTransferProcessRunnerTest {
             "test",
             rawConfig,
             pids -> fromIterable(List.of(PATIENT, patient2)),
-            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            p ->
+                fromIterable(
+                    List.of(new ConsentedPatientBundle(new Bundle(), PATIENT, PATIENT_ID))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> {
               if (first.getAndSet(false)) {
@@ -99,7 +103,9 @@ class DefaultTransferProcessRunnerTest {
             "test",
             rawConfig,
             pids -> Flux.error(new Throwable("Error fetching consented patients")),
-            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            p ->
+                fromIterable(
+                    List.of(new ConsentedPatientBundle(new Bundle(), PATIENT, PATIENT_ID))),
             b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
             b -> Mono.just(new Result()));
 
@@ -121,7 +127,9 @@ class DefaultTransferProcessRunnerTest {
             "test",
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
-            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            p ->
+                fromIterable(
+                    List.of(new ConsentedPatientBundle(new Bundle(), PATIENT, PATIENT_ID))),
             b ->
                 just(new TransportBundle(new Bundle(), "transferId"))
                     .delayElement(Duration.ofMillis(100)),
@@ -170,7 +178,9 @@ class DefaultTransferProcessRunnerTest {
             "test",
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
-            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            p ->
+                fromIterable(
+                    List.of(new ConsentedPatientBundle(new Bundle(), PATIENT, PATIENT_ID))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
     config.setProcessTtl(Duration.ofMillis(100));
