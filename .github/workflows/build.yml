@@ -419,8 +419,8 @@ jobs:
       env:
         # Check the cyclonedx binary against a pinned checksum here, it must be updated accordingly
         # renovate: datasource=github-release-attachments depName=CycloneDX/cyclonedx-cli
-        CDX_CLI_VERSION: v0.29.1
-        CDX_CLI_CHECKSUM: 1daceab1a7613603072db34d406659f0865623a4f137637440764cb9aa31236c
+        CDX_CLI_VERSION: v0.29.2
+        CDX_CLI_CHECKSUM: 6c5ed6321ee3bb3c268b6d19477dbcd5509a757f118bed4b6508fe9fbbdc2a5b
       run: .github/scripts/install-cyclonedx.sh
 
     - name: Download SBOMs
