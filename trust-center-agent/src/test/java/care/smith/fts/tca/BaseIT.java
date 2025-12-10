@@ -11,7 +11,7 @@ import org.springframework.test.context.DynamicPropertySource;
 public class BaseIT {
   // renovate: datasource=docker depName=valkey/valkey versioning=docker
   private static final String VALKEY_VERSION =
-      "9.0.0-alpine@sha256:bef37d06d4856710973ee31dd1eac1482e4c8e6e7b847f999ad25433e646587b";
+      "9.0.1-alpine@sha256:1be494495248d53e3558b198a1c704e6b559d5e99fe4c926e14a8ad24d76c6fa";
 
   private static final WireMockServer gics = onRandomPort();
   private static final WireMockServer gpas = onRandomPort();
