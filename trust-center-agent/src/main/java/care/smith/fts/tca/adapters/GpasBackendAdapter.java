@@ -34,17 +34,22 @@ public class GpasBackendAdapter implements PseudonymBackendAdapter {
         .map(mappings -> mappings.get(originalValue))
         .doOnSuccess(
             pseudonym ->
-                log.trace("Received pseudonym from gPAS: original={} -> pseudonym={}", originalValue, pseudonym));
+                log.trace(
+                    "Received pseudonym from gPAS: original={} -> pseudonym={}",
+                    originalValue,
+                    pseudonym));
   }
 
   @Override
-  public Mono<Map<String, String>> fetchOrCreatePseudonyms(String domain, Set<String> originalValues) {
+  public Mono<Map<String, String>> fetchOrCreatePseudonyms(
+      String domain, Set<String> originalValues) {
     log.trace("Fetching {} pseudonyms from gPAS: domain={}", originalValues.size(), domain);
     return gpasClient
         .fetchOrCreatePseudonyms(domain, originalValues)
         .doOnSuccess(
             mappings ->
-                log.trace("Received {} pseudonyms from gPAS for domain={}", mappings.size(), domain));
+                log.trace(
+                    "Received {} pseudonyms from gPAS for domain={}", mappings.size(), domain));
   }
 
   @Override

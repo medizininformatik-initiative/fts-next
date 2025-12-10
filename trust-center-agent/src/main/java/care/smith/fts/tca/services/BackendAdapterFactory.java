@@ -20,8 +20,7 @@ import org.springframework.stereotype.Component;
  *   <li>entici - Placeholder for future implementation
  * </ul>
  *
- * <p>The factory is configured via {@link BackendAdapterConfig} which reads from
- * application.yaml:
+ * <p>The factory is configured via {@link BackendAdapterConfig} which reads from application.yaml:
  *
  * <pre>
  * de-identification:
@@ -45,7 +44,7 @@ public class BackendAdapterFactory {
    * Creates a backend adapter based on the configured type.
    *
    * @return the configured PseudonymBackendAdapter
-   * @throws IllegalStateException if the backend type is not supported
+   * @throws UnsupportedOperationException if the backend type is not yet implemented
    */
   public PseudonymBackendAdapter createAdapter() {
     var type = config.getType();

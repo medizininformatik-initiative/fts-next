@@ -1,5 +1,6 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -35,7 +36,6 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
 
   private static final String VFPS_ENDPOINT = "/api/v2/rd-agent/fhir/$create-pseudonym";
-  private static final String MEDIA_TYPE_FHIR_JSON = "application/fhir+json";
 
   @Autowired private RedissonClient redisClient;
   @Autowired private TransportIdService transportIdService;
@@ -61,9 +61,7 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
     var sId = "secure-pseudonym-final";
     var domain = "test-domain";
 
-    transportIdService
-        .storeMapping(transferId, tId, sId, domain, Duration.ofMinutes(5))
-        .block();
+    transportIdService.storeMapping(transferId, tId, sId, domain, Duration.ofMinutes(5)).block();
 
     // Build Vfps-format request with the tID
     var requestParams = buildVfpsRequest("test-domain", tId, transferId);
@@ -73,8 +71,8 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         rdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class);
@@ -110,8 +108,8 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         rdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class);
@@ -138,8 +136,8 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         rdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .toBodilessEntity();
@@ -164,8 +162,8 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         rdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .toBodilessEntity();
@@ -203,8 +201,8 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         rdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class);

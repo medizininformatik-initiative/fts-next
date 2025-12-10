@@ -1,5 +1,6 @@
 package care.smith.fts.rda.impl;
 
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -48,7 +49,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 class FhirPseudonymizerStepIT {
 
   private static final String FHIR_PSEUDONYMIZER_ENDPOINT = "/fhir";
-  private static final String MEDIA_TYPE_FHIR_JSON = "application/fhir+json";
 
   private FhirPseudonymizerStep step;
   private WireMock wireMock;
@@ -86,11 +86,11 @@ class FhirPseudonymizerStepIT {
 
     wireMock.register(
         post(urlEqualTo(FHIR_PSEUDONYMIZER_ENDPOINT))
-            .withHeader(CONTENT_TYPE, equalTo(MEDIA_TYPE_FHIR_JSON))
+            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
             .willReturn(
                 aResponse()
                     .withStatus(200)
-                    .withHeader(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
+                    .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(deidentifiedBundleJson)));
 
     var result = step.deidentify(testBundle);
@@ -164,7 +164,7 @@ class FhirPseudonymizerStepIT {
             .willReturn(
                 aResponse()
                     .withStatus(200)
-                    .withHeader(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
+                    .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(deidentifiedBundleJson)));
 
     var result = step.deidentify(testBundle);

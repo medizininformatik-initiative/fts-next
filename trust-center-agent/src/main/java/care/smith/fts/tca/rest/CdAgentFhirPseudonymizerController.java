@@ -1,5 +1,7 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
+
 import care.smith.fts.tca.adapters.PseudonymBackendAdapter;
 import care.smith.fts.tca.rest.dto.VfpsPseudonymizeRequest;
 import care.smith.fts.tca.rest.dto.VfpsPseudonymizeResponse;
@@ -53,8 +55,6 @@ import reactor.core.publisher.Mono;
 @Validated
 public class CdAgentFhirPseudonymizerController {
 
-  private static final String MEDIA_TYPE_FHIR_JSON = "application/fhir+json";
-
   private final TransportIdService transportIdService;
   private final PseudonymBackendAdapter backendAdapter;
 
@@ -75,8 +75,8 @@ public class CdAgentFhirPseudonymizerController {
    */
   @PostMapping(
       value = "/$create-pseudonym",
-      consumes = MEDIA_TYPE_FHIR_JSON,
-      produces = MEDIA_TYPE_FHIR_JSON)
+      consumes = APPLICATION_FHIR_JSON_VALUE,
+      produces = APPLICATION_FHIR_JSON_VALUE)
   @Operation(
       summary = "Create pseudonyms (Vfps-compatible, returns transport IDs)",
       description =
@@ -87,7 +87,7 @@ public class CdAgentFhirPseudonymizerController {
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
               content =
                   @Content(
-                      mediaType = MEDIA_TYPE_FHIR_JSON,
+                      mediaType = APPLICATION_FHIR_JSON_VALUE,
                       schema = @Schema(implementation = Parameters.class),
                       examples =
                           @ExampleObject(
@@ -107,7 +107,7 @@ public class CdAgentFhirPseudonymizerController {
             description = "Transport IDs generated successfully",
             content =
                 @Content(
-                    mediaType = MEDIA_TYPE_FHIR_JSON,
+                    mediaType = APPLICATION_FHIR_JSON_VALUE,
                     schema = @Schema(implementation = Parameters.class),
                     examples =
                         @ExampleObject(
@@ -125,11 +125,11 @@ public class CdAgentFhirPseudonymizerController {
         @ApiResponse(
             responseCode = "400",
             description = "Invalid request (missing namespace or originalValue)",
-            content = @Content(mediaType = MEDIA_TYPE_FHIR_JSON)),
+            content = @Content(mediaType = APPLICATION_FHIR_JSON_VALUE)),
         @ApiResponse(
             responseCode = "502",
             description = "Backend service unavailable",
-            content = @Content(mediaType = MEDIA_TYPE_FHIR_JSON))
+            content = @Content(mediaType = APPLICATION_FHIR_JSON_VALUE))
       })
   public Mono<ResponseEntity<Parameters>> createPseudonym(
       @Valid @RequestBody Parameters requestParams) {

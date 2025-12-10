@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -34,6 +35,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * Integration tests for FhirPseudonymizerStep in Clinical Domain Agent.
  *
  * <p>These tests verify:
+ *
  * <ul>
  *   <li>Deidentification via external FHIR Pseudonymizer service
  *   <li>Retry behavior on service unavailability
@@ -47,7 +49,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 class FhirPseudonymizerStepIT {
 
   private static final String FHIR_PSEUDONYMIZER_ENDPOINT = "/fhir";
-  private static final String MEDIA_TYPE_FHIR_JSON = "application/fhir+json";
 
   private FhirPseudonymizerStep step;
   private WireMock wireMock;
@@ -86,11 +87,11 @@ class FhirPseudonymizerStepIT {
 
     wireMock.register(
         post(urlEqualTo(FHIR_PSEUDONYMIZER_ENDPOINT))
-            .withHeader(CONTENT_TYPE, equalTo(MEDIA_TYPE_FHIR_JSON))
+            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
             .willReturn(
                 aResponse()
                     .withStatus(200)
-                    .withHeader(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
+                    .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(deidentifiedBundleJson)));
 
     var result = step.deidentify(testBundle);
@@ -165,7 +166,7 @@ class FhirPseudonymizerStepIT {
             .willReturn(
                 aResponse()
                     .withStatus(200)
-                    .withHeader(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
+                    .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(deidentifiedBundleJson)));
 
     var result = step.deidentify(testBundle);
@@ -184,6 +185,64 @@ class FhirPseudonymizerStepIT {
   @Test
   void testConfigurationValues() {
     assertThat(step).isNotNull();
+  }
+
+  @Test
+  void testDeidentifyWithNullTransferIdThrowsIllegalStateException() {
+    var deidentifiedBundle = new Bundle();
+    deidentifiedBundle.setType(Bundle.BundleType.COLLECTION);
+    // Note: not setting the ID leaves it null
+
+    var deidentifiedBundleJson =
+        fhirContext.newJsonParser().encodeResourceToString(deidentifiedBundle);
+
+    wireMock.register(
+        post(urlEqualTo(FHIR_PSEUDONYMIZER_ENDPOINT))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+                    .withBody(deidentifiedBundleJson)));
+
+    var result = step.deidentify(testBundle);
+
+    create(result)
+        .expectErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(IllegalStateException.class);
+              assertThat(error.getMessage()).contains("bundle.id is null");
+            })
+        .verify();
+  }
+
+  @Test
+  void testDeidentifyWithEmptyTransferIdThrowsIllegalStateException() {
+    // Note: HAPI FHIR normalizes empty IDs to null during JSON serialization/deserialization,
+    // so this test effectively also tests the null case. This is expected behavior.
+    var deidentifiedBundle = new Bundle();
+    deidentifiedBundle.setType(Bundle.BundleType.COLLECTION);
+    deidentifiedBundle.setId("");
+
+    var deidentifiedBundleJson =
+        fhirContext.newJsonParser().encodeResourceToString(deidentifiedBundle);
+
+    wireMock.register(
+        post(urlEqualTo(FHIR_PSEUDONYMIZER_ENDPOINT))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+                    .withBody(deidentifiedBundleJson)));
+
+    var result = step.deidentify(testBundle);
+
+    create(result)
+        .expectErrorSatisfies(
+            error -> {
+              assertThat(error).isInstanceOf(IllegalStateException.class);
+              assertThat(error.getMessage()).contains("bundle.id is null");
+            })
+        .verify();
   }
 
   @AfterEach

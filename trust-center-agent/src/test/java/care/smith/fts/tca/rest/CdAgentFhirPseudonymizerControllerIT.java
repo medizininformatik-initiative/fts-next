@@ -42,15 +42,12 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
 
   private static final String VFPS_ENDPOINT = "/api/v2/cd-agent/fhir/$create-pseudonym";
-  private static final String MEDIA_TYPE_FHIR_JSON = "application/fhir+json";
 
   @Autowired private RedissonClient redisClient;
   private WebClient cdClient;
 
   @BeforeEach
-  void setUp(
-      @LocalServerPort int port,
-      @Autowired TestWebClientFactory factory) {
+  void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     cdClient = factory.webClient("https://localhost:" + port, "cd-agent");
     // Clean up Redis before each test
     redisClient.getKeys().deleteByPattern("transport-mapping:*");
@@ -66,8 +63,7 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
     // Setup gPAS mock to return a real pseudonym
     var fhirGenerator =
         gpasGetOrCreateResponse(
-            fromList(List.of("patient-123")),
-            fromList(List.of("sID-real-pseudonym-abc")));
+            fromList(List.of("patient-123")), fromList(List.of("sID-real-pseudonym-abc")));
 
     gpas()
         .register(
@@ -83,8 +79,8 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         cdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class);
@@ -93,10 +89,12 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .assertNext(
             params -> {
               assertThat(params).isNotNull();
-              // Single value response has 3 flat parameters: namespace, originalValue, pseudonymValue
+              // Single value response has 3 flat parameters: namespace, originalValue,
+              // pseudonymValue
               assertThat(params.getParameter()).hasSize(3);
 
-              // The response should contain a pseudonymValue that is a transport ID (not the real sID)
+              // The response should contain a pseudonymValue that is a transport ID (not the real
+              // sID)
               var pseudonymValue = extractPseudonymValue(params);
               assertThat(pseudonymValue)
                   .isNotNull()
@@ -112,8 +110,7 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
     // Setup gPAS mock
     var fhirGenerator =
         gpasGetOrCreateResponse(
-            fromList(List.of("patient-456")),
-            fromList(List.of("sID-stored-pseudonym")));
+            fromList(List.of("patient-456")), fromList(List.of("sID-stored-pseudonym")));
 
     gpas()
         .register(
@@ -128,8 +125,8 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         cdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class)
@@ -171,8 +168,8 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         cdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class);
@@ -192,16 +189,13 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
               // If not (e.g., flat structure reused), we need to count differently
               if (pseudonymParams.isEmpty()) {
                 // Check if flat structure was used (should not happen for batch)
-                assertThat(params.getParameter())
-                    .hasSizeGreaterThanOrEqualTo(3);
+                assertThat(params.getParameter()).hasSizeGreaterThanOrEqualTo(3);
               } else {
                 assertThat(pseudonymParams).hasSize(3);
 
                 // All should have unique transport IDs
                 var transportIds =
-                    pseudonymParams.stream()
-                        .map(this::extractPseudonymValueFromPart)
-                        .toList();
+                    pseudonymParams.stream().map(this::extractPseudonymValueFromPart).toList();
                 assertThat(transportIds).hasSize(3).doesNotHaveDuplicates();
               }
             })
@@ -217,8 +211,8 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         cdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .toBodilessEntity();
@@ -242,8 +236,8 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         cdClient
             .post()
             .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, MEDIA_TYPE_FHIR_JSON)
-            .header("Accept", MEDIA_TYPE_FHIR_JSON)
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .toBodilessEntity();

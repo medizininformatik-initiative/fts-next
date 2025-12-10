@@ -1,5 +1,7 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
+
 import care.smith.fts.tca.rest.dto.VfpsPseudonymizeResponse;
 import care.smith.fts.tca.rest.dto.VfpsPseudonymizeResponse.PseudonymEntry;
 import care.smith.fts.tca.services.TransportIdService;
@@ -13,7 +15,6 @@ import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.OperationOutcome;
@@ -52,8 +53,6 @@ import reactor.core.publisher.Mono;
 @Validated
 public class RdAgentFhirPseudonymizerController {
 
-  private static final String MEDIA_TYPE_FHIR_JSON = "application/fhir+json";
-
   private final TransportIdService transportIdService;
 
   public RdAgentFhirPseudonymizerController(TransportIdService transportIdService) {
@@ -72,8 +71,8 @@ public class RdAgentFhirPseudonymizerController {
    */
   @PostMapping(
       value = "/$create-pseudonym",
-      consumes = MEDIA_TYPE_FHIR_JSON,
-      produces = MEDIA_TYPE_FHIR_JSON)
+      consumes = APPLICATION_FHIR_JSON_VALUE,
+      produces = APPLICATION_FHIR_JSON_VALUE)
   @Operation(
       summary = "Resolve transport IDs to secure pseudonyms (Vfps-compatible)",
       description =
@@ -85,27 +84,27 @@ public class RdAgentFhirPseudonymizerController {
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
               content =
                   @Content(
-                      mediaType = MEDIA_TYPE_FHIR_JSON,
+                      mediaType = APPLICATION_FHIR_JSON_VALUE,
                       schema = @Schema(implementation = Parameters.class),
                       examples =
                           @ExampleObject(
                               value =
                                   """
-                              {
-                                "resourceType": "Parameters",
-                                "parameter": [
-                                  {"name": "namespace", "valueString": "clinical-domain"},
-                                  {"name": "originalValue", "valueString": "tID-abc123xyz..."}
-                                ]
-                              }
-                              """))),
+                                  {
+                                    "resourceType": "Parameters",
+                                    "parameter": [
+                                      {"name": "namespace", "valueString": "clinical-domain"},
+                                      {"name": "originalValue", "valueString": "tID-abc123xyz..."}
+                                    ]
+                                  }
+                                  """))),
       responses = {
         @ApiResponse(
             responseCode = "200",
             description = "Secure pseudonyms resolved successfully",
             content =
                 @Content(
-                    mediaType = MEDIA_TYPE_FHIR_JSON,
+                    mediaType = APPLICATION_FHIR_JSON_VALUE,
                     schema = @Schema(implementation = Parameters.class),
                     examples =
                         @ExampleObject(
@@ -123,11 +122,11 @@ public class RdAgentFhirPseudonymizerController {
         @ApiResponse(
             responseCode = "400",
             description = "Invalid request (missing namespace or originalValue)",
-            content = @Content(mediaType = MEDIA_TYPE_FHIR_JSON)),
+            content = @Content(mediaType = APPLICATION_FHIR_JSON_VALUE)),
         @ApiResponse(
             responseCode = "404",
             description = "Transport ID not found (may have expired)",
-            content = @Content(mediaType = MEDIA_TYPE_FHIR_JSON))
+            content = @Content(mediaType = APPLICATION_FHIR_JSON_VALUE))
       })
   public Mono<ResponseEntity<Parameters>> resolvePseudonyms(
       @Valid @RequestBody Parameters requestParams) {
@@ -203,8 +202,7 @@ public class RdAgentFhirPseudonymizerController {
     if (transferId == null) {
       // Without transferId, we can't resolve (need to know which session the tIDs belong to)
       return Mono.error(
-          new IllegalArgumentException(
-              "Parameter 'transferId' is required for RDA resolution"));
+          new IllegalArgumentException("Parameter 'transferId' is required for RDA resolution"));
     }
 
     return transportIdService
@@ -239,10 +237,7 @@ public class RdAgentFhirPseudonymizerController {
     for (var entry : response.pseudonyms()) {
       // For single-value responses, use flat structure
       if (response.pseudonyms().size() == 1) {
-        fhirParams
-            .addParameter()
-            .setName("namespace")
-            .setValue(new StringType(entry.namespace()));
+        fhirParams.addParameter().setName("namespace").setValue(new StringType(entry.namespace()));
         fhirParams
             .addParameter()
             .setName("originalValue")

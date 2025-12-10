@@ -27,7 +27,8 @@ public class EnticiBackendAdapter implements PseudonymBackendAdapter {
   }
 
   @Override
-  public Mono<Map<String, String>> fetchOrCreatePseudonyms(String domain, Set<String> originalValues) {
+  public Mono<Map<String, String>> fetchOrCreatePseudonyms(
+      String domain, Set<String> originalValues) {
     return Mono.error(
         new UnsupportedOperationException(
             "Entici backend adapter is not yet implemented. "

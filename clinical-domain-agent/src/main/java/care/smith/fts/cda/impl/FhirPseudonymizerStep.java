@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import ca.uhn.fhir.context.FhirContext;
@@ -9,7 +10,6 @@ import care.smith.fts.api.cda.Deidentificator;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
-import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -41,7 +41,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class FhirPseudonymizerStep implements Deidentificator {
 
-  private static final String MEDIA_TYPE_FHIR_JSON = "application/fhir+json";
   private static final String FHIR_ENDPOINT = "/fhir";
 
   private final WebClient fhirPseudonymizerClient;
@@ -80,8 +79,8 @@ public class FhirPseudonymizerStep implements Deidentificator {
     return fhirPseudonymizerClient
         .post()
         .uri(FHIR_ENDPOINT)
-        .contentType(MediaType.parseMediaType(MEDIA_TYPE_FHIR_JSON))
-        .accept(MediaType.parseMediaType(MEDIA_TYPE_FHIR_JSON))
+        .contentType(APPLICATION_FHIR_JSON)
+        .accept(APPLICATION_FHIR_JSON)
         .bodyValue(bundleJson)
         .retrieve()
         .bodyToMono(String.class)
@@ -108,16 +107,12 @@ public class FhirPseudonymizerStep implements Deidentificator {
   }
 
   private TransportBundle createTransportBundle(Bundle deidentifiedBundle) {
-    String transferId = deidentifiedBundle.getId();
+    var transferId = deidentifiedBundle.getIdPart();
 
-    if (transferId == null || transferId.isEmpty()) {
+    // Note: HAPI FHIR's getIdPart() returns null for empty/missing IDs, never empty string
+    if (transferId == null) {
       throw new IllegalStateException(
-          "FHIR Pseudonymizer returned bundle without transfer ID (bundle.id is null or empty)");
-    }
-
-    // Strip resource type prefix if present (e.g., "Bundle/transfer-id" -> "transfer-id")
-    if (transferId.contains("/")) {
-      transferId = transferId.substring(transferId.lastIndexOf('/') + 1);
+          "FHIR Pseudonymizer returned bundle without transfer ID (bundle.id is null)");
     }
 
     log.trace("Extracted transfer ID from deidentified bundle: {}", transferId);

@@ -65,8 +65,7 @@ class TransportIdServiceIT extends BaseIT {
 
     // Store mapping
     var storeMono =
-        transportIdService.storeMapping(
-            transferId, tId, sId, domain, Duration.ofMinutes(5));
+        transportIdService.storeMapping(transferId, tId, sId, domain, Duration.ofMinutes(5));
 
     create(storeMono).expectNext(tId).verifyComplete();
 
@@ -93,8 +92,7 @@ class TransportIdServiceIT extends BaseIT {
 
     // Store all mappings
     var storeMono =
-        transportIdService.storeMappings(
-            transferId, mappings, domain, Duration.ofMinutes(5));
+        transportIdService.storeMappings(transferId, mappings, domain, Duration.ofMinutes(5));
 
     create(storeMono)
         .assertNext(
@@ -104,8 +102,7 @@ class TransportIdServiceIT extends BaseIT {
         .verifyComplete();
 
     // Retrieve all mappings
-    var retrieveMono =
-        transportIdService.resolveMappings(transferId, mappings.keySet());
+    var retrieveMono = transportIdService.resolveMappings(transferId, mappings.keySet());
 
     create(retrieveMono)
         .assertNext(
@@ -120,9 +117,7 @@ class TransportIdServiceIT extends BaseIT {
     var retrieveMono =
         transportIdService.resolveMappings("non-existent-transfer", Set.of("some-tid"));
 
-    create(retrieveMono)
-        .assertNext(mappings -> assertThat(mappings).isEmpty())
-        .verifyComplete();
+    create(retrieveMono).assertNext(mappings -> assertThat(mappings).isEmpty()).verifyComplete();
   }
 
   @Test
@@ -133,13 +128,10 @@ class TransportIdServiceIT extends BaseIT {
     var domain = "test-domain";
 
     // Store one mapping
-    transportIdService
-        .storeMapping(transferId, tId, sId, domain, Duration.ofMinutes(5))
-        .block();
+    transportIdService.storeMapping(transferId, tId, sId, domain, Duration.ofMinutes(5)).block();
 
     // Try to resolve known and unknown tIDs
-    var retrieveMono =
-        transportIdService.resolveMappings(transferId, Set.of(tId, "unknown-tid"));
+    var retrieveMono = transportIdService.resolveMappings(transferId, Set.of(tId, "unknown-tid"));
 
     create(retrieveMono)
         .assertNext(
@@ -156,8 +148,7 @@ class TransportIdServiceIT extends BaseIT {
 
     // Store date shift value
     var storeMono =
-        transportIdService.storeDateShiftValue(
-            transferId, dateShiftMillis, Duration.ofMinutes(5));
+        transportIdService.storeDateShiftValue(transferId, dateShiftMillis, Duration.ofMinutes(5));
 
     create(storeMono).expectNext(dateShiftMillis).verifyComplete();
 
