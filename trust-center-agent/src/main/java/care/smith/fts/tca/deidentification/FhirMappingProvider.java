@@ -18,9 +18,10 @@ import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
@@ -34,6 +35,9 @@ public class FhirMappingProvider implements MappingProvider {
   private static final HashFunction hashFn = Hashing.sha256();
 
   record PseudonymData(String patientIdPseudonym, String salt, String dateShiftSeed) {}
+
+  private record FetchedData(
+      PseudonymData pseudonymData, Map<String, String> nonCompartmentPseudonyms) {}
 
   private final GpasClient gpasClient;
   private final TransportMappingConfiguration configuration;
@@ -58,20 +62,61 @@ public class FhirMappingProvider implements MappingProvider {
    * For all provided IDs fetch the id:pid pairs from gPAS. Then create TransportIDs (id:tid pairs).
    * Store tid:pid in the key-value-store.
    *
-   * @param r the transport mapping request
-   * @return Map<TID, PID>
+   * <p>IDs are received in two categories:
+   *
+   * <ul>
+   *   <li>Patient-compartment IDs: pseudonymized using patient-derived salt (SHA256 hash)
+   *   <li>Non-compartment IDs: pseudonymized directly via gPAS
+   * </ul>
    */
   @Override
   public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
-    log.trace("retrieveTransportIds patientId={}, resourceIds={}", r.patientId(), r.resourceIds());
+    log.trace(
+        "retrieveTransportIds patientId={}, compartmentIds={}, nonCompartmentIds={}",
+        r.patientId(),
+        r.compartmentResourceIds().size(),
+        r.nonCompartmentResourceIds().size());
     var transferId = randomStringGenerator.generate();
+
+    var compartmentIds = r.compartmentResourceIds();
+    var nonCompartmentIds = r.nonCompartmentResourceIds();
+
+    // Combine both sets for transport mapping
+    var allIds = new HashSet<>(compartmentIds);
+    allIds.addAll(nonCompartmentIds);
+
     var transportMapping =
-        r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
+        allIds.stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
+
     var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
     return sMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
-        .flatMap(saveSecureMapping(r, transportMapping, sMap))
+        .flatMap(
+            pseudonymData ->
+                fetchNonCompartmentPseudonyms(nonCompartmentIds, r.tcaDomains().pseudonym())
+                    .map(
+                        nonCompartmentPseudonyms ->
+                            new FetchedData(pseudonymData, nonCompartmentPseudonyms)))
+        .flatMap(
+            data ->
+                saveSecureMappingWithCompartment(
+                    r,
+                    transportMapping,
+                    compartmentIds,
+                    nonCompartmentIds,
+                    data.nonCompartmentPseudonyms(),
+                    sMap,
+                    data.pseudonymData()))
         .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
+  }
+
+  /** Fetches pseudonyms from gPAS for non-compartment resource IDs. */
+  private Mono<Map<String, String>> fetchNonCompartmentPseudonyms(
+      Set<String> nonCompartmentIds, String domain) {
+    if (nonCompartmentIds.isEmpty()) {
+      return Mono.just(Map.of());
+    }
+    return gpasClient.fetchOrCreatePseudonyms(domain, nonCompartmentIds);
   }
 
   private Mono<PseudonymData> fetchPseudonymAndSalts(
@@ -91,44 +136,83 @@ public class FhirMappingProvider implements MappingProvider {
         .map(t -> new PseudonymData(t.getT1(), t.getT2(), t.getT3()));
   }
 
-  /** Saves the research mapping in redis for later use by the rda. */
-  static Function<PseudonymData, Mono<Duration>> saveSecureMapping(
+  /**
+   * Saves the research mapping in redis for later use by the rda, with compartment awareness.
+   *
+   * <p>Patient-compartment IDs are hashed with salt, non-compartment IDs use gPAS pseudonyms.
+   */
+  private Mono<Duration> saveSecureMappingWithCompartment(
       TransportMappingRequest r,
       Map<String, String> transportMapping,
-      RMapReactive<String, String> rMap) {
-    return data -> {
-      var dateShifts = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
-      var resolveMap =
-          ImmutableMap.<String, String>builder()
-              .putAll(generateSecureMapping(data.salt(), transportMapping))
-              .putAll(
-                  patientIdPseudonyms(
-                      r.patientId(),
-                      r.patientIdentifierSystem(),
-                      data.patientIdPseudonym(),
-                      transportMapping))
-              .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
-              .buildKeepingLast();
-      return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
-    };
+      Set<String> compartmentIds,
+      Set<String> nonCompartmentIds,
+      Map<String, String> nonCompartmentPseudonyms,
+      RMapReactive<String, String> rMap,
+      PseudonymData data) {
+    var dateShifts = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
+
+    var resolveMap =
+        buildResolveMap(
+            r,
+            transportMapping,
+            compartmentIds,
+            nonCompartmentIds,
+            nonCompartmentPseudonyms,
+            data.salt(),
+            data.patientIdPseudonym(),
+            dateShifts);
+
+    return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
   }
 
-  /** generate ids for all entries in the transport mapping */
+  private ImmutableMap<String, String> buildResolveMap(
+      TransportMappingRequest r,
+      Map<String, String> transportMapping,
+      Set<String> compartmentIds,
+      Set<String> nonCompartmentIds,
+      Map<String, String> nonCompartmentPseudonyms,
+      String salt,
+      String patientIdPseudonym,
+      DateShiftUtil.DateShifts dateShifts) {
+    var compartmentTransportMapping = filterTransportMapping(transportMapping, compartmentIds);
+    var nonCompartmentTransportMapping =
+        filterTransportMapping(transportMapping, nonCompartmentIds);
+
+    return ImmutableMap.<String, String>builder()
+        .putAll(generateSecureMapping(salt, compartmentTransportMapping))
+        .putAll(
+            generateNonCompartmentMapping(nonCompartmentTransportMapping, nonCompartmentPseudonyms))
+        .putAll(
+            patientIdPseudonyms(
+                r.patientId(), r.patientIdentifierSystem(), patientIdPseudonym, transportMapping))
+        .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
+        .buildKeepingLast();
+  }
+
+  private static Map<String, String> filterTransportMapping(
+      Map<String, String> transportMapping, Set<String> ids) {
+    return transportMapping.entrySet().stream()
+        .filter(e -> ids.contains(e.getKey()))
+        .collect(toMap(Entry::getKey, Entry::getValue));
+  }
+
+  static Map<String, String> generateNonCompartmentMapping(
+      Map<String, String> transportMapping, Map<String, String> gpasPseudonyms) {
+    return transportMapping.entrySet().stream()
+        .filter(e -> gpasPseudonyms.containsKey(e.getKey()))
+        .collect(toMap(Entry::getValue, e -> gpasPseudonyms.get(e.getKey())));
+  }
+
   static Map<String, String> generateSecureMapping(
       String transportSalt, Map<String, String> transportMapping) {
     return transportMapping.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));
   }
 
-  /** hash a transport id using the salt */
   private static String transportHash(String transportSalt, String id) {
     return hashFn.hashString(transportSalt + id, StandardCharsets.UTF_8).toString();
   }
 
-  /**
-   * With this function we make sure that the patient's ID in the RDA is the de-identified ID stored
-   * in gPAS. This ensures that we can re-identify patients.
-   */
   static Map<String, String> patientIdPseudonyms(
       String patientId,
       String patientIdentifierSystem,
@@ -136,7 +220,6 @@ public class FhirMappingProvider implements MappingProvider {
       Map<String, String> transportMapping) {
     var x = NamespacingReplacementProvider.withNamespacing(patientId);
     var name = x.getKeyForSystemAndValue(patientIdentifierSystem, patientId);
-
     return transportMapping.entrySet().stream()
         .filter(entry -> entry.getKey().equals(name))
         .collect(toMap(Entry::getValue, id -> patientIdPseudonym));

@@ -1,0 +1,9 @@
+{
+  "resourceType": "CompartmentDefinition",
+  "id": "patient",
+  "resource": [
+    { "code": "TestResource", "param": ["subject"] },
+    { "code": "TestResource", "param": ["performer"] },
+    { "code": "AnotherResource", "param": ["patient"] }
+  ]
+}
