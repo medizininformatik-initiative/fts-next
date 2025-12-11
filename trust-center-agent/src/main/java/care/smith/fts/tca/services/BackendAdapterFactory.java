@@ -1,11 +1,16 @@
 package care.smith.fts.tca.services;
 
+import care.smith.fts.tca.adapters.EnticiBackendAdapter;
 import care.smith.fts.tca.adapters.GpasBackendAdapter;
 import care.smith.fts.tca.adapters.PseudonymBackendAdapter;
+import care.smith.fts.tca.adapters.VfpsBackendAdapter;
 import care.smith.fts.tca.config.BackendAdapterConfig;
 import care.smith.fts.tca.config.BackendAdapterConfig.BackendType;
+import care.smith.fts.tca.deidentification.EnticiClient;
 import care.smith.fts.tca.deidentification.GpasClient;
+import care.smith.fts.tca.deidentification.VfpsClient;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,8 +21,8 @@ import org.springframework.stereotype.Component;
  *
  * <ul>
  *   <li>gPAS - Uses existing {@link GpasClient} implementation
- *   <li>Vfps - Placeholder for future implementation
- *   <li>entici - Placeholder for future implementation
+ *   <li>Vfps - Uses {@link VfpsClient} for Very Fast Pseudonym Service
+ *   <li>entici - Uses {@link EnticiClient} for Entici pseudonymization service
  * </ul>
  *
  * <p>The factory is configured via {@link BackendAdapterConfig} which reads from application.yaml:
@@ -34,17 +39,25 @@ public class BackendAdapterFactory {
 
   private final BackendAdapterConfig config;
   private final GpasClient gpasClient;
+  private final VfpsClient vfpsClient;
+  private final EnticiClient enticiClient;
 
-  public BackendAdapterFactory(BackendAdapterConfig config, GpasClient gpasClient) {
+  public BackendAdapterFactory(
+      BackendAdapterConfig config,
+      GpasClient gpasClient,
+      @Autowired(required = false) VfpsClient vfpsClient,
+      @Autowired(required = false) EnticiClient enticiClient) {
     this.config = config;
     this.gpasClient = gpasClient;
+    this.vfpsClient = vfpsClient;
+    this.enticiClient = enticiClient;
   }
 
   /**
    * Creates a backend adapter based on the configured type.
    *
    * @return the configured PseudonymBackendAdapter
-   * @throws UnsupportedOperationException if the backend type is not yet implemented
+   * @throws IllegalStateException if the required client is not configured
    */
   public PseudonymBackendAdapter createAdapter() {
     var type = config.getType();
@@ -63,15 +76,23 @@ public class BackendAdapterFactory {
   }
 
   private PseudonymBackendAdapter createVfpsAdapter() {
-    // Placeholder for Vfps implementation
-    throw new UnsupportedOperationException(
-        "Vfps backend adapter is not yet implemented. Use backend.type=gpas for now.");
+    if (vfpsClient == null) {
+      throw new IllegalStateException(
+          "Vfps backend selected but VfpsClient is not configured. "
+              + "Add de-identification.vfps.fhir.base-url to configuration.");
+    }
+    log.debug("Initializing Vfps backend adapter");
+    return new VfpsBackendAdapter(vfpsClient);
   }
 
   private PseudonymBackendAdapter createEnticiAdapter() {
-    // Placeholder for entici implementation
-    throw new UnsupportedOperationException(
-        "entici backend adapter is not yet implemented. Use backend.type=gpas for now.");
+    if (enticiClient == null) {
+      throw new IllegalStateException(
+          "Entici backend selected but EnticiClient is not configured. "
+              + "Add de-identification.entici.fhir.base-url to configuration.");
+    }
+    log.debug("Initializing Entici backend adapter");
+    return new EnticiBackendAdapter(enticiClient);
   }
 
   /**
