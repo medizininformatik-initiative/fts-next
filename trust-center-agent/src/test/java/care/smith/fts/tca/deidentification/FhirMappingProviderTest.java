@@ -12,11 +12,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
@@ -25,6 +24,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
+import care.smith.fts.tca.services.TransportIdService;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.error.fhir.FhirException;
@@ -39,8 +39,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -50,14 +48,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.redisson.api.RMapCacheReactive;
-import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
-import org.redisson.api.RedissonReactiveClient;
 import org.redisson.client.RedisTimeoutException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -69,7 +60,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @SpringBootTest
 @WireMockTest
-@ExtendWith(MockitoExtension.class)
 @Import(TestWebClientFactory.class)
 class FhirMappingProviderTest {
 
@@ -85,8 +75,7 @@ class FhirMappingProviderTest {
 
   @Autowired WebClient.Builder httpClientBuilder;
   @MockitoBean RedissonClient redisClient;
-  @Mock RedissonReactiveClient redis;
-  @Mock RMapCacheReactive<Object, Object> mapCache;
+  @MockitoBean TransportIdService transportIdService;
   @Autowired TransportMappingConfiguration transportMappingConfiguration;
   @Autowired MeterRegistry meterRegistry;
 
@@ -98,19 +87,12 @@ class FhirMappingProviderTest {
     var address = wireMockRuntime.getHttpBaseUrl();
     wireMock = wireMockRuntime.getWireMock();
 
-    given(redisClient.reactive()).willReturn(redis);
-
     var gpasConfig = new GpasDeIdentificationConfiguration();
     var gpasClient =
         new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, gpasConfig);
 
     mappingProvider =
-        new FhirMappingProvider(
-            gpasClient,
-            redisClient,
-            transportMappingConfiguration,
-            meterRegistry,
-            new RandomStringGenerator(new Random(0)));
+        new FhirMappingProvider(gpasClient, transportMappingConfiguration, transportIdService);
   }
 
   @Test
@@ -139,12 +121,15 @@ class FhirMappingProviderTest {
                                 true))
                         .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
-    given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
-
     var ids = Set.of("Patient.id1", "id1.identifier.patientIdentifierSystem:id1");
-    var mapName = "wSUYQUR3Y";
+    var transferId = "wSUYQUR3Y";
+    var transportId1 = "MLfKoQoSv";
+    var transportId2 = "HFbzdJo87";
+
+    given(transportIdService.generateId()).willReturn(transferId, transportId1, transportId2);
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.empty());
+
     var request =
         new TransportMappingRequest(
             "id1",
@@ -156,27 +141,53 @@ class FhirMappingProviderTest {
     create(mappingProvider.generateTransportMapping(request))
         .assertNext(
             r -> {
-              assertThat(r.transferId()).isEqualTo(mapName);
+              assertThat(r.transferId()).isEqualTo(transferId);
               assertThat(r.transportMapping().keySet()).isEqualTo(ids);
               assertThat(r.transportMapping().values())
-                  .containsExactlyInAnyOrder("MLfKoQoSv", "HFbzdJo87");
+                  .containsExactlyInAnyOrder(transportId1, transportId2);
               assertThat(r.dateShiftValue()).isLessThanOrEqualTo(Duration.ofMillis(606851642L));
             })
         .verifyComplete();
   }
 
   @Test
-  void generateTransportMappingWhenRedisDown() {
-    given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
-    assertThrows(
-        RedisTimeoutException.class,
-        () -> mappingProvider.generateTransportMapping(DEFAULT_REQUEST));
+  void generateTransportMappingWhenRedisDown() throws IOException {
+    var fhirGenerator =
+        FhirGenerators.gpasGetOrCreateResponse(
+            fromList(List.of("id1", "Salt_id1", "PT336H_id1")),
+            fromList(List.of("469680023", "123", "12345")));
+
+    List.of("id1", "Salt_id1", "PT336H_id1")
+        .forEach(
+            key ->
+                wireMock.register(
+                    post(urlEqualTo("/$pseudonymizeAllowCreate"))
+                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                        .withRequestBody(
+                            equalToJson(
+                                """
+                                { "resourceType": "Parameters",
+                                  "parameter": [
+                                    {"name": "target", "valueString": "domain"},
+                                    {"name": "original", "valueString": "%s"}]}
+                                """
+                                    .formatted(key),
+                                true,
+                                true))
+                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
+
+    given(transportIdService.generateId()).willReturn("transferId", "tid1");
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.error(new RedisTimeoutException("timeout")));
+
+    create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
+        .expectError(RedisTimeoutException.class)
+        .verify();
   }
 
   @Test
   void fetchSecureMapping() {
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.readAllMap())
+    given(transportIdService.fetchAllMappings(anyString()))
         .willReturn(
             Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "12345")));
     create(mappingProvider.fetchSecureMapping("transferId"))
@@ -192,7 +203,8 @@ class FhirMappingProviderTest {
 
   @Test
   void fetchSecureMappingWhenRedisDown() {
-    given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
+    given(transportIdService.fetchAllMappings(anyString()))
+        .willReturn(Mono.error(new RedisTimeoutException("timeout")));
     create(mappingProvider.fetchSecureMapping("transferId"))
         .expectError(RedisTimeoutException.class)
         .verify();
@@ -225,8 +237,9 @@ class FhirMappingProviderTest {
                     .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
 
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(transportIdService.generateId()).willReturn("transferId", "tid1");
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.empty());
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(FhirException.class)
@@ -258,8 +271,9 @@ class FhirMappingProviderTest {
                     .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
 
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(transportIdService.generateId()).willReturn("transferId", "tid1");
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.empty());
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(FhirException.class)
@@ -268,537 +282,12 @@ class FhirMappingProviderTest {
 
   @Test
   void fetchSecureMappingWrongDateShiftValue() {
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.readAllMap())
+    given(transportIdService.fetchAllMappings(anyString()))
         .willReturn(
             Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "nan")));
     create(mappingProvider.fetchSecureMapping("transferId"))
         .expectErrorMessage("Invalid dateShiftMillis value: 'nan'")
         .verify();
-  }
-
-  @Nested
-  class SaveSecureMappingTests {
-
-    private static final String PATIENT_ID = "patient-id";
-    private static final String PATIENT_ID_PSEUDONYM = "pseudo-patient-id";
-    private static final String SALT = "testSalt";
-    private static final String DATE_SHIFT_SEED = "dateShiftSeed";
-    private static final Duration MAX_DATE_SHIFT = Duration.ofDays(365);
-
-    private Map<String, String> transportMapping;
-
-    @BeforeEach
-    void setUp() {
-      transportMapping =
-          Map.of(
-              "patient-id.identifier.patientIdentifierSystem:patient-id",
-              "tpid",
-              "id1",
-              "tid1",
-              "id2",
-              "tid2");
-    }
-
-    @Test
-    void saveSecureMappingCreatesCorrectMapping() {
-      var transportMapping =
-          Map.of(
-              "id1",
-              "tid1",
-              "id2",
-              "tid2",
-              "patient-id.identifier.patientIdentifierSystem:patient-id",
-              "tid3");
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-      given(mockRMap.putAll(mapCaptor.capture())).willReturn(Mono.empty());
-
-      var saveFunction =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-      @SuppressWarnings("unchecked")
-      Mono<Duration> result = saveFunction.apply(tuple);
-
-      create(result).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      Map<String, String> savedMap = mapCaptor.getValue();
-      assertThat(savedMap).containsKey("dateShiftMillis");
-      assertThat(savedMap.get("dateShiftMillis")).matches("^-?\\d+$");
-
-      assertThat(savedMap).containsKey("tid1");
-      assertThat(savedMap).containsKey("tid2");
-      assertThat(savedMap).containsKey("tid3");
-
-      assertThat(savedMap.values()).contains(PATIENT_ID_PSEUDONYM);
-    }
-
-    @Test
-    void shouldSaveSecureMappingWithAllRequiredData() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      create(function.apply(tuple))
-          .assertNext(
-              duration -> {
-                assertThat(duration).isNotNull();
-                assertThat(duration.toMillis()).isGreaterThanOrEqualTo(-MAX_DATE_SHIFT.toMillis());
-                assertThat(duration.toMillis()).isLessThanOrEqualTo(MAX_DATE_SHIFT.toMillis());
-              })
-          .verifyComplete();
-    }
-
-    @Test
-    void shouldIncludeSecureTransportMappings() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      ArgumentCaptor<Map<String, String>> actualMapCaptor = ArgumentCaptor.forClass(Map.class);
-      org.mockito.Mockito.verify(mockRMap).putAll(actualMapCaptor.capture());
-      Map<String, String> savedMap = actualMapCaptor.getValue();
-
-      // Should contain secure mappings for all transport values
-      assertThat(savedMap).containsKey("tpid");
-      assertThat(savedMap).containsKey("tid1");
-      assertThat(savedMap).containsKey("tid2");
-
-      // Values should be hashed (different from original transport keys)
-      assertThat(savedMap.get("tpid")).isNotEqualTo(PATIENT_ID);
-      assertThat(savedMap.get("tid1")).isNotEqualTo("id1");
-      assertThat(savedMap.get("tid2")).isNotEqualTo("id2");
-    }
-
-    @Test
-    void saveSecureMappingHandlesDifferentDateShiftPreserveOptions() {
-      var transportMapping = Map.of("id1", "tid1");
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-
-      for (DateShiftPreserve preserve : DateShiftPreserve.values()) {
-        var saveFunction =
-            FhirMappingProvider.saveSecureMapping(
-                new TransportMappingRequest(
-                    "patient-id",
-                    "patientIdentifierSystem",
-                    Set.of(),
-                    new TcaDomains("", "", ""),
-                    MAX_DATE_SHIFT,
-                    preserve),
-                transportMapping,
-                mockRMap);
-
-        var tuple =
-            new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-        @SuppressWarnings("unchecked")
-        Mono<Duration> result = saveFunction.apply(tuple);
-
-        create(result).expectNextMatches(Objects::nonNull).verifyComplete();
-      }
-    }
-
-    @Test
-    void saveSecureMappingHandlesEmptyTransportMapping() {
-      var transportMapping = Map.<String, String>of();
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-      given(mockRMap.putAll(mapCaptor.capture())).willReturn(Mono.empty());
-
-      var saveFunction =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-      @SuppressWarnings("unchecked")
-      Mono<Duration> result = saveFunction.apply(tuple);
-
-      create(result).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      Map<String, String> savedMap = mapCaptor.getValue();
-      assertThat(savedMap).containsKey("dateShiftMillis");
-      assertThat(savedMap).hasSize(1); // Only dateShiftMillis should be present
-    }
-
-    @Test
-    void saveSecureMappingHandlesRedisFailure() {
-      var transportMapping = Map.of("id1", "tid1");
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.error(new RuntimeException("Redis error")));
-
-      var saveFunction =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-      @SuppressWarnings("unchecked")
-      Mono<Duration> result = saveFunction.apply(tuple);
-
-      create(result).expectError(RuntimeException.class).verify();
-    }
-
-    @Test
-    void shouldProduceConsistentHashForSameSaltAndTransportId() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      // First call
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      // Capture first invocation
-      org.mockito.Mockito.verify(mockRMap).putAll(mapCaptor.capture());
-      Map<String, String> firstCall = mapCaptor.getValue();
-
-      // Reset mock to prepare for the second invocation
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-
-      // Second call
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      // Capture second invocation
-      org.mockito.Mockito.verify(mockRMap, org.mockito.Mockito.times(2))
-          .putAll(mapCaptor.capture());
-      Map<String, String> secondCall = mapCaptor.getValue();
-
-      // Hashed values should be identical
-      assertThat(firstCall.get("tpid")).isEqualTo(secondCall.get("tpid"));
-      assertThat(firstCall.get("tid1")).isEqualTo(secondCall.get("tid1"));
-      assertThat(firstCall.get("tid2")).isEqualTo(secondCall.get("tid2"));
-    }
-
-    @Test
-    void shouldProduceDifferentHashesForDifferentSalts() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple1 =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, "salt1", DATE_SHIFT_SEED);
-      var tuple2 =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, "salt2", DATE_SHIFT_SEED);
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-
-      var function1 =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      // First call with salt1
-      create(function1.apply(tuple1)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      // Capture first invocation
-      org.mockito.Mockito.verify(mockRMap).putAll(mapCaptor.capture());
-      Map<String, String> firstCall = mapCaptor.getValue();
-
-      // Reset mock to prepare for the second invocation
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-
-      var function2 =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      // Second call with salt2
-      create(function2.apply(tuple2)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      // Capture second invocation
-      org.mockito.Mockito.verify(mockRMap, org.mockito.Mockito.times(2))
-          .putAll(mapCaptor.capture());
-      Map<String, String> secondCall = mapCaptor.getValue();
-
-      // Hashed values should be different
-      assertThat(firstCall.get("tpid")).isEqualTo(secondCall.get("tpid")); // sPID stays the same
-      assertThat(firstCall.get("tid1")).isNotEqualTo(secondCall.get("tid1"));
-      assertThat(firstCall.get("tid2")).isNotEqualTo(secondCall.get("tid2"));
-    }
-
-    @Test
-    void shouldHandleSpecialCharactersInTransportIds() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-      Map<String, String> specialCharMapping =
-          Map.of(
-              "transport@#$%_patient123", "value1",
-              "transport-with-dashes_patient123", "value2",
-              "transport.with.dots_patient123", "value3");
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              specialCharMapping,
-              mockRMap);
-
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      org.mockito.Mockito.verify(mockRMap).putAll(anyMap());
-    }
-
-    @Test
-    void shouldHandleNullTransportMappingGracefully() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-      org.junit.jupiter.api.Assertions.assertThrows(
-          NullPointerException.class,
-          () -> {
-            var function =
-                FhirMappingProvider.saveSecureMapping(
-                    new TransportMappingRequest(
-                        "patient-id",
-                        "patientIdentifierSystem",
-                        Set.of(),
-                        new TcaDomains("", "", ""),
-                        MAX_DATE_SHIFT,
-                        DateShiftPreserve.NONE),
-                    null,
-                    mockRMap);
-            function.apply(tuple).block();
-          });
-    }
-
-    @Test
-    void shouldHandleVeryLargeTransportMappings() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-
-      // Create large mapping
-      var largeMapping = new java.util.HashMap<String, String>();
-      for (int i = 0; i < 10000; i++) {
-        largeMapping.put("transport" + i + "_patient", "value" + i);
-      }
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              largeMapping,
-              mockRMap);
-
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-    }
-
-    @Test
-    void shouldHandleEmptyStringsInParameters() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple = new FhirMappingProvider.PseudonymData("", "", "");
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-    }
-
-    @Test
-    void shouldProduceSha256LengthHashes() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      org.mockito.Mockito.verify(mockRMap).putAll(mapCaptor.capture());
-      Map<String, String> savedMap = mapCaptor.getValue();
-
-      // SHA-256 hashes should be 64 characters long (hex representation)
-      savedMap.entrySet().stream()
-          .filter(entry -> !entry.getKey().equals("dateShiftMillis"))
-          .filter(
-              entry ->
-                  !Objects.equals(
-                      entry.getValue(), PATIENT_ID_PSEUDONYM)) // Skip patient ID mappings
-          .forEach(
-              entry -> {
-                assertThat(entry.getValue()).hasSize(64).matches("^[a-f0-9]{64}$");
-              });
-    }
-
-    @Test
-    void shouldNotLeakOriginalTransportIdsInHashes() {
-      @SuppressWarnings("unchecked")
-      var mockRMap = (RMapReactive<String, String>) mock(RMapReactive.class);
-      given(mockRMap.putAll(anyMap())).willReturn(Mono.empty());
-      var tuple =
-          new FhirMappingProvider.PseudonymData(PATIENT_ID_PSEUDONYM, SALT, DATE_SHIFT_SEED);
-      ArgumentCaptor<Map<String, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-
-      var function =
-          FhirMappingProvider.saveSecureMapping(
-              new TransportMappingRequest(
-                  "patient-id",
-                  "patientIdentifierSystem",
-                  Set.of(),
-                  new TcaDomains("", "", ""),
-                  MAX_DATE_SHIFT,
-                  DateShiftPreserve.NONE),
-              transportMapping,
-              mockRMap);
-
-      create(function.apply(tuple)).expectNextMatches(Objects::nonNull).verifyComplete();
-
-      org.mockito.Mockito.verify(mockRMap).putAll(mapCaptor.capture());
-      Map<String, String> savedMap = mapCaptor.getValue();
-
-      // Hashed values should not contain any part of original transport IDs
-      transportMapping
-          .keySet()
-          .forEach(
-              originalId -> {
-                savedMap
-                    .values()
-                    .forEach(
-                        hashedValue -> {
-                          if (!hashedValue.equals(PATIENT_ID_PSEUDONYM)
-                              && !hashedValue.matches("^-?\\d+$")) {
-                            assertThat(hashedValue).doesNotContain(originalId);
-                          }
-                        });
-              });
-    }
   }
 
   @Nested
