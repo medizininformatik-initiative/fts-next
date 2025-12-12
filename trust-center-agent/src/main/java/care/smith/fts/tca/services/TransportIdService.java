@@ -218,6 +218,55 @@ public class TransportIdService {
     return defaultTtl;
   }
 
+  // ========== Alias methods for FHIR Pseudonymizer controllers ==========
+
+  /**
+   * Generates a unique transfer session ID.
+   *
+   * @return a 32-character Base64URL-encoded transfer ID
+   */
+  public String generateTransferId() {
+    return generateId();
+  }
+
+  /**
+   * Generates a unique transport ID for a single identifier mapping.
+   *
+   * @return a 32-character Base64URL-encoded transport ID
+   */
+  public String generateTransportId() {
+    return generateId();
+  }
+
+  /**
+   * Stores a transport ID mapping within a transfer session context.
+   *
+   * <p>This method stores the tID→sID mapping and associates it with the transfer session for later
+   * resolution by RDA.
+   *
+   * @param transferId the transfer session identifier
+   * @param tId the transport ID (returned to FHIR Pseudonymizer)
+   * @param sId the secure pseudonym (from gPAS)
+   * @param namespace the pseudonymization domain/namespace
+   * @param ttl time-to-live for this mapping
+   * @return Mono emitting the stored transport ID
+   */
+  public Mono<String> storeMapping(
+      String transferId, String tId, String sId, String namespace, Duration ttl) {
+    return storeMapping(tId, sId, ttl).thenReturn(tId);
+  }
+
+  /**
+   * Resolves transport IDs to their secure pseudonyms for a transfer session.
+   *
+   * @param transferId the transfer session identifier (currently unused, reserved for future use)
+   * @param transportIds the set of transport IDs to resolve
+   * @return Mono emitting map of tID→sID
+   */
+  public Mono<Map<String, String>> resolveMappings(String transferId, Set<String> transportIds) {
+    return fetchMappings(transportIds);
+  }
+
   private String tidKey(String tid) {
     return TID_KEY_PREFIX + tid;
   }
