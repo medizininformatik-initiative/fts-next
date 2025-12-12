@@ -23,6 +23,7 @@ import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,10 +94,8 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
-                entry("patientIdentifier", "id-144218"),
-                entry("patientIdentifierSystem", "http://fts.smith.care"),
+                entry("patientId", "id-144218"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
-                entry("dateTransportMappings", Map.of()),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
 
@@ -104,7 +103,7 @@ class DeIdentificationControllerIT extends BaseIT {
         .assertNext(
             res -> {
               assertThat(res).isNotNull();
-              assertThat(res.dateShiftMapping()).isEmpty();
+              assertThat(res.dateShiftValue().toDays()).isBetween(-140L, 140L);
               assertThat(res.transportMapping()).containsKeys("id-144218", "id-244194");
             })
         .verifyComplete();
@@ -139,10 +138,8 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
-                entry("patientIdentifier", "id-144218"),
-                entry("patientIdentifierSystem", "http://fts.smith.care"),
+                entry("patientId", "id-144218"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
-                entry("dateTransportMappings", Map.of()),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
 
@@ -150,7 +147,7 @@ class DeIdentificationControllerIT extends BaseIT {
         .assertNext(
             res -> {
               assertThat(res).isNotNull();
-              assertThat(res.dateShiftMapping()).isEmpty();
+              assertThat(res.dateShiftValue().toDays()).isBetween(-140L, 140L);
               assertThat(res.transportMapping()).containsKeys("id-144218", "id-244194");
             })
         .verifyComplete();
@@ -209,10 +206,8 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
                 ofEntries(
                     entry("tcaDomains", DEFAULT_DOMAINS),
-                    entry("patientIdentifier", "id-144218"),
-                    entry("patientIdentifierSystem", "http://fts.smith.care"),
+                    entry("patientId", "id-144218"),
                     entry("resourceIds", Set.of("id-144218", "id-244194")),
-                    entry("dateTransportMappings", Map.of("tId-date-1", "2024-03-15")),
                     entry("maxDateShift", ofDays(14).getSeconds()),
                     entry("dateShiftPreserve", "NONE")))
             .block()
@@ -235,7 +230,7 @@ class DeIdentificationControllerIT extends BaseIT {
               assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
               var body = res.getBody();
               assertThat(body).isNotNull();
-              assertThat(body.dateShiftMap()).containsKey("tId-date-1");
+              assertThat(body.dateShiftBy()).isLessThanOrEqualTo(Duration.ofMillis(-470961186L));
             })
         .verifyComplete();
   }

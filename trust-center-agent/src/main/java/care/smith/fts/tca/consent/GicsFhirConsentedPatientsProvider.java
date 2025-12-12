@@ -38,7 +38,7 @@ public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvi
   @Override
   public Mono<Bundle> fetch(
       ConsentFetchRequest req, UriComponentsBuilder requestUrl, PagingParams paging) {
-    if (req.policies().isEmpty() || req.identifiers().isEmpty()) {
+    if (req.policies().isEmpty() || req.pids().isEmpty()) {
       return Mono.just(new Bundle());
     }
 

@@ -10,5 +10,5 @@ public record ConsentFetchRequest(
     @NotNull(groups = ConsentFetchRequest.class) Set<String> policies,
     @NotBlank(groups = ConsentFetchRequest.class) String policySystem,
     @NotBlank(groups = ConsentFetchRequest.class) String patientIdentifierSystem,
-    List<String> identifiers)
+    List<String> pids)
     implements ConsentRequest {}

@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux;
 
 public interface CohortSelector extends TransferProcessStep {
 
-  Flux<ConsentedPatient> selectCohort(@NotNull List<String> identifiers);
+  Flux<ConsentedPatient> selectCohort(@NotNull List<String> pids);
 
   interface Factory<C> extends TransferProcessStepFactory<CohortSelector, Config, C> {}
 

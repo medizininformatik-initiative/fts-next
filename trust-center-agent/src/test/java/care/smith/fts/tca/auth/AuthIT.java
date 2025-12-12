@@ -6,6 +6,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import care.smith.fts.tca.deidentification.MappingProvider;
 import care.smith.fts.test.AbstractAuthIT;
 import care.smith.fts.util.tca.SecureMappingResponse;
+import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -35,7 +36,9 @@ public class AuthIT {
     void setup() {
       String transferId = "any";
       var mockResponse =
-          Mono.just(new SecureMappingResponse(Map.of("tid1", "pid1", "tid2", "pid2"), Map.of()));
+          Mono.just(
+              new SecureMappingResponse(
+                  Map.of("tid1", "pid1", "tid2", "pid2"), Duration.ofHours(2)));
       when(mappingProvider.fetchSecureMapping(transferId)).thenReturn(mockResponse);
     }
 
@@ -63,7 +66,9 @@ public class AuthIT {
     void setup() {
       String transferId = "any";
       var mockResponse =
-          Mono.just(new SecureMappingResponse(Map.of("tid1", "pid1", "tid2", "pid2"), Map.of()));
+          Mono.just(
+              new SecureMappingResponse(
+                  Map.of("tid1", "pid1", "tid2", "pid2"), Duration.ofHours(2)));
       when(mappingProvider.fetchSecureMapping(transferId)).thenReturn(mockResponse);
     }
 
@@ -91,7 +96,9 @@ public class AuthIT {
     void setup() {
       String transferId = "any";
       var mockResponse =
-          Mono.just(new SecureMappingResponse(Map.of("tid1", "pid1", "tid2", "pid2"), Map.of()));
+          Mono.just(
+              new SecureMappingResponse(
+                  Map.of("tid1", "pid1", "tid2", "pid2"), Duration.ofHours(2)));
       when(mappingProvider.fetchSecureMapping(transferId)).thenReturn(mockResponse);
     }
 

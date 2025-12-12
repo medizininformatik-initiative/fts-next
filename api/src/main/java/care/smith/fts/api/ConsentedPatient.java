@@ -22,15 +22,15 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 public record ConsentedPatient(
-    String identifier, String patientIdentifierSystem, ConsentedPolicies consentedPolicies) {
+    String id, String patientIdentifierSystem, ConsentedPolicies consentedPolicies) {
 
   public ConsentedPatient {
-    requireNonNull(identifier, "Patient's identifier cannot be null");
+    requireNonNull(id, "Patient's id cannot be null");
     requireNonNull(consentedPolicies, "Consented policies cannot be null");
   }
 
-  public ConsentedPatient(String identifier, String patientIdentifierSystem) {
-    this(identifier, patientIdentifierSystem, new ConsentedPolicies());
+  public ConsentedPatient(String id, String patientIdentifierSystem) {
+    this(id, patientIdentifierSystem, new ConsentedPolicies());
   }
 
   public Optional<Period> maxConsentedPeriod() {

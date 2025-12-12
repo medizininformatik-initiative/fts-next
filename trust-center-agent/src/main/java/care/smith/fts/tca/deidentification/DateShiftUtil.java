@@ -7,53 +7,33 @@ import care.smith.fts.api.DateShiftPreserve;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
-import java.util.Date;
 import java.util.Random;
-import org.hl7.fhir.r4.model.DateTimeType;
 
 public interface DateShiftUtil {
 
-  /**
-   * Generates a deterministic date shift based on the provided seed. The shift is constrained based
-   * on the preserve option (WEEKDAY preserves day of week, DAYTIME preserves time of day).
-   *
-   * @param seed deterministic seed for reproducible shifts
-   * @param maxDateShift maximum shift duration
-   * @param preserve preservation constraint (NONE, WEEKDAY, DAYTIME)
-   * @return the date shift duration
-   */
-  static Duration generate(
+  static DateShifts generate(
       @NotBlank String seed, @NotNull Duration maxDateShift, @NotNull DateShiftPreserve preserve) {
     var random = new Random(sha256().hashString(seed, UTF_8).padToLong());
-    random.nextLong(); // Skip first value to maintain compatibility with removed cdShift
     var shiftBy = maxDateShift.toMillis();
+    var cdDateShift = Duration.ofMillis(random.nextLong(-shiftBy, shiftBy));
 
-    return switch (preserve) {
-      case WEEKDAY -> getPreservedShift(random, shiftBy, Duration.ofDays(7));
-      case DAYTIME -> getPreservedShift(random, shiftBy, Duration.ofDays(1));
-      default -> Duration.ofMillis(random.nextLong(-shiftBy, shiftBy));
-    };
+    var rdDateShift =
+        switch (preserve) {
+          case WEEKDAY -> getPreservedRdDateShift(random, shiftBy, Duration.ofDays(7));
+          case DAYTIME -> getPreservedRdDateShift(random, shiftBy, Duration.ofDays(1));
+          default -> Duration.ofMillis(random.nextLong(-shiftBy, shiftBy));
+        };
+
+    return new DateShifts(cdDateShift, rdDateShift.minus(cdDateShift));
   }
 
-  private static Duration getPreservedShift(Random random, long maxShiftMs, Duration periodUnit) {
-    var periodMs = periodUnit.toMillis();
-    var maxPeriods = maxShiftMs / periodMs;
-    var randomPeriods = random.nextLong(-maxPeriods, maxPeriods + 1);
-    return Duration.ofMillis(randomPeriods * periodMs);
+  private static Duration getPreservedRdDateShift(
+      Random random, long shiftBy, Duration multipleOf) {
+    var n = shiftBy / multipleOf.toMillis();
+    shiftBy -= shiftBy % multipleOf.toMillis();
+    var ds = random.nextLong(-n, n + 1);
+    return Duration.ofMillis(shiftBy * ds / n);
   }
 
-  /**
-   * Shifts a date string by the given duration while preserving precision.
-   *
-   * @param isoDateString original date in ISO-8601 format
-   * @param shift duration to shift by (can be negative)
-   * @return shifted date in ISO-8601 format with same precision as input
-   */
-  static String shiftDate(String isoDateString, Duration shift) {
-    var dateTime = new DateTimeType(isoDateString);
-    var precision = dateTime.getPrecision();
-    var originalValue = dateTime.getValue();
-    var shiftedValue = new Date(originalValue.getTime() + shift.toMillis());
-    return new DateTimeType(shiftedValue, precision, dateTime.getTimeZone()).getValueAsString();
-  }
+  record DateShifts(Duration cdDateShift, Duration rdDateShift) {}
 }

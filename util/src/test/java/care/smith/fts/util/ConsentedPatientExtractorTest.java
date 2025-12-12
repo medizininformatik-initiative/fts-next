@@ -31,13 +31,13 @@ class ConsentedPatientExtractorTest {
                 POLICY_SYSTEM,
                 Stream.of(bundle1, bundle2, bundle3),
                 POLICIES_TO_CHECK,
-                bundle -> getPatientIdentifier(bundle))
+                bundle -> getPatientId(bundle))
             .collect(Collectors.toList());
 
     assertThat(result).hasSize(2); // Only bundles with all policies should be included
-    assertThat(result.get(0).identifier()).isEqualTo("12345");
+    assertThat(result.get(0).id()).isEqualTo("12345");
     assertThat(result.get(0).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
-    assertThat(result.get(1).identifier()).isEqualTo("67890");
+    assertThat(result.get(1).id()).isEqualTo("67890");
     assertThat(result.get(1).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
   }
 
@@ -51,10 +51,10 @@ class ConsentedPatientExtractorTest {
             POLICY_SYSTEM,
             bundle,
             POLICIES_TO_CHECK,
-            b -> getPatientIdentifier(b));
+            b -> getPatientId(b));
 
     assertThat(result).isPresent();
-    assertThat(result.get().identifier()).isEqualTo("12345");
+    assertThat(result.get().id()).isEqualTo("12345");
     assertThat(result.get().patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
     assertThat(result.get().consentedPolicies().hasAllPolicies(POLICIES_TO_CHECK)).isTrue();
   }
@@ -69,7 +69,7 @@ class ConsentedPatientExtractorTest {
             POLICY_SYSTEM,
             bundle,
             POLICIES_TO_CHECK,
-            b -> getPatientIdentifier(b));
+            b -> getPatientId(b));
 
     assertThat(result).isEmpty();
   }
@@ -192,10 +192,10 @@ class ConsentedPatientExtractorTest {
     assertThat(policies).doesNotContain("POLICY_C"); // Not in concept
   }
 
-  private static Bundle generateBundleWithConsent(String patientIdentifier, String... policies) {
+  private static Bundle generateBundleWithConsent(String patientId, String... policies) {
     var patient = new Patient();
     patient.addIdentifier(
-        new Identifier().setSystem(PATIENT_IDENTIFIER_SYSTEM).setValue(patientIdentifier));
+        new Identifier().setSystem(PATIENT_IDENTIFIER_SYSTEM).setValue(patientId));
 
     var consent = new Consent();
     var mainProvision = new Consent.ProvisionComponent().setType(Consent.ConsentProvisionType.DENY);
@@ -221,7 +221,7 @@ class ConsentedPatientExtractorTest {
         .setPeriod(new Period().setStart(new Date(0)).setEnd(new Date(1)));
   }
 
-  private static Optional<String> getPatientIdentifier(Bundle bundle) {
+  private static Optional<String> getPatientId(Bundle bundle) {
     return bundle.getEntry().stream()
         .map(Bundle.BundleEntryComponent::getResource)
         .filter(Patient.class::isInstance)

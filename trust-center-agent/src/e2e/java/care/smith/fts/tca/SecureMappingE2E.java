@@ -46,7 +46,6 @@ public class SecureMappingE2E extends AbstractTcaE2E {
             Set.of(
                 "patient-id-1.Patient:patient-id-1",
                 "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1"),
-            Map.of(),
             tcaDomains,
             Duration.ofDays(14),
             DateShiftPreserve.NONE);
@@ -102,8 +101,8 @@ public class SecureMappingE2E extends AbstractTcaE2E {
                     log.info("Secure mapping entry: {} -> {}", key, value);
                   });
 
-              // Verify date shift map is present
-              assertThat(secureMapping.dateShiftMap()).isNotNull();
+              // Verify date shift value is present
+              assertThat(secureMapping.dateShiftBy()).isNotNull();
 
               log.info("Successfully retrieved secure mapping with {} entries", mapping.size());
             })

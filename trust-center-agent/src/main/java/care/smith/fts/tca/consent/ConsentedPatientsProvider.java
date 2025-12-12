@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 public interface ConsentedPatientsProvider {
 
   /**
-   * Fetch consent for all patient identifiers provided by `consentRequest.identifiers()`.
+   * Fetch consent for all patient IDs provided by `consentRequest.pids()`.
    *
    * @param consentRequest
    * @param requestUrl

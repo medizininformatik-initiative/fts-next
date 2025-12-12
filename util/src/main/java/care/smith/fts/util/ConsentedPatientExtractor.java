@@ -39,7 +39,7 @@ public interface ConsentedPatientExtractor {
    * @param policySystem the system used for policy codes
    * @param bundles the stream of bundles to process
    * @param policiesToCheck the set of policies to check for consent
-   * @param patientIdentifierExtractor function to extract patient identifier from a bundle
+   * @param patientIdExtractor function to extract patient ID from a bundle
    * @return a stream of consented patients
    */
   static Stream<ConsentedPatient> processConsentedPatients(
@@ -47,16 +47,12 @@ public interface ConsentedPatientExtractor {
       String policySystem,
       Stream<Bundle> bundles,
       Set<String> policiesToCheck,
-      Function<Bundle, Optional<String>> patientIdentifierExtractor) {
+      Function<Bundle, Optional<String>> patientIdExtractor) {
     return bundles
         .map(
             b ->
                 processConsentedPatient(
-                    patientIdentifierSystem,
-                    policySystem,
-                    b,
-                    policiesToCheck,
-                    patientIdentifierExtractor))
+                    patientIdentifierSystem, policySystem, b, policiesToCheck, patientIdExtractor))
         .filter(Optional::isPresent)
         .map(Optional::get);
   }
@@ -68,7 +64,7 @@ public interface ConsentedPatientExtractor {
    * @param policySystem the system used for policy codes
    * @param bundle the bundle from which the consented patient is extracted
    * @param policiesToCheck the policies the patient has to consent to
-   * @param patientIdentifierExtractor function to extract patient identifier from a bundle
+   * @param patientIdExtractor function to extract patient ID from a bundle
    * @return an {@link Optional} containing a {@link ConsentedPatient}, if all policiesToCheck are
    *     consented to
    */
@@ -77,16 +73,15 @@ public interface ConsentedPatientExtractor {
       String policySystem,
       Bundle bundle,
       Set<String> policiesToCheck,
-      Function<Bundle, Optional<String>> patientIdentifierExtractor) {
-    return patientIdentifierExtractor
+      Function<Bundle, Optional<String>> patientIdExtractor) {
+    return patientIdExtractor
         .apply(bundle)
         .flatMap(
-            patientIdentifier -> {
+            pid -> {
               var consentedPolicies = getConsentedPolicies(policySystem, bundle, policiesToCheck);
               if (consentedPolicies.hasAllPolicies(policiesToCheck)) {
                 return Optional.of(
-                    new ConsentedPatient(
-                        patientIdentifier, patientIdentifierSystem, consentedPolicies));
+                    new ConsentedPatient(pid, patientIdentifierSystem, consentedPolicies));
               } else {
                 return Optional.empty();
               }

@@ -14,6 +14,7 @@ import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -44,29 +45,26 @@ class DeIdentificationControllerTest {
   @Test
   void transportMapping() {
     var ids = Set.of("id1", "id2");
-    var dateTransportMappings = Map.of("tId1", "2024-03-15");
     var mapName = "transferId";
     var request =
         new TransportMappingRequest(
             "patientId1",
             "patientIdentifierSystem",
             ids,
-            dateTransportMappings,
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
-    // Response no longer includes dateShiftMapping - RDA resolves tIDs separately
     given(mappingProvider.generateTransportMapping(request))
         .willReturn(
             Mono.just(
                 new TransportMappingResponse(
-                    mapName, Map.of("id1", "tid1", "id2", "tid2"), Map.of())));
+                    mapName, Map.of("id1", "tid1", "id2", "tid2"), ofDays(1))));
 
     create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
-              assertThat(r.getBody().dateShiftMapping()).isEmpty();
+              assertThat(r.getBody().dateShiftValue()).isEqualTo(Duration.ofSeconds(86400));
               assertThat(r.getBody().transportMapping())
                   .containsEntry("id1", "tid1")
                   .containsEntry("id2", "tid2");
@@ -83,7 +81,6 @@ class DeIdentificationControllerTest {
             "id1",
             "patientIdentifierSystem",
             Set.of("id1"),
-            Map.of(),
             domains,
             ofDays(14),
             DateShiftPreserve.NONE);
@@ -105,7 +102,6 @@ class DeIdentificationControllerTest {
             "id1",
             "patientIdentifierSystem",
             Set.of("id1"),
-            Map.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
@@ -129,18 +125,17 @@ class DeIdentificationControllerTest {
             "patientId1",
             "patientIdentifierSystem",
             Set.of(),
-            Map.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
-        .willReturn(Mono.just(new TransportMappingResponse(mapName, Map.of(), Map.of())));
+        .willReturn(Mono.just(new TransportMappingResponse(mapName, Map.of(), ofDays(1))));
 
     create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
-              assertThat(r.getBody().dateShiftMapping()).isEmpty();
+              assertThat(r.getBody().dateShiftValue()).isEqualTo(Duration.ofSeconds(86400));
               assertThat(r.getBody().transportMapping()).isEmpty();
               assertThat(r.getBody().transferId()).isEqualTo("transferId");
             })
@@ -155,7 +150,6 @@ class DeIdentificationControllerTest {
             "id1",
             "patientIdentifierSystem",
             ids,
-            Map.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
@@ -176,7 +170,7 @@ class DeIdentificationControllerTest {
         .willReturn(
             Mono.just(
                 new SecureMappingResponse(
-                    Map.of("tid-1", "pid1", "tid-2", "pid2"), Map.of("2024-03-15", "2024-03-20"))));
+                    Map.of("tid-1", "pid1", "tid-2", "pid2"), Duration.ofMillis(12345))));
 
     create(controller.secureMapping("transferId"))
         .assertNext(
@@ -186,7 +180,7 @@ class DeIdentificationControllerTest {
               assertThat(body.tidPidMap())
                   .containsEntry("tid-1", "pid1")
                   .containsEntry("tid-2", "pid2");
-              assertThat(body.dateShiftMap()).containsEntry("2024-03-15", "2024-03-20");
+              assertThat(body.dateShiftBy()).isEqualTo(Duration.ofMillis(12345));
             })
         .verifyComplete();
   }
@@ -212,15 +206,15 @@ class DeIdentificationControllerTest {
   }
 
   @Test
-  void secureMappingInvalidDataInKeyValueStore() {
+  void secureMappingInvalidDateShiftValueFromKeyValueStore() {
     given(mappingProvider.fetchSecureMapping("transferId"))
-        .willReturn(Mono.error(new IllegalArgumentException("Invalid data in store.")));
+        .willReturn(Mono.error(new NumberFormatException("Invalid dateShiftMillis value.")));
 
     create(controller.secureMapping("transferId"))
         .expectNext(
             ResponseEntity.of(
                     ProblemDetail.forStatusAndDetail(
-                        INTERNAL_SERVER_ERROR, "Invalid data in store."))
+                        INTERNAL_SERVER_ERROR, "Invalid dateShiftMillis value."))
                 .build())
         .verifyComplete();
   }

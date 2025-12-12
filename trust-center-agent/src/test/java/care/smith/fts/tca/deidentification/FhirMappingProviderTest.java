@@ -12,7 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -24,6 +24,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
+import care.smith.fts.tca.services.TransportIdService;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.error.fhir.FhirException;
@@ -38,7 +39,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,12 +48,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.redisson.api.RMapCacheReactive;
 import org.redisson.api.RedissonClient;
-import org.redisson.api.RedissonReactiveClient;
 import org.redisson.client.RedisTimeoutException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -65,7 +60,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @SpringBootTest
 @WireMockTest
-@ExtendWith(MockitoExtension.class)
 @Import(TestWebClientFactory.class)
 class FhirMappingProviderTest {
 
@@ -75,15 +69,13 @@ class FhirMappingProviderTest {
           "id1",
           "patientIdentifierSystem",
           Set.of("id1"),
-          Map.of(),
           DEFAULT_DOMAINS,
           Duration.ofDays(14),
           DateShiftPreserve.NONE);
 
   @Autowired WebClient.Builder httpClientBuilder;
   @MockitoBean RedissonClient redisClient;
-  @Mock RedissonReactiveClient redis;
-  @Mock RMapCacheReactive<Object, Object> mapCache;
+  @MockitoBean TransportIdService transportIdService;
   @Autowired TransportMappingConfiguration transportMappingConfiguration;
   @Autowired MeterRegistry meterRegistry;
 
@@ -95,19 +87,12 @@ class FhirMappingProviderTest {
     var address = wireMockRuntime.getHttpBaseUrl();
     wireMock = wireMockRuntime.getWireMock();
 
-    given(redisClient.reactive()).willReturn(redis);
-
     var gpasConfig = new GpasDeIdentificationConfiguration();
     var gpasClient =
         new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, gpasConfig);
 
     mappingProvider =
-        new FhirMappingProvider(
-            gpasClient,
-            redisClient,
-            transportMappingConfiguration,
-            meterRegistry,
-            new RandomStringGenerator(new Random(0)));
+        new FhirMappingProvider(gpasClient, transportMappingConfiguration, transportIdService);
   }
 
   @Test
@@ -136,65 +121,90 @@ class FhirMappingProviderTest {
                                 true))
                         .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
-    given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
-
     var ids = Set.of("Patient.id1", "id1.identifier.patientIdentifierSystem:id1");
-    var mapName = "wSUYQUR3Y";
+    var transferId = "wSUYQUR3Y";
+    var transportId1 = "MLfKoQoSv";
+    var transportId2 = "HFbzdJo87";
+
+    given(transportIdService.generateId()).willReturn(transferId, transportId1, transportId2);
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.empty());
+
     var request =
         new TransportMappingRequest(
             "id1",
             "patientIdentifierSystem",
             ids,
-            Map.of(),
             DEFAULT_DOMAINS,
             Duration.ofDays(14),
             DateShiftPreserve.NONE);
     create(mappingProvider.generateTransportMapping(request))
         .assertNext(
             r -> {
-              assertThat(r.transferId()).isEqualTo(mapName);
+              assertThat(r.transferId()).isEqualTo(transferId);
               assertThat(r.transportMapping().keySet()).isEqualTo(ids);
               assertThat(r.transportMapping().values())
-                  .containsExactlyInAnyOrder("MLfKoQoSv", "HFbzdJo87");
-              assertThat(r.dateShiftMapping()).isEmpty();
+                  .containsExactlyInAnyOrder(transportId1, transportId2);
+              assertThat(r.dateShiftValue()).isLessThanOrEqualTo(Duration.ofMillis(606851642L));
             })
         .verifyComplete();
   }
 
   @Test
-  void generateTransportMappingWhenRedisDown() {
-    given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
-    assertThrows(
-        RedisTimeoutException.class,
-        () -> mappingProvider.generateTransportMapping(DEFAULT_REQUEST));
+  void generateTransportMappingWhenRedisDown() throws IOException {
+    var fhirGenerator =
+        FhirGenerators.gpasGetOrCreateResponse(
+            fromList(List.of("id1", "Salt_id1", "PT336H_id1")),
+            fromList(List.of("469680023", "123", "12345")));
+
+    List.of("id1", "Salt_id1", "PT336H_id1")
+        .forEach(
+            key ->
+                wireMock.register(
+                    post(urlEqualTo("/$pseudonymizeAllowCreate"))
+                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                        .withRequestBody(
+                            equalToJson(
+                                """
+                                { "resourceType": "Parameters",
+                                  "parameter": [
+                                    {"name": "target", "valueString": "domain"},
+                                    {"name": "original", "valueString": "%s"}]}
+                                """
+                                    .formatted(key),
+                                true,
+                                true))
+                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
+
+    given(transportIdService.generateId()).willReturn("transferId", "tid1");
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.error(new RedisTimeoutException("timeout")));
+
+    create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
+        .expectError(RedisTimeoutException.class)
+        .verify();
   }
 
   @Test
   void fetchSecureMapping() {
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.readAllMap())
+    given(transportIdService.fetchAllMappings(anyString()))
         .willReturn(
-            Mono.just(
-                Map.of(
-                    "id1", "123456789",
-                    "id2", "987654321",
-                    "ds:2024-03-15", "2024-03-20")));
+            Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "12345")));
     create(mappingProvider.fetchSecureMapping("transferId"))
         .assertNext(
             m -> {
               assertThat(m.tidPidMap().keySet()).containsExactlyInAnyOrder("id1", "id2");
               assertThat(m.tidPidMap().values())
                   .containsExactlyInAnyOrder("123456789", "987654321");
-              assertThat(m.dateShiftMap()).containsEntry("2024-03-15", "2024-03-20");
+              assertThat(m.dateShiftBy()).isEqualTo(Duration.ofMillis(12345));
             })
         .verifyComplete();
   }
 
   @Test
   void fetchSecureMappingWhenRedisDown() {
-    given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
+    given(transportIdService.fetchAllMappings(anyString()))
+        .willReturn(Mono.error(new RedisTimeoutException("timeout")));
     create(mappingProvider.fetchSecureMapping("transferId"))
         .expectError(RedisTimeoutException.class)
         .verify();
@@ -227,8 +237,9 @@ class FhirMappingProviderTest {
                     .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
 
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(transportIdService.generateId()).willReturn("transferId", "tid1");
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.empty());
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(FhirException.class)
@@ -260,11 +271,22 @@ class FhirMappingProviderTest {
                     .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
 
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(transportIdService.generateId()).willReturn("transferId", "tid1");
+    given(transportIdService.storeAllMappings(anyString(), anyMap(), any(Duration.class)))
+        .willReturn(Mono.empty());
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(FhirException.class)
+        .verify();
+  }
+
+  @Test
+  void fetchSecureMappingWrongDateShiftValue() {
+    given(transportIdService.fetchAllMappings(anyString()))
+        .willReturn(
+            Mono.just(Map.of("id1", "123456789", "id2", "987654321", "dateShiftMillis", "nan")));
+    create(mappingProvider.fetchSecureMapping("transferId"))
+        .expectErrorMessage("Invalid dateShiftMillis value: 'nan'")
         .verify();
   }
 
@@ -366,12 +388,12 @@ class FhirMappingProviderTest {
   }
 
   @Nested
-  class PatientIdentifierPseudonymsTests {
+  class PatientIdPseudonymsTests {
 
     @Test
-    void patientIdentifierPseudonymsFiltersCorrectKeys() {
-      var patientIdentifier = "patient123";
-      var patientIdentifierPseudonym = "pseudonym456";
+    void patientIdPseudonymsFiltersCorrectKeys() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
       var transportMapping =
           Map.of(
               "Observation.obs1", "tid1",
@@ -382,14 +404,11 @@ class FhirMappingProviderTest {
               "some.other.patient123", "tid6");
 
       var result =
-          FhirMappingProvider.patientIdentifierPseudonyms(
-              patientIdentifier,
-              "patientIdentifierSystem",
-              patientIdentifierPseudonym,
-              transportMapping);
+          FhirMappingProvider.patientIdPseudonyms(
+              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
 
       assertThat(result).hasSize(1);
-      assertThat(result).containsEntry("tid4", patientIdentifierPseudonym);
+      assertThat(result).containsEntry("tid4", patientIdPseudonym);
       assertThat(result).doesNotContainKey("tid1");
       assertThat(result).doesNotContainKey("tid2");
       assertThat(result).doesNotContainKey("tid3");
@@ -398,25 +417,22 @@ class FhirMappingProviderTest {
     }
 
     @Test
-    void patientIdentifierPseudonymsHandlesEmptyMapping() {
-      var patientIdentifier = "patient123";
-      var patientIdentifierPseudonym = "pseudonym456";
+    void patientIdPseudonymsHandlesEmptyMapping() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
       var transportMapping = Map.<String, String>of();
 
       var result =
-          FhirMappingProvider.patientIdentifierPseudonyms(
-              "patient-id",
-              "patientIdentifierSystem",
-              patientIdentifierPseudonym,
-              transportMapping);
+          FhirMappingProvider.patientIdPseudonyms(
+              "patient-id", "patientIdentifierSystem", patientIdPseudonym, transportMapping);
 
       assertThat(result).isEmpty();
     }
 
     @Test
-    void patientIdentifierPseudonymsHandlesNoMatches() {
-      var patientIdentifier = "patient123";
-      var patientIdentifierPseudonym = "pseudonym456";
+    void patientIdPseudonymsHandlesNoMatches() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
       var transportMapping =
           Map.of(
               "Observation.obs1", "tid1",
@@ -424,37 +440,31 @@ class FhirMappingProviderTest {
               "Patient.differentpatient", "tid3");
 
       var result =
-          FhirMappingProvider.patientIdentifierPseudonyms(
-              patientIdentifier,
-              "patientIdentifierSystem",
-              patientIdentifierPseudonym,
-              transportMapping);
+          FhirMappingProvider.patientIdPseudonyms(
+              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
 
       assertThat(result).isEmpty();
     }
 
     @Test
-    void patientIdentifierPseudonymsHandlesExactMatch() {
-      var patientIdentifier = "patient123";
-      var patientIdentifierPseudonym = "pseudonym456";
+    void patientIdPseudonymsHandlesExactMatch() {
+      var patientId = "patient123";
+      var patientIdPseudonym = "pseudonym456";
       var transportMapping =
           Map.of("patient123.identifier.patientIdentifierSystem:patient123", "tid1");
 
       var result =
-          FhirMappingProvider.patientIdentifierPseudonyms(
-              patientIdentifier,
-              "patientIdentifierSystem",
-              patientIdentifierPseudonym,
-              transportMapping);
+          FhirMappingProvider.patientIdPseudonyms(
+              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
 
       assertThat(result).hasSize(1);
-      assertThat(result).containsEntry("tid1", patientIdentifierPseudonym);
+      assertThat(result).containsEntry("tid1", patientIdPseudonym);
     }
 
     @Test
-    void patientIdentifierPseudonymsHandlesPartialMatches() {
-      var patientIdentifier = "123";
-      var patientIdentifierPseudonym = "pseudonym456";
+    void patientIdPseudonymsHandlesPartialMatches() {
+      var patientId = "123";
+      var patientIdPseudonym = "pseudonym456";
       var transportMapping =
           Map.of(
               "123.identifier.patientIdentifierSystem:123", "tid1",
@@ -463,34 +473,28 @@ class FhirMappingProviderTest {
               "differentKey", "tid4");
 
       var result =
-          FhirMappingProvider.patientIdentifierPseudonyms(
-              patientIdentifier,
-              "patientIdentifierSystem",
-              patientIdentifierPseudonym,
-              transportMapping);
+          FhirMappingProvider.patientIdPseudonyms(
+              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
 
       assertThat(result).hasSize(1);
-      assertThat(result).containsEntry("tid1", patientIdentifierPseudonym);
+      assertThat(result).containsEntry("tid1", patientIdPseudonym);
       assertThat(result).doesNotContainKey("tid2");
       assertThat(result).doesNotContainKey("tid3");
       assertThat(result).doesNotContainKey("tid4");
     }
 
     @Test
-    void patientIdentifierPseudonymsHandlesSpecialCharacters() {
-      var patientIdentifier = "patient@#$%";
-      var patientIdentifierPseudonym = "pseudonym456";
+    void patientIdPseudonymsHandlesSpecialCharacters() {
+      var patientId = "patient@#$%";
+      var patientIdPseudonym = "pseudonym456";
       var transportMapping =
           Map.of("patient@#$%.identifier.patientIdentifierSystem:patient@#$%", "tid1");
 
       var result =
-          FhirMappingProvider.patientIdentifierPseudonyms(
-              patientIdentifier,
-              "patientIdentifierSystem",
-              patientIdentifierPseudonym,
-              transportMapping);
+          FhirMappingProvider.patientIdPseudonyms(
+              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
 
-      assertThat(result).containsEntry("tid1", patientIdentifierPseudonym);
+      assertThat(result).containsEntry("tid1", patientIdPseudonym);
     }
   }
 
