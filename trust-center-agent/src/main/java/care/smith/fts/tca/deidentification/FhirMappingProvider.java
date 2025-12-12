@@ -2,12 +2,12 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.tca.deidentification.DateShiftUtil.shiftDate;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
+import care.smith.fts.tca.services.TransportIdService;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TcaDomains;
@@ -16,15 +16,11 @@ import care.smith.fts.util.tca.TransportMappingResponse;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RMapReactive;
-import org.redisson.api.RedissonClient;
-import org.redisson.api.RedissonReactiveClient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -37,21 +33,15 @@ public class FhirMappingProvider implements MappingProvider {
 
   private final GpasClient gpasClient;
   private final TransportMappingConfiguration configuration;
-  private final RedissonClient redisClient;
-  private final MeterRegistry meterRegistry;
-  private final RandomStringGenerator randomStringGenerator;
+  private final TransportIdService transportIdService;
 
   public FhirMappingProvider(
       GpasClient gpasClient,
-      RedissonClient redisClient,
       TransportMappingConfiguration configuration,
-      MeterRegistry meterRegistry,
-      RandomStringGenerator randomStringGenerator) {
+      TransportIdService transportIdService) {
     this.gpasClient = gpasClient;
     this.configuration = configuration;
-    this.redisClient = redisClient;
-    this.meterRegistry = meterRegistry;
-    this.randomStringGenerator = randomStringGenerator;
+    this.transportIdService = transportIdService;
   }
 
   /**
@@ -70,13 +60,11 @@ public class FhirMappingProvider implements MappingProvider {
         r.resourceIds().size(),
         r.dateTransportMappings().size());
 
-    var transferId = randomStringGenerator.generate();
+    var transferId = transportIdService.generateId();
     var transportMapping =
-        r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
-    var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
+        r.resourceIds().stream().collect(toMap(id -> id, id -> transportIdService.generateId()));
 
-    return sMap.expire(configuration.getTtl())
-        .then(fetchPseudonymAndSalts(r.patientIdentifier(), r.tcaDomains(), r.maxDateShift()))
+    return fetchPseudonymAndSalts(r.patientIdentifier(), r.tcaDomains(), r.maxDateShift())
         .flatMap(
             data -> {
               var dateShift =
@@ -84,7 +72,7 @@ public class FhirMappingProvider implements MappingProvider {
               // Compute tID→shiftedDate from tID→originalDate
               var tidToShiftedDate = computeTidToShiftedDate(r.dateTransportMappings(), dateShift);
 
-              return saveSecureMapping(r, data, transportMapping, tidToShiftedDate, sMap)
+              return saveSecureMapping(r, data, transportMapping, tidToShiftedDate, transferId)
                   // Return empty dateShiftMapping - RDA will resolve tIDs from extensions
                   .thenReturn(new TransportMappingResponse(transferId, transportMapping, Map.of()));
             });
@@ -113,12 +101,13 @@ public class FhirMappingProvider implements MappingProvider {
         .map(t -> new PseudonymData(t.getT1(), t.getT2(), t.getT3()));
   }
 
+  /** Saves the research mapping in redis for later use by the RDA. */
   private Mono<Void> saveSecureMapping(
       TransportMappingRequest r,
       PseudonymData data,
       Map<String, String> transportMapping,
       Map<String, String> tidToShiftedDate,
-      RMapReactive<String, String> rMap) {
+      String transferId) {
 
     var resolveMapBuilder =
         ImmutableMap.<String, String>builder()
@@ -134,7 +123,8 @@ public class FhirMappingProvider implements MappingProvider {
     tidToShiftedDate.forEach(
         (tId, shiftedDate) -> resolveMapBuilder.put(DATE_SHIFT_PREFIX + tId, shiftedDate));
 
-    return rMap.putAll(resolveMapBuilder.buildKeepingLast()).then();
+    return transportIdService
+        .storeAllMappings(transferId, resolveMapBuilder.buildKeepingLast(), configuration.getTtl());
   }
 
   static Map<String, String> generateSecureMapping(
@@ -166,10 +156,8 @@ public class FhirMappingProvider implements MappingProvider {
 
   @Override
   public Mono<SecureMappingResponse> fetchSecureMapping(String transferId) {
-    RedissonReactiveClient redis = redisClient.reactive();
-    return Mono.just(transferId)
-        .flatMap(name -> redis.<String, String>getMapCache(name).readAllMap())
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchSecureMapping"))
+    return transportIdService
+        .fetchAllMappings(transferId)
         .map(SecureMappingResponse::buildResolveResponse);
   }
 }
