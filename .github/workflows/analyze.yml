@@ -5,7 +5,7 @@ on:
     tags: [ "v*.*.*" ]
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "*" ]
   merge_group:
   branch_protection_rule:
   schedule:
