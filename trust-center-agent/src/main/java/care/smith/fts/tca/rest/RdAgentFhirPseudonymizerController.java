@@ -1,5 +1,9 @@
 package care.smith.fts.tca.rest;
 
+import static care.smith.fts.tca.rest.FhirParameterExtractor.addParameter;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.addPart;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredString;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredStrings;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 
 import care.smith.fts.tca.rest.VfpsPseudonymizeResponse.PseudonymEntry;
@@ -15,13 +19,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
-import org.hl7.fhir.r4.model.StringType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -142,33 +144,11 @@ public class RdAgentFhirPseudonymizerController {
   private record ResolutionRequest(String namespace, List<String> transportIds) {}
 
   private ResolutionRequest parseRequest(Parameters params) {
-    // Extract namespace
-    String namespace =
-        params.getParameter().stream()
-            .filter(p -> "namespace".equals(p.getName()))
-            .findFirst()
-            .map(ParametersParameterComponent::getValue)
-            .map(Base::primitiveValue)
-            .orElseThrow(
-                () -> new IllegalArgumentException("Missing required parameter 'namespace'"));
+    String namespace = extractRequiredString(params, "namespace");
+    List<String> transportIds = extractRequiredStrings(params, "originalValue");
 
-    if (namespace.isBlank()) {
-      throw new IllegalArgumentException("Parameter 'namespace' must not be empty");
-    }
-
-    // Extract transport IDs (originalValue parameters contain tIDs to resolve)
-    List<String> transportIds =
-        params.getParameter().stream()
-            .filter(p -> "originalValue".equals(p.getName()))
-            .map(ParametersParameterComponent::getValue)
-            .map(Base::primitiveValue)
-            .toList();
-
-    if (transportIds.isEmpty()) {
-      throw new IllegalArgumentException("At least one 'originalValue' parameter is required");
-    }
-
-    log.debug("Parsed RDA request: namespace={}, transportIdCount={}", namespace, transportIds.size());
+    log.debug(
+        "Parsed RDA request: namespace={}, transportIdCount={}", namespace, transportIds.size());
 
     return new ResolutionRequest(namespace, transportIds);
   }
@@ -196,7 +176,8 @@ public class RdAgentFhirPseudonymizerController {
               }
               return new VfpsPseudonymizeResponse(entries);
             })
-        .doOnSuccess(response -> log.debug("Resolved {} transport IDs", response.pseudonyms().size()));
+        .doOnSuccess(
+            response -> log.debug("Resolved {} transport IDs", response.pseudonyms().size()));
   }
 
   private Parameters buildResponse(VfpsPseudonymizeResponse response) {
@@ -205,29 +186,17 @@ public class RdAgentFhirPseudonymizerController {
     for (var entry : response.pseudonyms()) {
       // For single-value responses, use flat structure
       if (response.pseudonyms().size() == 1) {
-        fhirParams.addParameter().setName("namespace").setValue(new StringType(entry.namespace()));
-        fhirParams
-            .addParameter()
-            .setName("originalValue")
-            .setValue(new StringType(entry.original()));
-        fhirParams
-            .addParameter()
-            .setName("pseudonymValue")
-            .setValue(new StringType(entry.pseudonym()));
+        addParameter(fhirParams, "namespace", entry.namespace());
+        addParameter(fhirParams, "originalValue", entry.original());
+        addParameter(fhirParams, "pseudonymValue", entry.pseudonym());
       } else {
         // For batch responses, use nested structure
         var pseudonymParam = new ParametersParameterComponent();
         pseudonymParam.setName("pseudonym");
 
-        pseudonymParam.addPart().setName("namespace").setValue(new StringType(entry.namespace()));
-        pseudonymParam
-            .addPart()
-            .setName("originalValue")
-            .setValue(new StringType(entry.original()));
-        pseudonymParam
-            .addPart()
-            .setName("pseudonymValue")
-            .setValue(new StringType(entry.pseudonym()));
+        addPart(pseudonymParam, "namespace", entry.namespace());
+        addPart(pseudonymParam, "originalValue", entry.original());
+        addPart(pseudonymParam, "pseudonymValue", entry.pseudonym());
 
         fhirParams.addParameter(pseudonymParam);
       }
