@@ -45,26 +45,24 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     rdClient = factory.webClient("https://localhost:" + port, "rd-agent");
     // Clean up Redis before each test
-    redisClient.getKeys().deleteByPattern("transport-mapping:*");
+    redisClient.getKeys().deleteByPattern("tid:*");
   }
 
   @AfterEach
   void tearDown() {
-    redisClient.getKeys().deleteByPattern("transport-mapping:*");
+    redisClient.getKeys().deleteByPattern("tid:*");
   }
 
   @Test
   void resolvePseudonyms_shouldReturnSecurePseudonym() {
     // First, store a mapping (simulating what CDA endpoint would do)
-    var transferId = transportIdService.generateId();
     var tId = "test-transport-id-resolve";
     var sId = "secure-pseudonym-final";
-    var domain = "test-domain";
 
     transportIdService.storeMapping(tId, sId, Duration.ofMinutes(5)).block();
 
     // Build Vfps-format request with the tID
-    var requestParams = buildVfpsRequest("test-domain", tId, transferId);
+    var requestParams = buildVfpsRequest("test-domain", tId);
 
     // Send request to resolve
     var response =
@@ -96,13 +94,9 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
 
   @Test
   void resolvePseudonyms_withUnknownTransportId_shouldReturnOriginal() {
-    // Create a transfer session without storing mappings
-    var transferId = transportIdService.generateId();
     var unknownTId = "unknown-transport-id";
 
-    // Need to store at least something to make the transfer exist
-    // (Otherwise the request should still work, returning tID as-is)
-    var requestParams = buildVfpsRequest("test-domain", unknownTId, transferId);
+    var requestParams = buildVfpsRequest("test-domain", unknownTId);
 
     var response =
         rdClient
@@ -126,37 +120,9 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   }
 
   @Test
-  void resolvePseudonyms_withMissingTransferId_shouldReturn400() {
-    var requestParams = new Parameters();
-    requestParams.addParameter().setName("namespace").setValue(new StringType("test-domain"));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("some-tid"));
-    // Missing transferId
-
-    var response =
-        rdClient
-            .post()
-            .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
-            .header("Accept", APPLICATION_FHIR_JSON)
-            .bodyValue(requestParams)
-            .retrieve()
-            .toBodilessEntity();
-
-    create(response)
-        .expectErrorSatisfies(
-            e -> {
-              assertThat(e).isInstanceOf(WebClientResponseException.class);
-              assertThat(((WebClientResponseException) e).getStatusCode())
-                  .isEqualTo(HttpStatus.BAD_REQUEST);
-            })
-        .verify();
-  }
-
-  @Test
   void resolvePseudonyms_withMissingNamespace_shouldReturn400() {
     var requestParams = new Parameters();
     requestParams.addParameter().setName("originalValue").setValue(new StringType("some-tid"));
-    requestParams.addParameter().setName("transferId").setValue(new StringType("some-transfer"));
 
     var response =
         rdClient
@@ -181,7 +147,6 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   @Test
   void resolvePseudonyms_multipleMappings_shouldResolveAll() {
     // Store multiple mappings
-    var transferId = transportIdService.generateId();
     var domain = "test-domain";
     var ttl = Duration.ofMinutes(5);
 
@@ -195,7 +160,6 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
     requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-1"));
     requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-2"));
     requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-3"));
-    requestParams.addParameter().setName("transferId").setValue(new StringType(transferId));
 
     var response =
         rdClient
@@ -221,11 +185,10 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .verifyComplete();
   }
 
-  private Parameters buildVfpsRequest(String namespace, String transportId, String transferId) {
+  private Parameters buildVfpsRequest(String namespace, String transportId) {
     var params = new Parameters();
     params.addParameter().setName("namespace").setValue(new StringType(namespace));
     params.addParameter().setName("originalValue").setValue(new StringType(transportId));
-    params.addParameter().setName("transferId").setValue(new StringType(transferId));
     return params;
   }
 

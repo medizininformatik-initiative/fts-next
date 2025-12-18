@@ -16,9 +16,8 @@ import java.util.Objects;
  *
  * @param namespace The domain/namespace for pseudonym generation (non-blank)
  * @param originals The list of original values to pseudonymize (at least one)
- * @param transferId The transfer session identifier for grouping mappings
  */
-public record VfpsPseudonymizeRequest(String namespace, List<String> originals, String transferId) {
+public record VfpsPseudonymizeRequest(String namespace, List<String> originals) {
 
   public VfpsPseudonymizeRequest {
     Objects.requireNonNull(namespace, "namespace is required");
@@ -28,7 +27,6 @@ public record VfpsPseudonymizeRequest(String namespace, List<String> originals, 
     if (originals == null || originals.isEmpty()) {
       throw new IllegalArgumentException("at least one original value required");
     }
-    Objects.requireNonNull(transferId, "transferId is required");
     originals = List.copyOf(originals);
   }
 }

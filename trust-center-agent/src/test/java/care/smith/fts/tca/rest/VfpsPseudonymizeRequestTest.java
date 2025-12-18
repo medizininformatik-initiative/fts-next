@@ -11,59 +11,51 @@ class VfpsPseudonymizeRequestTest {
   @Test
   void validRequestCreatesImmutableCopy() {
     var originals = List.of("original1", "original2");
-    var request = new VfpsPseudonymizeRequest("namespace", originals, "transfer-123");
+    var request = new VfpsPseudonymizeRequest("namespace", originals);
 
     assertThat(request.namespace()).isEqualTo("namespace");
     assertThat(request.originals()).containsExactly("original1", "original2");
-    assertThat(request.transferId()).isEqualTo("transfer-123");
   }
 
   @Test
   void nullNamespaceThrowsNullPointerException() {
-    assertThatThrownBy(() -> new VfpsPseudonymizeRequest(null, List.of("original"), "transfer-123"))
+    assertThatThrownBy(() -> new VfpsPseudonymizeRequest(null, List.of("original")))
         .isInstanceOf(NullPointerException.class)
         .hasMessage("namespace is required");
   }
 
   @Test
   void blankNamespaceThrowsIllegalArgumentException() {
-    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("  ", List.of("original"), "transfer-123"))
+    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("  ", List.of("original")))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("namespace must not be blank");
   }
 
   @Test
   void emptyNamespaceThrowsIllegalArgumentException() {
-    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("", List.of("original"), "transfer-123"))
+    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("", List.of("original")))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("namespace must not be blank");
   }
 
   @Test
   void nullOriginalsThrowsIllegalArgumentException() {
-    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("namespace", null, "transfer-123"))
+    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("namespace", null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("at least one original value required");
   }
 
   @Test
   void emptyOriginalsThrowsIllegalArgumentException() {
-    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("namespace", List.of(), "transfer-123"))
+    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("namespace", List.of()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("at least one original value required");
   }
 
   @Test
-  void nullTransferIdThrowsNullPointerException() {
-    assertThatThrownBy(() -> new VfpsPseudonymizeRequest("namespace", List.of("original"), null))
-        .isInstanceOf(NullPointerException.class)
-        .hasMessage("transferId is required");
-  }
-
-  @Test
   void originalsListIsDefensivelyCopied() {
     var mutableList = new java.util.ArrayList<>(List.of("original1"));
-    var request = new VfpsPseudonymizeRequest("namespace", mutableList, "transfer-123");
+    var request = new VfpsPseudonymizeRequest("namespace", mutableList);
 
     mutableList.add("original2");
 

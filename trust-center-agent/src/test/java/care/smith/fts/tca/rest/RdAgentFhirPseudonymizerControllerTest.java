@@ -2,7 +2,6 @@ package care.smith.fts.tca.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import care.smith.fts.tca.services.TransportIdService;
@@ -33,7 +32,7 @@ class RdAgentFhirPseudonymizerControllerTest {
 
   @Test
   void resolvePseudonymsSuccessfullyReturnsSingleEntry() {
-    var requestParams = createSingleValueRequest("test-domain", "tId-123", "transfer-id-1");
+    var requestParams = createSingleValueRequest("test-domain", "tId-123");
 
     when(transportIdService.fetchMappings(anySet()))
         .thenReturn(Mono.just(Map.of("tId-123", "sId-456")));
@@ -60,7 +59,7 @@ class RdAgentFhirPseudonymizerControllerTest {
 
   @Test
   void resolvePseudonymsSuccessfullyReturnsMultipleEntries() {
-    var requestParams = createMultiValueRequest("test-domain", "transfer-id-1", "tId-1", "tId-2");
+    var requestParams = createMultiValueRequest("test-domain", "tId-1", "tId-2");
 
     when(transportIdService.fetchMappings(anySet()))
         .thenReturn(Mono.just(Map.of("tId-1", "sId-1", "tId-2", "sId-2")));
@@ -83,10 +82,9 @@ class RdAgentFhirPseudonymizerControllerTest {
 
   @Test
   void resolvePseudonymsReturnsTidWhenNotFound() {
-    var requestParams = createSingleValueRequest("test-domain", "tId-missing", "transfer-id-1");
+    var requestParams = createSingleValueRequest("test-domain", "tId-missing");
 
-    when(transportIdService.fetchMappings(anySet()))
-        .thenReturn(Mono.just(Map.of()));
+    when(transportIdService.fetchMappings(anySet())).thenReturn(Mono.just(Map.of()));
 
     var result = controller.resolvePseudonyms(requestParams);
 
@@ -107,7 +105,6 @@ class RdAgentFhirPseudonymizerControllerTest {
   void resolvePseudonymsReturnsBadRequestForMissingNamespace() {
     var requestParams = new Parameters();
     requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-123"));
-    requestParams.addParameter().setName("transferId").setValue(new StringType("transfer-id-1"));
 
     var result = controller.resolvePseudonyms(requestParams);
 
@@ -129,7 +126,6 @@ class RdAgentFhirPseudonymizerControllerTest {
     var requestParams = new Parameters();
     requestParams.addParameter().setName("namespace").setValue(new StringType("   "));
     requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-123"));
-    requestParams.addParameter().setName("transferId").setValue(new StringType("transfer-id-1"));
 
     var result = controller.resolvePseudonyms(requestParams);
 
@@ -149,7 +145,6 @@ class RdAgentFhirPseudonymizerControllerTest {
   void resolvePseudonymsReturnsBadRequestForMissingOriginalValue() {
     var requestParams = new Parameters();
     requestParams.addParameter().setName("namespace").setValue(new StringType("test-domain"));
-    requestParams.addParameter().setName("transferId").setValue(new StringType("transfer-id-1"));
 
     var result = controller.resolvePseudonyms(requestParams);
 
@@ -167,29 +162,8 @@ class RdAgentFhirPseudonymizerControllerTest {
   }
 
   @Test
-  void resolvePseudonymsReturnsBadRequestForMissingTransferId() {
-    var requestParams = new Parameters();
-    requestParams.addParameter().setName("namespace").setValue(new StringType("test-domain"));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-123"));
-
-    var result = controller.resolvePseudonyms(requestParams);
-
-    StepVerifier.create(result)
-        .assertNext(
-            response -> {
-              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
-              assertThat(outcome.getIssueFirstRep().getDiagnostics())
-                  .contains("'transferId' is required");
-            })
-        .verifyComplete();
-  }
-
-  @Test
   void resolvePseudonymsReturnsInternalServerErrorOnServiceFailure() {
-    var requestParams = createSingleValueRequest("test-domain", "tId-123", "transfer-id-1");
+    var requestParams = createSingleValueRequest("test-domain", "tId-123");
 
     when(transportIdService.fetchMappings(anySet()))
         .thenReturn(Mono.error(new RuntimeException("Redis connection failed")));
@@ -204,20 +178,16 @@ class RdAgentFhirPseudonymizerControllerTest {
         .verifyComplete();
   }
 
-  private Parameters createSingleValueRequest(
-      String namespace, String originalValue, String transferId) {
+  private Parameters createSingleValueRequest(String namespace, String originalValue) {
     var params = new Parameters();
     params.addParameter().setName("namespace").setValue(new StringType(namespace));
     params.addParameter().setName("originalValue").setValue(new StringType(originalValue));
-    params.addParameter().setName("transferId").setValue(new StringType(transferId));
     return params;
   }
 
-  private Parameters createMultiValueRequest(
-      String namespace, String transferId, String... originalValues) {
+  private Parameters createMultiValueRequest(String namespace, String... originalValues) {
     var params = new Parameters();
     params.addParameter().setName("namespace").setValue(new StringType(namespace));
-    params.addParameter().setName("transferId").setValue(new StringType(transferId));
     for (String value : originalValues) {
       params.addParameter().setName("originalValue").setValue(new StringType(value));
     }

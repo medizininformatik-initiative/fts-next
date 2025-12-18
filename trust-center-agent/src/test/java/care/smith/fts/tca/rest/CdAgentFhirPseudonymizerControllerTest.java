@@ -41,7 +41,7 @@ class CdAgentFhirPseudonymizerControllerTest {
     var requestParams = createSingleValueRequest("test-domain", "patient-123");
     var ttl = Duration.ofMinutes(10);
 
-    when(transportIdService.generateId()).thenReturn("transfer-id-1", "tId-abc123");
+    when(transportIdService.generateId()).thenReturn("tId-abc123");
     when(transportIdService.getDefaultTtl()).thenReturn(ttl);
     when(transportIdService.storeMapping(eq("tId-abc123"), eq("sId-456"), eq(ttl)))
         .thenReturn(Mono.empty());
@@ -73,7 +73,7 @@ class CdAgentFhirPseudonymizerControllerTest {
     var requestParams = createMultiValueRequest("test-domain", "patient-1", "patient-2");
     var ttl = Duration.ofMinutes(10);
 
-    when(transportIdService.generateId()).thenReturn("transfer-id-1", "tId-1", "tId-2");
+    when(transportIdService.generateId()).thenReturn("tId-1", "tId-2");
     when(transportIdService.getDefaultTtl()).thenReturn(ttl);
     when(transportIdService.storeMapping(anyString(), anyString(), any(Duration.class)))
         .thenReturn(Mono.empty());
@@ -160,7 +160,6 @@ class CdAgentFhirPseudonymizerControllerTest {
   void createPseudonymReturnsInternalServerErrorOnBackendFailure() {
     var requestParams = createSingleValueRequest("test-domain", "patient-123");
 
-    when(transportIdService.generateId()).thenReturn("transfer-id-1");
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.error(new RuntimeException("Backend connection failed")));
 

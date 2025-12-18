@@ -167,28 +167,16 @@ public class CdAgentFhirPseudonymizerController {
       throw new IllegalArgumentException("At least one 'originalValue' parameter is required");
     }
 
-    // Generate a transfer ID for this batch (used for logging/tracing)
-    var transferId = transportIdService.generateId();
+    log.debug("Parsed request: namespace={}, originalCount={}", namespace, originals.size());
 
-    log.debug(
-        "Parsed request: namespace={}, originalCount={}, transferId={}",
-        namespace,
-        originals.size(),
-        transferId);
-
-    return new VfpsPseudonymizeRequest(namespace, originals, transferId);
+    return new VfpsPseudonymizeRequest(namespace, originals);
   }
 
   private Mono<VfpsPseudonymizeResponse> processRequest(VfpsPseudonymizeRequest request) {
-    var transferId = request.transferId();
     var namespace = request.namespace();
     var ttl = transportIdService.getDefaultTtl();
 
-    log.debug(
-        "Processing {} identifiers for namespace={}, transferId={}",
-        request.originals().size(),
-        namespace,
-        transferId);
+    log.debug("Processing {} identifiers for namespace={}", request.originals().size(), namespace);
 
     // Fetch real pseudonyms from gPAS and generate transport IDs
     return gpasClient
@@ -209,11 +197,7 @@ public class CdAgentFhirPseudonymizerController {
                     .collectList()
                     .map(VfpsPseudonymizeResponse::new))
         .doOnSuccess(
-            response ->
-                log.debug(
-                    "Generated {} transport IDs for transferId={}",
-                    response.pseudonyms().size(),
-                    transferId));
+            response -> log.debug("Generated {} transport IDs", response.pseudonyms().size()));
   }
 
   private Parameters buildResponse(VfpsPseudonymizeResponse response) {

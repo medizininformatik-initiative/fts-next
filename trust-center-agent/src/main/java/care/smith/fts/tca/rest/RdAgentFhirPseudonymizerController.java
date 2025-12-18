@@ -139,8 +139,7 @@ public class RdAgentFhirPseudonymizerController {
         .onErrorResume(this::handleError);
   }
 
-  private record ResolutionRequest(
-      String namespace, List<String> transportIds, String transferId) {}
+  private record ResolutionRequest(String namespace, List<String> transportIds) {}
 
   private ResolutionRequest parseRequest(Parameters params) {
     // Extract namespace
@@ -169,40 +168,16 @@ public class RdAgentFhirPseudonymizerController {
       throw new IllegalArgumentException("At least one 'originalValue' parameter is required");
     }
 
-    // Extract transferId if provided (for scoped lookups)
-    String transferId =
-        params.getParameter().stream()
-            .filter(p -> "transferId".equals(p.getName()))
-            .findFirst()
-            .map(ParametersParameterComponent::getValue)
-            .map(Base::primitiveValue)
-            .orElse(null);
+    log.debug("Parsed RDA request: namespace={}, transportIdCount={}", namespace, transportIds.size());
 
-    log.debug(
-        "Parsed RDA request: namespace={}, transportIdCount={}, transferId={}",
-        namespace,
-        transportIds.size(),
-        transferId);
-
-    return new ResolutionRequest(namespace, transportIds, transferId);
+    return new ResolutionRequest(namespace, transportIds);
   }
 
   private Mono<VfpsPseudonymizeResponse> resolveTransportIds(ResolutionRequest request) {
     var namespace = request.namespace();
     var transportIds = new HashSet<>(request.transportIds());
-    var transferId = request.transferId();
 
-    log.debug(
-        "Resolving {} transport IDs for namespace={}, transferId={}",
-        transportIds.size(),
-        namespace,
-        transferId);
-
-    if (transferId == null) {
-      // Without transferId, we can't resolve (need to know which session the tIDs belong to)
-      return Mono.error(
-          new IllegalArgumentException("Parameter 'transferId' is required for RDA resolution"));
-    }
+    log.debug("Resolving {} transport IDs for namespace={}", transportIds.size(), namespace);
 
     return transportIdService
         .fetchMappings(transportIds)
@@ -214,20 +189,14 @@ public class RdAgentFhirPseudonymizerController {
                 if (sId != null) {
                   entries.add(new PseudonymEntry(namespace, transportId, sId));
                 } else {
-                  log.warn(
-                      "Transport ID not found: tId={}, transferId={}", transportId, transferId);
+                  log.warn("Transport ID not found: tId={}", transportId);
                   // Return the tID as-is if not found (or could throw error)
                   entries.add(new PseudonymEntry(namespace, transportId, transportId));
                 }
               }
               return new VfpsPseudonymizeResponse(entries);
             })
-        .doOnSuccess(
-            response ->
-                log.debug(
-                    "Resolved {} transport IDs for transferId={}",
-                    response.pseudonyms().size(),
-                    transferId));
+        .doOnSuccess(response -> log.debug("Resolved {} transport IDs", response.pseudonyms().size()));
   }
 
   private Parameters buildResponse(VfpsPseudonymizeResponse response) {
