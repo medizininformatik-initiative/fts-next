@@ -56,12 +56,12 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   @Test
   void resolvePseudonyms_shouldReturnSecurePseudonym() {
     // First, store a mapping (simulating what CDA endpoint would do)
-    var transferId = transportIdService.generateTransferId();
+    var transferId = transportIdService.generateId();
     var tId = "test-transport-id-resolve";
     var sId = "secure-pseudonym-final";
     var domain = "test-domain";
 
-    transportIdService.storeMapping(transferId, tId, sId, domain, Duration.ofMinutes(5)).block();
+    transportIdService.storeMapping(tId, sId, Duration.ofMinutes(5)).block();
 
     // Build Vfps-format request with the tID
     var requestParams = buildVfpsRequest("test-domain", tId, transferId);
@@ -97,7 +97,7 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   @Test
   void resolvePseudonyms_withUnknownTransportId_shouldReturnOriginal() {
     // Create a transfer session without storing mappings
-    var transferId = transportIdService.generateTransferId();
+    var transferId = transportIdService.generateId();
     var unknownTId = "unknown-transport-id";
 
     // Need to store at least something to make the transfer exist
@@ -181,13 +181,13 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   @Test
   void resolvePseudonyms_multipleMappings_shouldResolveAll() {
     // Store multiple mappings
-    var transferId = transportIdService.generateTransferId();
+    var transferId = transportIdService.generateId();
     var domain = "test-domain";
     var ttl = Duration.ofMinutes(5);
 
-    transportIdService.storeMapping(transferId, "tId-1", "sId-1", domain, ttl).block();
-    transportIdService.storeMapping(transferId, "tId-2", "sId-2", domain, ttl).block();
-    transportIdService.storeMapping(transferId, "tId-3", "sId-3", domain, ttl).block();
+    transportIdService.storeMapping("tId-1", "sId-1", ttl).block();
+    transportIdService.storeMapping("tId-2", "sId-2", ttl).block();
+    transportIdService.storeMapping("tId-3", "sId-3", ttl).block();
 
     // Build request with multiple tIDs
     var requestParams = new Parameters();

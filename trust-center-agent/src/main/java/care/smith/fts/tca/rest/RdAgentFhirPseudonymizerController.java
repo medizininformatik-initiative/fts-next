@@ -205,7 +205,7 @@ public class RdAgentFhirPseudonymizerController {
     }
 
     return transportIdService
-        .resolveMappings(transferId, transportIds)
+        .fetchMappings(transportIds)
         .map(
             resolvedMappings -> {
               List<PseudonymEntry> entries = new ArrayList<>();

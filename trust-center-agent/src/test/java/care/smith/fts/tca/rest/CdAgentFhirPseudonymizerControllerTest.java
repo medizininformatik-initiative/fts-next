@@ -41,12 +41,10 @@ class CdAgentFhirPseudonymizerControllerTest {
     var requestParams = createSingleValueRequest("test-domain", "patient-123");
     var ttl = Duration.ofMinutes(10);
 
-    when(transportIdService.generateTransferId()).thenReturn("transfer-id-1");
+    when(transportIdService.generateId()).thenReturn("transfer-id-1", "tId-abc123");
     when(transportIdService.getDefaultTtl()).thenReturn(ttl);
-    when(transportIdService.generateTransportId()).thenReturn("tId-abc123");
-    when(transportIdService.storeMapping(
-            eq("transfer-id-1"), eq("tId-abc123"), eq("sId-456"), eq("test-domain"), eq(ttl)))
-        .thenReturn(Mono.just("tId-abc123"));
+    when(transportIdService.storeMapping(eq("tId-abc123"), eq("sId-456"), eq(ttl)))
+        .thenReturn(Mono.empty());
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.just(Map.of("patient-123", "sId-456")));
 
@@ -75,11 +73,10 @@ class CdAgentFhirPseudonymizerControllerTest {
     var requestParams = createMultiValueRequest("test-domain", "patient-1", "patient-2");
     var ttl = Duration.ofMinutes(10);
 
-    when(transportIdService.generateTransferId()).thenReturn("transfer-id-1");
+    when(transportIdService.generateId()).thenReturn("transfer-id-1", "tId-1", "tId-2");
     when(transportIdService.getDefaultTtl()).thenReturn(ttl);
-    when(transportIdService.generateTransportId()).thenReturn("tId-1", "tId-2");
-    when(transportIdService.storeMapping(anyString(), anyString(), anyString(), anyString(), any()))
-        .thenAnswer(invocation -> Mono.just(invocation.getArgument(1)));
+    when(transportIdService.storeMapping(anyString(), anyString(), any(Duration.class)))
+        .thenReturn(Mono.empty());
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.just(Map.of("patient-1", "sId-1", "patient-2", "sId-2")));
 
@@ -163,7 +160,7 @@ class CdAgentFhirPseudonymizerControllerTest {
   void createPseudonymReturnsInternalServerErrorOnBackendFailure() {
     var requestParams = createSingleValueRequest("test-domain", "patient-123");
 
-    when(transportIdService.generateTransferId()).thenReturn("transfer-id-1");
+    when(transportIdService.generateId()).thenReturn("transfer-id-1");
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.error(new RuntimeException("Backend connection failed")));
 

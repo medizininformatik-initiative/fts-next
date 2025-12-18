@@ -167,8 +167,8 @@ public class CdAgentFhirPseudonymizerController {
       throw new IllegalArgumentException("At least one 'originalValue' parameter is required");
     }
 
-    // Generate a transfer ID for this batch
-    var transferId = transportIdService.generateTransferId();
+    // Generate a transfer ID for this batch (used for logging/tracing)
+    var transferId = transportIdService.generateId();
 
     log.debug(
         "Parsed request: namespace={}, originalCount={}, transferId={}",
@@ -200,11 +200,11 @@ public class CdAgentFhirPseudonymizerController {
                         entry -> {
                           var original = entry.getKey();
                           var sId = entry.getValue();
-                          var tId = transportIdService.generateTransportId();
+                          var tId = transportIdService.generateId();
 
                           return transportIdService
-                              .storeMapping(transferId, tId, sId, namespace, ttl)
-                              .map(storedTId -> new PseudonymEntry(namespace, original, storedTId));
+                              .storeMapping(tId, sId, ttl)
+                              .thenReturn(new PseudonymEntry(namespace, original, tId));
                         })
                     .collectList()
                     .map(VfpsPseudonymizeResponse::new))

@@ -35,7 +35,7 @@ class RdAgentFhirPseudonymizerControllerTest {
   void resolvePseudonymsSuccessfullyReturnsSingleEntry() {
     var requestParams = createSingleValueRequest("test-domain", "tId-123", "transfer-id-1");
 
-    when(transportIdService.resolveMappings(eq("transfer-id-1"), anySet()))
+    when(transportIdService.fetchMappings(anySet()))
         .thenReturn(Mono.just(Map.of("tId-123", "sId-456")));
 
     var result = controller.resolvePseudonyms(requestParams);
@@ -62,7 +62,7 @@ class RdAgentFhirPseudonymizerControllerTest {
   void resolvePseudonymsSuccessfullyReturnsMultipleEntries() {
     var requestParams = createMultiValueRequest("test-domain", "transfer-id-1", "tId-1", "tId-2");
 
-    when(transportIdService.resolveMappings(eq("transfer-id-1"), anySet()))
+    when(transportIdService.fetchMappings(anySet()))
         .thenReturn(Mono.just(Map.of("tId-1", "sId-1", "tId-2", "sId-2")));
 
     var result = controller.resolvePseudonyms(requestParams);
@@ -85,7 +85,7 @@ class RdAgentFhirPseudonymizerControllerTest {
   void resolvePseudonymsReturnsTidWhenNotFound() {
     var requestParams = createSingleValueRequest("test-domain", "tId-missing", "transfer-id-1");
 
-    when(transportIdService.resolveMappings(eq("transfer-id-1"), anySet()))
+    when(transportIdService.fetchMappings(anySet()))
         .thenReturn(Mono.just(Map.of()));
 
     var result = controller.resolvePseudonyms(requestParams);
@@ -191,7 +191,7 @@ class RdAgentFhirPseudonymizerControllerTest {
   void resolvePseudonymsReturnsInternalServerErrorOnServiceFailure() {
     var requestParams = createSingleValueRequest("test-domain", "tId-123", "transfer-id-1");
 
-    when(transportIdService.resolveMappings(eq("transfer-id-1"), anySet()))
+    when(transportIdService.fetchMappings(anySet()))
         .thenReturn(Mono.error(new RuntimeException("Redis connection failed")));
 
     var result = controller.resolvePseudonyms(requestParams);
