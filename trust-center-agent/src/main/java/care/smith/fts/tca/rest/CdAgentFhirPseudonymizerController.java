@@ -180,8 +180,23 @@ public class CdAgentFhirPseudonymizerController {
   private Mono<PseudonymEntry> createPseudonymEntry(
       String original, String sId, String namespace, Duration ttl) {
     var tId = transportIdService.generateId();
-    return transportIdService
-        .storeMapping(tId, sId, ttl)
+
+    var linkDateShift =
+        transportIdService
+            .fetchAndDeleteTempDateShift(original)
+            .flatMap(
+                rdDateShift -> {
+                  log.debug("Linking dateshift to tId={}, days={}", tId, rdDateShift);
+                  return transportIdService.storeDateShift(tId, rdDateShift, ttl);
+                })
+            .onErrorResume(
+                e -> {
+                  log.warn(
+                      "Failed to link dateshift for original={}: {}", original, e.getMessage());
+                  return Mono.empty();
+                });
+
+    return Mono.when(transportIdService.storeMapping(tId, sId, ttl), linkDateShift)
         .thenReturn(new PseudonymEntry(namespace, original, tId));
   }
 
