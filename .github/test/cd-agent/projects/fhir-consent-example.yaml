@@ -14,7 +14,7 @@ cohortSelector:
     # Identifier system filter. Only patients with identifiers from this system will be included in the cohort.
     patientIdentifierSystem: http://fts.smith.care
     # Policy system filter. Only policies with identifiers from this system will be considered valid.
-    # see e.g.: https://simplifier.net/medizininformatikinitiative-modulconsent/2.16.840.1.113883.3.1937.777.24.5.3--20210423105554
+    # see e.g.: https://simplifier.net/medizininformatikinitiative-modulconsent/2.16.840.1.113883.3.1937.777.24.5.3--20251211153003
     policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3" # MII CS Consent Policy
     # List of required policies. The consent must explicitly document approval for all these policies.
     policies:
