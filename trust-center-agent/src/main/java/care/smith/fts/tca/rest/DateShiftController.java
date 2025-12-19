@@ -8,6 +8,8 @@ import care.smith.fts.tca.services.TransportIdService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -27,10 +29,13 @@ import reactor.core.publisher.Mono;
  *
  * <p>The date shift is split between CDA and RDA for security: neither agent knows the total shift.
  *
- * <ul>
- *   <li>CDA endpoint: Generates new date shifts, stores RDA's portion in Redis
- *   <li>RDA endpoint: Retrieves the stored RDA date shift portion
- * </ul>
+ * <p>The flow is:
+ *
+ * <ol>
+ *   <li>CDA calls /cd/dateshift with patientId → TCA stores temp: patientId → rdDateShift
+ *   <li>CDA calls /cd/fhir/$create-pseudonym → TCA links temp to transportId
+ *   <li>RDA calls /rd/dateshift with transportId → gets rdDateShift
+ * </ol>
  */
 @Slf4j
 @RestController
@@ -54,25 +59,25 @@ public class DateShiftController {
    * <ol>
    *   <li>Fetches a deterministic seed from gPAS based on patientId and maxDateShift
    *   <li>Generates cdDateShift and rdDateShift using the seed
-   *   <li>Stores rdDateShift in Redis for later retrieval by RDA
+   *   <li>Stores rdDateShift temporarily keyed by patientId (linked to transportId later)
    *   <li>Returns cdDateShift to CDA (converted to days)
    * </ol>
    *
    * @param request contains patientId, maxDateShift, preserve mode, and gPAS domain
-   * @return DateShiftResponse with transferId and cdDateShiftDays
+   * @return CdDateShiftResponse with cdDateShiftDays
    */
   @PostMapping("cd/dateshift")
   @Operation(
       summary = "Generate date shift for CDA",
       description =
           "Generates deterministic date shifts for a patient. "
-              + "Returns CDA's portion, stores RDA's portion in Redis.",
+              + "Returns CDA's portion, stores RDA's portion temporarily in Redis.",
       responses = {
         @ApiResponse(responseCode = "200", description = "Date shift generated successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
         @ApiResponse(responseCode = "502", description = "gPAS service unavailable")
       })
-  public Mono<ResponseEntity<DateShiftResponse>> generateCdDateShift(
+  public Mono<ResponseEntity<CdDateShiftResponse>> generateCdDateShift(
       @Valid @RequestBody DateShiftRequest request) {
 
     log.debug(
@@ -81,10 +86,8 @@ public class DateShiftController {
         request.maxDateShift(),
         request.dateShiftPreserve());
 
-    var transferId = transportIdService.generateId();
-
     return fetchDateShiftSeed(request)
-        .flatMap(seed -> generateAndStoreDateShifts(seed, request, transferId))
+        .flatMap(seed -> generateAndStoreDateShifts(seed, request))
         .map(ResponseEntity::ok)
         .doOnError(e -> log.error("Failed to generate date shift: {}", e.getMessage()));
   }
@@ -96,59 +99,60 @@ public class DateShiftController {
         .map(m -> m.get(dateShiftKey));
   }
 
-  private Mono<DateShiftResponse> generateAndStoreDateShifts(
-      String seed, DateShiftRequest request, String transferId) {
+  private Mono<CdDateShiftResponse> generateAndStoreDateShifts(
+      String seed, DateShiftRequest request) {
     var dateShifts = generate(seed, request.maxDateShift(), request.dateShiftPreserve());
     int cdDateShiftDays = (int) dateShifts.cdDateShift().toDays();
     int rdDateShiftDays = (int) dateShifts.rdDateShift().toDays();
 
     log.debug(
-        "Generated date shifts: cdDays={}, rdDays={}, transferId={}",
+        "Generated date shifts: cdDays={}, rdDays={}, patientId={}",
         cdDateShiftDays,
         rdDateShiftDays,
-        transferId);
+        request.patientId());
 
     return transportIdService
-        .storeDateShift(transferId, rdDateShiftDays, transportIdService.getDefaultTtl())
-        .thenReturn(new DateShiftResponse(transferId, cdDateShiftDays));
+        .storeTempDateShift(request.patientId(), rdDateShiftDays)
+        .thenReturn(new CdDateShiftResponse(cdDateShiftDays));
   }
 
   /**
    * Retrieves the stored RDA date shift.
    *
-   * <p>This endpoint looks up the rdDateShift stored during CDA processing and returns it for RDA's
-   * FHIR Pseudonymizer.
+   * <p>This endpoint looks up the rdDateShift linked to the transportId during pseudonymization.
    *
-   * @param transferId the session identifier from CDA processing
+   * @param transportId the transport ID from the pseudonymized bundle
    * @return DateShiftResponse with rdDateShiftDays
    */
   @GetMapping("rd/dateshift")
   @Operation(
       summary = "Retrieve date shift for RDA",
-      description = "Retrieves the stored RDA date shift portion for a transfer session.",
+      description = "Retrieves the stored RDA date shift portion for a transport ID.",
       responses = {
         @ApiResponse(responseCode = "200", description = "Date shift retrieved successfully"),
-        @ApiResponse(responseCode = "404", description = "Transfer ID not found (may have expired)")
+        @ApiResponse(
+            responseCode = "404",
+            description = "Transport ID not found (may have expired)")
       })
   public Mono<ResponseEntity<DateShiftResponse>> getRdDateShift(
-      @RequestParam("transferId") String transferId) {
+      @RequestParam("transportId") @NotNull @Pattern(regexp = "^[\\w-]+$") String transportId) {
 
-    log.debug("Retrieving RDA date shift for transferId={}", transferId);
+    log.debug("Retrieving RDA date shift for transportId={}", transportId);
 
     return transportIdService
-        .fetchDateShift(transferId)
-        .map(rdDateShiftDays -> new DateShiftResponse(transferId, rdDateShiftDays))
+        .fetchDateShift(transportId)
+        .map(rdDateShiftDays -> new DateShiftResponse(transportId, rdDateShiftDays))
         .map(ResponseEntity::ok)
         .defaultIfEmpty(ResponseEntity.notFound().build())
         .doOnSuccess(
             resp -> {
               if (resp.getStatusCode().is2xxSuccessful()) {
                 log.debug(
-                    "Retrieved RDA date shift: transferId={}, days={}",
-                    transferId,
+                    "Retrieved RDA date shift: transportId={}, days={}",
+                    transportId,
                     resp.getBody().dateShiftDays());
               } else {
-                log.warn("Date shift not found for transferId={}", transferId);
+                log.warn("Date shift not found for transportId={}", transportId);
               }
             });
   }

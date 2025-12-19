@@ -38,6 +38,7 @@ public class TransportIdService {
   private static final int ID_BYTES = 24; // 24 bytes = 32 Base64URL chars
   private static final String TID_KEY_PREFIX = "tid:";
   private static final String DATESHIFT_KEY_PREFIX = "dateshift:";
+  private static final String TEMP_DATESHIFT_KEY_PREFIX = "temp-dateshift:";
 
   private final RandomGenerator randomGenerator;
   private final RedissonClient redisClient;
@@ -80,16 +81,13 @@ public class TransportIdService {
    * @return Mono completing when storage is done
    */
   public Mono<Void> storeAllMappings(String transferId, Map<String, String> allData, Duration ttl) {
-    return Mono.defer(
-        () -> {
-          var mapCache = getMapCache(transferId);
-          return mapCache
-              .expire(ttl)
-              .then(mapCache.putAll(allData))
-              .retryWhen(defaultRetryStrategy(meterRegistry, "storeAllMappings"))
-              .doOnSuccess(
-                  v -> log.trace("Stored {} entries: transferId={}", allData.size(), transferId));
-        });
+    var mapCache = getMapCache(transferId);
+    return mapCache
+        .expire(ttl)
+        .then(mapCache.putAll(allData))
+        .retryWhen(defaultRetryStrategy(meterRegistry, "storeAllMappings"))
+        .doOnSuccess(
+            v -> log.trace("Stored {} entries: transferId={}", allData.size(), transferId));
   }
 
   /**
@@ -99,15 +97,10 @@ public class TransportIdService {
    * @return Mono emitting all stored data for this session
    */
   public Mono<Map<String, String>> fetchAllMappings(String transferId) {
-    return Mono.defer(
-        () -> {
-          var mapCache = getMapCache(transferId);
-          return mapCache
-              .readAllMap()
-              .retryWhen(defaultRetryStrategy(meterRegistry, "fetchAllMappings"))
-              .doOnSuccess(
-                  m -> log.trace("Fetched {} entries: transferId={}", m.size(), transferId));
-        });
+    return getMapCache(transferId)
+        .readAllMap()
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchAllMappings"))
+        .doOnSuccess(m -> log.trace("Fetched {} entries: transferId={}", m.size(), transferId));
   }
 
   // ========== Direct tid→sid storage (without transferId grouping) ==========
@@ -123,14 +116,12 @@ public class TransportIdService {
    * @return Mono completing when storage is done
    */
   public Mono<Void> storeMapping(String tid, String sid) {
-    return Mono.defer(
-        () -> {
-          var bucket = redisClient.reactive().<String>getBucket(tidKey(tid));
-          return bucket
-              .set(sid, ttl)
-              .retryWhen(defaultRetryStrategy(meterRegistry, "storeMapping"))
-              .doOnSuccess(v -> log.trace("Stored direct mapping: tid={}", tid));
-        });
+    return redisClient
+        .reactive()
+        .<String>getBucket(tidKey(tid))
+        .set(sid, ttl)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "storeMapping"))
+        .doOnSuccess(v -> log.trace("Stored direct mapping: tid={}", tid));
   }
 
   /**
@@ -140,14 +131,12 @@ public class TransportIdService {
    * @return Mono emitting the sid, or empty if not found
    */
   public Mono<String> fetchMapping(String tid) {
-    return Mono.defer(
-        () -> {
-          var bucket = redisClient.reactive().<String>getBucket(tidKey(tid));
-          return bucket
-              .get()
-              .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMapping"))
-              .doOnSuccess(sid -> log.trace("Fetched mapping: tid={}, found={}", tid, sid != null));
-        });
+    return redisClient
+        .reactive()
+        .<String>getBucket(tidKey(tid))
+        .get()
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMapping"))
+        .doOnSuccess(sid -> log.trace("Fetched mapping: tid={}, found={}", tid, sid != null));
   }
 
   /**
@@ -161,19 +150,13 @@ public class TransportIdService {
     if (tidToSid.isEmpty()) {
       return Mono.empty();
     }
-    return Mono.defer(
-        () -> {
-          var batch = redisClient.reactive().createBatch();
-          tidToSid.forEach(
-              (tid, sid) -> {
-                batch.<String>getBucket(tidKey(tid)).set(sid, ttl);
-              });
-          return batch
-              .execute()
-              .retryWhen(defaultRetryStrategy(meterRegistry, "storeMappings"))
-              .doOnSuccess(v -> log.trace("Stored {} direct mappings", tidToSid.size()))
-              .then();
-        });
+    var batch = redisClient.reactive().createBatch();
+    tidToSid.forEach((tid, sid) -> batch.<String>getBucket(tidKey(tid)).set(sid, ttl));
+    return batch
+        .execute()
+        .retryWhen(defaultRetryStrategy(meterRegistry, "storeMappings"))
+        .doOnSuccess(v -> log.trace("Stored {} direct mappings", tidToSid.size()))
+        .then();
   }
 
   /**
@@ -189,24 +172,20 @@ public class TransportIdService {
     if (tids.isEmpty()) {
       return Mono.just(Map.of());
     }
-    return Mono.defer(
-        () -> {
-          var keys = tids.stream().map(this::tidKey).toArray(String[]::new);
-          return redisClient
-              .reactive()
-              .getBuckets()
-              .<String>get(keys)
-              .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMappings"))
-              .map(
-                  result ->
-                      result.entrySet().stream()
-                          .collect(
-                              Collectors.toMap(
-                                  e -> e.getKey().substring(TID_KEY_PREFIX.length()),
-                                  Map.Entry::getValue)))
-              .doOnSuccess(
-                  m -> log.trace("Fetched {} of {} requested mappings", m.size(), tids.size()));
-        });
+    var keys = tids.stream().map(this::tidKey).toArray(String[]::new);
+    return redisClient
+        .reactive()
+        .getBuckets()
+        .<String>get(keys)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMappings"))
+        .map(
+            result ->
+                result.entrySet().stream()
+                    .collect(
+                        Collectors.toMap(
+                            e -> e.getKey().substring(TID_KEY_PREFIX.length()),
+                            Map.Entry::getValue)))
+        .doOnSuccess(m -> log.trace("Fetched {} of {} requested mappings", m.size(), tids.size()));
   }
 
   private String tidKey(String tid) {
@@ -225,27 +204,22 @@ public class TransportIdService {
    * Stores the RDA date shift value for a transfer session.
    *
    * <p>This is used by the FHIR Pseudonymizer date shift endpoint to store the RDA's portion of the
-   * date shift, which will be retrieved when RDA processes the bundle.
+   * date shift, which will be retrieved when RDA processes the bundle. Uses the configured TTL.
    *
    * @param transferId the transfer session identifier
    * @param rdDateShiftDays the RDA date shift in days
-   * @param ttl time-to-live for this mapping
    * @return Mono completing when storage is done
    */
-  public Mono<Void> storeDateShift(String transferId, int rdDateShiftDays, Duration ttl) {
-    return Mono.defer(
-        () -> {
-          var bucket = redisClient.reactive().<Integer>getBucket(dateShiftKey(transferId));
-          return bucket
-              .set(rdDateShiftDays, ttl)
-              .retryWhen(defaultRetryStrategy(meterRegistry, "storeDateShift"))
-              .doOnSuccess(
-                  v ->
-                      log.trace(
-                          "Stored date shift: transferId={}, days={}",
-                          transferId,
-                          rdDateShiftDays));
-        });
+  public Mono<Void> storeDateShift(String transferId, int rdDateShiftDays) {
+    return redisClient
+        .reactive()
+        .<Integer>getBucket(dateShiftKey(transferId))
+        .set(rdDateShiftDays, ttl)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "storeDateShift"))
+        .doOnSuccess(
+            v ->
+                log.trace(
+                    "Stored date shift: transferId={}, days={}", transferId, rdDateShiftDays));
   }
 
   /**
@@ -255,16 +229,62 @@ public class TransportIdService {
    * @return Mono emitting the date shift in days, or empty if not found
    */
   public Mono<Integer> fetchDateShift(String transferId) {
-    return Mono.defer(
-        () -> {
-          var bucket = redisClient.reactive().<Integer>getBucket(dateShiftKey(transferId));
-          return bucket
-              .get()
-              .retryWhen(defaultRetryStrategy(meterRegistry, "fetchDateShift"))
-              .doOnSuccess(
-                  days ->
-                      log.trace(
-                          "Fetched date shift: transferId={}, found={}", transferId, days != null));
-        });
+    return redisClient
+        .reactive()
+        .<Integer>getBucket(dateShiftKey(transferId))
+        .get()
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchDateShift"))
+        .doOnSuccess(
+            days ->
+                log.trace("Fetched date shift: transferId={}, found={}", transferId, days != null));
+  }
+
+  /**
+   * Stores the RDA date shift temporarily keyed by patientId.
+   *
+   * <p>This is used when CDA calls the dateshift endpoint before pseudonymization. The temp entry
+   * will be linked to the transportId when CDA calls create-pseudonym.
+   *
+   * @param patientId the patient identifier
+   * @param rdDateShiftDays the RDA date shift in days
+   * @return Mono completing when storage is done
+   */
+  public Mono<Void> storeTempDateShift(String patientId, int rdDateShiftDays) {
+    return redisClient
+        .reactive()
+        .<Integer>getBucket(tempDateShiftKey(patientId))
+        .set(rdDateShiftDays, ttl)
+        .retryWhen(defaultRetryStrategy(meterRegistry, "storeTempDateShift"))
+        .doOnSuccess(
+            v ->
+                log.trace(
+                    "Stored temp date shift: patientId={}, days={}", patientId, rdDateShiftDays));
+  }
+
+  /**
+   * Fetches and deletes the temporary date shift for a patientId (atomic operation).
+   *
+   * <p>Used during pseudonymization to retrieve the stored date shift and link it to the generated
+   * transportId.
+   *
+   * @param patientId the patient identifier
+   * @return Mono emitting the date shift in days, or empty if not found
+   */
+  public Mono<Integer> fetchAndDeleteTempDateShift(String patientId) {
+    return redisClient
+        .reactive()
+        .<Integer>getBucket(tempDateShiftKey(patientId))
+        .getAndDelete()
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchAndDeleteTempDateShift"))
+        .doOnSuccess(
+            days ->
+                log.trace(
+                    "Fetched and deleted temp date shift: patientId={}, found={}",
+                    patientId,
+                    days != null));
+  }
+
+  private String tempDateShiftKey(String patientId) {
+    return TEMP_DATESHIFT_KEY_PREFIX + patientId;
   }
 }
