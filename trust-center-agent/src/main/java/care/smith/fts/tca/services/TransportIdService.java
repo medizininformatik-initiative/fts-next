@@ -37,6 +37,7 @@ public class TransportIdService {
 
   private static final int ID_BYTES = 24; // 24 bytes = 32 Base64URL chars
   private static final String TID_KEY_PREFIX = "tid:";
+  private static final String DATESHIFT_KEY_PREFIX = "dateshift:";
 
   private final RandomGenerator randomGenerator;
   private final RedissonClient redisClient;
@@ -222,7 +223,58 @@ public class TransportIdService {
     return TID_KEY_PREFIX + tid;
   }
 
+  private String dateShiftKey(String transferId) {
+    return DATESHIFT_KEY_PREFIX + transferId;
+  }
+
   private RMapCacheReactive<String, String> getMapCache(String transferId) {
     return redisClient.reactive().getMapCache(transferId);
+  }
+
+  /**
+   * Stores the RDA date shift value for a transfer session.
+   *
+   * <p>This is used by the FHIR Pseudonymizer date shift endpoint to store the RDA's portion of the
+   * date shift, which will be retrieved when RDA processes the bundle.
+   *
+   * @param transferId the transfer session identifier
+   * @param rdDateShiftDays the RDA date shift in days
+   * @param ttl time-to-live for this mapping
+   * @return Mono completing when storage is done
+   */
+  public Mono<Void> storeDateShift(String transferId, int rdDateShiftDays, Duration ttl) {
+    return Mono.defer(
+        () -> {
+          var bucket = redisClient.reactive().<Integer>getBucket(dateShiftKey(transferId));
+          return bucket
+              .set(rdDateShiftDays, ttl)
+              .retryWhen(defaultRetryStrategy(meterRegistry, "storeDateShift"))
+              .doOnSuccess(
+                  v ->
+                      log.trace(
+                          "Stored date shift: transferId={}, days={}",
+                          transferId,
+                          rdDateShiftDays));
+        });
+  }
+
+  /**
+   * Fetches the stored RDA date shift value for a transfer session.
+   *
+   * @param transferId the transfer session identifier
+   * @return Mono emitting the date shift in days, or empty if not found
+   */
+  public Mono<Integer> fetchDateShift(String transferId) {
+    return Mono.defer(
+        () -> {
+          var bucket = redisClient.reactive().<Integer>getBucket(dateShiftKey(transferId));
+          return bucket
+              .get()
+              .retryWhen(defaultRetryStrategy(meterRegistry, "fetchDateShift"))
+              .doOnSuccess(
+                  days ->
+                      log.trace(
+                          "Fetched date shift: transferId={}, found={}", transferId, days != null));
+        });
   }
 }
