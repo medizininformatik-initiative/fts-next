@@ -4,6 +4,8 @@ import static care.smith.fts.tca.rest.FhirParameterExtractor.addParameter;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.addPart;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredString;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredStrings;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.validateIdentifier;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.validateIdentifiers;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 
 import care.smith.fts.tca.deidentification.GpasClient;
@@ -143,8 +145,9 @@ public class CdAgentFhirPseudonymizerController {
   }
 
   private VfpsPseudonymizeRequest parseRequest(Parameters params) {
-    String namespace = extractRequiredString(params, "namespace");
-    List<String> originals = extractRequiredStrings(params, "originalValue");
+    String namespace = validateIdentifier(extractRequiredString(params, "namespace"), "namespace");
+    List<String> originals =
+        validateIdentifiers(extractRequiredStrings(params, "originalValue"), "originalValue");
 
     log.debug("Parsed request: namespace={}, originalCount={}", namespace, originals.size());
 

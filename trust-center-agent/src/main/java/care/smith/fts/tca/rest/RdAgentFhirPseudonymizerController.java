@@ -4,6 +4,8 @@ import static care.smith.fts.tca.rest.FhirParameterExtractor.addParameter;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.addPart;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredString;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredStrings;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.validateIdentifier;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.validateIdentifiers;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 
 import care.smith.fts.tca.rest.VfpsPseudonymizeResponse.PseudonymEntry;
@@ -144,8 +146,9 @@ public class RdAgentFhirPseudonymizerController {
   private record ResolutionRequest(String namespace, List<String> transportIds) {}
 
   private ResolutionRequest parseRequest(Parameters params) {
-    String namespace = extractRequiredString(params, "namespace");
-    List<String> transportIds = extractRequiredStrings(params, "originalValue");
+    String namespace = validateIdentifier(extractRequiredString(params, "namespace"), "namespace");
+    List<String> transportIds =
+        validateIdentifiers(extractRequiredStrings(params, "originalValue"), "originalValue");
 
     log.debug(
         "Parsed RDA request: namespace={}, transportIdCount={}", namespace, transportIds.size());

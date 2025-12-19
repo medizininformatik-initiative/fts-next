@@ -3,6 +3,7 @@ package care.smith.fts.tca.rest;
 import care.smith.fts.api.DateShiftPreserve;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.time.Duration;
 
 /**
@@ -14,7 +15,7 @@ import java.time.Duration;
  * @param dateShiftDomain gPAS domain name for fetching/storing dateShift seeds
  */
 public record DateShiftRequest(
-    @NotBlank String patientId,
+    @NotBlank @Pattern(regexp = "^[\\w-]+$") String patientId,
     @NotNull Duration maxDateShift,
     @NotNull DateShiftPreserve dateShiftPreserve,
-    @NotBlank String dateShiftDomain) {}
+    @NotBlank @Pattern(regexp = "^[\\w-]+$") String dateShiftDomain) {}

@@ -1,6 +1,7 @@
 package care.smith.fts.tca.rest;
 
 import java.util.List;
+import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Parameters;
@@ -10,6 +11,11 @@ import org.hl7.fhir.r4.model.StringType;
 /** Utility class for extracting and adding values to FHIR Parameters resources. */
 @UtilityClass
 public class FhirParameterExtractor {
+
+  /** Pattern for safe identifier strings: word characters and hyphens only. */
+  private static final Pattern SAFE_IDENTIFIER_PATTERN = Pattern.compile("^[\\w-]+$");
+
+  private static final int MAX_IDENTIFIER_LENGTH = 256;
 
   /**
    * Extracts a required string parameter from FHIR Parameters.
@@ -89,5 +95,41 @@ public class FhirParameterExtractor {
    */
   public static void addPart(ParametersParameterComponent param, String name, String value) {
     param.addPart().setName(name).setValue(new StringType(value));
+  }
+
+  /**
+   * Validates that a string is a safe identifier (word characters and hyphens only).
+   *
+   * @param value the value to validate
+   * @param paramName the parameter name for error messages
+   * @return the validated value
+   * @throws IllegalArgumentException if the value is invalid
+   */
+  public static String validateIdentifier(String value, String paramName) {
+    if (value.length() > MAX_IDENTIFIER_LENGTH) {
+      throw new IllegalArgumentException(
+          "Parameter '%s' exceeds maximum length of %d"
+              .formatted(paramName, MAX_IDENTIFIER_LENGTH));
+    }
+    if (!SAFE_IDENTIFIER_PATTERN.matcher(value).matches()) {
+      throw new IllegalArgumentException(
+          "Parameter '%s' contains invalid characters".formatted(paramName));
+    }
+    return value;
+  }
+
+  /**
+   * Validates a list of strings as safe identifiers.
+   *
+   * @param values the values to validate
+   * @param paramName the parameter name for error messages
+   * @return the validated values
+   * @throws IllegalArgumentException if any value is invalid
+   */
+  public static List<String> validateIdentifiers(List<String> values, String paramName) {
+    for (String value : values) {
+      validateIdentifier(value, paramName);
+    }
+    return values;
   }
 }

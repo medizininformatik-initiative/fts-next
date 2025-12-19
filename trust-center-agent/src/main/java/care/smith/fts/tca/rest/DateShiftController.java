@@ -8,6 +8,8 @@ import care.smith.fts.tca.services.TransportIdService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -126,7 +128,7 @@ public class DateShiftController {
         @ApiResponse(responseCode = "404", description = "Transfer ID not found (may have expired)")
       })
   public Mono<ResponseEntity<DateShiftResponse>> getRdDateShift(
-      @RequestParam("transferId") String transferId) {
+      @RequestParam("transferId") @NotNull @Pattern(regexp = "^[\\w-]+$") String transferId) {
 
     log.debug("Retrieving RDA date shift for transferId={}", transferId);
 
