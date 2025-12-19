@@ -40,6 +40,7 @@ class CdAgentFhirPseudonymizerControllerTest {
 
     when(transportIdService.generateId()).thenReturn("tId-abc123");
     when(transportIdService.storeMapping(eq("tId-abc123"), eq("sId-456"))).thenReturn(Mono.empty());
+    when(transportIdService.fetchAndDeleteTempDateShift(anyString())).thenReturn(Mono.empty());
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.just(Map.of("patient-123", "sId-456")));
 
@@ -69,6 +70,7 @@ class CdAgentFhirPseudonymizerControllerTest {
 
     when(transportIdService.generateId()).thenReturn("tId-1", "tId-2");
     when(transportIdService.storeMapping(anyString(), anyString())).thenReturn(Mono.empty());
+    when(transportIdService.fetchAndDeleteTempDateShift(anyString())).thenReturn(Mono.empty());
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.just(Map.of("patient-1", "sId-1", "patient-2", "sId-2")));
 
