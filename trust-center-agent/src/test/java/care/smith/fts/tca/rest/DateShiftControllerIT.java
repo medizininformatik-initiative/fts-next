@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Parameters;
+import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,16 +56,20 @@ class DateShiftControllerIT extends BaseIT {
   void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     cdClient = factory.webClient("https://localhost:" + port, "cd-agent");
     redisClient.getKeys().deleteByPattern("dateshift:*");
+    redisClient.getKeys().deleteByPattern("temp-dateshift:*");
+    redisClient.getKeys().deleteByPattern("tid:*");
   }
 
   @AfterEach
   void tearDown() {
     gpas().resetMappings();
     redisClient.getKeys().deleteByPattern("dateshift:*");
+    redisClient.getKeys().deleteByPattern("temp-dateshift:*");
+    redisClient.getKeys().deleteByPattern("tid:*");
   }
 
   @Test
-  void generateCdDateShift_shouldReturnTransferIdAndDateShift() throws IOException {
+  void generateCdDateShift_shouldReturnDateShift() throws IOException {
     stubGpasForDateShift("patient-123", "seed-abc");
 
     var request =
@@ -77,16 +83,12 @@ class DateShiftControllerIT extends BaseIT {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
-            .bodyToMono(DateShiftResponse.class);
+            .bodyToMono(CdDateShiftResponse.class);
 
     create(response)
         .assertNext(
             resp -> {
               assertThat(resp).isNotNull();
-              assertThat(resp.transferId())
-                  .isNotNull()
-                  .hasSize(32)
-                  .matches(s -> s.matches("^[A-Za-z0-9_-]+$"), "should be Base64URL encoded");
               assertThat(resp.dateShiftDays())
                   .isBetween((int) -MAX_DATE_SHIFT.toDays(), (int) MAX_DATE_SHIFT.toDays());
             })
@@ -94,7 +96,7 @@ class DateShiftControllerIT extends BaseIT {
   }
 
   @Test
-  void generateCdDateShift_shouldStoreDateShiftInRedis() throws IOException {
+  void generateCdDateShift_shouldStoreTempDateShiftInRedis() throws IOException {
     stubGpasForDateShift("patient-456", "seed-stored");
 
     var request =
@@ -108,17 +110,17 @@ class DateShiftControllerIT extends BaseIT {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
-            .bodyToMono(DateShiftResponse.class)
+            .bodyToMono(CdDateShiftResponse.class)
             .block();
 
     assertThat(resp).isNotNull();
 
-    // Verify dateshift was stored in Redis
-    var keys = redisClient.getKeys().getKeysByPattern("dateshift:*");
+    // Verify temp dateshift was stored in Redis keyed by patientId
+    var keys = redisClient.getKeys().getKeysByPattern("temp-dateshift:*");
     assertThat(keys).isNotEmpty();
 
-    // The stored value should be accessible via the transferId
-    var storedDateShift = redisClient.<Integer>getBucket("dateshift:" + resp.transferId()).get();
+    // The stored value should be accessible via the patientId
+    var storedDateShift = redisClient.<Integer>getBucket("temp-dateshift:patient-456").get();
     assertThat(storedDateShift).isNotNull();
   }
 
@@ -138,11 +140,12 @@ class DateShiftControllerIT extends BaseIT {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
-            .bodyToMono(DateShiftResponse.class)
+            .bodyToMono(CdDateShiftResponse.class)
             .block();
 
-    // Reset gPAS mock and make second request
+    // Reset gPAS mock and temp storage, make second request
     gpas().resetMappings();
+    redisClient.getKeys().deleteByPattern("temp-dateshift:*");
     stubGpasForDateShift("patient-deterministic", "fixed-seed-xyz");
 
     var resp2 =
@@ -152,20 +155,18 @@ class DateShiftControllerIT extends BaseIT {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
-            .bodyToMono(DateShiftResponse.class)
+            .bodyToMono(CdDateShiftResponse.class)
             .block();
 
     assertThat(resp1).isNotNull();
     assertThat(resp2).isNotNull();
     // Same seed should produce same date shift
     assertThat(resp1.dateShiftDays()).isEqualTo(resp2.dateShiftDays());
-    // But different transfer IDs (they are random)
-    assertThat(resp1.transferId()).isNotEqualTo(resp2.transferId());
   }
 
   @Test
   void getRdDateShift_shouldReturnStoredDateShift() throws IOException {
-    // First generate a date shift via CDA endpoint
+    // Step 1: Generate a date shift via CDA dateshift endpoint (stores temp-dateshift:<patientId>)
     stubGpasForDateShift("patient-rd-test", "seed-rd");
 
     var cdRequest =
@@ -179,12 +180,31 @@ class DateShiftControllerIT extends BaseIT {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(cdRequest)
             .retrieve()
-            .bodyToMono(DateShiftResponse.class)
+            .bodyToMono(CdDateShiftResponse.class)
             .block();
 
     assertThat(cdResponse).isNotNull();
 
-    // Now retrieve the RDA date shift
+    // Step 2: Call create-pseudonym to link dateshift to transportId
+    stubGpasForPseudonym("patient-rd-test", "sID-test-pseudonym");
+
+    var vfpsRequest = buildVfpsRequest(DATESHIFT_DOMAIN, "patient-rd-test");
+    var vfpsResponse =
+        cdClient
+            .post()
+            .uri("/api/v2/cd/fhir/$create-pseudonym")
+            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
+            .header("Accept", APPLICATION_FHIR_JSON)
+            .bodyValue(vfpsRequest)
+            .retrieve()
+            .bodyToMono(Parameters.class)
+            .block();
+
+    assertThat(vfpsResponse).isNotNull();
+    var transportId = extractPseudonymValue(vfpsResponse);
+    assertThat(transportId).isNotNull().hasSize(32);
+
+    // Step 3: Retrieve the RDA date shift using the transportId
     var rdResponse =
         cdClient
             .get()
@@ -192,7 +212,7 @@ class DateShiftControllerIT extends BaseIT {
                 uriBuilder ->
                     uriBuilder
                         .path(RD_DATESHIFT_ENDPOINT)
-                        .queryParam("transferId", cdResponse.transferId())
+                        .queryParam("transportId", transportId)
                         .build())
             .retrieve()
             .bodyToMono(DateShiftResponse.class);
@@ -201,7 +221,7 @@ class DateShiftControllerIT extends BaseIT {
         .assertNext(
             resp -> {
               assertThat(resp).isNotNull();
-              assertThat(resp.transferId()).isEqualTo(cdResponse.transferId());
+              assertThat(resp.transportId()).isEqualTo(transportId);
               // RDA date shift can be up to 2*maxDateShift because:
               // rdDateShift = totalShift - cdDateShift
               // If cdDateShift is -max and totalShift is +max, rdDateShift = +2*max
@@ -213,7 +233,7 @@ class DateShiftControllerIT extends BaseIT {
   }
 
   @Test
-  void getRdDateShift_withUnknownTransferId_shouldReturn404() {
+  void getRdDateShift_withUnknownTransportId_shouldReturn404() {
     var response =
         cdClient
             .get()
@@ -221,7 +241,7 @@ class DateShiftControllerIT extends BaseIT {
                 uriBuilder ->
                     uriBuilder
                         .path(RD_DATESHIFT_ENDPOINT)
-                        .queryParam("transferId", "nonexistent-transfer-id")
+                        .queryParam("transportId", "nonexistent-transport-id")
                         .build())
             .retrieve()
             .toBodilessEntity();
@@ -251,13 +271,12 @@ class DateShiftControllerIT extends BaseIT {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
-            .bodyToMono(DateShiftResponse.class);
+            .bodyToMono(CdDateShiftResponse.class);
 
     create(response)
         .assertNext(
             resp -> {
               assertThat(resp).isNotNull();
-              assertThat(resp.transferId()).isNotNull().hasSize(32);
               assertThat(resp.dateShiftDays())
                   .isBetween((int) -MAX_DATE_SHIFT.toDays(), (int) MAX_DATE_SHIFT.toDays());
             })
@@ -279,13 +298,12 @@ class DateShiftControllerIT extends BaseIT {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
-            .bodyToMono(DateShiftResponse.class);
+            .bodyToMono(CdDateShiftResponse.class);
 
     create(response)
         .assertNext(
             resp -> {
               assertThat(resp).isNotNull();
-              assertThat(resp.transferId()).isNotNull().hasSize(32);
               assertThat(resp.dateShiftDays())
                   .isBetween((int) -MAX_DATE_SHIFT.toDays(), (int) MAX_DATE_SHIFT.toDays());
             })
@@ -362,5 +380,31 @@ class DateShiftControllerIT extends BaseIT {
             post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
                 .willReturn(fhirResponse(fhirGenerator.generateString())));
+  }
+
+  private void stubGpasForPseudonym(String patientId, String pseudonym) throws IOException {
+    var fhirGenerator =
+        gpasGetOrCreateResponse(fromList(List.of(patientId)), fromList(List.of(pseudonym)));
+
+    gpas()
+        .register(
+            post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                .willReturn(fhirResponse(fhirGenerator.generateString())));
+  }
+
+  private Parameters buildVfpsRequest(String namespace, String originalValue) {
+    var params = new Parameters();
+    params.addParameter().setName("namespace").setValue(new StringType(namespace));
+    params.addParameter().setName("originalValue").setValue(new StringType(originalValue));
+    return params;
+  }
+
+  private String extractPseudonymValue(Parameters params) {
+    return params.getParameter().stream()
+        .filter(p -> "pseudonymValue".equals(p.getName()))
+        .findFirst()
+        .map(p -> p.getValue().primitiveValue())
+        .orElse(null);
   }
 }
