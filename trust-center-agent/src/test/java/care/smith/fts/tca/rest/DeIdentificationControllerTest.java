@@ -51,6 +51,7 @@ class DeIdentificationControllerTest {
             "patientId1",
             "patientIdentifierSystem",
             ids,
+            Set.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
@@ -81,6 +82,7 @@ class DeIdentificationControllerTest {
             "id1",
             "patientIdentifierSystem",
             Set.of("id1"),
+            Set.of(),
             domains,
             ofDays(14),
             DateShiftPreserve.NONE);
@@ -102,6 +104,7 @@ class DeIdentificationControllerTest {
             "id1",
             "patientIdentifierSystem",
             Set.of("id1"),
+            Set.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
@@ -124,6 +127,7 @@ class DeIdentificationControllerTest {
         new TransportMappingRequest(
             "patientId1",
             "patientIdentifierSystem",
+            Set.of(),
             Set.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
@@ -150,6 +154,7 @@ class DeIdentificationControllerTest {
             "id1",
             "patientIdentifierSystem",
             ids,
+            Set.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);

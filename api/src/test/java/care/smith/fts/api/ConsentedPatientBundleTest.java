@@ -7,6 +7,6 @@ import org.junit.jupiter.api.Test;
 class ConsentedPatientBundleTest {
   @Test
   void nullsAllowed() {
-    assertThatNoException().isThrownBy(() -> new ConsentedPatientBundle(null, null));
+    assertThatNoException().isThrownBy(() -> new ConsentedPatientBundle(null, null, null));
   }
 }
