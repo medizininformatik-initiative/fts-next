@@ -25,7 +25,6 @@ import org.redisson.api.RBatchReactive;
 import org.redisson.api.RBucketReactive;
 import org.redisson.api.RBucketsReactive;
 import org.redisson.api.RMapCacheReactive;
-import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -33,8 +32,7 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class TransportIdServiceTest {
 
-  @Mock private RedissonClient redisClient;
-  @Mock private RedissonReactiveClient reactiveClient;
+  @Mock private RedissonReactiveClient redisClient;
   @Mock private RMapCacheReactive<String, String> mapCache;
   @Mock private RBucketReactive<String> bucket;
   @Mock private RBatchReactive batch;
@@ -54,11 +52,10 @@ class TransportIdServiceTest {
     var config = new TransportMappingConfiguration();
     config.setTtl(defaultTtl);
 
-    lenient().when(redisClient.reactive()).thenReturn(reactiveClient);
-    lenient().when(reactiveClient.<String, String>getMapCache(anyString())).thenReturn(mapCache);
-    lenient().when(reactiveClient.<String>getBucket(anyString())).thenReturn(bucket);
-    lenient().when(reactiveClient.createBatch()).thenReturn(batch);
-    lenient().when(reactiveClient.getBuckets()).thenReturn(buckets);
+    lenient().when(redisClient.<String, String>getMapCache(anyString())).thenReturn(mapCache);
+    lenient().when(redisClient.<String>getBucket(anyString())).thenReturn(bucket);
+    lenient().when(redisClient.createBatch()).thenReturn(batch);
+    lenient().when(redisClient.getBuckets()).thenReturn(buckets);
 
     service = new TransportIdService(redisClient, config, meterRegistry, randomGenerator);
   }

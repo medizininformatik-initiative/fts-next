@@ -12,7 +12,7 @@ import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMapCacheReactive;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -41,12 +41,12 @@ public class TransportIdService {
   private static final String TEMP_DATESHIFT_KEY_PREFIX = "temp-dateshift:";
 
   private final RandomGenerator randomGenerator;
-  private final RedissonClient redisClient;
+  private final RedissonReactiveClient redisClient;
   private final Duration defaultTtl;
   private final MeterRegistry meterRegistry;
 
   public TransportIdService(
-      RedissonClient redisClient,
+      RedissonReactiveClient redisClient,
       TransportMappingConfiguration config,
       MeterRegistry meterRegistry,
       RandomGenerator randomGenerator) {
@@ -118,7 +118,6 @@ public class TransportIdService {
    */
   public Mono<Void> storeMapping(String tid, String sid, Duration ttl) {
     return redisClient
-        .reactive()
         .<String>getBucket(tidKey(tid))
         .set(sid, ttl)
         .retryWhen(defaultRetryStrategy(meterRegistry, "storeMapping"))
@@ -133,7 +132,6 @@ public class TransportIdService {
    */
   public Mono<String> fetchMapping(String tid) {
     return redisClient
-        .reactive()
         .<String>getBucket(tidKey(tid))
         .get()
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMapping"))
@@ -151,7 +149,7 @@ public class TransportIdService {
     if (tidToSid.isEmpty()) {
       return Mono.empty();
     }
-    var batch = redisClient.reactive().createBatch();
+    var batch = redisClient.createBatch();
     tidToSid.forEach((tid, sid) -> batch.<String>getBucket(tidKey(tid)).set(sid, ttl));
     return batch
         .execute()
@@ -175,7 +173,6 @@ public class TransportIdService {
     }
     var keys = tids.stream().map(this::tidKey).toArray(String[]::new);
     return redisClient
-        .reactive()
         .getBuckets()
         .<String>get(keys)
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMappings"))
@@ -207,7 +204,7 @@ public class TransportIdService {
   }
 
   private RMapCacheReactive<String, String> getMapCache(String transferId) {
-    return redisClient.reactive().getMapCache(transferId);
+    return redisClient.getMapCache(transferId);
   }
 
   /**
@@ -223,7 +220,6 @@ public class TransportIdService {
    */
   public Mono<Void> storeDateShift(String transferId, int rdDateShiftDays, Duration ttl) {
     return redisClient
-        .reactive()
         .<Integer>getBucket(dateShiftKey(transferId))
         .set(rdDateShiftDays, ttl)
         .retryWhen(defaultRetryStrategy(meterRegistry, "storeDateShift"))
@@ -241,7 +237,6 @@ public class TransportIdService {
    */
   public Mono<Integer> fetchDateShift(String transferId) {
     return redisClient
-        .reactive()
         .<Integer>getBucket(dateShiftKey(transferId))
         .get()
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchDateShift"))
@@ -262,7 +257,6 @@ public class TransportIdService {
    */
   public Mono<Void> storeTempDateShift(String patientId, int rdDateShiftDays) {
     return redisClient
-        .reactive()
         .<Integer>getBucket(tempDateShiftKey(patientId))
         .set(rdDateShiftDays, defaultTtl)
         .retryWhen(defaultRetryStrategy(meterRegistry, "storeTempDateShift"))
@@ -283,7 +277,6 @@ public class TransportIdService {
    */
   public Mono<Integer> fetchAndDeleteTempDateShift(String patientId) {
     return redisClient
-        .reactive()
         .<Integer>getBucket(tempDateShiftKey(patientId))
         .getAndDelete()
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchAndDeleteTempDateShift"))
