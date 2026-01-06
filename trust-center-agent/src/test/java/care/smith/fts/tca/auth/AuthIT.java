@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -25,6 +26,7 @@ public class AuthIT {
   @ActiveProfiles("auth_basic")
   class BasicAuthIT extends AbstractAuthIT {
     @MockitoBean RedissonClient redisClient;
+    @MockitoBean RedissonReactiveClient reactiveRedisClient;
     @MockitoBean private MappingProvider mappingProvider;
 
     public BasicAuthIT() {
@@ -53,6 +55,7 @@ public class AuthIT {
   @ActiveProfiles("auth_oauth2")
   class OAuth2AuthIT extends AbstractAuthIT {
     @MockitoBean RedissonClient redisClient;
+    @MockitoBean RedissonReactiveClient reactiveRedisClient;
     @MockitoBean private MappingProvider mappingProvider;
 
     public OAuth2AuthIT() {
@@ -81,6 +84,7 @@ public class AuthIT {
   @ActiveProfiles("auth_cert")
   class CertAuthIT extends AbstractAuthIT {
     @MockitoBean RedissonClient redisClient;
+    @MockitoBean RedissonReactiveClient reactiveRedisClient;
     @MockitoBean private MappingProvider mappingProvider;
 
     public CertAuthIT() {

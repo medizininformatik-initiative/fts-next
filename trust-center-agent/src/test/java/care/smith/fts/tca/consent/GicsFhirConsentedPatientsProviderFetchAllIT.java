@@ -22,6 +22,7 @@ import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -40,8 +41,8 @@ class GicsFhirConsentedPatientsProviderFetchAllIT
 
   @Autowired MeterRegistry meterRegistry;
 
-  @MockitoBean
-  RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start
+  @MockitoBean RedissonClient redisClient;
+  @MockitoBean RedissonReactiveClient reactiveRedisClient;
 
   @BeforeEach
   void setUpDependencies() {
