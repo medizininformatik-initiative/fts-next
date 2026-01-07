@@ -49,6 +49,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.redisson.client.RedisTimeoutException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -75,6 +76,7 @@ class FhirMappingProviderTest {
 
   @Autowired WebClient.Builder httpClientBuilder;
   @MockitoBean RedissonClient redisClient;
+  @MockitoBean RedissonReactiveClient reactiveRedisClient;
   @MockitoBean TransportIdService transportIdService;
   @Autowired TransportMappingConfiguration transportMappingConfiguration;
   @Autowired MeterRegistry meterRegistry;

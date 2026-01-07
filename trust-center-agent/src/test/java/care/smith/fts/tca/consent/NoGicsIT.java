@@ -12,6 +12,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,8 +29,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 @TestPropertySource(properties = {"spring.config.location=classpath:application-no-gics.yaml"})
 @Import(TestWebClientFactory.class)
 public class NoGicsIT {
-  @MockitoBean
-  RedissonClient redisClient; // We need to mock the redisClient otherwise the tests won't start
+  @MockitoBean RedissonClient redisClient;
+  @MockitoBean RedissonReactiveClient reactiveRedisClient;
 
   @Autowired private ApplicationContext context;
 
