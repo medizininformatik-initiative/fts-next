@@ -17,13 +17,13 @@ include:
 services:
   # Clinical Domain
   cd-hds:
-    image: samply/blaze:1.4.1@sha256:53ee136ebc523f43036fad6c68ddeb668220db420815abeefcdf80439cbba639
+    image: samply/blaze:main@sha256:10513ef97752064362f64a5855fa89823f663ca54aa39ad090aa5e508383bc29
     ports: [ ":8080" ]
     networks: [ "clinical-domain" ]
     environment:
       BASE_URL: "http://cd-hds:8080"
     healthcheck:
-      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/health" ]
+      test: [ "CMD", "wget", "--spider", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -31,14 +31,14 @@ services:
 
   # Research Domain
   rd-hds:
-    image: samply/blaze:1.4.1@sha256:53ee136ebc523f43036fad6c68ddeb668220db420815abeefcdf80439cbba639
+    image: samply/blaze:main@sha256:10513ef97752064362f64a5855fa89823f663ca54aa39ad090aa5e508383bc29
     ports: [ ":8080" ]
     networks: [ "research-domain" ]
     environment:
       BASE_URL: "http://rd-hds:8080"
       ENFORCE_REFERENTIAL_INTEGRITY: "false"
     healthcheck:
-      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/health" ]
+      test: [ "CMD", "wget", "--spider", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
