@@ -8,12 +8,13 @@ import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
+import care.smith.fts.cda.services.deidentifhir.DataScraper;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
-import care.smith.fts.cda.services.deidentifhir.IdatScraper;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -53,16 +54,20 @@ class DeidentifhirStep implements Deidentificator {
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
     var patient = bundle.consentedPatient();
-    var idatScraper = new IdatScraper(scraperConfig, patient);
-    var ids = idatScraper.gatherIDs(bundle.bundle());
+    var dataScraper = new DataScraper(scraperConfig, patient);
+    var scrapedData = dataScraper.scrape(bundle.bundle());
 
-    return !ids.isEmpty()
-        ? fetchTransportMapping(patient, ids)
+    // TCA stores tID→shiftedDate mappings for RDA to resolve later
+    var dateTransportMappings = scrapedData.dateTransportMappings();
+    return !scrapedData.ids().isEmpty()
+        ? fetchTransportMapping(patient, scrapedData.ids(), dateTransportMappings)
             .map(
                 response -> {
                   var transportMapping = response.transportMapping();
-                  var dateShiftValue = response.dateShiftValue();
-                  var registry = generateRegistry(patient.id(), transportMapping, dateShiftValue);
+                  // Pass dateTransportMappings so deidentification adds tID extensions and nulls
+                  // dates RDA will resolve tIDs to shifted dates from TCA
+                  var registry =
+                      generateRegistry(patient.id(), transportMapping, dateTransportMappings);
                   var deidentified =
                       DeidentifhirUtils.deidentify(
                           deidentifhirConfig,
@@ -76,12 +81,21 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private Mono<TransportMappingResponse> fetchTransportMapping(
-      ConsentedPatient patient, Set<String> ids) {
+      ConsentedPatient patient, Set<String> ids, Map<String, String> dateTransportMappings) {
     var request =
         new TransportMappingRequest(
-            patient.id(), patient.patientIdentifierSystem(), ids, domains, maxDateShift, preserve);
+            patient.id(),
+            patient.patientIdentifierSystem(),
+            ids,
+            dateTransportMappings,
+            domains,
+            maxDateShift,
+            preserve);
 
-    log.trace("Fetch transport mapping for {} IDs", ids.size());
+    log.trace(
+        "Fetch transport mapping for {} IDs and {} date tIDs",
+        ids.size(),
+        dateTransportMappings.size());
     return tcaClient
         .post()
         .uri("/api/v2/cd/transport-mapping")

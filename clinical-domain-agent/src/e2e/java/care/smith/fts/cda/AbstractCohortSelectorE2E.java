@@ -186,7 +186,7 @@ public abstract class AbstractCohortSelectorE2E {
                         "patient-identifier-1.Patient:patient-1": "pseudonym-123",
                         "patient-identifier-1.identifier.http://fts.smith.care:patient-identifier-1": "pseudonym-identifier-123"
                       },
-                      "dateShiftValue": 1209600.000000000
+                      "dateShiftMapping": {}
                     }
                     """)));
   }
