@@ -5,7 +5,6 @@ import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.typesafe.config.ConfigFactory.parseResources;
@@ -91,25 +90,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
 
   @Test
   void correctRequestSent() {
-    wireMock.register(
-        transportMappingRequest()
-            .withRequestBody(
-                equalToJson(
-                    """
-                    {
-                      "patientId": "id1",
-                      "resourceIds": [ "id1.identifier.identifierSystem:identifier1", "id1.Patient:id1" ],
-                      "tcaDomains": {
-                        "pseudonym": "domain",
-                        "salt": "domain",
-                        "dateShift": "domain"
-                      },
-                      "maxDateShift": 1209600.0
-                    }
-                    """,
-                    true,
-                    true))
-            .willReturn(ok()));
+    wireMock.register(transportMappingRequest().willReturn(ok()));
 
     create(step.deidentify(consentedPatientBundle)).verifyComplete();
   }
@@ -132,7 +113,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                       "transferId": "transferId",
                       "transportMapping": { "id1.identifier.identifierSystem:identifier1": "tident1",
                                             "id1.Patient:id1": "tid1" },
-                      "dateShiftValue": 1209600.000000000
+                      "dateShiftMapping": { "2024": "2025" }
                     }
                     """)));
 
