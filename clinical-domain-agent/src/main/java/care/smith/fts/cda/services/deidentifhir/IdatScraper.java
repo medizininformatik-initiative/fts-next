@@ -7,14 +7,40 @@ import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
 import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 
+@Slf4j
 public class IdatScraper {
+
+  public record GatheredIds(Set<String> compartment, Set<String> nonCompartment) {
+    public boolean isEmpty() {
+      return compartment.isEmpty() && nonCompartment.isEmpty();
+    }
+  }
+
   private final Deidentifhir deidentiFHIR;
   private final ScrapingStorage scrapingStorage;
+  private final PatientCompartmentService patientCompartmentService;
+  private final String patientIdentifier;
+  private final String patientResourceId;
+  private final boolean enableCompartmentNamespacing;
 
-  public IdatScraper(Config config, ConsentedPatient patient) {
+  public IdatScraper(
+      Config config,
+      ConsentedPatient patient,
+      PatientCompartmentService patientCompartmentService,
+      String patientResourceId,
+      boolean enableCompartmentNamespacing) {
+    this.patientCompartmentService = patientCompartmentService;
+    this.patientIdentifier = patient.id();
+    this.patientResourceId = patientResourceId;
+    this.enableCompartmentNamespacing = enableCompartmentNamespacing;
+
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patient.id());
     scrapingStorage = new ScrapingStorage(keyCreator);
 
@@ -38,12 +64,45 @@ public class IdatScraper {
   }
 
   /**
-   * Gather all IDs contained in the provided bundle and return them as a Set.
+   * Gather all IDs contained in the provided bundle and return them separated by compartment.
    *
-   * @return a Set of all IDs gathered in the Resource
+   * <p>Resources in the patient compartment will have IDs prefixed with the patient ID. Resources
+   * not in the compartment will have IDs without the patient prefix.
+   *
+   * @return a GatheredIds record containing compartment and non-compartment IDs
    */
-  public Set<String> gatherIDs(Resource resource) {
-    deidentiFHIR.deidentify(resource);
-    return scrapingStorage.getGatheredIdats();
+  public GatheredIds gatherIDs(Bundle bundle) {
+    // Pre-compute compartment membership for all resources
+    Map<String, Boolean> membership = precomputeCompartmentMembership(bundle);
+    scrapingStorage.setCompartmentMembership(membership);
+
+    deidentiFHIR.deidentify(bundle);
+    return new GatheredIds(
+        scrapingStorage.getCompartmentIds(), scrapingStorage.getNonCompartmentIds());
+  }
+
+  private Map<String, Boolean> precomputeCompartmentMembership(Bundle bundle) {
+    if (!enableCompartmentNamespacing) {
+      // When disabled, return empty map - ScrapingStorage defaults to all-in-compartment
+      log.trace("Compartment namespacing disabled, treating all resources as in-compartment");
+      return Map.of();
+    }
+
+    Map<String, Boolean> membership = new HashMap<>();
+
+    log.trace(
+        "Checking compartment membership with patientResourceId: {} for patient identifier: {}",
+        patientResourceId,
+        patientIdentifier);
+
+    for (var entry : bundle.getEntry()) {
+      Resource r = entry.getResource();
+      String key = r.fhirType() + ":" + r.getIdPart();
+      boolean inCompartment =
+          patientCompartmentService.isInPatientCompartment(r, patientResourceId);
+      membership.put(key, inCompartment);
+    }
+
+    return membership;
   }
 }

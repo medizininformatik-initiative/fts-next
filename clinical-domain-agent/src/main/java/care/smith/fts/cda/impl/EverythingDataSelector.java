@@ -50,8 +50,10 @@ public class EverythingDataSelector implements DataSelector {
   public Flux<ConsentedPatientBundle> select(ConsentedPatient patient) {
     return pidResolver
         .resolve(patient)
-        .flatMapMany(fhirId -> fetchEverything(patient, fhirId))
-        .map(b -> new ConsentedPatientBundle(b, patient));
+        .flatMapMany(
+            fhirId ->
+                fetchEverything(patient, fhirId)
+                    .map(b -> new ConsentedPatientBundle(b, patient, fhirId.getIdPart())));
   }
 
   private Flux<Bundle> fetchEverything(ConsentedPatient patient, IIdType fhirId) {

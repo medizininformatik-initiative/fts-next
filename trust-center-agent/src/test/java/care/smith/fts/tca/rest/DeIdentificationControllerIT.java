@@ -95,7 +95,8 @@ class DeIdentificationControllerIT extends BaseIT {
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
                 entry("patientId", "id-144218"),
-                entry("resourceIds", Set.of("id-144218", "id-244194")),
+                entry("compartmentResourceIds", Set.of("id-144218", "id-244194")),
+                entry("nonCompartmentResourceIds", Set.of()),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
 
@@ -139,7 +140,8 @@ class DeIdentificationControllerIT extends BaseIT {
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
                 entry("patientId", "id-144218"),
-                entry("resourceIds", Set.of("id-144218", "id-244194")),
+                entry("compartmentResourceIds", Set.of("id-144218", "id-244194")),
+                entry("nonCompartmentResourceIds", Set.of()),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
 
@@ -207,7 +209,8 @@ class DeIdentificationControllerIT extends BaseIT {
                 ofEntries(
                     entry("tcaDomains", DEFAULT_DOMAINS),
                     entry("patientId", "id-144218"),
-                    entry("resourceIds", Set.of("id-144218", "id-244194")),
+                    entry("compartmentResourceIds", Set.of("id-144218", "id-244194")),
+                    entry("nonCompartmentResourceIds", Set.of()),
                     entry("maxDateShift", ofDays(14).getSeconds()),
                     entry("dateShiftPreserve", "NONE")))
             .block()
