@@ -32,10 +32,10 @@ public interface DateShiftUtil {
     };
   }
 
-  private static Duration getPreservedShift(Random random, long shiftBy, Duration multipleOf) {
-    var n = shiftBy / multipleOf.toMillis();
-    shiftBy -= shiftBy % multipleOf.toMillis();
-    var ds = random.nextLong(-n, n + 1);
-    return Duration.ofMillis(shiftBy * ds / n);
+  private static Duration getPreservedShift(Random random, long maxShiftMs, Duration periodUnit) {
+    var periodMs = periodUnit.toMillis();
+    var maxPeriods = maxShiftMs / periodMs;
+    var randomPeriods = random.nextLong(-maxPeriods, maxPeriods + 1);
+    return Duration.ofMillis(randomPeriods * periodMs);
   }
 }

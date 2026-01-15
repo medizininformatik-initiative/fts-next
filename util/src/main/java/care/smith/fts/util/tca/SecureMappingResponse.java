@@ -1,11 +1,12 @@
 package care.smith.fts.util.tca;
 
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Map.copyOf;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.partitioningBy;
 import static java.util.stream.Collectors.toMap;
 
 import jakarta.validation.constraints.NotNull;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -16,8 +17,6 @@ import java.util.Map;
  */
 public record SecureMappingResponse(
     @NotNull Map<String, String> tidPidMap, @NotNull Map<String, String> dateShiftMap) {
-
-  private static final String DATE_SHIFT_PREFIX = "ds:";
 
   public SecureMappingResponse {
     tidPidMap = copyOf(tidPidMap);
@@ -35,16 +34,18 @@ public record SecureMappingResponse(
   public static SecureMappingResponse buildResolveResponse(Map<String, String> sourceMap) {
     requireNonNull(sourceMap, "sourceMap cannot be null");
 
-    var mutableMap = new HashMap<>(sourceMap);
+    var partitioned =
+        sourceMap.entrySet().stream()
+            .collect(partitioningBy(e -> e.getKey().startsWith(DATE_SHIFT_PREFIX)));
 
     var dateShiftMap =
-        mutableMap.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(DATE_SHIFT_PREFIX))
+        partitioned.get(true).stream()
             .collect(
                 toMap(e -> e.getKey().substring(DATE_SHIFT_PREFIX.length()), Map.Entry::getValue));
 
-    mutableMap.entrySet().removeIf(e -> e.getKey().startsWith(DATE_SHIFT_PREFIX));
+    var tidPidMap =
+        partitioned.get(false).stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    return new SecureMappingResponse(mutableMap, dateShiftMap);
+    return new SecureMappingResponse(tidPidMap, dateShiftMap);
   }
 }

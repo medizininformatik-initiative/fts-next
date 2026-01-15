@@ -1,9 +1,9 @@
 package care.smith.fts.rda.services.deidentifhir;
 
-import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.DATE_SHIFT_EXTENSION_URL;
 import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.generateRegistry;
 import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.restoreShiftedDates;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
 

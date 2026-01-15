@@ -27,9 +27,6 @@ import scala.collection.immutable.Seq;
  * nulls the original date values, and returns tID→originalDate mappings for TCA processing.
  */
 public class DataScraper {
-  public static final String DATE_SHIFT_EXTENSION_URL =
-      "https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id";
-
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
   private static final int TRANSPORT_ID_BYTES = 16;
 

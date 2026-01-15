@@ -1,9 +1,9 @@
 package care.smith.fts.cda.services.deidentifhir;
 
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.DATE_SHIFT_EXTENSION_URL;
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.deidentify;
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.shiftDate;
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static org.assertj.core.api.Assertions.assertThat;
 
