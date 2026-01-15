@@ -24,8 +24,36 @@ class DataScraperTest {
   @BeforeEach
   void setUp() {
     ConsentedPatient patient = new ConsentedPatient("id1", "identifierSystem1");
-    var config = parseResources(DataScraperTest.class, "IDScraper.profile");
+    var config = parseResources(DataScraperTest.class, "CDtoTransport.profile");
     scraper = new DataScraper(config, patient);
+  }
+
+  @Test
+  void generalizeDateHandlerReturnsDateUnchanged() {
+    // Uses generalizeDateHandler (not shiftDateHandler), so no tID mapping is created
+    // and date values remain unchanged
+    var config =
+        parseResources(DataScraperTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+    var scraperWithGeneralize = new DataScraper(config, new ConsentedPatient("id1", "sys1"));
+
+    var patient = new Patient();
+    patient.setId("id1");
+    patient.setMeta(
+        new Meta()
+            .addProfile(
+                "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient"));
+    patient.addIdentifier(new Identifier().setSystem("sys1").setValue("val1"));
+    patient.setBirthDate(new Date());
+
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(patient);
+
+    var scrapedData = scraperWithGeneralize.scrape(bundle);
+
+    // generalizeDateHandler is a no-op that doesn't collect dates for transport ID mapping
+    assertThat(scrapedData.dateTransportMappings()).isEmpty();
+    // IDs should still be gathered
+    assertThat(scrapedData.ids()).contains("id1.Patient:id1");
   }
 
   @Test

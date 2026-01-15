@@ -6,12 +6,10 @@ import static org.assertj.core.api.Assertions.*;
 import care.smith.fts.api.DateShiftPreserve;
 import java.time.Instant;
 import java.util.HashSet;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-@Slf4j
 class DateShiftUtilTest {
 
   private static final long WEEK_IN_MS = ofDays(7).toMillis();

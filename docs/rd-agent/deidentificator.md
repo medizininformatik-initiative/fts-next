@@ -3,6 +3,14 @@
 This document describes the configuration options available for managing deidentification settings
 in the `deidentificator` section of the project configuration file.
 
+The RDA deidentificator is responsible for:
+1. Requesting research mappings from the TCA (including tID→shiftedDate mappings)
+2. Replacing transport IDs (tIDs) with research pseudonyms (sIDs)
+3. Resolving date transport ID extensions to shifted dates and removing the extensions
+
+For details on the DateShift-ID Pattern, see the [De-Identification](../details/deidentification)
+documentation.
+
 ## Configuration Example
 
 The `deidentificator` section allows different implementations to be used for pseudonymizing and

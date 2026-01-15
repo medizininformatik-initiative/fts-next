@@ -14,7 +14,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.BaseDateTimeType;
+import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.StringType;
 import scala.Function4;
 import scala.collection.immutable.Map;
 import scala.collection.immutable.Seq;
@@ -27,9 +29,6 @@ import scala.collection.immutable.Seq;
  * nulls the original date values, and returns tID→originalDate mappings for TCA processing.
  */
 public class DataScraper {
-  public static final String DATE_SHIFT_EXTENSION_URL =
-      "https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id";
-
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
   private static final int TRANSPORT_ID_BYTES = 16;
 
@@ -45,37 +44,39 @@ public class DataScraper {
 
     Registry registry = new Registry();
 
-    // ID gathering handlers
+    // ID gathering handlers - use same names as config file
     registry.addHander(
-        "gatherIdHandler",
+        "idReplacementHandler",
         JavaCompat.partiallyApply(scrapingStorage, Handlers::idReplacementHandler));
     registry.addHander(
-        "gatherReferenceHandler",
+        "referenceReplacementHandler",
         JavaCompat.partiallyApply(scrapingStorage, Handlers::referenceReplacementHandler));
     registry.addHander(
-        "gatherIdentifierValueHandler",
+        "identifierValueReplacementHandler",
         JavaCompat.partiallyApply2(
             scrapingStorage, true, Handlers::identifierValueReplacementHandler));
     registry.addHander(
-        "gatherConditionalReferencesHandler",
+        "conditionalReferencesReplacementHandler",
         JavaCompat.partiallyApply2(
             scrapingStorage, scrapingStorage, Handlers::conditionalReferencesReplacementHandler));
+
+    // No-op handlers for non-ID fields - return values unchanged since
+    // DataScraper only gathers IDs and dates, not actual deidentification
+    Function4<Seq<String>, StringType, Seq<Base>, Map<String, String>, StringType> stringIdentity =
+        (path, value, parents, context) -> value;
+    registry.addHander("postalCodeHandler", stringIdentity);
+    registry.addHander("PSEUDONYMISIERTstringReplacementHandler", stringIdentity);
+
+    Function4<Seq<String>, DateType, Seq<Base>, Map<String, String>, DateType> dateIdentity =
+        (path, date, parents, context) -> date;
+    registry.addHander("generalizeDateHandler", dateIdentity);
 
     // Date handler: generates tID per unique date value, stores tID→dateValue mapping
     // Note: Bundle modifications (extensions, null values) happen during deidentification
     registry.addHander(
-        "gatherDateHandler",
+        "shiftDateHandler",
         (Function4<Seq<String>, BaseDateTimeType, Seq<Base>, Map<String, String>, BaseDateTimeType>)
-            (path, date, parents, context) -> {
-              Optional.ofNullable(date)
-                  .map(BaseDateTimeType::getValue)
-                  .map(v -> date.getValueAsString())
-                  .filter(originalDate -> !dateTransportMappings.containsValue(originalDate))
-                  .ifPresent(
-                      originalDate ->
-                          dateTransportMappings.put(generateTransportId(), originalDate));
-              return date;
-            });
+            this::gatherDate);
 
     deidentiFHIR = Deidentifhir.apply(config, registry);
   }
@@ -92,6 +93,16 @@ public class DataScraper {
     deidentiFHIR.deidentify(resource);
     return new ScrapedData(
         scrapingStorage.getGatheredIdats(), new HashMap<>(dateTransportMappings));
+  }
+
+  private BaseDateTimeType gatherDate(
+      Seq<String> path, BaseDateTimeType date, Seq<Base> parents, Map<String, String> context) {
+    Optional.ofNullable(date)
+        .map(BaseDateTimeType::getValue)
+        .map(v -> date.getValueAsString())
+        .filter(originalDate -> !dateTransportMappings.containsValue(originalDate))
+        .ifPresent(originalDate -> dateTransportMappings.put(generateTransportId(), originalDate));
+    return date;
   }
 
   private static String generateTransportId() {

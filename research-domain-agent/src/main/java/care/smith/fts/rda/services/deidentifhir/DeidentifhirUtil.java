@@ -1,5 +1,7 @@
 package care.smith.fts.rda.services.deidentifhir;
 
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
+
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;
@@ -10,17 +12,14 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.Map;
 import java.util.Objects;
+import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.BaseDateTimeType;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Element;
 import org.hl7.fhir.r4.model.Extension;
-import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.StringType;
 
 /** TransportID to Pseudonym */
 public interface DeidentifhirUtil {
-  String DATE_SHIFT_EXTENSION_URL =
-      "https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id";
 
   static Registry generateRegistry(Map<String, String> secureMapping) {
     var keyCreator = NamespacingReplacementProvider.withoutNamespacing();
@@ -69,13 +68,11 @@ public interface DeidentifhirUtil {
     bundle.getEntry().stream()
         .map(Bundle.BundleEntryComponent::getResource)
         .filter(Objects::nonNull)
-        .forEach(resource -> restoreShiftedDatesInResource(resource, dateShiftMap));
+        .forEach(resource -> restoreShiftedDatesInBase(resource, dateShiftMap));
   }
 
-  private static void restoreShiftedDatesInResource(
-      Resource resource, Map<String, String> dateShiftMap) {
-    resource
-        .children()
+  private static void restoreShiftedDatesInBase(Base base, Map<String, String> dateShiftMap) {
+    base.children()
         .forEach(
             property ->
                 property
@@ -85,25 +82,7 @@ public interface DeidentifhirUtil {
                           if (value instanceof BaseDateTimeType dateTimeType) {
                             restoreDateIfNeeded(dateTimeType, dateShiftMap);
                           } else {
-                            restoreShiftedDatesInElement((Element) value, dateShiftMap);
-                          }
-                        }));
-  }
-
-  private static void restoreShiftedDatesInElement(
-      Element element, Map<String, String> dateShiftMap) {
-    element
-        .children()
-        .forEach(
-            property ->
-                property
-                    .getValues()
-                    .forEach(
-                        value -> {
-                          if (value instanceof BaseDateTimeType dateTimeType) {
-                            restoreDateIfNeeded(dateTimeType, dateShiftMap);
-                          } else {
-                            restoreShiftedDatesInElement((Element) value, dateShiftMap);
+                            restoreShiftedDatesInBase((Base) value, dateShiftMap);
                           }
                         }));
   }

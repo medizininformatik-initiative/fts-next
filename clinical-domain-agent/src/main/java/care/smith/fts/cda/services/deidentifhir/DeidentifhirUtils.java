@@ -1,5 +1,6 @@
 package care.smith.fts.cda.services.deidentifhir;
 
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
@@ -20,8 +21,6 @@ import scala.collection.immutable.Map;
 import scala.collection.immutable.Seq;
 
 public interface DeidentifhirUtils {
-  String DATE_SHIFT_EXTENSION_URL =
-      "https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id";
 
   static BaseDateTimeType shiftDate(
       BaseDateTimeType date, java.util.Map<String, String> dateValueToTid) {

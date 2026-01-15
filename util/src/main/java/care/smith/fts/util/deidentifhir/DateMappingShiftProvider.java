@@ -2,10 +2,16 @@ package care.smith.fts.util.deidentifhir;
 
 import de.ume.deidentifhir.util.ShiftDateProvider;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.Year;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * A ShiftDateProvider that calculates the shift duration from a pre-computed date mapping. Given an
@@ -37,30 +43,24 @@ public class DateMappingShiftProvider implements ShiftDateProvider {
   }
 
   private ZonedDateTime parseDateTime(String dateString) {
-    // Try parsing with timezone
-    try {
-      return ZonedDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME);
-    } catch (DateTimeParseException ignored) {
-    }
+    return tryParse(() -> ZonedDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME))
+        .or(
+            () ->
+                tryParse(
+                    () ->
+                        LocalDate.parse(dateString, DateTimeFormatter.ISO_DATE)
+                            .atStartOfDay(ZoneOffset.UTC)))
+        .or(() -> tryParse(() -> YearMonth.parse(dateString).atDay(1).atStartOfDay(ZoneOffset.UTC)))
+        .or(() -> tryParse(() -> Year.parse(dateString).atDay(1).atStartOfDay(ZoneOffset.UTC)))
+        .orElseThrow(
+            () -> new DateTimeParseException("Cannot parse date: " + dateString, dateString, 0));
+  }
 
-    // Try parsing as date only (add start of day in UTC)
+  private static Optional<ZonedDateTime> tryParse(Supplier<ZonedDateTime> parser) {
     try {
-      return java.time.LocalDate.parse(dateString, DateTimeFormatter.ISO_DATE)
-          .atStartOfDay(java.time.ZoneOffset.UTC);
-    } catch (DateTimeParseException ignored) {
-    }
-
-    // Try parsing as year-month
-    try {
-      return java.time.YearMonth.parse(dateString).atDay(1).atStartOfDay(java.time.ZoneOffset.UTC);
-    } catch (DateTimeParseException ignored) {
-    }
-
-    // Try parsing as year only
-    try {
-      return java.time.Year.parse(dateString).atDay(1).atStartOfDay(java.time.ZoneOffset.UTC);
+      return Optional.of(parser.get());
     } catch (DateTimeParseException e) {
-      throw new DateTimeParseException("Cannot parse date: " + dateString, dateString, 0);
+      return Optional.empty();
     }
   }
 }

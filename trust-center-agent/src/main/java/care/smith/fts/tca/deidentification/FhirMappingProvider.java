@@ -2,6 +2,7 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
@@ -30,7 +31,6 @@ import reactor.core.publisher.Mono;
 @Component
 public class FhirMappingProvider implements MappingProvider {
   private static final HashFunction hashFn = Hashing.sha256();
-  static final String DATE_SHIFT_PREFIX = "ds:";
 
   record PseudonymData(String patientIdPseudonym, String salt, String dateShiftSeed) {}
 
