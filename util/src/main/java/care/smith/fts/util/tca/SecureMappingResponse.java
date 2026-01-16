@@ -1,54 +1,51 @@
 package care.smith.fts.util.tca;
 
-import static java.time.Duration.ofMillis;
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Map.copyOf;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.partitioningBy;
+import static java.util.stream.Collectors.toMap;
 
 import jakarta.validation.constraints.NotNull;
-import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+/**
+ * Response from TCA containing resolved mappings for RDA.
+ *
+ * @param tidPidMap mapping from transport ID to pseudonym/hashed ID
+ * @param dateShiftMap mapping from original date (ISO-8601) to shifted date (ISO-8601)
+ */
 public record SecureMappingResponse(
-    @NotNull Map<String, String> tidPidMap, @NotNull Duration dateShiftBy) {
-
-  private static final String DATE_SHIFT_KEY = "dateShiftMillis";
+    @NotNull Map<String, String> tidPidMap, @NotNull Map<String, String> dateShiftMap) {
 
   public SecureMappingResponse {
     tidPidMap = copyOf(tidPidMap);
-    requireNonNull(dateShiftBy, "dateShiftBy cannot be null");
+    dateShiftMap = copyOf(dateShiftMap);
   }
 
   /**
-   * Creates a SecureMappingResponse by extracting the date shift value from the provided map. The
-   * dateShiftMillis key is removed from the map during processing.
+   * Creates a SecureMappingResponse by extracting date shift entries (keys starting with "ds:")
+   * from the provided map. These entries are separated into dateShiftMap, while the remaining
+   * entries form tidPidMap.
    *
-   * @param sourceMap the map containing tid-pid mappings and dateShiftMillis
+   * @param sourceMap the map containing tid-pid mappings and date shift mappings
    * @return a new SecureMappingResponse instance
-   * @throws IllegalArgumentException if dateShiftMillis is missing, invalid, or negative
    */
   public static SecureMappingResponse buildResolveResponse(Map<String, String> sourceMap) {
     requireNonNull(sourceMap, "sourceMap cannot be null");
 
-    var mutableMap = new HashMap<>(sourceMap);
-    return Optional.ofNullable(mutableMap.remove(DATE_SHIFT_KEY))
-        .map(SecureMappingResponse::parseDateShiftValue)
-        .map(dateShiftValue -> new SecureMappingResponse(mutableMap, dateShiftValue))
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Missing required '" + DATE_SHIFT_KEY + "' in mapping data"));
-  }
+    var partitioned =
+        sourceMap.entrySet().stream()
+            .collect(partitioningBy(e -> e.getKey().startsWith(DATE_SHIFT_PREFIX)));
 
-  private static Duration parseDateShiftValue(String value) {
-    try {
-      return ofMillis(Long.parseLong(value));
-    } catch (NumberFormatException e) {
-      log.error("Failed to parse dateShiftMillis value: '{}'", value, e);
-      throw new IllegalArgumentException("Invalid dateShiftMillis value: '" + value + "'", e);
-    }
+    var dateShiftMap =
+        partitioned.get(true).stream()
+            .collect(
+                toMap(e -> e.getKey().substring(DATE_SHIFT_PREFIX.length()), Map.Entry::getValue));
+
+    var tidPidMap =
+        partitioned.get(false).stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    return new SecureMappingResponse(tidPidMap, dateShiftMap);
   }
 }

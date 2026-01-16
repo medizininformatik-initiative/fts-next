@@ -104,7 +104,7 @@ public class RdaE2E {
                             "patient-102931": "pseudonym-102931",
                             "patient-identifier-102931": "pseudonym-identifier-102931"
                           },
-                          "dateShiftBy": "PT0S"
+                          "dateShiftMap": {}
                         }
                         """)));
 
