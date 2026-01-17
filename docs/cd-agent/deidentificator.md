@@ -32,7 +32,6 @@ deidentificator:
     maxDateShift: P14D
     dateShiftPreserve: NONE
     deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
-    scraperConfig: /app/config/deidentifhir/IDScraper.profile
 ```
 
 ## Fields
@@ -117,14 +116,14 @@ deidentification of FHIR bundles.
 #### `deidentifhirConfig` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Path to the DeidentiFHIR configuration file. If using a Docker container, the
-  path must be mounted into the container.
+  path must be mounted into the container. This file is used for both ID scraping and deidentification.
 * **Type**: String
 * **Example**:
   ```yaml
     deidentifhirConfig: /custom/path/CDtoTransport.profile
   ```
 
-#### `scraperConfig` <Badge type="warning" text="Since 5.0" />
+#### `scraperConfig` <Badge type="warning" text="Since 5.0" /> <Badge type="danger" text="Removed since 5.5" />
 
 * **Description**: Path to the scraper configuration file used by DeidentiFHIR. If using a Docker
   container, the path must be mounted into the container.
@@ -133,6 +132,8 @@ deidentification of FHIR bundles.
   ```yaml
     scraperConfig: /custom/path/IDScraper.profile
   ```
+* **Note**: This field has been removed in version 5.5. The `deidentifhirConfig` is now used for
+  both ID scraping and deidentification.
 
 ## Notes
 
@@ -142,6 +143,5 @@ deidentification of FHIR bundles.
   high enough to make reverse computation practically infeasible.
 * The `maxDateShift` must be in a valid ISO-8601 duration format. Refer
   to [ISO-8601 documentation](https://en.wikipedia.org/wiki/ISO_8601) for more details.
-* Mount the configuration files (`deidentifhirConfig` and `scraperConfig`) into the Docker container
-  if the agent runs in a containerized environment. Ensure the paths are accessible to the agent at
-  runtime.
+* Mount the configuration file (`deidentifhirConfig`) into the Docker container if the agent runs in
+  a containerized environment. Ensure the path is accessible to the agent at runtime.

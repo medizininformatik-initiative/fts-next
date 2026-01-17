@@ -56,7 +56,6 @@ deidentificator:
     # Deidentifhir needs additional configuration, which must be available within the agent's
     # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
     deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
-    scraperConfig: /app/projects/example/deidentifhir/IDScraper.profile
 
 ### Bundle Sender Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/bundle-sender

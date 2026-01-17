@@ -8,7 +8,13 @@ import de.ume.deidentifhir.Registry;
 import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.StringType;
+import scala.Function4;
+import scala.collection.immutable.Map;
+import scala.collection.immutable.Seq;
 
 public class IdatScraper {
   private final Deidentifhir deidentiFHIR;
@@ -19,20 +25,35 @@ public class IdatScraper {
     scrapingStorage = new ScrapingStorage(keyCreator);
 
     Registry registry = new Registry();
-    registry.addHander(
-        "gatherIdHandler",
-        JavaCompat.partiallyApply(scrapingStorage, Handlers::idReplacementHandler));
-    registry.addHander(
-        "gatherReferenceHandler",
-        JavaCompat.partiallyApply(scrapingStorage, Handlers::referenceReplacementHandler));
-    registry.addHander(
-        "gatherIdentifierValueHandler",
+
+    var idHandler = JavaCompat.partiallyApply(scrapingStorage, Handlers::idReplacementHandler);
+    registry.addHander("idReplacementHandler", idHandler);
+
+    var refHandler =
+        JavaCompat.partiallyApply(scrapingStorage, Handlers::referenceReplacementHandler);
+    registry.addHander("referenceReplacementHandler", refHandler);
+
+    var identifierHandler =
         JavaCompat.partiallyApply2(
-            scrapingStorage, true, Handlers::identifierValueReplacementHandler));
-    registry.addHander(
-        "gatherConditionalReferencesHandler",
+            scrapingStorage, true, Handlers::identifierValueReplacementHandler);
+    registry.addHander("identifierValueReplacementHandler", identifierHandler);
+
+    var conditionalRefHandler =
         JavaCompat.partiallyApply2(
-            scrapingStorage, scrapingStorage, Handlers::conditionalReferencesReplacementHandler));
+            scrapingStorage, scrapingStorage, Handlers::conditionalReferencesReplacementHandler);
+    registry.addHander("conditionalReferencesReplacementHandler", conditionalRefHandler);
+
+    // No-op handlers for non-ID fields - return values unchanged since
+    // IdatScraper only gathers IDs, not actual deidentification.
+    Function4<Seq<String>, StringType, Seq<Base>, Map<String, String>, StringType> stringIdentity =
+        (path, value, parents, context) -> value;
+    registry.addHander("postalCodeHandler", stringIdentity);
+    registry.addHander("PSEUDONYMISIERTstringReplacementHandler", stringIdentity);
+
+    Function4<Seq<String>, DateType, Seq<Base>, Map<String, String>, DateType> dateIdentity =
+        (path, date, parents, context) -> date;
+    registry.addHander("generalizeDateHandler", dateIdentity);
+    registry.addHander("shiftDateHandler", dateIdentity);
 
     deidentiFHIR = Deidentifhir.apply(config, registry);
   }

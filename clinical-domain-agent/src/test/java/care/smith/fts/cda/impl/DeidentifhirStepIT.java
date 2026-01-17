@@ -53,12 +53,11 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       @Autowired WebClientFactory clientFactory,
       @Autowired MeterRegistry meterRegistry)
       throws IOException {
-    var scrConf = parseResources(DeidentifhirUtils.class, "IDScraper.profile");
-    var deiConf = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
     var domains = new TcaDomains("domain", "domain", "domain");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     wireMock = wireMockRuntime.getWireMock();
-    step = new DeidentifhirStep(client, domains, ofDays(14), NONE, deiConf, scrConf, meterRegistry);
+    step = new DeidentifhirStep(client, domains, ofDays(14), NONE, config, meterRegistry);
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");
