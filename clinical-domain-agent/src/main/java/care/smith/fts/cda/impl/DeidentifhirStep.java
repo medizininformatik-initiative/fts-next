@@ -29,8 +29,7 @@ class DeidentifhirStep implements Deidentificator {
   private final TcaDomains domains;
   private final Duration maxDateShift;
   private final DateShiftPreserve preserve;
-  private final com.typesafe.config.Config deidentifhirConfig;
-  private final com.typesafe.config.Config scraperConfig;
+  private final com.typesafe.config.Config config;
   private final MeterRegistry meterRegistry;
 
   public DeidentifhirStep(
@@ -38,22 +37,20 @@ class DeidentifhirStep implements Deidentificator {
       TcaDomains domains,
       Duration maxDateShift,
       DateShiftPreserve preserve,
-      com.typesafe.config.Config deidentifhirConfig,
-      com.typesafe.config.Config scraperConfig,
+      com.typesafe.config.Config config,
       MeterRegistry meterRegistry) {
     this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
     this.preserve = preserve;
-    this.deidentifhirConfig = deidentifhirConfig;
-    this.scraperConfig = scraperConfig;
+    this.config = config;
     this.meterRegistry = meterRegistry;
   }
 
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
     var patient = bundle.consentedPatient();
-    var idatScraper = new IdatScraper(scraperConfig, patient);
+    var idatScraper = new IdatScraper(config, patient);
     var ids = idatScraper.gatherIDs(bundle.bundle());
 
     return !ids.isEmpty()
@@ -65,11 +62,7 @@ class DeidentifhirStep implements Deidentificator {
                   var registry = generateRegistry(patient.id(), transportMapping, dateShiftValue);
                   var deidentified =
                       DeidentifhirUtils.deidentify(
-                          deidentifhirConfig,
-                          registry,
-                          bundle.bundle(),
-                          patient.id(),
-                          meterRegistry);
+                          config, registry, bundle.bundle(), patient.id(), meterRegistry);
                   return new TransportBundle(deidentified, response.transferId());
                 })
         : Mono.empty();
