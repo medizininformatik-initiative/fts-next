@@ -28,14 +28,14 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
   public Deidentificator create(
       Deidentificator.Config commonConfig, DeidentifhirStepConfig implConfig) {
     var httpClient = clientFactory.create(implConfig.trustCenterAgent().server());
+    var config = parseFile(requireNonNull(implConfig.deidentifhirConfig()));
 
     return new DeidentifhirStep(
         httpClient,
         implConfig.trustCenterAgent().domains(),
         implConfig.maxDateShift(),
         implConfig.dateShiftPreserve(),
-        parseFile(requireNonNull(implConfig.deidentifhirConfig())),
-        parseFile(requireNonNull(implConfig.scraperConfig())),
+        config,
         meterRegistry);
   }
 }

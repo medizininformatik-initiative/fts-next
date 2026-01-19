@@ -11,19 +11,16 @@ public record DeidentifhirStepConfig(
     TCAConfig trustCenterAgent,
     Duration maxDateShift,
     File deidentifhirConfig,
-    File scraperConfig,
     DateShiftPreserve dateShiftPreserve) {
 
   public DeidentifhirStepConfig(
       TCAConfig trustCenterAgent,
       Duration maxDateShift,
       File deidentifhirConfig,
-      File scraperConfig,
       DateShiftPreserve dateShiftPreserve) {
     this.trustCenterAgent = trustCenterAgent;
     this.maxDateShift = maxDateShift;
     this.deidentifhirConfig = deidentifhirConfig;
-    this.scraperConfig = scraperConfig;
     this.dateShiftPreserve = Optional.ofNullable(dateShiftPreserve).orElse(DateShiftPreserve.NONE);
   }
 
