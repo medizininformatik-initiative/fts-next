@@ -8,7 +8,10 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.*;
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
+import care.smith.fts.api.cda.DataSelector;
+import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
@@ -19,11 +22,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 class DefaultTransferProcessRunnerTest {
 
   private static final String PATIENT_ID = "patient-150622";
   private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID, "system");
+  private static final String PATIENT_ID_2 = "patient-142391";
+  private static final ConsentedPatient PATIENT_2 = new ConsentedPatient(PATIENT_ID_2, "system");
 
   private DefaultTransferProcessRunner runner;
 
@@ -64,36 +70,7 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void runMockTestWithSkippedBundles() {
-    var first = new AtomicBoolean(true);
-    var patient2 = new ConsentedPatient(PATIENT_ID, "system");
-    var process =
-        new TransferProcessDefinition(
-            "test",
-            rawConfig,
-            pids -> fromIterable(List.of(PATIENT, patient2)),
-            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
-            b -> {
-              if (first.getAndSet(false)) {
-                return just(new Result());
-              } else {
-                throw new RuntimeException("Cannot send bundle");
-              }
-            });
-
-    var processId = runner.start(process, List.of());
-    create(runner.status(processId))
-        .assertNext(
-            r -> {
-              assertThat(r.sentBundles()).isEqualTo(1);
-              assertThat(r.skippedBundles()).isEqualTo(1);
-            })
-        .verifyComplete();
-  }
-
-  @Test
-  void errorInCohortSelector() {
+  void errorInCohortSelectorIsFatal() {
     var process =
         new TransferProcessDefinition(
             "test",
@@ -178,12 +155,7 @@ class DefaultTransferProcessRunnerTest {
     runner.start(process, List.of());
     runner.start(process, List.of());
 
-    create(runner.statuses())
-        .assertNext(
-            r -> {
-              assertThat(r.size()).isEqualTo(2);
-            })
-        .verifyComplete();
+    create(runner.statuses()).assertNext(r -> assertThat(r.size()).isEqualTo(2)).verifyComplete();
 
     sleep(110L); // wait TTL seconds for process 1 and 2 to be removed
 
@@ -192,6 +164,98 @@ class DefaultTransferProcessRunnerTest {
             r -> {
               assertThat(r.size()).isEqualTo(0);
             })
+        .verifyComplete();
+  }
+
+  @Test
+  void errorInDataSelectorSkipsBundleAndContinues() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
+            errorOnSecond(new Bundle()),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId)).assertNext(this::completedWithErrors).verifyComplete();
+  }
+
+  private static DataSelector errorOnSecond(Bundle bundle) {
+    var first = new AtomicBoolean(true);
+    return p ->
+        first.getAndSet(false)
+            ? Flux.error(new RuntimeException("Cannot select data"))
+            : Flux.just(bundle).map(b -> new ConsentedPatientBundle(b, p));
+  }
+
+  private void completedWithErrors(TransferProcessStatus r) {
+    assertThat(r.sentBundles()).isEqualTo(1);
+    assertThat(r.skippedBundles()).isEqualTo(1);
+    assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+  }
+
+  @Test
+  void errorInDeidentificatorSkipsBundleAndContinues() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            errorOnSecond(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId)).assertNext(this::completedWithErrors).verifyComplete();
+  }
+
+  private static Deidentificator errorOnSecond(TransportBundle bundle) {
+    var first = new AtomicBoolean(true);
+    return b ->
+        first.getAndSet(false)
+            ? just(bundle)
+            : Mono.error(new RuntimeException("Cannot deidentify bundle"));
+  }
+
+  @Test
+  void errorInBundleSenderSkipsBundleAndContinues() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, DefaultTransferProcessRunnerTest.PATIENT_2)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            errorOnSecond(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId)).assertNext(this::completedWithErrors).verifyComplete();
+  }
+
+  private static BundleSender errorOnSecond(Result result) {
+    var first = new AtomicBoolean(true);
+    return b ->
+        first.getAndSet(false)
+            ? just(result)
+            : Mono.error(new RuntimeException("Cannot send bundle"));
+  }
+
+  private void waitForCompletion(String processId) {
+    Flux.interval(Duration.ofMillis(10))
+        .flatMap(i -> runner.status(processId))
+        .takeUntil(s -> TransferProcessStatus.isCompleted(s.phase()))
+        .take(Duration.ofSeconds(5))
+        .last()
+        .as(StepVerifier::create)
+        .expectNextCount(1)
         .verifyComplete();
   }
 }
