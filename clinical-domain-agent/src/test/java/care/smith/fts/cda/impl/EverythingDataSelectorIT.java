@@ -44,10 +44,10 @@ import reactor.core.publisher.Mono;
 class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
   private static WireMock wireMock;
-  private static final String PATIENT_ID = "patient-112348";
+  private static final String PATIENT_IDENTIFIER = "patient-112348";
   private static final int PAGE_SIZE = 500;
   private static final PatientIdResolver pidResolver =
-      patient -> Mono.just(new IdType("Patient", patient.id()));
+      patient -> Mono.just(new IdType("Patient", patient.identifier()));
 
   private static EverythingDataSelector dataSelector;
   private static WebClient client;
@@ -69,11 +69,11 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
-    consentedPatient = new ConsentedPatient(PATIENT_ID, "system", consentedPolicies);
+    consentedPatient = new ConsentedPatient(PATIENT_IDENTIFIER, "system", consentedPolicies);
   }
 
   private static MappingBuilder fhirStoreRequestWithoutConsent() {
-    return get("/Patient/%s/$everything?_count=%s".formatted(PATIENT_ID, PAGE_SIZE))
+    return get("/Patient/%s/$everything?_count=%s".formatted(PATIENT_IDENTIFIER, PAGE_SIZE))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
@@ -82,7 +82,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     var start = period.start().format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
     var end = period.end().format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
     return get("/Patient/%s/$everything?_count=%s&start=%s&end=%s"
-            .formatted(PATIENT_ID, PAGE_SIZE, start, end))
+            .formatted(PATIENT_IDENTIFIER, PAGE_SIZE, start, end))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
   }
 
@@ -108,7 +108,9 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
   @Test
   void noConsentErrors() {
-    create(dataSelector.select(new ConsentedPatient(PATIENT_ID, "system"))).expectError().verify();
+    create(dataSelector.select(new ConsentedPatient(PATIENT_IDENTIFIER, "system")))
+        .expectError()
+        .verify();
   }
 
   @Test
@@ -119,7 +121,8 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     wireMock.register(fhirStoreRequestWithoutConsent().willReturn(fhirResponse(new Bundle())));
 
     create(dataSelector.select(consentedPatient))
-        .assertNext(b -> assertThat(b.consentedPatient().id()).isEqualTo(PATIENT_ID))
+        .assertNext(
+            b -> assertThat(b.consentedPatient().identifier()).isEqualTo(PATIENT_IDENTIFIER))
         .verifyComplete();
   }
 

@@ -31,10 +31,12 @@ import reactor.test.StepVerifier;
 
 class DefaultTransferProcessRunnerTest {
 
-  private static final String PATIENT_ID = "patient-150622";
-  private static final ConsentedPatient PATIENT = new ConsentedPatient(PATIENT_ID, "system");
-  private static final String PATIENT_ID_2 = "patient-142391";
-  private static final ConsentedPatient PATIENT_2 = new ConsentedPatient(PATIENT_ID_2, "system");
+  private static final String PATIENT_IDENTIFIER = "patient-150622";
+  private static final ConsentedPatient PATIENT =
+      new ConsentedPatient(PATIENT_IDENTIFIER, "system");
+  private static final String PATIENT_IDENTIFIER_2 = "patient-142391";
+  private static final ConsentedPatient PATIENT_2 =
+      new ConsentedPatient(PATIENT_IDENTIFIER_2, "system");
 
   private DefaultTransferProcessRunner runner;
 

@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono;
 public class FhirMappingProvider implements MappingProvider {
   private static final HashFunction hashFn = Hashing.sha256();
 
-  record PseudonymData(String patientIdPseudonym, String salt, String dateShiftSeed) {}
+  record PseudonymData(String patientIdentifierPseudonym, String salt, String dateShiftSeed) {}
 
   private final GpasClient gpasClient;
   private final TransportMappingConfiguration configuration;
@@ -65,8 +65,8 @@ public class FhirMappingProvider implements MappingProvider {
   @Override
   public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
     log.trace(
-        "Generate transport mapping for patientId={}, {} IDs, {} date tIDs",
-        r.patientId(),
+        "Generate transport mapping for patientIdentifier={}, {} IDs, {} date tIDs",
+        r.patientIdentifier(),
         r.resourceIds().size(),
         r.dateTransportMappings().size());
 
@@ -76,7 +76,7 @@ public class FhirMappingProvider implements MappingProvider {
     var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
 
     return sMap.expire(configuration.getTtl())
-        .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
+        .then(fetchPseudonymAndSalts(r.patientIdentifier(), r.tcaDomains(), r.maxDateShift()))
         .flatMap(
             data -> {
               var dateShift =
@@ -97,13 +97,13 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   private Mono<PseudonymData> fetchPseudonymAndSalts(
-      String patientId, TcaDomains domains, Duration maxDateShift) {
-    var saltKey = "Salt_" + patientId;
-    var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientId);
+      String patientIdentifier, TcaDomains domains, Duration maxDateShift) {
+    var saltKey = "Salt_" + patientIdentifier;
+    var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientIdentifier);
     return Mono.zip(
             gpasClient
-                .fetchOrCreatePseudonyms(domains.pseudonym(), of(patientId))
-                .map(m -> m.get(patientId)),
+                .fetchOrCreatePseudonyms(domains.pseudonym(), of(patientIdentifier))
+                .map(m -> m.get(patientIdentifier)),
             gpasClient
                 .fetchOrCreatePseudonyms(domains.salt(), of(saltKey))
                 .map(m -> m.get(saltKey)),
@@ -124,10 +124,10 @@ public class FhirMappingProvider implements MappingProvider {
         ImmutableMap.<String, String>builder()
             .putAll(generateSecureMapping(data.salt(), transportMapping))
             .putAll(
-                patientIdPseudonyms(
-                    r.patientId(),
+                patientIdentifierPseudonyms(
+                    r.patientIdentifier(),
                     r.patientIdentifierSystem(),
-                    data.patientIdPseudonym(),
+                    data.patientIdentifierPseudonym(),
                     transportMapping));
 
     // Store tID→shiftedDate mappings with prefix for RDA to resolve
@@ -147,17 +147,21 @@ public class FhirMappingProvider implements MappingProvider {
     return hashFn.hashString(transportSalt + id, StandardCharsets.UTF_8).toString();
   }
 
-  static Map<String, String> patientIdPseudonyms(
-      String patientId,
+  /**
+   * With this function we make sure that the patient's identifier in the RDA is the de-identified
+   * identifier stored in gPAS. This ensures that we can re-identify patients.
+   */
+  static Map<String, String> patientIdentifierPseudonyms(
+      String patientIdentifier,
       String patientIdentifierSystem,
-      String patientIdPseudonym,
+      String patientIdentifierPseudonym,
       Map<String, String> transportMapping) {
-    var x = NamespacingReplacementProvider.withNamespacing(patientId);
-    var name = x.getKeyForSystemAndValue(patientIdentifierSystem, patientId);
+    var x = NamespacingReplacementProvider.withNamespacing(patientIdentifier);
+    var name = x.getKeyForSystemAndValue(patientIdentifierSystem, patientIdentifier);
 
     return transportMapping.entrySet().stream()
         .filter(entry -> entry.getKey().equals(name))
-        .collect(toMap(Entry::getValue, id -> patientIdPseudonym));
+        .collect(toMap(Entry::getValue, id -> patientIdentifierPseudonym));
   }
 
   @Override

@@ -93,7 +93,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
-                entry("patientId", "id-144218"),
+                entry("patientIdentifier", "id-144218"),
                 entry("patientIdentifierSystem", "http://fts.smith.care"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
                 entry("dateTransportMappings", Map.of()),
@@ -139,7 +139,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
-                entry("patientId", "id-144218"),
+                entry("patientIdentifier", "id-144218"),
                 entry("patientIdentifierSystem", "http://fts.smith.care"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
                 entry("dateTransportMappings", Map.of()),
@@ -209,7 +209,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
                 ofEntries(
                     entry("tcaDomains", DEFAULT_DOMAINS),
-                    entry("patientId", "id-144218"),
+                    entry("patientIdentifier", "id-144218"),
                     entry("patientIdentifierSystem", "http://fts.smith.care"),
                     entry("resourceIds", Set.of("id-144218", "id-244194")),
                     entry("dateTransportMappings", Map.of("tId-date-1", "2024-03-15")),

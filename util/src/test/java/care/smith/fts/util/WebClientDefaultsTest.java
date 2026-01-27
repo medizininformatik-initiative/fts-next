@@ -35,7 +35,7 @@ class WebClientDefaultsTest {
                 jsonResponse(
                     """
                     {
-                      "id": "patient",
+                      "identifier": "patient",
                       "patientIdentifierSystem": "system",
                       "consentedPolicies": {
                         "policies":{
@@ -55,7 +55,7 @@ class WebClientDefaultsTest {
     create(webClient.post().retrieve().bodyToMono(ConsentedPatient.class))
         .assertNext(
             b -> {
-              assertThat(b.id()).isEqualTo("patient");
+              assertThat(b.identifier()).isEqualTo("patient");
               assertThat(b.patientIdentifierSystem()).isEqualTo("system");
               assertThat(b.consentedPolicies().policyNames()).isNotEmpty();
             })

@@ -50,7 +50,7 @@ class TransportMappingRequestTest {
     String json =
         """
         {
-          "patientId": "patient123",
+          "patientIdentifier": "patient123",
           "patientIdentifierSystem": "patientIdentifierSystem",
           "resourceIds": ["id1", "id2"],
           "dateTransportMappings": {"tId1": "2024-03-15", "tId2": "2024-01-01"},
@@ -65,7 +65,7 @@ class TransportMappingRequestTest {
 
     TransportMappingRequest request = objectMapper.readValue(json, TransportMappingRequest.class);
 
-    assertThat(request.patientId()).isEqualTo("patient123");
+    assertThat(request.patientIdentifier()).isEqualTo("patient123");
     assertThat(request.resourceIds()).containsExactlyInAnyOrder("id1", "id2");
     assertThat(request.dateTransportMappings())
         .containsExactlyInAnyOrderEntriesOf(Map.of("tId1", "2024-03-15", "tId2", "2024-01-01"));

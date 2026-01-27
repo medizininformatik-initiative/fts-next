@@ -26,32 +26,37 @@ class FetchAllConsentsForPersons implements GicsFhirRequestHelper<ConsentFetchRe
 
   @Override
   public Map<String, ?> buildBody(ConsentFetchRequest req, PagingParams paging) {
-    var patientParams = getPids(req, paging).stream().map(pid -> identifierParam(req, pid));
+    var patientParams =
+        getIdentifiers(req, paging).stream()
+            .map(patientIdentifier -> identifierParam(req, patientIdentifier));
     var domainParam = Stream.of(Map.of("name", "domain", "valueString", req.domain()));
     return ofEntries(
         entry("resourceType", "Parameters"),
         entry("parameter", concat(domainParam, patientParams).toList()));
   }
 
-  private static Map<String, Object> identifierParam(ConsentFetchRequest req, String pid) {
+  private static Map<String, Object> identifierParam(
+      ConsentFetchRequest req, String patientIdentifier) {
     return ofEntries(
         entry("name", "personIdentifier"),
-        entry("valueIdentifier", Map.of("system", req.patientIdentifierSystem(), "value", pid)));
+        entry(
+            "valueIdentifier",
+            Map.of("system", req.patientIdentifierSystem(), "value", patientIdentifier)));
   }
 
   /**
-   * Get patient IDs from `from` to `from + count`. If `from + count` is greater than pids.size()
-   * then return patient IDs from `from` to `pids.size() -1`
+   * Get patient identifiers from `from` to `from + count`. If `from + count` is greater than
+   * identifiers.size() then return patient identifiers from `from` to `identifiers.size() -1`
    *
    * @param consentRequest
    * @param pagingParams
-   * @return List of patient IDs in range
+   * @return List of patient identifiers in range
    */
-  private static List<String> getPids(
+  private static List<String> getIdentifiers(
       ConsentFetchRequest consentRequest, PagingParams pagingParams) {
-    var end = min(consentRequest.pids().size(), pagingParams.sum());
+    var end = min(consentRequest.identifiers().size(), pagingParams.sum());
     return pagingParams.from() < end
-        ? consentRequest.pids().subList(pagingParams.from(), end)
+        ? consentRequest.identifiers().subList(pagingParams.from(), end)
         : List.of();
   }
 
@@ -59,7 +64,7 @@ class FetchAllConsentsForPersons implements GicsFhirRequestHelper<ConsentFetchRe
   public Bundle processResponse(
       Bundle bundle, ConsentFetchRequest req, UriComponentsBuilder url, PagingParams paging) {
     log.trace("bundle n entries: {}", bundle.getEntry().size());
-    return req.pids().size() > paging.sum()
+    return req.identifiers().size() > paging.sum()
         ? bundle.addLink(nextLink(url, paging, "/api/v2/cd/consented-patients/fetch"))
         : bundle;
   }

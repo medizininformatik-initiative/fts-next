@@ -133,10 +133,10 @@ public class FhirCohortGenerator {
         "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
     patient.setMeta(meta);
 
-    var patientId = new Identifier();
-    patientId.setSystem(pidSystem);
-    patientId.setValue("patient-identifier-" + id);
+    var patientIdentifier = new Identifier();
+    patientIdentifier.setSystem(pidSystem);
+    patientIdentifier.setValue("patient-identifier-" + id);
 
-    return patient.setIdentifier(List.of(patientId));
+    return patient.setIdentifier(List.of(patientIdentifier));
   }
 }

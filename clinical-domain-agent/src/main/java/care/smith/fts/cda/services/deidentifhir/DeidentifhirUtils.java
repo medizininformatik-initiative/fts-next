@@ -36,10 +36,10 @@ public interface DeidentifhirUtils {
   }
 
   static Registry generateRegistry(
-      String patientId,
+      String patientIdentifier,
       java.util.Map<String, String> transportIds,
       java.util.Map<String, String> dateTransportMappings) {
-    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
+    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientIdentifier);
     var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIds);
 
     // Invert tID→dateValue to dateValue→tID for lookup during date processing.
@@ -88,11 +88,12 @@ public interface DeidentifhirUtils {
       Config config,
       Registry registry,
       Bundle bundle,
-      String patientId,
+      String patientIdentifier,
       MeterRegistry meterRegistry) {
     var sample = Timer.start(meterRegistry);
 
-    Map<String, String> staticContext = new Map.Map1<>(Handlers.patientIdentifierKey(), patientId);
+    Map<String, String> staticContext =
+        new Map.Map1<>(Handlers.patientIdentifierKey(), patientIdentifier);
     Deidentifhir deidentifhir = Deidentifhir.apply(config, registry);
     var deidentified = (Bundle) deidentifhir.deidentify(bundle, staticContext);
     sample.stop(meterRegistry.timer("deidentify"));
