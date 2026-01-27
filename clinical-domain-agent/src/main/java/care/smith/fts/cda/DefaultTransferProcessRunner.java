@@ -143,21 +143,52 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Flux<ConsentedPatientBundle> selectData(Flux<ConsentedPatient> cohortSelection) {
       return cohortSelection
-          .flatMap(process.dataSelector()::select)
+          .flatMap(this::selectDataForPatient)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalBundles));
     }
 
-    private Flux<TransportBundle> deidentify(Flux<ConsentedPatientBundle> dataSelection) {
+    private Flux<ConsentedPatientBundle> selectDataForPatient(ConsentedPatient patient) {
+      return process
+          .dataSelector()
+          .select(patient)
+          .doOnError(e -> logError("select data", patient.id(), e));
+    }
+
+    private void logError(String step, String patientId, Throwable e) {
+      var msg = "[Process {}] Failed to {} for patient {}. {}";
+      log.error(msg, processId(), step, patientId, log.isDebugEnabled() ? e : e.getMessage());
+    }
+
+    public record PatientContext<T>(T data, ConsentedPatient consentedPatient) {}
+
+    private Flux<PatientContext<TransportBundle>> deidentify(
+        Flux<ConsentedPatientBundle> dataSelection) {
       return dataSelection
-          .flatMap(process.deidentificator()::deidentify)
+          .flatMap(this::deidentifyForPatient)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles));
     }
 
-    private Flux<Result> sendBundles(Flux<TransportBundle> deidentification) {
+    private Mono<PatientContext<TransportBundle>> deidentifyForPatient(
+        ConsentedPatientBundle bundle) {
+      return process
+          .deidentificator()
+          .deidentify(bundle)
+          .doOnError(e -> logError("deidentify bundle", bundle.consentedPatient().id(), e))
+          .map(t -> new PatientContext<>(t, bundle.consentedPatient()));
+    }
+
+    private Flux<Result> sendBundles(Flux<PatientContext<TransportBundle>> deidentification) {
       return deidentification
-          .flatMap(b -> process.bundleSender().send(b), config.maxSendConcurrency)
+          .flatMap(this::sendBundleForPatient, config.maxSendConcurrency)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles))
           .onErrorContinue((e, r) -> status.updateAndGet(TransferProcessStatus::incSkippedBundles));
+    }
+
+    private Mono<Result> sendBundleForPatient(PatientContext<TransportBundle> b) {
+      return process
+          .bundleSender()
+          .send(b.data())
+          .doOnError(e -> logError("send bundle", b.consentedPatient().id(), e));
     }
 
     private void onComplete() {
