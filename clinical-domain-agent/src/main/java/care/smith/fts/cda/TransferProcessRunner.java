@@ -5,7 +5,7 @@ import java.util.List;
 import reactor.core.publisher.Mono;
 
 public interface TransferProcessRunner {
-  String start(TransferProcessDefinition process, @NotNull List<String> pids);
+  String start(TransferProcessDefinition process, @NotNull List<String> identifiers);
 
   Mono<List<TransferProcessStatus>> statuses();
 

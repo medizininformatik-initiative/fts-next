@@ -21,7 +21,7 @@ public class IdatScraper {
   private final ScrapingStorage scrapingStorage;
 
   public IdatScraper(Config config, ConsentedPatient patient) {
-    var keyCreator = NamespacingReplacementProvider.withNamespacing(patient.id());
+    var keyCreator = NamespacingReplacementProvider.withNamespacing(patient.identifier());
     scrapingStorage = new ScrapingStorage(keyCreator);
 
     Registry registry = new Registry();

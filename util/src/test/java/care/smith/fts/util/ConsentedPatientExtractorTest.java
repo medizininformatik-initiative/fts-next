@@ -35,9 +35,9 @@ class ConsentedPatientExtractorTest {
             .collect(Collectors.toList());
 
     assertThat(result).hasSize(2); // Only bundles with all policies should be included
-    assertThat(result.get(0).id()).isEqualTo("12345");
+    assertThat(result.get(0).identifier()).isEqualTo("12345");
     assertThat(result.get(0).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
-    assertThat(result.get(1).id()).isEqualTo("67890");
+    assertThat(result.get(1).identifier()).isEqualTo("67890");
     assertThat(result.get(1).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
   }
 
@@ -54,7 +54,7 @@ class ConsentedPatientExtractorTest {
             b -> getPatientId(b));
 
     assertThat(result).isPresent();
-    assertThat(result.get().id()).isEqualTo("12345");
+    assertThat(result.get().identifier()).isEqualTo("12345");
     assertThat(result.get().patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
     assertThat(result.get().consentedPolicies().hasAllPolicies(POLICIES_TO_CHECK)).isTrue();
   }

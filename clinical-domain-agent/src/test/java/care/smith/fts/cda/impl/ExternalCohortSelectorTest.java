@@ -27,7 +27,7 @@ class ExternalCohortSelectorTest {
 
   @Test
   void containsExactlyPatientsConfigured() {
-    create(selector.selectCohort(List.of("pid-1", "pid-2")).map(ConsentedPatient::id))
+    create(selector.selectCohort(List.of("pid-1", "pid-2")).map(ConsentedPatient::identifier))
         .expectNext("pid-1", "pid-2")
         .verifyComplete();
   }

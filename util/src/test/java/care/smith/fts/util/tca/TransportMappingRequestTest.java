@@ -44,7 +44,7 @@ class TransportMappingRequestTest {
     String json =
         """
         {
-          "patientId": "patient123",
+          "patientIdentifier": "patient123",
           "patientIdentifierSystem": "patientIdentifierSystem",
           "resourceIds": ["id1", "id2"],
           "tcaDomains": {
@@ -58,7 +58,7 @@ class TransportMappingRequestTest {
 
     TransportMappingRequest request = objectMapper.readValue(json, TransportMappingRequest.class);
 
-    assertThat(request.patientId()).isEqualTo("patient123");
+    assertThat(request.patientIdentifier()).isEqualTo("patient123");
     assertThat(request.resourceIds()).containsExactlyInAnyOrder("id1", "id2");
     assertThat(request.tcaDomains().pseudonym()).isEqualTo("pDomain");
     assertThat(request.tcaDomains().salt()).isEqualTo("sDomain");

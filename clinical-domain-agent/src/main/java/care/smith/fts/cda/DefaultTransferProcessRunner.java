@@ -38,10 +38,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   @Override
-  public String start(TransferProcessDefinition process, List<String> pids) {
+  public String start(TransferProcessDefinition process, List<String> identifiers) {
     var processId = nanoId(6);
     log.info("[Process {}] Created, config: {}", processId, asJson(om, process.rawConfig()));
-    var transferProcessInstance = new TransferProcessInstance(process, processId, pids);
+    var transferProcessInstance = new TransferProcessInstance(process, processId, identifiers);
 
     startOrQueue(processId, transferProcessInstance);
 
@@ -111,18 +111,18 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private final TransferProcessDefinition process;
     private final AtomicReference<TransferProcessStatus> status;
-    private final List<String> pids;
+    private final List<String> identifiers;
 
     public TransferProcessInstance(
-        TransferProcessDefinition process, String processId, List<String> pids) {
+        TransferProcessDefinition process, String processId, List<String> identifiers) {
       this.process = process;
       status = new AtomicReference<>(TransferProcessStatus.create(processId));
-      this.pids = pids;
+      this.identifiers = identifiers;
     }
 
     public void execute() {
       status.updateAndGet(s -> s.setPhase(Phase.RUNNING));
-      selectCohort(pids)
+      selectCohort(identifiers)
           .transform(this::selectData)
           .transform(this::deidentify)
           .transform(this::sendBundles)
@@ -132,10 +132,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       log.info("[Process {}] Started", processId());
     }
 
-    private Flux<ConsentedPatient> selectCohort(List<String> pids) {
+    private Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
       return process
           .cohortSelector()
-          .selectCohort(pids)
+          .selectCohort(identifiers)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalPatients))
           .doOnError(e -> status.updateAndGet(s -> s.setPhase(Phase.FATAL)))
           .onErrorComplete();
@@ -151,12 +151,13 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .dataSelector()
           .select(patient)
-          .doOnError(e -> logError("select data", patient.id(), e));
+          .doOnError(e -> logError("select data", patient.identifier(), e));
     }
 
-    private void logError(String step, String patientId, Throwable e) {
+    private void logError(String step, String patientIdentifier, Throwable e) {
       var msg = "[Process {}] Failed to {} for patient {}. {}";
-      log.error(msg, processId(), step, patientId, log.isDebugEnabled() ? e : e.getMessage());
+      log.error(
+          msg, processId(), step, patientIdentifier, log.isDebugEnabled() ? e : e.getMessage());
     }
 
     public record PatientContext<T>(T data, ConsentedPatient consentedPatient) {}
@@ -173,7 +174,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .deidentificator()
           .deidentify(bundle)
-          .doOnError(e -> logError("deidentify bundle", bundle.consentedPatient().id(), e))
+          .doOnError(e -> logError("deidentify bundle", bundle.consentedPatient().identifier(), e))
           .map(t -> new PatientContext<>(t, bundle.consentedPatient()));
     }
 
@@ -188,7 +189,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .bundleSender()
           .send(b.data())
-          .doOnError(e -> logError("send bundle", b.consentedPatient().id(), e));
+          .doOnError(e -> logError("send bundle", b.consentedPatient().identifier(), e));
     }
 
     private void onComplete() {

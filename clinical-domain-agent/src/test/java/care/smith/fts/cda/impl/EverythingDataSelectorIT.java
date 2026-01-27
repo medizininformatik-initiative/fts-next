@@ -47,7 +47,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
   private static final String PATIENT_ID = "patient-112348";
   private static final int PAGE_SIZE = 500;
   private static final PatientIdResolver pidResolver =
-      patient -> Mono.just(new IdType("Patient", patient.id()));
+      patient -> Mono.just(new IdType("Patient", patient.identifier()));
 
   private static EverythingDataSelector dataSelector;
   private static WebClient client;
@@ -119,7 +119,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     wireMock.register(fhirStoreRequestWithoutConsent().willReturn(fhirResponse(new Bundle())));
 
     create(dataSelector.select(consentedPatient))
-        .assertNext(b -> assertThat(b.consentedPatient().id()).isEqualTo(PATIENT_ID))
+        .assertNext(b -> assertThat(b.consentedPatient().identifier()).isEqualTo(PATIENT_ID))
         .verifyComplete();
   }
 

@@ -94,7 +94,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
-                entry("patientId", "id-144218"),
+                entry("patientIdentifier", "id-144218"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
@@ -138,7 +138,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
             ofEntries(
                 entry("tcaDomains", DEFAULT_DOMAINS),
-                entry("patientId", "id-144218"),
+                entry("patientIdentifier", "id-144218"),
                 entry("resourceIds", Set.of("id-144218", "id-244194")),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
@@ -206,7 +206,7 @@ class DeIdentificationControllerIT extends BaseIT {
         doPost(
                 ofEntries(
                     entry("tcaDomains", DEFAULT_DOMAINS),
-                    entry("patientId", "id-144218"),
+                    entry("patientIdentifier", "id-144218"),
                     entry("resourceIds", Set.of("id-144218", "id-244194")),
                     entry("maxDateShift", ofDays(14).getSeconds()),
                     entry("dateShiftPreserve", "NONE")))

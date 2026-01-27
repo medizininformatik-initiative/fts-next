@@ -19,8 +19,8 @@ import scala.collection.immutable.Seq;
 
 public interface DeidentifhirUtils {
   static Registry generateRegistry(
-      String patientId, java.util.Map<String, String> transportIds, Duration dateShiftValue) {
-    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
+      String patientIdentifier, java.util.Map<String, String> transportIds, Duration dateShiftValue) {
+    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientIdentifier);
     var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIds);
     DateShiftingProvider dsp = new DateShiftingProvider(dateShiftValue);
 
@@ -58,11 +58,11 @@ public interface DeidentifhirUtils {
       Config config,
       Registry registry,
       Bundle bundle,
-      String patientId,
+      String patientIdentifier,
       MeterRegistry meterRegistry) {
     var sample = Timer.start(meterRegistry);
 
-    Map<String, String> staticContext = new Map.Map1<>(Handlers.patientIdentifierKey(), patientId);
+    Map<String, String> staticContext = new Map.Map1<>(Handlers.patientIdentifierKey(), patientIdentifier);
     Deidentifhir deidentifhir = Deidentifhir.apply(config, registry);
     var deidentified = (Bundle) deidentifhir.deidentify(bundle, staticContext);
     sample.stop(meterRegistry.timer("deidentify"));

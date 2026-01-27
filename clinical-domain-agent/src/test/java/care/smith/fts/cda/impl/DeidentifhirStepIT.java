@@ -97,7 +97,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                 equalToJson(
                     """
                     {
-                      "patientId": "id1",
+                      "patientIdentifier": "id1",
                       "resourceIds": [ "id1.identifier.identifierSystem:identifier1", "id1.Patient:id1" ],
                       "tcaDomains": {
                         "pseudonym": "domain",

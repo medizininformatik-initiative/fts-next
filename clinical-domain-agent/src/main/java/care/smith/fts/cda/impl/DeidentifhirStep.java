@@ -59,10 +59,10 @@ class DeidentifhirStep implements Deidentificator {
                 response -> {
                   var transportMapping = response.transportMapping();
                   var dateShiftValue = response.dateShiftValue();
-                  var registry = generateRegistry(patient.id(), transportMapping, dateShiftValue);
+                  var registry = generateRegistry(patient.identifier(), transportMapping, dateShiftValue);
                   var deidentified =
                       DeidentifhirUtils.deidentify(
-                          config, registry, bundle.bundle(), patient.id(), meterRegistry);
+                          config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
                   return new TransportBundle(deidentified, response.transferId());
                 })
         : Mono.empty();
@@ -72,7 +72,7 @@ class DeidentifhirStep implements Deidentificator {
       ConsentedPatient patient, Set<String> ids) {
     var request =
         new TransportMappingRequest(
-            patient.id(), patient.patientIdentifierSystem(), ids, domains, maxDateShift, preserve);
+            patient.identifier(), patient.patientIdentifierSystem(), ids, domains, maxDateShift, preserve);
 
     log.trace("Fetch transport mapping for {} IDs", ids.size());
     return tcaClient

@@ -32,13 +32,13 @@ class DeidentifhirUtilsTest {
                 "tid1.identifier.identifierSystem1:tidentifier1",
             "id1.Patient:id1", "tid1.Patient:tid1");
 
-    Registry registry = generateRegistry(patient.id(), transportIDs, Duration.ofMillis(1000));
+    Registry registry = generateRegistry(patient.identifier(), transportIDs, Duration.ofMillis(1000));
 
     var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
 
     var bundle =
         TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
-    Bundle deidentifiedBundle = deidentify(config, registry, bundle, patient.id(), meterRegistry);
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, patient.identifier(), meterRegistry);
     Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
 
     Patient p = (Patient) b.getEntryFirstRep().getResource();

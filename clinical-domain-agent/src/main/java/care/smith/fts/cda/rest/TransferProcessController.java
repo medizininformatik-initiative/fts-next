@@ -91,13 +91,15 @@ public class TransferProcessController {
       })
   Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project,
-      @Valid @RequestBody(required = false) List<String> pids,
+      @Valid @RequestBody(required = false) List<String> identifiers,
       UriComponentsBuilder uriBuilder) {
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
 
-      var id = processRunner.start(process.get(), Optional.ofNullable(pids).orElse(List.of()));
+      var id =
+          processRunner.start(
+              process.get(), Optional.ofNullable(identifiers).orElse(List.of()));
       var jobUri = generateJobUri(uriBuilder, id);
       return processRunner
           .status(id)
