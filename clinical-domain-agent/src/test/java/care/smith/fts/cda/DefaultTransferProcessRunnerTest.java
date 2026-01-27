@@ -13,6 +13,10 @@ import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
@@ -20,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -246,6 +251,56 @@ class DefaultTransferProcessRunnerTest {
         first.getAndSet(false)
             ? just(result)
             : Mono.error(new RuntimeException("Cannot send bundle"));
+  }
+
+  @Test
+  void logErrorIncludesExceptionWhenDebugEnabled() {
+    var event = runWithLogLevel(Level.DEBUG);
+    assertThat(event.getThrowableProxy()).isNotNull();
+    assertThat(event.getThrowableProxy().getMessage()).isEqualTo("Cannot select data");
+  }
+
+  @Test
+  void logErrorIncludesMessageOnlyWhenDebugDisabled() {
+    var event = runWithLogLevel(Level.ERROR);
+    assertThat(event.getThrowableProxy()).isNull();
+    assertThat(event.getFormattedMessage()).contains("Cannot select data");
+  }
+
+  private ILoggingEvent runWithLogLevel(Level level) {
+    var logger = (Logger) LoggerFactory.getLogger(DefaultTransferProcessRunner.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    var originalLevel = logger.getLevel();
+    logger.setLevel(level);
+
+    try {
+      var process = failingDataSelectorProcess();
+      var processId = runner.start(process, List.of());
+      waitForCompletion(processId);
+
+      var errorEvents =
+          appender.list.stream()
+              .filter(e -> e.getLevel() == Level.ERROR)
+              .filter(e -> e.getFormattedMessage().contains("Failed to"))
+              .toList();
+      assertThat(errorEvents).isNotEmpty();
+      return errorEvents.getFirst();
+    } finally {
+      logger.detachAppender(appender);
+      logger.setLevel(originalLevel);
+    }
+  }
+
+  private TransferProcessDefinition failingDataSelectorProcess() {
+    return new TransferProcessDefinition(
+        "test",
+        rawConfig,
+        pids -> fromIterable(List.of(PATIENT)),
+        p -> Flux.error(new RuntimeException("Cannot select data")),
+        b -> just(new TransportBundle(new Bundle(), "transferId")),
+        b -> just(new Result()));
   }
 
   private void waitForCompletion(String processId) {
