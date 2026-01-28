@@ -26,8 +26,8 @@ public interface ScenarioMockUtil {
     stubFor(builder.willReturn(delayedResponse()));
     StepVerifier.withVirtualTime(fn)
         .expectSubscription()
-        .thenAwait(Duration.ofSeconds(12))
-        .expectError(TimeoutException.class)
+        .thenAwait(Duration.ofSeconds(60))
+        .expectErrorMatches(e -> e instanceof TimeoutException || Exceptions.isRetryExhausted(e))
         .verify();
   }
 

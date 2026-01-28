@@ -10,7 +10,7 @@ compile:
 	mvn ${MAVEN_ARGS} clean compile
 
 test:
-	mvn ${MAVEN_ARGS} clean verify
+	mvn ${MAVEN_ARGS} clean verify -Dfts.retryTimeout=false
 
 format:
 	find -type f -name '*.java' | xargs google-java-format -i
