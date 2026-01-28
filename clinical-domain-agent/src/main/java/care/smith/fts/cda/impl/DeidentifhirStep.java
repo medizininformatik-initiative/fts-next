@@ -53,24 +53,29 @@ class DeidentifhirStep implements Deidentificator {
     var patient = bundle.consentedPatient();
     var dataScraper = new DataScraper(config, patient);
     var scrapedData = dataScraper.scrape(bundle.bundle());
-
-    // TCA stores tID→shiftedDate mappings for RDA to resolve later
     var dateTransportMappings = scrapedData.dateTransportMappings();
-    return !scrapedData.ids().isEmpty()
-        ? fetchTransportMapping(patient, scrapedData.ids(), dateTransportMappings)
-            .map(
-                response -> {
-                  var transportMapping = response.transportMapping();
-                  // Pass dateTransportMappings so deidentification adds tID extensions and nulls
-                  // dates RDA will resolve tIDs to shifted dates from TCA
-                  var registry =
-                      generateRegistry(patient.id(), transportMapping, dateTransportMappings);
-                  var deidentified =
-                      DeidentifhirUtils.deidentify(
-                          config, registry, bundle.bundle(), patient.id(), meterRegistry);
-                  return new TransportBundle(deidentified, response.transferId());
-                })
-        : Mono.empty();
+
+    return scrapedData.ids().isEmpty()
+        ? Mono.empty()
+        : processWithTransportMapping(bundle, patient, scrapedData.ids(), dateTransportMappings);
+  }
+
+  private Mono<TransportBundle> processWithTransportMapping(
+      ConsentedPatientBundle bundle,
+      ConsentedPatient patient,
+      Set<String> ids,
+      Map<String, String> dateTransportMappings) {
+    return fetchTransportMapping(patient, ids, dateTransportMappings)
+        .map(
+            response -> {
+              var transportMapping = response.transportMapping();
+              var registry =
+                  generateRegistry(patient.id(), transportMapping, dateTransportMappings);
+              var deidentified =
+                  DeidentifhirUtils.deidentify(
+                      config, registry, bundle.bundle(), patient.id(), meterRegistry);
+              return new TransportBundle(deidentified, response.transferId());
+            });
   }
 
   private Mono<TransportMappingResponse> fetchTransportMapping(

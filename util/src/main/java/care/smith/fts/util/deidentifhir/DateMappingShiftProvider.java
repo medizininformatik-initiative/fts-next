@@ -30,16 +30,12 @@ public class DateMappingShiftProvider implements ShiftDateProvider {
   public Long getDateShiftingValueInMillis(String originalDateString) {
     String shiftedDateString = dateShiftMapping.get(originalDateString);
     if (shiftedDateString == null) {
-      return 0L;
+      throw new IllegalStateException(
+          "No shifted date found for original date: " + originalDateString);
     }
-
-    try {
-      var original = parseDateTime(originalDateString);
-      var shifted = parseDateTime(shiftedDateString);
-      return Duration.between(original, shifted).toMillis();
-    } catch (DateTimeParseException e) {
-      return 0L;
-    }
+    var original = parseDateTime(originalDateString);
+    var shifted = parseDateTime(shiftedDateString);
+    return Duration.between(original, shifted).toMillis();
   }
 
   private ZonedDateTime parseDateTime(String dateString) {

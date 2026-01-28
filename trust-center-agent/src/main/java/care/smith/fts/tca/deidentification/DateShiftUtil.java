@@ -7,7 +7,9 @@ import care.smith.fts.api.DateShiftPreserve;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
+import java.util.Date;
 import java.util.Random;
+import org.hl7.fhir.r4.model.DateTimeType;
 
 public interface DateShiftUtil {
 
@@ -37,5 +39,20 @@ public interface DateShiftUtil {
     var maxPeriods = maxShiftMs / periodMs;
     var randomPeriods = random.nextLong(-maxPeriods, maxPeriods + 1);
     return Duration.ofMillis(randomPeriods * periodMs);
+  }
+
+  /**
+   * Shifts a date string by the given duration while preserving precision.
+   *
+   * @param isoDateString original date in ISO-8601 format
+   * @param shift duration to shift by (can be negative)
+   * @return shifted date in ISO-8601 format with same precision as input
+   */
+  static String shiftDate(String isoDateString, Duration shift) {
+    var dateTime = new DateTimeType(isoDateString);
+    var precision = dateTime.getPrecision();
+    var originalValue = dateTime.getValue();
+    var shiftedValue = new Date(originalValue.getTime() + shift.toMillis());
+    return new DateTimeType(shiftedValue, precision, dateTime.getTimeZone()).getValueAsString();
   }
 }

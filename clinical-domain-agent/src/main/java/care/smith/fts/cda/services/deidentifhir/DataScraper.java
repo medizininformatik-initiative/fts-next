@@ -1,5 +1,7 @@
 package care.smith.fts.cda.services.deidentifhir;
 
+import static care.smith.fts.util.NanoIdUtils.nanoId;
+
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import com.typesafe.config.Config;
@@ -7,8 +9,6 @@ import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
 import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
@@ -29,20 +29,16 @@ import scala.collection.immutable.Seq;
  * nulls the original date values, and returns tID→originalDate mappings for TCA processing.
  */
 public class DataScraper {
-  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-  private static final int TRANSPORT_ID_BYTES = 16;
-
   private final Deidentifhir deidentiFHIR;
   private final ScrapingStorage scrapingStorage;
   private final java.util.Map<String, String> dateTransportMappings = new HashMap<>();
-  private final String patientId;
 
   public DataScraper(Config config, ConsentedPatient patient) {
-    this.patientId = patient.id();
+    var patientId = patient.id();
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
     scrapingStorage = new ScrapingStorage(keyCreator);
 
-    Registry registry = new Registry();
+    var registry = new Registry();
 
     // ID gathering handlers - use same names as config file
     registry.addHander(
@@ -88,11 +84,10 @@ public class DataScraper {
    * @return scraped IDs and tID→date mappings
    */
   public ScrapedData scrape(Resource resource) {
-    scrapingStorage.getGatheredIdats().clear();
-    dateTransportMappings.clear();
     deidentiFHIR.deidentify(resource);
     return new ScrapedData(
-        scrapingStorage.getGatheredIdats(), new HashMap<>(dateTransportMappings));
+        Set.copyOf(scrapingStorage.getGatheredIdats()),
+        java.util.Map.copyOf(dateTransportMappings));
   }
 
   private BaseDateTimeType gatherDate(
@@ -106,9 +101,7 @@ public class DataScraper {
   }
 
   private static String generateTransportId() {
-    byte[] bytes = new byte[TRANSPORT_ID_BYTES];
-    SECURE_RANDOM.nextBytes(bytes);
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    return nanoId(22);
   }
 
   public record ScrapedData(Set<String> ids, java.util.Map<String, String> dateTransportMappings) {}

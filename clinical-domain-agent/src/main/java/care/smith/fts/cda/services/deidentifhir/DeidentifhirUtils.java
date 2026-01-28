@@ -42,7 +42,8 @@ public interface DeidentifhirUtils {
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
     var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIds);
 
-    // Invert tID→dateValue to dateValue→tID for lookup during date processing
+    // Invert tID→dateValue to dateValue→tID for lookup during date processing.
+    // DataScraper guarantees unique date values in dateTransportMappings, so inversion is safe.
     var dateValueToTid =
         dateTransportMappings.entrySet().stream()
             .collect(toMap(java.util.Map.Entry::getValue, java.util.Map.Entry::getKey));

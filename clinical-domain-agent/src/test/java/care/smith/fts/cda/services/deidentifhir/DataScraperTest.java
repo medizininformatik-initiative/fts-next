@@ -80,11 +80,16 @@ class DataScraperTest {
 
   @Test
   void transportIdsAreUnique() throws IOException {
+    ConsentedPatient patient = new ConsentedPatient("id1", "identifierSystem1");
+    var config = parseResources(DataScraperTest.class, "CDtoTransport.profile");
     var bundle = generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
-    var scrapedData1 = scraper.scrape(bundle);
-    var scrapedData2 = scraper.scrape(bundle);
 
-    // Each scrape should generate new transport IDs
+    // Each DataScraper instance generates unique transport IDs
+    var scraper1 = new DataScraper(config, patient);
+    var scraper2 = new DataScraper(config, patient);
+    var scrapedData1 = scraper1.scrape(bundle);
+    var scrapedData2 = scraper2.scrape(bundle);
+
     var tIds1 = scrapedData1.dateTransportMappings().keySet();
     var tIds2 = scrapedData2.dateTransportMappings().keySet();
     assertThat(tIds1).doesNotContainAnyElementsOf(tIds2);

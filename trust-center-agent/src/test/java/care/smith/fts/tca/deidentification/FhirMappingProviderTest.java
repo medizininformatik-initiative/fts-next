@@ -107,8 +107,7 @@ class FhirMappingProviderTest {
             redisClient,
             transportMappingConfiguration,
             meterRegistry,
-            new RandomStringGenerator(new Random(0)),
-            new DateShiftComputer());
+            new RandomStringGenerator(new Random(0)));
   }
 
   @Test

@@ -1,6 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
+import static care.smith.fts.tca.deidentification.DateShiftUtil.shiftDate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Set.of;
@@ -39,21 +40,18 @@ public class FhirMappingProvider implements MappingProvider {
   private final RedissonClient redisClient;
   private final MeterRegistry meterRegistry;
   private final RandomStringGenerator randomStringGenerator;
-  private final DateShiftComputer dateShiftComputer;
 
   public FhirMappingProvider(
       GpasClient gpasClient,
       RedissonClient redisClient,
       TransportMappingConfiguration configuration,
       MeterRegistry meterRegistry,
-      RandomStringGenerator randomStringGenerator,
-      DateShiftComputer dateShiftComputer) {
+      RandomStringGenerator randomStringGenerator) {
     this.gpasClient = gpasClient;
     this.configuration = configuration;
     this.redisClient = redisClient;
     this.meterRegistry = meterRegistry;
     this.randomStringGenerator = randomStringGenerator;
-    this.dateShiftComputer = dateShiftComputer;
   }
 
   /**
@@ -95,7 +93,7 @@ public class FhirMappingProvider implements MappingProvider {
   private Map<String, String> computeTidToShiftedDate(
       Map<String, String> dateTransportMappings, Duration dateShift) {
     return dateTransportMappings.entrySet().stream()
-        .collect(toMap(Entry::getKey, e -> dateShiftComputer.shiftDate(e.getValue(), dateShift)));
+        .collect(toMap(Entry::getKey, e -> shiftDate(e.getValue(), dateShift)));
   }
 
   private Mono<PseudonymData> fetchPseudonymAndSalts(

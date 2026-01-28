@@ -1,18 +1,22 @@
 package care.smith.fts.util.deidentifhir;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class DateMappingShiftProviderTest {
 
   @Test
-  void returnsZeroWhenMappingNotFound() {
+  void throwsWhenMappingNotFound() {
     var provider = new DateMappingShiftProvider(Map.of());
 
-    assertThat(provider.getDateShiftingValueInMillis("2024-01-15")).isZero();
+    assertThatThrownBy(() -> provider.getDateShiftingValueInMillis("2024-01-15"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No shifted date found");
   }
 
   @Test
@@ -56,11 +60,12 @@ class DateMappingShiftProviderTest {
   }
 
   @Test
-  void returnsZeroForUnparseableDate() {
+  void throwsForUnparseableDate() {
     var original = "invalid-date";
     var shifted = "also-invalid";
     var provider = new DateMappingShiftProvider(Map.of(original, shifted));
 
-    assertThat(provider.getDateShiftingValueInMillis(original)).isZero();
+    assertThatThrownBy(() -> provider.getDateShiftingValueInMillis(original))
+        .isInstanceOf(DateTimeParseException.class);
   }
 }
