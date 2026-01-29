@@ -110,7 +110,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                     """
                     {
                       "tidPidMap": {"tid1": "pid1", "tidentifier1": "pidentifier1"},
-                      "dateShiftBy": "P12D"
+                      "dateShiftMap": {"2024": "2025"}
                     }
                     """)));
 
