@@ -44,6 +44,7 @@ public class TransportMappingE2E extends AbstractTcaE2E {
             Set.of(
                 "patient-id-1.Patient:patient-id-1",
                 "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1"),
+            Map.of(),
             tcaDomains,
             Duration.ofDays(14),
             DateShiftPreserve.NONE);
@@ -87,10 +88,9 @@ public class TransportMappingE2E extends AbstractTcaE2E {
                         assertThat(pseudonym).isNotEmpty();
                       });
 
-              // Verify date shift value exists and is non-zero
-              assertThat(transportMapping.dateShiftValue()).isNotNull();
-              assertThat(transportMapping.dateShiftValue()).isNotEqualTo(Duration.ZERO);
-              log.info("Date shift value: {}", transportMapping.dateShiftValue());
+              // Verify date shift mapping exists
+              assertThat(transportMapping.dateShiftMapping()).isNotNull();
+              log.info("Date shift mapping: {}", transportMapping.dateShiftMapping());
             })
         .verifyComplete();
   }

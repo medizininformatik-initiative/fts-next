@@ -31,12 +31,18 @@ class DeidentifhirStep implements Deidentificator {
   public Mono<Bundle> deidentify(TransportBundle bundle) {
     return fetchSecureMapping(bundle.transferId())
         .map(
-            p ->
-                DeidentifhirUtil.deidentify(
-                    deidentifhirConfig,
-                    generateRegistry(p.tidPidMap(), p.dateShiftBy()),
-                    bundle.bundle(),
-                    meterRegistry))
+            response -> {
+              // Apply ID replacement via deidentifhir
+              var registry = generateRegistry(response.tidPidMap());
+              var deidentified =
+                  DeidentifhirUtil.deidentify(
+                      deidentifhirConfig, registry, bundle.bundle(), meterRegistry);
+
+              // Restore shifted dates from TCA using tID extensions
+              DeidentifhirUtil.restoreShiftedDates(deidentified, response.dateShiftMap());
+
+              return deidentified;
+            })
         .doOnNext(b -> log.trace("Total bundle entries: {}", b.getEntry().size()));
   }
 

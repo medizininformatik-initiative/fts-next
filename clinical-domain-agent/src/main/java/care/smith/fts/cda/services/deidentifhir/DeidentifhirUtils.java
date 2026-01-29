@@ -1,6 +1,8 @@
 package care.smith.fts.cda.services.deidentifhir;
 
-import care.smith.fts.util.deidentifhir.DateShiftingProvider;
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
+import static java.util.stream.Collectors.toMap;
+
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;
@@ -9,20 +11,42 @@ import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.time.Duration;
 import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.BaseDateTimeType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.StringType;
 import scala.Function4;
 import scala.collection.immutable.Map;
 import scala.collection.immutable.Seq;
 
 public interface DeidentifhirUtils {
+
+  static BaseDateTimeType shiftDate(
+      BaseDateTimeType date, java.util.Map<String, String> dateValueToTid) {
+    if (date != null && date.getValue() != null) {
+      var dateValue = date.getValueAsString();
+      var tId = dateValueToTid.get(dateValue);
+      if (tId != null) {
+        date.addExtension(DATE_SHIFT_EXTENSION_URL, new StringType(tId));
+        date.setValue(null);
+      }
+    }
+    return date;
+  }
+
   static Registry generateRegistry(
-      String patientId, java.util.Map<String, String> transportIds, Duration dateShiftValue) {
+      String patientId,
+      java.util.Map<String, String> transportIds,
+      java.util.Map<String, String> dateTransportMappings) {
     var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
     var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIds);
-    DateShiftingProvider dsp = new DateShiftingProvider(dateShiftValue);
+
+    // Invert tID→dateValue to dateValue→tID for lookup during date processing.
+    // DataScraper guarantees unique date values in dateTransportMappings, so inversion is safe.
+    var dateValueToTid =
+        dateTransportMappings.entrySet().stream()
+            .collect(toMap(java.util.Map.Entry::getValue, java.util.Map.Entry::getKey));
 
     Registry registry = new Registry();
     registry.addHander("postalCodeHandler", Handlers.generalizePostalCodeHandler().get());
@@ -49,8 +73,14 @@ public interface DeidentifhirUtils {
             replacementProvider,
             replacementProvider,
             Handlers::conditionalReferencesReplacementHandler));
+
+    // Handler that adds tID extension to dates and nulls the value
+    // RDA will resolve tIDs to shifted dates from TCA
     registry.addHander(
-        "shiftDateHandler", JavaCompat.partiallyApply(dsp, Handlers::shiftDateHandler));
+        "shiftDateHandler",
+        (Function4<Seq<String>, BaseDateTimeType, Seq<Base>, Map<String, String>, BaseDateTimeType>)
+            (path, date, parents, context) -> shiftDate(date, dateValueToTid));
+
     return registry;
   }
 

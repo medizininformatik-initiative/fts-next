@@ -1,8 +1,9 @@
 package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
+import static care.smith.fts.tca.deidentification.DateShiftUtil.shiftDate;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-import static java.lang.String.valueOf;
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
@@ -20,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
@@ -55,23 +55,45 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /**
-   * For all provided IDs fetch the id:pid pairs from gPAS. Then create TransportIDs (id:tid pairs).
-   * Store tid:pid in the key-value-store.
+   * For all provided IDs and date transport mappings, generate transport mappings and compute
+   * shifted dates. Stores tID→shiftedDate mappings in Redis for RDA retrieval.
    *
-   * @param r the transport mapping request
-   * @return Map<TID, PID>
+   * @param r the transport mapping request containing tID→originalDate mappings
+   * @return response containing transport mappings (dateShiftMapping is empty as dates are handled
+   *     via tIDs)
    */
   @Override
   public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
-    log.trace("retrieveTransportIds patientId={}, resourceIds={}", r.patientId(), r.resourceIds());
+    log.trace(
+        "Generate transport mapping for patientId={}, {} IDs, {} date tIDs",
+        r.patientId(),
+        r.resourceIds().size(),
+        r.dateTransportMappings().size());
+
     var transferId = randomStringGenerator.generate();
     var transportMapping =
         r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
     var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
+
     return sMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientId(), r.tcaDomains(), r.maxDateShift()))
-        .flatMap(saveSecureMapping(r, transportMapping, sMap))
-        .map(cdShift -> new TransportMappingResponse(transferId, transportMapping, cdShift));
+        .flatMap(
+            data -> {
+              var dateShift =
+                  generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
+              // Compute tID→shiftedDate from tID→originalDate
+              var tidToShiftedDate = computeTidToShiftedDate(r.dateTransportMappings(), dateShift);
+
+              return saveSecureMapping(r, data, transportMapping, tidToShiftedDate, sMap)
+                  // Return empty dateShiftMapping - RDA will resolve tIDs from extensions
+                  .thenReturn(new TransportMappingResponse(transferId, transportMapping, Map.of()));
+            });
+  }
+
+  private Map<String, String> computeTidToShiftedDate(
+      Map<String, String> dateTransportMappings, Duration dateShift) {
+    return dateTransportMappings.entrySet().stream()
+        .collect(toMap(Entry::getKey, e -> shiftDate(e.getValue(), dateShift)));
   }
 
   private Mono<PseudonymData> fetchPseudonymAndSalts(
@@ -91,44 +113,40 @@ public class FhirMappingProvider implements MappingProvider {
         .map(t -> new PseudonymData(t.getT1(), t.getT2(), t.getT3()));
   }
 
-  /** Saves the research mapping in redis for later use by the rda. */
-  static Function<PseudonymData, Mono<Duration>> saveSecureMapping(
+  private Mono<Void> saveSecureMapping(
       TransportMappingRequest r,
+      PseudonymData data,
       Map<String, String> transportMapping,
+      Map<String, String> tidToShiftedDate,
       RMapReactive<String, String> rMap) {
-    return data -> {
-      var dateShifts = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
-      var resolveMap =
-          ImmutableMap.<String, String>builder()
-              .putAll(generateSecureMapping(data.salt(), transportMapping))
-              .putAll(
-                  patientIdPseudonyms(
-                      r.patientId(),
-                      r.patientIdentifierSystem(),
-                      data.patientIdPseudonym(),
-                      transportMapping))
-              .put("dateShiftMillis", valueOf(dateShifts.rdDateShift().toMillis()))
-              .buildKeepingLast();
-      return rMap.putAll(resolveMap).thenReturn(dateShifts.cdDateShift());
-    };
+
+    var resolveMapBuilder =
+        ImmutableMap.<String, String>builder()
+            .putAll(generateSecureMapping(data.salt(), transportMapping))
+            .putAll(
+                patientIdPseudonyms(
+                    r.patientId(),
+                    r.patientIdentifierSystem(),
+                    data.patientIdPseudonym(),
+                    transportMapping));
+
+    // Store tID→shiftedDate mappings with prefix for RDA to resolve
+    tidToShiftedDate.forEach(
+        (tId, shiftedDate) -> resolveMapBuilder.put(DATE_SHIFT_PREFIX + tId, shiftedDate));
+
+    return rMap.putAll(resolveMapBuilder.buildKeepingLast()).then();
   }
 
-  /** generate ids for all entries in the transport mapping */
   static Map<String, String> generateSecureMapping(
       String transportSalt, Map<String, String> transportMapping) {
     return transportMapping.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));
   }
 
-  /** hash a transport id using the salt */
   private static String transportHash(String transportSalt, String id) {
     return hashFn.hashString(transportSalt + id, StandardCharsets.UTF_8).toString();
   }
 
-  /**
-   * With this function we make sure that the patient's ID in the RDA is the de-identified ID stored
-   * in gPAS. This ensures that we can re-identify patients.
-   */
   static Map<String, String> patientIdPseudonyms(
       String patientId,
       String patientIdentifierSystem,
