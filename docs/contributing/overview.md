@@ -21,6 +21,7 @@ sequenceDiagram
     participant TCA
     participant gICS
     participant gPAS
+    participant Redis
   end
   box Research Domain
     participant RDA
@@ -35,18 +36,21 @@ sequenceDiagram
   loop Patient ID
     CDA ->> cd_hds: fetch Patient ID
     cd_hds ->> CDA: Patient
-    CDA ->> CDA: deidentify Patient
-    CDA ->> TCA: cd/transport-mapping(Patient ID, [ID])
+    CDA ->> CDA: scrape IDs and dates, generate date tIDs
+    CDA ->> TCA: cd/transport-mapping(Patient ID, [ID], tID→date)
     TCA ->> gPAS: generate Secure ID
     TCA ->> gPAS: generate ID Salt
-      TCA ->> gPAS: generate Date Shift Seed
-    TCA ->> TCA: generate [Transport ID] and Date Shift
-    TCA ->> CDA: mapName, [ID -> Transport ID] and Date Shift
+    TCA ->> gPAS: generate Date Shift Seed
+    TCA ->> TCA: generate [Transport ID], compute shifted dates
+    TCA ->> Redis: store tID→sID and ds:tID→shiftedDate
+    TCA ->> CDA: mapName, [ID -> Transport ID], date→shiftedDate
+    CDA ->> CDA: attach tID extensions, null dates
     CDA ->> RDA: process/{project}/patient(PatientBundle, mapName)
     RDA ->> CDA: PROCESS_ID
     RDA ->> TCA: rd/secure-mapping(mapName)
-    TCA ->> RDA: [Transport ID -> Research ID], Date Shift Value
-    RDA ->> RDA: deidentify Patient
+    TCA ->> Redis: fetch mappings
+    TCA ->> RDA: [Transport ID -> Research ID], tID→shiftedDate
+    RDA ->> RDA: resolve tIDs to sIDs and dates
     RDA ->> rd_hds: Bundle
     CDA ->> RDA: status/PROCESS_ID
     RDA ->> CDA: return Status
