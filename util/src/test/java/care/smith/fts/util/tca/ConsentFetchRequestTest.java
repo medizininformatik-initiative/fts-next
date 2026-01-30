@@ -44,7 +44,7 @@ class ConsentFetchRequestTest {
           "policies": ["policy1", "policy2"],
           "policySystem": "policySystem",
           "patientIdentifierSystem": "patientIdentifierSystem",
-          "pids": ["id1"]
+          "identifiers": ["id1"]
         }
         """;
 
@@ -54,6 +54,6 @@ class ConsentFetchRequestTest {
     assertThat(request.policies()).containsExactlyInAnyOrder("policy1", "policy2");
     assertThat(request.policySystem()).isEqualTo("policySystem");
     assertThat(request.patientIdentifierSystem()).isEqualTo("patientIdentifierSystem");
-    assertThat(request.pids()).containsExactlyInAnyOrder("id1");
+    assertThat(request.identifiers()).containsExactlyInAnyOrder("id1");
   }
 }

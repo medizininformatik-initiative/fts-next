@@ -70,10 +70,10 @@ class DeidentifhirStep implements Deidentificator {
             response -> {
               var transportMapping = response.transportMapping();
               var registry =
-                  generateRegistry(patient.id(), transportMapping, dateTransportMappings);
+                  generateRegistry(patient.identifier(), transportMapping, dateTransportMappings);
               var deidentified =
                   DeidentifhirUtils.deidentify(
-                      config, registry, bundle.bundle(), patient.id(), meterRegistry);
+                      config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
               return new TransportBundle(deidentified, response.transferId());
             });
   }
@@ -82,7 +82,7 @@ class DeidentifhirStep implements Deidentificator {
       ConsentedPatient patient, Set<String> ids, Map<String, String> dateTransportMappings) {
     var request =
         new TransportMappingRequest(
-            patient.id(),
+            patient.identifier(),
             patient.patientIdentifierSystem(),
             ids,
             dateTransportMappings,

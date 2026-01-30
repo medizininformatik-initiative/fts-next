@@ -46,7 +46,7 @@ class FetchConsentControllerIT extends BaseIT {
           entry("policies", Set.of("")),
           entry("policySystem", "sys"),
           entry("patientIdentifierSystem", "sys"),
-          entry("pids", List.of("FTS001")));
+          entry("identifiers", List.of("FTS001")));
 
   private WebClient client;
 

@@ -32,10 +32,10 @@ public class FhirResolveService implements PatientIdResolver {
   }
 
   /**
-   * Resolves the given <code>patientId</code> to the ID of the matching {@link Patient} resource
-   * object in the FHIR server accessed with the rest configuration.
+   * Resolves the given patient identifier to the ID of the matching {@link Patient} resource object
+   * in the FHIR server accessed with the rest configuration.
    *
-   * @param patient the patient ID (PID) to resolve
+   * @param patient the consented patient whose identifier to resolve
    * @return the ID of the FHIR resource
    */
   @Override
@@ -44,11 +44,12 @@ public class FhirResolveService implements PatientIdResolver {
   }
 
   private Mono<IBaseResource> resolveFromPatient(ConsentedPatient patient) {
-    requireNonNull(emptyToNull(patient.id()), "patientId must not be null or empty");
+    requireNonNull(
+        emptyToNull(patient.identifier()), "patient identifier must not be null or empty");
     return fetchPatientBundle(patient)
         .doOnNext(ps -> requireNonNull(ps, "Patient bundle must not be null"))
-        .doOnNext(ps -> checkBundleNotEmpty(ps, patient.id()))
-        .doOnNext(ps -> checkSinglePatient(ps, patient.id()))
+        .doOnNext(ps -> checkBundleNotEmpty(ps, patient.identifier()))
+        .doOnNext(ps -> checkSinglePatient(ps, patient.identifier()))
         .map(ps -> ps.getEntryFirstRep().getResource());
   }
 
@@ -61,27 +62,31 @@ public class FhirResolveService implements PatientIdResolver {
         .retrieve()
         .bodyToMono(Bundle.class)
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchPatientBundleResolvePID"))
-        .doOnError(e -> log.error("Unable to fetch patient ID from HDS: {}", e.getMessage()))
+        .doOnError(
+            e -> log.error("Unable to fetch patient identifier from HDS: {}", e.getMessage()))
         .onErrorResume(
             WebClientException.class,
-            e -> Mono.error(new TransferProcessException("Cannot resolve patient id", e)));
+            e -> Mono.error(new TransferProcessException("Cannot resolve patient identifier", e)));
   }
 
   private URI buildUri(ConsentedPatient patient, UriBuilder uri) {
-    return uri.queryParam("identifier", patient.patientIdentifierSystem() + "|" + patient.id())
+    return uri.queryParam(
+            "identifier", patient.patientIdentifierSystem() + "|" + patient.identifier())
         .build();
   }
 
-  private void checkSinglePatient(Bundle patients, String patientId) {
+  private void checkSinglePatient(Bundle patients, String patientIdentifier) {
     if (patients.getEntry().size() != 1) {
       throw new IllegalStateException(
-          "Received more then one result while resolving patient ID %s".formatted(patientId));
+          "Received more then one result while resolving patient identifier %s"
+              .formatted(patientIdentifier));
     }
   }
 
-  private void checkBundleNotEmpty(Bundle patients, String patientId) {
+  private void checkBundleNotEmpty(Bundle patients, String patientIdentifier) {
     if (patients.getEntry().isEmpty()) {
-      throw new IllegalStateException("Unable to resolve patient ID %s".formatted(patientId));
+      throw new IllegalStateException(
+          "Unable to resolve patient identifier %s".formatted(patientIdentifier));
     }
   }
 }

@@ -34,8 +34,8 @@ public class DataScraper {
   private final java.util.Map<String, String> dateTransportMappings = new HashMap<>();
 
   public DataScraper(Config config, ConsentedPatient patient) {
-    var patientId = patient.id();
-    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientId);
+    var patientIdentifier = patient.identifier();
+    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientIdentifier);
     scrapingStorage = new ScrapingStorage(keyCreator);
 
     var registry = new Registry();

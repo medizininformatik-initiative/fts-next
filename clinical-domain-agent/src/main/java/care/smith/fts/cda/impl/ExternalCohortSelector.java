@@ -23,10 +23,13 @@ public class ExternalCohortSelector
 
   @Override
   public CohortSelector create(CohortSelector.Config ignored, Config config) {
-    return pids -> {
-      log.debug("pids: {}", pids);
+    return identifiers -> {
+      log.debug("identifiers: {}", identifiers);
       return fromStream(
-          pids.stream().map(id -> new ConsentedPatient(id, config.patientIdentifierSystem())));
+          identifiers.stream()
+              .map(
+                  identifier ->
+                      new ConsentedPatient(identifier, config.patientIdentifierSystem())));
     };
   }
 }

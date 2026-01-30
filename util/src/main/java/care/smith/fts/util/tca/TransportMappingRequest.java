@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * Request from CDA to TCA for transport mappings.
  *
- * @param patientId the patient ID
+ * @param patientIdentifier the patient identifier
  * @param patientIdentifierSystem the patient identifier system
  * @param resourceIds set of resource IDs to generate transport mappings for
  * @param dateTransportMappings map of transport ID → original date value (tID→date)
@@ -18,7 +18,7 @@ import java.util.Set;
  * @param dateShiftPreserve date shift preservation mode
  */
 public record TransportMappingRequest(
-    @NotNull(groups = TransportMappingRequest.class) String patientId,
+    @NotNull(groups = TransportMappingRequest.class) String patientIdentifier,
     @NotNull(groups = TransportMappingRequest.class) String patientIdentifierSystem,
     @NotNull(groups = TransportMappingRequest.class) Set<String> resourceIds,
     @NotNull(groups = TransportMappingRequest.class) Map<String, String> dateTransportMappings,

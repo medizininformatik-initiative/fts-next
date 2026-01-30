@@ -45,14 +45,14 @@ class TcaCohortSelector implements CohortSelector {
   }
 
   @Override
-  public Flux<ConsentedPatient> selectCohort(List<String> pids) {
+  public Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
     var url =
-        pids.isEmpty()
+        identifiers.isEmpty()
             ? "/api/v2/cd/consented-patients/fetch-all"
             : "/api/v2/cd/consented-patients/fetch";
 
-    return fetchBundle(url, pids)
-        .expand(bundle -> fetchNextPage(bundle, pids))
+    return fetchBundle(url, identifiers)
+        .expand(bundle -> fetchNextPage(bundle, identifiers))
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
@@ -60,12 +60,12 @@ class TcaCohortSelector implements CohortSelector {
         .flatMap(this::extractConsentedPatients);
   }
 
-  private Mono<Bundle> fetchBundle(String uri, List<String> pids) {
+  private Mono<Bundle> fetchBundle(String uri, List<String> identifiers) {
     log.debug("fetchBundle URL: {}", uri);
     return tcaClient
         .post()
         .uri(uri)
-        .bodyValue(constructBody(config, pids))
+        .bodyValue(constructBody(config, identifiers))
         .headers(h -> h.setContentType(APPLICATION_JSON))
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
@@ -74,22 +74,23 @@ class TcaCohortSelector implements CohortSelector {
         .retryWhen(defaultRetryStrategy(meterRegistry, "fetchBundle"));
   }
 
-  private Mono<Bundle> fetchNextPage(Bundle bundle, List<String> pids) {
+  private Mono<Bundle> fetchNextPage(Bundle bundle, List<String> identifiers) {
     return Mono.justOrEmpty(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
         .doOnNext(url -> log.trace("Fetch next page from: {}", url))
-        .flatMap(uri -> fetchBundle(uri, pids));
+        .flatMap(uri -> fetchBundle(uri, identifiers));
   }
 
-  private Map<String, Object> constructBody(TcaCohortSelectorConfig config, List<String> pids) {
+  private Map<String, Object> constructBody(
+      TcaCohortSelectorConfig config, List<String> identifiers) {
     var body =
         ImmutableMap.<String, Object>builder()
             .put("policies", config.policies())
             .put("policySystem", config.policySystem())
             .put("domain", config.domain());
-    if (!pids.isEmpty()) {
+    if (!identifiers.isEmpty()) {
       body = body.put("patientIdentifierSystem", getGicsIdentifierSystem());
-      body = body.put("pids", pids);
+      body = body.put("identifiers", identifiers);
     }
     return body.build();
   }

@@ -42,8 +42,8 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   @Override
-  public Flux<ConsentedPatient> selectCohort(List<String> pids) {
-    return fetchBundle(b -> buildFhirSearchQuery(b, pids))
+  public Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
+    return fetchBundle(b -> buildFhirSearchQuery(b, identifiers))
         .expand(this::fetchNextPage)
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} entries in bundle", b.getEntry().size()))
@@ -52,14 +52,14 @@ class FhirCohortSelector implements CohortSelector {
         .flatMap(this::extractConsentedPatients);
   }
 
-  private URI buildFhirSearchQuery(UriBuilder builder, List<String> pids) {
+  private URI buildFhirSearchQuery(UriBuilder builder, List<String> identifiers) {
     builder.pathSegment("Consent").queryParam("_include", "Consent:patient");
-    if (!pids.isEmpty()) {
-      var pidQuery =
-          pids.stream()
-              .map(pid -> config.patientIdentifierSystem() + "|" + pid)
+    if (!identifiers.isEmpty()) {
+      var identifierQuery =
+          identifiers.stream()
+              .map(identifier -> config.patientIdentifierSystem() + "|" + identifier)
               .collect(joining(","));
-      builder = builder.queryParam("patient.identifier", pidQuery);
+      builder = builder.queryParam("patient.identifier", identifierQuery);
     }
     return builder.build();
   }

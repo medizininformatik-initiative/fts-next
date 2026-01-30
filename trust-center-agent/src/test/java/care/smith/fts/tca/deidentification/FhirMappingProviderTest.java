@@ -366,12 +366,12 @@ class FhirMappingProviderTest {
   }
 
   @Nested
-  class PatientIdPseudonymsTests {
+  class PatientIdentifierPseudonymsTests {
 
     @Test
-    void patientIdPseudonymsFiltersCorrectKeys() {
-      var patientId = "patient123";
-      var patientIdPseudonym = "pseudonym456";
+    void patientIdentifierPseudonymsFiltersCorrectKeys() {
+      var patientIdentifier = "patient123";
+      var patientIdentifierPseudonym = "pseudonym456";
       var transportMapping =
           Map.of(
               "Observation.obs1", "tid1",
@@ -382,11 +382,14 @@ class FhirMappingProviderTest {
               "some.other.patient123", "tid6");
 
       var result =
-          FhirMappingProvider.patientIdPseudonyms(
-              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
+          FhirMappingProvider.patientIdentifierPseudonyms(
+              patientIdentifier,
+              "patientIdentifierSystem",
+              patientIdentifierPseudonym,
+              transportMapping);
 
       assertThat(result).hasSize(1);
-      assertThat(result).containsEntry("tid4", patientIdPseudonym);
+      assertThat(result).containsEntry("tid4", patientIdentifierPseudonym);
       assertThat(result).doesNotContainKey("tid1");
       assertThat(result).doesNotContainKey("tid2");
       assertThat(result).doesNotContainKey("tid3");
@@ -395,22 +398,25 @@ class FhirMappingProviderTest {
     }
 
     @Test
-    void patientIdPseudonymsHandlesEmptyMapping() {
-      var patientId = "patient123";
-      var patientIdPseudonym = "pseudonym456";
+    void patientIdentifierPseudonymsHandlesEmptyMapping() {
+      var patientIdentifier = "patient123";
+      var patientIdentifierPseudonym = "pseudonym456";
       var transportMapping = Map.<String, String>of();
 
       var result =
-          FhirMappingProvider.patientIdPseudonyms(
-              "patient-id", "patientIdentifierSystem", patientIdPseudonym, transportMapping);
+          FhirMappingProvider.patientIdentifierPseudonyms(
+              "patient-id",
+              "patientIdentifierSystem",
+              patientIdentifierPseudonym,
+              transportMapping);
 
       assertThat(result).isEmpty();
     }
 
     @Test
-    void patientIdPseudonymsHandlesNoMatches() {
-      var patientId = "patient123";
-      var patientIdPseudonym = "pseudonym456";
+    void patientIdentifierPseudonymsHandlesNoMatches() {
+      var patientIdentifier = "patient123";
+      var patientIdentifierPseudonym = "pseudonym456";
       var transportMapping =
           Map.of(
               "Observation.obs1", "tid1",
@@ -418,31 +424,37 @@ class FhirMappingProviderTest {
               "Patient.differentpatient", "tid3");
 
       var result =
-          FhirMappingProvider.patientIdPseudonyms(
-              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
+          FhirMappingProvider.patientIdentifierPseudonyms(
+              patientIdentifier,
+              "patientIdentifierSystem",
+              patientIdentifierPseudonym,
+              transportMapping);
 
       assertThat(result).isEmpty();
     }
 
     @Test
-    void patientIdPseudonymsHandlesExactMatch() {
-      var patientId = "patient123";
-      var patientIdPseudonym = "pseudonym456";
+    void patientIdentifierPseudonymsHandlesExactMatch() {
+      var patientIdentifier = "patient123";
+      var patientIdentifierPseudonym = "pseudonym456";
       var transportMapping =
           Map.of("patient123.identifier.patientIdentifierSystem:patient123", "tid1");
 
       var result =
-          FhirMappingProvider.patientIdPseudonyms(
-              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
+          FhirMappingProvider.patientIdentifierPseudonyms(
+              patientIdentifier,
+              "patientIdentifierSystem",
+              patientIdentifierPseudonym,
+              transportMapping);
 
       assertThat(result).hasSize(1);
-      assertThat(result).containsEntry("tid1", patientIdPseudonym);
+      assertThat(result).containsEntry("tid1", patientIdentifierPseudonym);
     }
 
     @Test
-    void patientIdPseudonymsHandlesPartialMatches() {
-      var patientId = "123";
-      var patientIdPseudonym = "pseudonym456";
+    void patientIdentifierPseudonymsHandlesPartialMatches() {
+      var patientIdentifier = "123";
+      var patientIdentifierPseudonym = "pseudonym456";
       var transportMapping =
           Map.of(
               "123.identifier.patientIdentifierSystem:123", "tid1",
@@ -451,28 +463,34 @@ class FhirMappingProviderTest {
               "differentKey", "tid4");
 
       var result =
-          FhirMappingProvider.patientIdPseudonyms(
-              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
+          FhirMappingProvider.patientIdentifierPseudonyms(
+              patientIdentifier,
+              "patientIdentifierSystem",
+              patientIdentifierPseudonym,
+              transportMapping);
 
       assertThat(result).hasSize(1);
-      assertThat(result).containsEntry("tid1", patientIdPseudonym);
+      assertThat(result).containsEntry("tid1", patientIdentifierPseudonym);
       assertThat(result).doesNotContainKey("tid2");
       assertThat(result).doesNotContainKey("tid3");
       assertThat(result).doesNotContainKey("tid4");
     }
 
     @Test
-    void patientIdPseudonymsHandlesSpecialCharacters() {
-      var patientId = "patient@#$%";
-      var patientIdPseudonym = "pseudonym456";
+    void patientIdentifierPseudonymsHandlesSpecialCharacters() {
+      var patientIdentifier = "patient@#$%";
+      var patientIdentifierPseudonym = "pseudonym456";
       var transportMapping =
           Map.of("patient@#$%.identifier.patientIdentifierSystem:patient@#$%", "tid1");
 
       var result =
-          FhirMappingProvider.patientIdPseudonyms(
-              patientId, "patientIdentifierSystem", patientIdPseudonym, transportMapping);
+          FhirMappingProvider.patientIdentifierPseudonyms(
+              patientIdentifier,
+              "patientIdentifierSystem",
+              patientIdentifierPseudonym,
+              transportMapping);
 
-      assertThat(result).containsEntry("tid1", patientIdPseudonym);
+      assertThat(result).containsEntry("tid1", patientIdentifierPseudonym);
     }
   }
 

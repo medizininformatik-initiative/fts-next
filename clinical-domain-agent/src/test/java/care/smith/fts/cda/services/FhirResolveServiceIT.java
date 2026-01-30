@@ -44,7 +44,7 @@ import reactor.core.publisher.Mono;
 @WireMockTest
 class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
-  private static final String PATIENT_ID = "patient-141392";
+  private static final String PATIENT_IDENTIFIER = "patient-141392";
   public static final String PID_SYSTEM = "patientIdentifierSystem";
 
   @Autowired MeterRegistry meterRegistry;
@@ -79,7 +79,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
 
       @Override
       public Mono<IIdType> executeStep() {
-        return service.resolve(new ConsentedPatient(PATIENT_ID, PID_SYSTEM));
+        return service.resolve(new ConsentedPatient(PATIENT_IDENTIFIER, PID_SYSTEM));
       }
 
       @Override
@@ -113,7 +113,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
     }
 
     create(service.resolve(new ConsentedPatient("external-141392", PID_SYSTEM)))
-        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
+        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_IDENTIFIER))
         .verifyComplete();
   }
 
@@ -151,7 +151,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
     var fhirResolveGen = resolveSearchResponse(() -> "id1", () -> "patient-1", randomUuid());
     var bundle = fhirResolveGen.generateResources().limit(2).collect(toBundle());
     wireMock.register(fhirStoreRequest().willReturn(fhirResponse(bundle)));
-    create(service.resolve(new ConsentedPatient(PATIENT_ID, PID_SYSTEM)))
+    create(service.resolve(new ConsentedPatient(PATIENT_IDENTIFIER, PID_SYSTEM)))
         .expectError(IllegalStateException.class)
         .verify();
   }
@@ -172,7 +172,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
     }
 
     create(service.resolve(patient))
-        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_ID))
+        .assertNext(pid -> assertThat(pid.getIdPart()).isEqualTo(PATIENT_IDENTIFIER))
         .verifyComplete();
 
     wireMock.verify(
