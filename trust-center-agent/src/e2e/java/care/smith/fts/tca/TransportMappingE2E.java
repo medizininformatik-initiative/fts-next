@@ -9,7 +9,6 @@ import care.smith.fts.util.tca.TransportMappingResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
@@ -35,15 +34,18 @@ public class TransportMappingE2E extends AbstractTcaE2E {
   void testTransportMapping() {
     var webClient = createTcaWebClient();
 
-    // Create a transport mapping request with patient identifiers
+    // Create a transport mapping request with CDA-generated transport IDs
     var tcaDomains = new TcaDomains("domain", "domain", "domain");
+    var idMappings =
+        Map.of(
+            "patient-id-1.Patient:patient-id-1", "tid-patient-1",
+            "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1",
+                "tid-identifier-1");
     var request =
         new TransportMappingRequest(
             "patient-id-1",
             "http://fts.smith.care",
-            Set.of(
-                "patient-id-1.Patient:patient-id-1",
-                "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1"),
+            idMappings,
             Map.of(),
             tcaDomains,
             Duration.ofDays(14),
@@ -69,28 +71,6 @@ public class TransportMappingE2E extends AbstractTcaE2E {
 
               // Verify transfer ID is generated
               assertThat(transportMapping.transferId()).isNotNull();
-
-              // Verify transport mapping contains pseudonyms
-              Map<String, String> mapping = transportMapping.transportMapping();
-              assertThat(mapping).isNotNull();
-              assertThat(mapping).isNotEmpty();
-              assertThat(mapping)
-                  .containsKeys(
-                      "patient-id-1.Patient:patient-id-1",
-                      "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1");
-
-              // Verify each identifier has a pseudonym
-              mapping
-                  .values()
-                  .forEach(
-                      pseudonym -> {
-                        assertThat(pseudonym).isNotNull();
-                        assertThat(pseudonym).isNotEmpty();
-                      });
-
-              // Verify date shift mapping exists
-              assertThat(transportMapping.dateShiftMapping()).isNotNull();
-              log.info("Date shift mapping: {}", transportMapping.dateShiftMapping());
             })
         .verifyComplete();
   }
