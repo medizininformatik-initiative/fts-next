@@ -10,7 +10,6 @@ import care.smith.fts.util.tca.TransportMappingResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
@@ -37,15 +36,18 @@ public class SecureMappingE2E extends AbstractTcaE2E {
     var webClient = createTcaWebClient();
 
     // First, create a transport mapping which will be stored in Redis
-    // Now that gPAS mocking is fixed, we can test the full flow with real resourceIds
+    // CDA generates tIDs during deidentification and sends idMappings
     var tcaDomains = new TcaDomains("domain", "domain", "domain");
+    var idMappings =
+        Map.of(
+            "patient-id-1.Patient:patient-id-1", "tid-patient-1",
+            "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1",
+                "tid-identifier-1");
     var transportRequest =
         new TransportMappingRequest(
             "patient-id-1",
             "http://fts.smith.care",
-            Set.of(
-                "patient-id-1.Patient:patient-id-1",
-                "patient-id-1.identifier.http://fts.smith.care:patient-identifier-1"),
+            idMappings,
             Map.of(),
             tcaDomains,
             Duration.ofDays(14),

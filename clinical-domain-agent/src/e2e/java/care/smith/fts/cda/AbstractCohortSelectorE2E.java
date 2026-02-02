@@ -181,12 +181,7 @@ public abstract class AbstractCohortSelectorE2E {
                 jsonResponse(
                     """
                     {
-                      "transferId": "transfer-123",
-                      "transportMapping": {
-                        "patient-identifier-1.Patient:patient-1": "pseudonym-123",
-                        "patient-identifier-1.identifier.http://fts.smith.care:patient-identifier-1": "pseudonym-identifier-123"
-                      },
-                      "dateShiftMapping": {}
+                      "transferId": "transfer-123"
                     }
                     """)));
   }

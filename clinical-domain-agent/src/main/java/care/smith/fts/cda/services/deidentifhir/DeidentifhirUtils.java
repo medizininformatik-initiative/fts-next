@@ -1,9 +1,7 @@
 package care.smith.fts.cda.services.deidentifhir;
 
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
-import static java.util.stream.Collectors.toMap;
 
-import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import com.typesafe.config.Config;
 import de.ume.deidentifhir.Deidentifhir;
 import de.ume.deidentifhir.Registry;
@@ -22,32 +20,14 @@ import scala.collection.immutable.Seq;
 
 public interface DeidentifhirUtils {
 
-  static BaseDateTimeType shiftDate(
-      BaseDateTimeType date, java.util.Map<String, String> dateValueToTid) {
-    if (date != null && date.getValue() != null) {
-      var dateValue = date.getValueAsString();
-      var tId = dateValueToTid.get(dateValue);
-      if (tId != null) {
-        date.addExtension(DATE_SHIFT_EXTENSION_URL, new StringType(tId));
-        date.setValue(null);
-      }
-    }
-    return date;
-  }
-
-  static Registry generateRegistry(
-      String patientIdentifier,
-      java.util.Map<String, String> transportIds,
-      java.util.Map<String, String> dateTransportMappings) {
-    var keyCreator = NamespacingReplacementProvider.withNamespacing(patientIdentifier);
-    var replacementProvider = NamespacingReplacementProvider.of(keyCreator, transportIds);
-
-    // Invert tID→dateValue to dateValue→tID for lookup during date processing.
-    // DataScraper guarantees unique date values in dateTransportMappings, so inversion is safe.
-    var dateValueToTid =
-        dateTransportMappings.entrySet().stream()
-            .collect(toMap(java.util.Map.Entry::getValue, java.util.Map.Entry::getKey));
-
+  /**
+   * Builds a registry with handlers that use the provided GeneratingReplacementProvider. During
+   * deidentification, the provider generates tIDs on-the-fly for IDs and dates.
+   *
+   * @param provider the replacement provider that generates and caches tIDs
+   * @return configured registry for deidentification
+   */
+  static Registry buildRegistry(GeneratingReplacementProvider provider) {
     Registry registry = new Registry();
     registry.addHander("postalCodeHandler", Handlers.generalizePostalCodeHandler().get());
     registry.addHander(
@@ -59,29 +39,42 @@ public interface DeidentifhirUtils {
         JavaCompat.partiallyApply("PSEUDONYMISIERT", Handlers::stringReplacementHandler));
     registry.addHander(
         "idReplacementHandler",
-        JavaCompat.partiallyApply(replacementProvider, Handlers::idReplacementHandler));
+        JavaCompat.partiallyApply(provider, Handlers::idReplacementHandler));
     registry.addHander(
         "referenceReplacementHandler",
-        JavaCompat.partiallyApply(replacementProvider, Handlers::referenceReplacementHandler));
+        JavaCompat.partiallyApply(provider, Handlers::referenceReplacementHandler));
     registry.addHander(
         "identifierValueReplacementHandler",
-        JavaCompat.partiallyApply2(
-            replacementProvider, true, Handlers::identifierValueReplacementHandler));
+        JavaCompat.partiallyApply2(provider, true, Handlers::identifierValueReplacementHandler));
     registry.addHander(
         "conditionalReferencesReplacementHandler",
         JavaCompat.partiallyApply2(
-            replacementProvider,
-            replacementProvider,
-            Handlers::conditionalReferencesReplacementHandler));
+            provider, provider, Handlers::conditionalReferencesReplacementHandler));
 
-    // Handler that adds tID extension to dates and nulls the value
-    // RDA will resolve tIDs to shifted dates from TCA
+    // Handler that generates tID for date, adds extension, and nulls the value
     registry.addHander(
         "shiftDateHandler",
         (Function4<Seq<String>, BaseDateTimeType, Seq<Base>, Map<String, String>, BaseDateTimeType>)
-            (path, date, parents, context) -> shiftDate(date, dateValueToTid));
+            (path, date, parents, context) -> shiftDate(date, provider));
 
     return registry;
+  }
+
+  /**
+   * Generates a tID for the date value, adds extension with tID, and nulls the original value.
+   *
+   * @param date the date element to process
+   * @param provider the provider that generates and caches date tIDs
+   * @return the modified date element
+   */
+  static BaseDateTimeType shiftDate(BaseDateTimeType date, GeneratingReplacementProvider provider) {
+    if (date != null && date.getValue() != null) {
+      var dateValue = date.getValueAsString();
+      var tId = provider.generateDateTid(dateValue);
+      date.addExtension(DATE_SHIFT_EXTENSION_URL, new StringType(tId));
+      date.setValue(null);
+    }
+    return date;
   }
 
   static Bundle deidentify(

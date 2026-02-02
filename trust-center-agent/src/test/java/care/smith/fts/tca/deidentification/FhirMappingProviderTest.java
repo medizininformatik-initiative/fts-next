@@ -39,7 +39,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +73,7 @@ class FhirMappingProviderTest {
       new TransportMappingRequest(
           "id1",
           "patientIdentifierSystem",
-          Set.of("id1"),
+          Map.of("id1.Patient:id1", "tid1"),
           Map.of(),
           DEFAULT_DOMAINS,
           Duration.ofDays(14),
@@ -140,26 +139,22 @@ class FhirMappingProviderTest {
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
     given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
-    var ids = Set.of("Patient.id1", "id1.identifier.patientIdentifierSystem:id1");
+    var idMappings =
+        Map.of(
+            "id1.Patient:id1", "tid1",
+            "id1.identifier.patientIdentifierSystem:id1", "tid2");
     var mapName = "wSUYQUR3Y";
     var request =
         new TransportMappingRequest(
             "id1",
             "patientIdentifierSystem",
-            ids,
+            idMappings,
             Map.of(),
             DEFAULT_DOMAINS,
             Duration.ofDays(14),
             DateShiftPreserve.NONE);
     create(mappingProvider.generateTransportMapping(request))
-        .assertNext(
-            r -> {
-              assertThat(r.transferId()).isEqualTo(mapName);
-              assertThat(r.transportMapping().keySet()).isEqualTo(ids);
-              assertThat(r.transportMapping().values())
-                  .containsExactlyInAnyOrder("MLfKoQoSv", "HFbzdJo87");
-              assertThat(r.dateShiftMapping()).isEmpty();
-            })
+        .assertNext(r -> assertThat(r.transferId()).isEqualTo(mapName))
         .verifyComplete();
   }
 
