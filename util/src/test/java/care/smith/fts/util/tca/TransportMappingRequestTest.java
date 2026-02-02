@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class TransportMappingRequestTest {
@@ -22,8 +21,8 @@ class TransportMappingRequestTest {
         new TransportMappingRequest(
             "patient123",
             "patientIdentifierSystem",
-            Set.of("id1", "id2"),
-            Map.of("tId1", "2024-03-15", "tId2", "2024-01-01"),
+            Map.of("patient123.Patient:id1", "tId1", "patient123.Patient:id2", "tId2"),
+            Map.of("tId3", "2024-03-15", "tId4", "2024-01-01"),
             new TcaDomains("pDomain", "sDomain", "dDomain"),
             Duration.ofDays(30),
             DateShiftPreserve.NONE);
@@ -33,11 +32,13 @@ class TransportMappingRequestTest {
     assertThat(jsonString)
         .contains("patient123")
         .contains("patientIdentifierSystem")
-        .contains("id1")
-        .contains("id2")
+        .contains("patient123.Patient:id1")
         .contains("tId1")
-        .contains("2024-03-15")
+        .contains("patient123.Patient:id2")
         .contains("tId2")
+        .contains("tId3")
+        .contains("2024-03-15")
+        .contains("tId4")
         .contains("2024-01-01")
         .contains("pDomain")
         .contains("sDomain")
@@ -52,8 +53,8 @@ class TransportMappingRequestTest {
         {
           "patientIdentifier": "patient123",
           "patientIdentifierSystem": "patientIdentifierSystem",
-          "resourceIds": ["id1", "id2"],
-          "dateTransportMappings": {"tId1": "2024-03-15", "tId2": "2024-01-01"},
+          "idMappings": {"patient123.Patient:id1": "tId1", "patient123.Patient:id2": "tId2"},
+          "dateMappings": {"tId3": "2024-03-15", "tId4": "2024-01-01"},
           "tcaDomains": {
             "pseudonym" : "pDomain",
             "salt" : "sDomain",
@@ -66,9 +67,11 @@ class TransportMappingRequestTest {
     TransportMappingRequest request = objectMapper.readValue(json, TransportMappingRequest.class);
 
     assertThat(request.patientIdentifier()).isEqualTo("patient123");
-    assertThat(request.resourceIds()).containsExactlyInAnyOrder("id1", "id2");
-    assertThat(request.dateTransportMappings())
-        .containsExactlyInAnyOrderEntriesOf(Map.of("tId1", "2024-03-15", "tId2", "2024-01-01"));
+    assertThat(request.idMappings())
+        .containsExactlyInAnyOrderEntriesOf(
+            Map.of("patient123.Patient:id1", "tId1", "patient123.Patient:id2", "tId2"));
+    assertThat(request.dateMappings())
+        .containsExactlyInAnyOrderEntriesOf(Map.of("tId3", "2024-03-15", "tId4", "2024-01-01"));
     assertThat(request.tcaDomains().pseudonym()).isEqualTo("pDomain");
     assertThat(request.tcaDomains().salt()).isEqualTo("sDomain");
     assertThat(request.tcaDomains().dateShift()).isEqualTo("dDomain");
