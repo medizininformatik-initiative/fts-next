@@ -55,24 +55,22 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /**
-   * For all provided IDs and date transport mappings, generate transport mappings and compute
-   * shifted dates. Stores tID→shiftedDate mappings in Redis for RDA retrieval.
+   * Stores secure mappings for CDA-provided transport IDs. CDA generates tIDs during
+   * deidentification; TCA computes secure IDs (sIDs) from original IDs and stores tID→sID mappings.
    *
-   * @param r the transport mapping request containing tID→originalDate mappings
-   * @return response containing transport mappings (dateShiftMapping is empty as dates are handled
-   *     via tIDs)
+   * @param r the transport mapping request containing idMappings (originalID→tID) and dateMappings
+   *     (tID→originalDate)
+   * @return response containing the transferId for this session
    */
   @Override
   public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
     log.trace(
-        "Generate transport mapping for patientIdentifier={}, {} IDs, {} date tIDs",
+        "Store transport mapping for patientIdentifier={}, {} IDs, {} date tIDs",
         r.patientIdentifier(),
-        r.resourceIds().size(),
-        r.dateTransportMappings().size());
+        r.idMappings().size(),
+        r.dateMappings().size());
 
     var transferId = randomStringGenerator.generate();
-    var transportMapping =
-        r.resourceIds().stream().collect(toMap(id -> id, id -> randomStringGenerator.generate()));
     var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
 
     return sMap.expire(configuration.getTtl())
@@ -81,18 +79,16 @@ public class FhirMappingProvider implements MappingProvider {
             data -> {
               var dateShift =
                   generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
-              // Compute tID→shiftedDate from tID→originalDate
-              var tidToShiftedDate = computeTidToShiftedDate(r.dateTransportMappings(), dateShift);
+              var tidToShiftedDate = computeTidToShiftedDate(r.dateMappings(), dateShift);
 
-              return saveSecureMapping(r, data, transportMapping, tidToShiftedDate, sMap)
-                  // Return empty dateShiftMapping - RDA will resolve tIDs from extensions
-                  .thenReturn(new TransportMappingResponse(transferId, transportMapping, Map.of()));
+              return saveSecureMapping(r, data, tidToShiftedDate, sMap)
+                  .thenReturn(new TransportMappingResponse(transferId));
             });
   }
 
   private Map<String, String> computeTidToShiftedDate(
-      Map<String, String> dateTransportMappings, Duration dateShift) {
-    return dateTransportMappings.entrySet().stream()
+      Map<String, String> dateMappings, Duration dateShift) {
+    return dateMappings.entrySet().stream()
         .collect(toMap(Entry::getKey, e -> shiftDate(e.getValue(), dateShift)));
   }
 
@@ -116,19 +112,18 @@ public class FhirMappingProvider implements MappingProvider {
   private Mono<Void> saveSecureMapping(
       TransportMappingRequest r,
       PseudonymData data,
-      Map<String, String> transportMapping,
       Map<String, String> tidToShiftedDate,
       RMapReactive<String, String> rMap) {
 
     var resolveMapBuilder =
         ImmutableMap.<String, String>builder()
-            .putAll(generateSecureMapping(data.salt(), transportMapping))
+            .putAll(generateSecureMapping(data.salt(), r.idMappings()))
             .putAll(
                 patientIdentifierPseudonyms(
                     r.patientIdentifier(),
                     r.patientIdentifierSystem(),
                     data.patientIdentifierPseudonym(),
-                    transportMapping));
+                    r.idMappings()));
 
     // Store tID→shiftedDate mappings with prefix for RDA to resolve
     tidToShiftedDate.forEach(
@@ -137,9 +132,17 @@ public class FhirMappingProvider implements MappingProvider {
     return rMap.putAll(resolveMapBuilder.buildKeepingLast()).then();
   }
 
+  /**
+   * Generates secure ID mappings from transport IDs. For each originalID→tID mapping, computes
+   * sID=hash(salt+originalID) and returns tID→sID mapping.
+   *
+   * @param transportSalt the salt for hashing
+   * @param idMappings map of originalID→tID
+   * @return map of tID→sID
+   */
   static Map<String, String> generateSecureMapping(
-      String transportSalt, Map<String, String> transportMapping) {
-    return transportMapping.entrySet().stream()
+      String transportSalt, Map<String, String> idMappings) {
+    return idMappings.entrySet().stream()
         .collect(toMap(Entry::getValue, entry -> transportHash(transportSalt, entry.getKey())));
   }
 
@@ -148,18 +151,24 @@ public class FhirMappingProvider implements MappingProvider {
   }
 
   /**
-   * With this function we make sure that the patient's identifier in the RDA is the de-identified
-   * identifier stored in gPAS. This ensures that we can re-identify patients.
+   * Extracts the patient identifier mapping and maps it to the gPAS pseudonym. This ensures the
+   * patient's identifier in RDA is the de-identified identifier from gPAS for re-identification.
+   *
+   * @param patientIdentifier the patient identifier
+   * @param patientIdentifierSystem the patient identifier system
+   * @param patientIdentifierPseudonym the pseudonym from gPAS
+   * @param idMappings map of originalID→tID
+   * @return map of tID→patientIdentifierPseudonym for the patient identifier entry
    */
   static Map<String, String> patientIdentifierPseudonyms(
       String patientIdentifier,
       String patientIdentifierSystem,
       String patientIdentifierPseudonym,
-      Map<String, String> transportMapping) {
+      Map<String, String> idMappings) {
     var x = NamespacingReplacementProvider.withNamespacing(patientIdentifier);
     var name = x.getKeyForSystemAndValue(patientIdentifierSystem, patientIdentifier);
 
-    return transportMapping.entrySet().stream()
+    return idMappings.entrySet().stream()
         .filter(entry -> entry.getKey().equals(name))
         .collect(toMap(Entry::getValue, id -> patientIdentifierPseudonym));
   }

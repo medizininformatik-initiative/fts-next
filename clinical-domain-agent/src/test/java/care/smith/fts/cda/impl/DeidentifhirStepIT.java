@@ -110,10 +110,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                 jsonResponse(
                     """
                     {
-                      "transferId": "transferId",
-                      "transportMapping": { "id1.identifier.identifierSystem:identifier1": "tident1",
-                                            "id1.Patient:id1": "tid1" },
-                      "dateShiftMapping": { "2024": "2025" }
+                      "transferId": "transferId"
                     }
                     """)));
 

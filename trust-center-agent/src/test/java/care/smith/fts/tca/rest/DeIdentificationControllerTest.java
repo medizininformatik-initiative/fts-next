@@ -15,7 +15,6 @@ import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,33 +42,25 @@ class DeIdentificationControllerTest {
 
   @Test
   void transportMapping() {
-    var ids = Set.of("id1", "id2");
-    var dateTransportMappings = Map.of("tId1", "2024-03-15");
+    var idMappings = Map.of("patientId1.Patient:id1", "tid1", "patientId1.Patient:id2", "tid2");
+    var dateMappings = Map.of("tId1", "2024-03-15");
     var mapName = "transferId";
     var request =
         new TransportMappingRequest(
             "patientId1",
             "patientIdentifierSystem",
-            ids,
-            dateTransportMappings,
+            idMappings,
+            dateMappings,
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
-    // Response no longer includes dateShiftMapping - RDA resolves tIDs separately
     given(mappingProvider.generateTransportMapping(request))
-        .willReturn(
-            Mono.just(
-                new TransportMappingResponse(
-                    mapName, Map.of("id1", "tid1", "id2", "tid2"), Map.of())));
+        .willReturn(Mono.just(new TransportMappingResponse(mapName)));
 
     create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
-              assertThat(r.getBody().dateShiftMapping()).isEmpty();
-              assertThat(r.getBody().transportMapping())
-                  .containsEntry("id1", "tid1")
-                  .containsEntry("id2", "tid2");
               assertThat(r.getBody().transferId()).isEqualTo("transferId");
             })
         .verifyComplete();
@@ -82,7 +73,7 @@ class DeIdentificationControllerTest {
         new TransportMappingRequest(
             "id1",
             "patientIdentifierSystem",
-            Set.of("id1"),
+            Map.of("id1.Patient:id1", "tid1"),
             Map.of(),
             domains,
             ofDays(14),
@@ -104,7 +95,7 @@ class DeIdentificationControllerTest {
         new TransportMappingRequest(
             "id1",
             "patientIdentifierSystem",
-            Set.of("id1"),
+            Map.of("id1.Patient:id1", "tid1"),
             Map.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
@@ -128,20 +119,18 @@ class DeIdentificationControllerTest {
         new TransportMappingRequest(
             "patientId1",
             "patientIdentifierSystem",
-            Set.of(),
+            Map.of(),
             Map.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
             DateShiftPreserve.NONE);
     given(mappingProvider.generateTransportMapping(request))
-        .willReturn(Mono.just(new TransportMappingResponse(mapName, Map.of(), Map.of())));
+        .willReturn(Mono.just(new TransportMappingResponse(mapName)));
 
     create(controller.transportMapping(Mono.just(request)))
         .assertNext(
             r -> {
               assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
-              assertThat(r.getBody().dateShiftMapping()).isEmpty();
-              assertThat(r.getBody().transportMapping()).isEmpty();
               assertThat(r.getBody().transferId()).isEqualTo("transferId");
             })
         .verifyComplete();
@@ -149,12 +138,12 @@ class DeIdentificationControllerTest {
 
   @Test
   void transportMappingInternalServerError() {
-    var ids = Set.of("id1", "id2");
+    var idMappings = Map.of("id1.Patient:id1", "tid1", "id1.Patient:id2", "tid2");
     var request =
         new TransportMappingRequest(
             "id1",
             "patientIdentifierSystem",
-            ids,
+            idMappings,
             Map.of(),
             DEFAULT_DOMAINS,
             ofDays(14),
