@@ -369,7 +369,7 @@ jobs:
         make wait
         make check-status RESULTS_FILE=example.json
         check-resources.sh example.json "${LAST_UPDATED}"
-        check-gpas-pseudonyms.sh
+        check-pseudonymization.sh
 
     - name: Run e2e for 10 Consented Patients with FHIR Consent
       run: |
@@ -378,7 +378,7 @@ jobs:
         make wait
         make check-status RESULTS_FILE=example-with-fhir-consent.json
         check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
-        check-gpas-pseudonyms.sh
+        check-pseudonymization.sh
 
     - name: Collect Agent Logs
       if: failure() || cancelled()

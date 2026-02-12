@@ -1,10 +1,10 @@
 .PHONY: all pull generate-certs start upload-consents check-consent upload-test-data \
 	transfer-all transfer-list transfer-with-fhir-consent-list wait  \
-	check-status check-resources show-status show-hds clean-dbs clean-rd-hds \
+	check-status check-resources check-pseudonymization show-status show-hds clean-dbs clean-rd-hds \
 	download-test-data download-test-data-checksums check-test-data \
 	openapi-specs list-projects show-project
 
-all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources show-hds clean-dbs
+all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources check-pseudonymization show-hds clean-dbs
 
 pull:
 	docker compose pull -q --ignore-pull-failures
@@ -54,6 +54,9 @@ check-status:
 
 check-resources:
 	../scripts/check-resources.sh ${RESULTS_FILE}
+
+check-pseudonymization:
+	../scripts/check-pseudonymization.sh
 
 show-status:
 	curl -sSf "$(shell cat process.url)"
