@@ -1,15 +1,11 @@
 package care.smith.fts.util.tca;
 
-import java.util.Map;
+import jakarta.validation.constraints.NotNull;
 
 /**
- * Response from TCA containing transport mappings and date shift mappings.
+ * Response from TCA confirming transport mapping storage.
  *
  * @param transferId unique identifier for this transfer session
- * @param transportMapping mapping from original resource ID to transport ID
- * @param dateShiftMapping mapping from original date (ISO-8601) to shifted date (ISO-8601)
  */
 public record TransportMappingResponse(
-    String transferId,
-    Map<String, String> transportMapping,
-    Map<String, String> dateShiftMapping) {}
+    @NotNull(groups = TransportMappingResponse.class) String transferId) {}
