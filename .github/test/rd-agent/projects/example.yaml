@@ -2,11 +2,9 @@
 ##! https://medizininformatik-initiative.github.io/fts-next/rd-agent/project
 
 ### Deidentificator Configuration
-##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/deidentificator
+##! https://medizininformatik-initiative.github.io/fts-next/rd-agent/deidentificator
 deidentificator:
-  # Deidentifhir is used to anonymize bundles
-  # See https://github.com/UMEssen/DeidentiFHIR
-  deidentifhir:
+  idMapper:
     trustCenterAgent:
       server:
         # Base URL of the Trust Center Agent server.
@@ -18,9 +16,6 @@ deidentificator:
             # password: "{noop}1J5MhEhhiGh33dgt"
         ssl:
           bundle: tca
-    # Deidentifhir needs additional configuration, which must be available within the agent's
-    # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
-    deidentifhirConfig: /app/projects/example/deidentifhir/TransportToRD.profile
 
 ### Bundle Sender Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/rd-agent/bundle-sender

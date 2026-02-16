@@ -19,6 +19,7 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.StringType;
 
 /** TransportID to Pseudonym */
+@Deprecated(forRemoval = true)
 public interface DeidentifhirUtil {
 
   static Registry generateRegistry(Map<String, String> secureMapping) {

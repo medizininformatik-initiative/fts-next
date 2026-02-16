@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
+@Deprecated(forRemoval = true)
 class DeidentifhirStep implements Deidentificator {
   private final WebClient tcaClient;
   private final com.typesafe.config.Config deidentifhirConfig;

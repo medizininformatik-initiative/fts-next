@@ -14,8 +14,53 @@ documentation.
 ## Configuration Example
 
 The `deidentificator` section allows different implementations to be used for pseudonymizing and
-anonymizing patient data. At the moment there is only one implementation available out-of-the-box:
-`deidentifhir`
+anonymizing patient data. The recommended implementation is `idMapper`:
+
+```yaml
+deidentificator:
+  idMapper:
+    trustCenterAgent:
+      server:
+        baseUrl: http://tc-agent:8080
+        auth: [ ... ]
+        ssl: [ ... ]
+```
+
+## Fields
+
+### `idMapper`
+
+Maps transport IDs to research pseudonyms using the HAPI FHIR object model. This implementation
+replaces resource IDs, references, and identifier values, and restores shifted dates from transport
+ID extensions.
+
+#### `trustCenterAgent`
+
+Connects to the Trust Center Agent to resolve transport IDs to research pseudonyms via the TCA's
+secure mapping endpoint.
+
+##### `server`
+
+* **Description**: Contains settings for connecting to the Trust Center Agent (TCA).
+* **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
+* **Example**:
+  ```yaml
+  idMapper:
+    trustCenterAgent:
+      server:
+        baseUrl: http://custom-tc-agent:9000
+        auth: [ ... ]
+        ssl: [ ... ]
+  ```
+
+### `deidentifhir` <Badge type="danger" text="Deprecated" />
+
+::: warning Deprecated
+The `deidentifhir` implementation is deprecated and will be removed in a future release. Migrate to
+`idMapper` (see above). The `deidentifhirConfig` and `dateShift` fields will be removed.
+:::
+
+The old configuration format is still accepted for backward compatibility:
 
 ```yaml
 deidentificator:
@@ -25,40 +70,26 @@ deidentificator:
         baseUrl: http://tc-agent:8080
         auth: [ ... ]
         ssl: [ ... ]
-    deidentifhirConfig: /app/config/deidentifhir/TransportToRD.profile
+    deidentifhirConfig: /path/to/TransportToRD.profile
+    dateShift: P0D
 ```
 
-## Fields
+To migrate, switch the implementation name and remove the library-specific fields:
 
-### `deidentifhir`
-
-This implementation uses [deidentifhir](https://github.com/UMEssen/DeidentiFHIR) to accomplish
-deidentification of FHIR bundles.
-
-#### `trustCenterAgent.server`
-
-* **Description**: Contains settings for connecting to the Trust Center Agent (TCA).
-* **Type**: [`HttpClientConfig`](../types/HttpClientConfig)
-* **Example**:
-  ```yaml
+```yaml
+# Before (deprecated)
+deidentificator:
+  deidentifhir:
     trustCenterAgent:
       server:
-        baseUrl: http://custom-tc-agent:9000
-        auth: [ ... ]
-        ssl: [ ... ]
-  ```
+        baseUrl: http://tc-agent:8080
+    deidentifhirConfig: /path/to/TransportToRD.profile
+    dateShift: P0D
 
-#### `deidentifhirConfig`
-
-* **Description**: Path to the DeidentiFHIR configuration file. If using a Docker container, the
-  path must be mounted into the container.
-* **Type**: String
-* **Example**:
-  ```yaml
-    deidentifhirConfig: /custom/path/TransportToRD.profile
-  ```
-
-## Notes
-
-* Mount the configuration files (`deidentifhirConfig`) into the Docker container if the agent runs
-  in a containerized environment. Ensure the paths are accessible to the agent at runtime.
+# After
+deidentificator:
+  idMapper:
+    trustCenterAgent:
+      server:
+        baseUrl: http://tc-agent:8080
+```
