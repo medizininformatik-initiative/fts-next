@@ -26,6 +26,7 @@ public record ConsentedPatient(
 
   public ConsentedPatient {
     requireNonNull(identifier, "Patient's identifier cannot be null");
+    requireNonNull(patientIdentifierSystem, "Patient's patientIdentifierSystem cannot be null");
     requireNonNull(consentedPolicies, "Consented policies cannot be null");
   }
 

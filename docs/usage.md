@@ -25,10 +25,9 @@ sequenceDiagram
     TCA ->> CDA: List of Patient IDs
 
     loop for each Patient ID
-        CDA ->> CDA: scrape IDs and dates
-        CDA ->> TCA: request Transport Mapping (IDs + date tID mappings)
-        TCA ->> CDA: Transport Mapping and Date Shift Mappings
-        CDA ->> CDA: attach tID extensions, null dates
+        CDA ->> CDA: deidentify bundle, generate tIDs on-the-fly
+        CDA ->> TCA: send Transport Mappings (oID→tID, tID→date)
+        TCA ->> CDA: transferId
         CDA ->> RDA: Patient Bundle (with tID extensions)
         RDA ->> TCA: request Research Mapping
         TCA ->> RDA: Research Mapping (IDs + date tID→shiftedDate)

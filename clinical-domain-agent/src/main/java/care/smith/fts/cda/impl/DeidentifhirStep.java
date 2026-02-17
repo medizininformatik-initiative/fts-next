@@ -1,6 +1,6 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.generateRegistry;
+import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.buildRegistry;
 import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -8,14 +8,15 @@ import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
-import care.smith.fts.cda.services.deidentifhir.DataScraper;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
+import care.smith.fts.cda.services.deidentifhir.GeneratingReplacementProvider;
 import care.smith.fts.util.error.TransferProcessException;
-import care.smith.fts.util.tca.*;
+import care.smith.fts.util.tca.TcaDomains;
+import care.smith.fts.util.tca.TransportMappingRequest;
+import care.smith.fts.util.tca.TransportMappingResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -50,50 +51,40 @@ class DeidentifhirStep implements Deidentificator {
 
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
-    var patient = bundle.consentedPatient();
-    var dataScraper = new DataScraper(config, patient);
-    var scrapedData = dataScraper.scrape(bundle.bundle());
-    var dateTransportMappings = scrapedData.dateTransportMappings();
+    return Mono.defer(
+        () -> {
+          var patient = bundle.consentedPatient();
+          var provider = new GeneratingReplacementProvider(patient.identifier());
+          var registry = buildRegistry(provider);
+          var deidentified =
+              DeidentifhirUtils.deidentify(
+                  config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
 
-    return scrapedData.ids().isEmpty()
-        ? Mono.empty()
-        : processWithTransportMapping(bundle, patient, scrapedData.ids(), dateTransportMappings);
+          var idMappings = provider.getIdMappings();
+          var dateMappings = provider.getDateMappings();
+          return (idMappings.isEmpty() && dateMappings.isEmpty())
+              ? Mono.empty()
+              : sendMappingsToTca(patient, idMappings, dateMappings)
+                  .map(transferId -> new TransportBundle(deidentified, transferId));
+        });
   }
 
-  private Mono<TransportBundle> processWithTransportMapping(
-      ConsentedPatientBundle bundle,
-      ConsentedPatient patient,
-      Set<String> ids,
-      Map<String, String> dateTransportMappings) {
-    return fetchTransportMapping(patient, ids, dateTransportMappings)
-        .map(
-            response -> {
-              var transportMapping = response.transportMapping();
-              var registry =
-                  generateRegistry(patient.identifier(), transportMapping, dateTransportMappings);
-              var deidentified =
-                  DeidentifhirUtils.deidentify(
-                      config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
-              return new TransportBundle(deidentified, response.transferId());
-            });
-  }
-
-  private Mono<TransportMappingResponse> fetchTransportMapping(
-      ConsentedPatient patient, Set<String> ids, Map<String, String> dateTransportMappings) {
+  private Mono<String> sendMappingsToTca(
+      ConsentedPatient patient, Map<String, String> idMappings, Map<String, String> dateMappings) {
     var request =
         new TransportMappingRequest(
             patient.identifier(),
             patient.patientIdentifierSystem(),
-            ids,
-            dateTransportMappings,
+            idMappings,
+            dateMappings,
             domains,
             maxDateShift,
             preserve);
 
     log.trace(
-        "Fetch transport mapping for {} IDs and {} date tIDs",
-        ids.size(),
-        dateTransportMappings.size());
+        "Send transport mappings for {} IDs and {} dates to TCA",
+        idMappings.size(),
+        dateMappings.size());
     return tcaClient
         .post()
         .uri("/api/v2/cd/transport-mapping")
@@ -103,8 +94,9 @@ class DeidentifhirStep implements Deidentificator {
         .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), DeidentifhirStep::handleBadRequest)
         .bodyToMono(TransportMappingResponse.class)
         .timeout(Duration.ofSeconds(30))
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchTransportMapping"))
-        .doOnError(DeidentifhirStep::handleError);
+        .retryWhen(defaultRetryStrategy(meterRegistry, "sendMappingsToTca"))
+        .doOnError(DeidentifhirStep::handleError)
+        .map(TransportMappingResponse::transferId);
   }
 
   private static Mono<Throwable> handleBadRequest(ClientResponse s) {
@@ -113,6 +105,6 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private static void handleError(Throwable e) {
-    log.error("Cannot fetch transport mapping from TCA: {}", e.getMessage());
+    log.error("Cannot send transport mappings to TCA: {}", e.getMessage());
   }
 }

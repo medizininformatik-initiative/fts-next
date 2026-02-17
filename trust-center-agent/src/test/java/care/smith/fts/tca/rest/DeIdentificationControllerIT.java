@@ -25,7 +25,6 @@ import care.smith.fts.util.tca.TransportMappingResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,8 +94,8 @@ class DeIdentificationControllerIT extends BaseIT {
                 entry("tcaDomains", DEFAULT_DOMAINS),
                 entry("patientIdentifier", "id-144218"),
                 entry("patientIdentifierSystem", "http://fts.smith.care"),
-                entry("resourceIds", Set.of("id-144218", "id-244194")),
-                entry("dateTransportMappings", Map.of()),
+                entry("idMappings", Map.of("id-144218", "tid1", "id-244194", "tid2")),
+                entry("dateMappings", Map.of()),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
 
@@ -104,8 +103,7 @@ class DeIdentificationControllerIT extends BaseIT {
         .assertNext(
             res -> {
               assertThat(res).isNotNull();
-              assertThat(res.dateShiftMapping()).isEmpty();
-              assertThat(res.transportMapping()).containsKeys("id-144218", "id-244194");
+              assertThat(res.transferId()).isNotNull();
             })
         .verifyComplete();
   }
@@ -141,8 +139,8 @@ class DeIdentificationControllerIT extends BaseIT {
                 entry("tcaDomains", DEFAULT_DOMAINS),
                 entry("patientIdentifier", "id-144218"),
                 entry("patientIdentifierSystem", "http://fts.smith.care"),
-                entry("resourceIds", Set.of("id-144218", "id-244194")),
-                entry("dateTransportMappings", Map.of()),
+                entry("idMappings", Map.of("id-144218", "tid1", "id-244194", "tid2")),
+                entry("dateMappings", Map.of()),
                 entry("maxDateShift", ofDays(14).getSeconds()),
                 entry("dateShiftPreserve", "NONE")));
 
@@ -150,8 +148,7 @@ class DeIdentificationControllerIT extends BaseIT {
         .assertNext(
             res -> {
               assertThat(res).isNotNull();
-              assertThat(res.dateShiftMapping()).isEmpty();
-              assertThat(res.transportMapping()).containsKeys("id-144218", "id-244194");
+              assertThat(res.transferId()).isNotNull();
             })
         .verifyComplete();
   }
@@ -163,7 +160,7 @@ class DeIdentificationControllerIT extends BaseIT {
             .post()
             .uri("/api/v2/rd/secure-mapping")
             .contentType(APPLICATION_JSON)
-            .body(fromValue(Set.of("username=Guest'%0AUser:'Admin")))
+            .body(fromValue("username=Guest'%0AUser:'Admin"))
             .accept(APPLICATION_JSON)
             .retrieve()
             .toBodilessEntity();
@@ -211,8 +208,8 @@ class DeIdentificationControllerIT extends BaseIT {
                     entry("tcaDomains", DEFAULT_DOMAINS),
                     entry("patientIdentifier", "id-144218"),
                     entry("patientIdentifierSystem", "http://fts.smith.care"),
-                    entry("resourceIds", Set.of("id-144218", "id-244194")),
-                    entry("dateTransportMappings", Map.of("tId-date-1", "2024-03-15")),
+                    entry("idMappings", Map.of("id-144218", "tid1", "id-244194", "tid2")),
+                    entry("dateMappings", Map.of("tId-date-1", "2024-03-15")),
                     entry("maxDateShift", ofDays(14).getSeconds()),
                     entry("dateShiftPreserve", "NONE")))
             .block()

@@ -4,15 +4,14 @@ import care.smith.fts.api.DateShiftPreserve;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Request from CDA to TCA for transport mappings.
  *
  * @param patientIdentifier the patient identifier
  * @param patientIdentifierSystem the patient identifier system
- * @param resourceIds set of resource IDs to generate transport mappings for
- * @param dateTransportMappings map of transport ID → original date value (tID→date)
+ * @param idMappings map of namespaced original ID → transport ID (originalID→tID)
+ * @param dateMappings map of transport ID → original date value (tID→date)
  * @param tcaDomains TCA domain configuration
  * @param maxDateShift maximum date shift duration
  * @param dateShiftPreserve date shift preservation mode
@@ -20,8 +19,8 @@ import java.util.Set;
 public record TransportMappingRequest(
     @NotNull(groups = TransportMappingRequest.class) String patientIdentifier,
     @NotNull(groups = TransportMappingRequest.class) String patientIdentifierSystem,
-    @NotNull(groups = TransportMappingRequest.class) Set<String> resourceIds,
-    @NotNull(groups = TransportMappingRequest.class) Map<String, String> dateTransportMappings,
+    @NotNull(groups = TransportMappingRequest.class) Map<String, String> idMappings,
+    @NotNull(groups = TransportMappingRequest.class) Map<String, String> dateMappings,
     @NotNull(groups = TransportMappingRequest.class) TcaDomains tcaDomains,
     @NotNull(groups = TransportMappingRequest.class) Duration maxDateShift,
     @NotNull(groups = TransportMappingRequest.class) DateShiftPreserve dateShiftPreserve) {}

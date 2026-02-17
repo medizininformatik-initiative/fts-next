@@ -1,6 +1,7 @@
 package care.smith.fts.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +13,13 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 class ConsentedPatientTest {
+
+  @Test
+  void nullPatientIdentifierSystemThrows() {
+    assertThatNullPointerException()
+        .isThrownBy(() -> new ConsentedPatient("patient-122522", null))
+        .withMessageContaining("patientIdentifierSystem");
+  }
 
   @Test
   void emptyConsentYieldsEmptyMaxPeriod() {

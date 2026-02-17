@@ -20,12 +20,12 @@ Remove identifying data, replace IDs with transport IDs, and handle date shiftin
 the DateShift-ID Pattern.
 
 The CDA:
-1. Scrapes IDs and date values from the patient bundle
-2. Generates transport IDs (tIDs) for each unique date value
-3. Requests transport mappings from the TCA (including tID→date mappings)
-4. Attaches tID extensions to date elements using the URL
-   `https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id`
-5. Nulls the original date values before sending to the RDA
+1. Deidentifies the bundle in a single pass, generating transport IDs (tIDs) on-the-fly for
+   each unique ID and date value, attaching tID extensions and nulling date values during
+   deidentification
+2. Sends the generated mappings — ID pairs (originalID, tID) and date pairs
+   (tID, originalDate) — to the TCA for secure storage
+3. Receives `transferId` from TCA and forwards it with the deidentified bundle to the RDA
 
 For more details, see the [De-Identification](../details/deidentification) documentation.
 

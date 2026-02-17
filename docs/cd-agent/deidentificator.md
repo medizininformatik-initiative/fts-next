@@ -116,7 +116,7 @@ deidentification of FHIR bundles.
 #### `deidentifhirConfig` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Path to the DeidentiFHIR configuration file. If using a Docker container, the
-  path must be mounted into the container. This file is used for both ID scraping and deidentification.
+  path must be mounted into the container. This file is used for deidentification.
 * **Type**: String
 * **Example**:
   ```yaml
@@ -125,15 +125,16 @@ deidentification of FHIR bundles.
 
 #### `scraperConfig` <Badge type="warning" text="Since 5.0" /> <Badge type="danger" text="Removed since 5.5" />
 
-* **Description**: Path to the scraper configuration file used by DeidentiFHIR. If using a Docker
-  container, the path must be mounted into the container.
+* **Description**: Path to the scraper configuration file previously used by DeidentiFHIR for a
+  separate ID scraping pass.
 * **Type**: String
 * **Example**:
   ```yaml
     scraperConfig: /custom/path/IDScraper.profile
   ```
-* **Note**: This field has been removed in version 5.5. The `deidentifhirConfig` is now used for
-  both ID scraping and deidentification.
+* **Note**: This field has been removed in version 5.5. The separate scraping pass has been
+  replaced by single-pass deidentification, which generates transport IDs on-the-fly.
+  The `deidentifhirConfig` is now the only configuration file needed.
 
 ## Notes
 

@@ -12,6 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,7 +40,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +74,7 @@ class FhirMappingProviderTest {
       new TransportMappingRequest(
           "id1",
           "patientIdentifierSystem",
-          Set.of("id1"),
+          Map.of("id1.Patient:id1", "tid1"),
           Map.of(),
           DEFAULT_DOMAINS,
           Duration.ofDays(14),
@@ -140,26 +140,22 @@ class FhirMappingProviderTest {
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
     given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
 
-    var ids = Set.of("Patient.id1", "id1.identifier.patientIdentifierSystem:id1");
+    var idMappings =
+        Map.of(
+            "id1.Patient:id1", "tid1",
+            "id1.identifier.patientIdentifierSystem:id1", "tid2");
     var mapName = "wSUYQUR3Y";
     var request =
         new TransportMappingRequest(
             "id1",
             "patientIdentifierSystem",
-            ids,
+            idMappings,
             Map.of(),
             DEFAULT_DOMAINS,
             Duration.ofDays(14),
             DateShiftPreserve.NONE);
     create(mappingProvider.generateTransportMapping(request))
-        .assertNext(
-            r -> {
-              assertThat(r.transferId()).isEqualTo(mapName);
-              assertThat(r.transportMapping().keySet()).isEqualTo(ids);
-              assertThat(r.transportMapping().values())
-                  .containsExactlyInAnyOrder("MLfKoQoSv", "HFbzdJo87");
-              assertThat(r.dateShiftMapping()).isEmpty();
-            })
+        .assertNext(r -> assertThat(r.transferId()).isEqualTo(mapName))
         .verifyComplete();
   }
 
@@ -344,6 +340,16 @@ class FhirMappingProviderTest {
                 assertThat(hash).hasSize(64);
                 assertThat(hash).matches("^[a-f0-9]{64}$");
               });
+    }
+
+    @Test
+    void generateSecureMappingThrowsOnDuplicateTids() {
+      var transportSalt = "testSalt";
+      var transportMapping = Map.of("id1", "sameTid", "id2", "sameTid");
+
+      assertThatThrownBy(
+              () -> FhirMappingProvider.generateSecureMapping(transportSalt, transportMapping))
+          .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

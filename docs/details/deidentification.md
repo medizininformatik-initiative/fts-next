@@ -23,26 +23,28 @@ nulled before transmission.
 
 The transfer process works as follows:
 
-1. **CDA scrapes dates**: The CDA generates a unique transport ID (tID) for each distinct date
-   value found in the patient bundle and creates a tID→originalDate mapping.
-2. **CDA requests transport mapping**: The CDA sends the resource IDs and tID→originalDate
-   mappings to the TCA.
-3. **TCA computes shifted dates**: The TCA generates date shift values (using a deterministic
-   seed per patient) and computes shifted dates. It stores tID→shiftedDate mappings in Redis
-   (prefixed with `ds:`) and returns originalDate→shiftedDate mappings to the CDA.
-4. **CDA attaches extensions**: The CDA attaches tID extensions to date elements using the URL
-   `https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id` and nulls the
-   actual date values before sending the bundle to the RDA.
-5. **RDA requests secure mapping**: The RDA requests the mapping for the transfer from the TCA.
-6. **TCA returns mappings**: The TCA returns both the ID mappings (tID→sID) and the date shift
+1. **CDA deidentifies in a single pass**: The CDA runs DeidentiFHIR on the patient bundle,
+   generating transport IDs (tIDs) on-the-fly for each unique resource ID and date value.
+   Date values are replaced with tID extensions (using the URL
+   `https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id`) and nulled
+   during this same pass.
+2. **CDA sends mappings to TCA**: The CDA sends the generated mappings — ID pairs
+   (originalID, tID) and date pairs (tID, originalDate) — to the TCA.
+3. **TCA computes and stores secure mappings**: The TCA generates a pseudonym (sPID) for the
+   patient identifier via gPAS and computes secure IDs (sIDs) for all other IDs by hashing with
+   a salt. It computes shifted dates using a deterministic seed per patient and stores all
+   mappings (tID→sID and ds:tID→shiftedDate) in Redis. It returns only the `transferId` to
+   the CDA.
+4. **RDA requests secure mapping**: The RDA requests the mapping for the transfer from the TCA.
+5. **TCA returns mappings**: The TCA returns both the ID mappings (tID→sID) and the date shift
    mappings (tID→shiftedDate).
-7. **RDA restores dates**: The RDA resolves the tID extensions to shifted dates and removes the
+6. **RDA restores dates**: The RDA resolves the tID extensions to shifted dates and removes the
    extensions.
 
-The dates are effectively shifted in two phases. The TCA generates separate shift values for the
-clinical and research domains, but the mechanism ensures the RDA receives the final shifted dates
-directly via the tID mappings. This leads to a uniform distribution of date shift values amongst
-all patients while ensuring original dates never leave the clinical domain.
+The TCA generates a single date shift value per patient using a deterministic seed from gPAS and
+applies it to all date values. The shifted dates are stored in Redis and returned to the RDA via
+the tID mappings. Original dates are sent to the TCA for shift computation but never reach the
+research domain — only the shifted dates are forwarded to the RDA.
 
 ### FhirMappingProvider
 
@@ -63,23 +65,18 @@ To generate the date shift values a third pseudonym is generated
 in gPAS with the key named "DateShiftSeed_" + oPID.
 The pseudonym is used as seed for a random number generator that generates the date shift values.
 
-When the CDA requests a transport mapping (tMap), it sends:
-- A set of original resource IDs (oIDs)
-- A map of date transport IDs to original date values (tID→originalDate)
+After deidentification, the CDA sends a transport mapping request to the TCA containing:
+- ID pairs (originalID, tID) for each resource ID
+- Date pairs (tID, originalDate) for each unique date value
 
 The TCA then:
-1. Generates a random transport ID for each oID
-2. Computes shifted dates for each original date using the patient's date shift seed
-3. Stores the research mapping in Redis, including:
+1. Generates a pseudonym (sPID) for the patient identifier via gPAS (used for re-identification)
+2. Computes a secure ID (sID) for all other IDs by hashing with a salt
+3. Computes shifted dates for each original date using the patient's date shift seed
+4. Stores the research mapping in Redis, including:
    - ID mappings: tID→sID (hashed with salt)
    - Date mappings: ds:tID→shiftedDate (prefixed with `ds:`)
-4. Returns to the CDA:
-   - The oID→tID mappings
-   - The originalDate→shiftedDate mappings
-   - The transfer ID (rdMapName) for later resolution
-
-The CDA uses the date mappings to find the correct tID for each date value, attaches it as a
-FHIR extension, and nulls the date value before sending the bundle to the RDA.
+5. Returns only the `transferId` to the CDA
 
 The RDA then requests the secure mapping using the transfer ID. The TCA returns:
 - ID mappings: tID→sID
@@ -89,13 +86,13 @@ The RDA resolves the tID extensions to shifted dates and removes the extensions.
 
 ```mermaid
 sequenceDiagram
-    CDA ->> TCA: Set<oID>, oPID, Map<tID, date>
+    CDA ->> CDA: deidentify bundle, generate tIDs on-the-fly
+    CDA ->> TCA: Map<oID, tID>, oPID, Map<tID, date>
     TCA ->> gPAS: oPID, Salt_oID, Seed_dateShift_oPID
     gPAS ->> TCA: oPID ➙ sPID, Salt_oID ➙ Salt, Seed ➙ dateShiftSeed
-    TCA ->> TCA: compute shiftedDates from dates
+    TCA ->> TCA: compute sIDs and shiftedDates
     TCA ->> Redis: store tID➙sID and ds:tID➙shiftedDate
-    TCA ->> CDA: transferId, oID➙tID, date➙shiftedDate
-    CDA ->> CDA: attach tID extensions, null dates
+    TCA ->> CDA: transferId
     CDA ->> RDA: transferId & Bundles (with tID extensions)
     RDA ->> TCA: transferId
     TCA ->> Redis: fetch mappings

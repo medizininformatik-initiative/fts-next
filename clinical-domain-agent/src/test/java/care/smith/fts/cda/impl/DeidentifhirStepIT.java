@@ -7,8 +7,12 @@ import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.typesafe.config.ConfigFactory.parseResources;
+import static com.typesafe.config.ConfigFactory.parseString;
 import static java.time.Duration.ofDays;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -30,6 +34,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -110,14 +116,31 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                 jsonResponse(
                     """
                     {
-                      "transferId": "transferId",
-                      "transportMapping": { "id1.identifier.identifierSystem:identifier1": "tident1",
-                                            "id1.Patient:id1": "tid1" },
-                      "dateShiftMapping": { "2024": "2025" }
+                      "transferId": "transferId"
                     }
                     """)));
 
-    create(step.deidentify(consentedPatientBundle)).expectNextCount(1).verifyComplete();
+    create(step.deidentify(consentedPatientBundle))
+        .assertNext(
+            transportBundle -> {
+              assertThat(transportBundle.transferId()).isEqualTo("transferId");
+
+              var outerBundle = transportBundle.bundle();
+              assertThat(outerBundle.getEntry()).isNotEmpty();
+
+              // Deidentified bundle is nested: outer Bundle → inner Bundle → resources
+              var innerBundle = (Bundle) outerBundle.getEntryFirstRep().getResource();
+              var patient = innerBundle.getEntryFirstRep().getResource();
+              assertThat(patient.getIdElement().getIdPart()).hasSize(21);
+            })
+        .verifyComplete();
+
+    var requests = wireMock.findAll(postRequestedFor(urlEqualTo("/api/v2/cd/transport-mapping")));
+    assertThat(requests).hasSize(1);
+
+    var body = requests.getFirst().getBodyAsString();
+    assertThat(body).contains("\"patientIdentifier\"");
+    assertThat(body).contains("\"idMappings\"");
   }
 
   @Test
@@ -126,6 +149,67 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             step.deidentify(
                 new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1", "system"))))
         .expectNextCount(0)
+        .verifyComplete();
+  }
+
+  @Test
+  void onlyDateMappingsSendsMappingsToTca(
+      WireMockRuntimeInfo wireMockRuntime,
+      @Autowired WebClientFactory clientFactory,
+      @Autowired MeterRegistry meterRegistry) {
+    var dateOnlyConfig =
+        parseString(
+            """
+            {
+              deidentiFHIR.profile.version=0.2
+              modules {
+                test_patient {
+                  base = ["Patient.id", "Patient.birthDate", "Patient.meta.profile"]
+                  paths { "Patient.birthDate" { handler = shiftDateHandler } }
+                  pattern = "Patient.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient'"
+                }
+              }
+            }
+            """);
+
+    var client = clientFactory.create(clientConfig(wireMockRuntime));
+    var dateOnlyStep =
+        new DeidentifhirStep(
+            client,
+            new TcaDomains("domain", "domain", "domain"),
+            ofDays(14),
+            NONE,
+            dateOnlyConfig,
+            meterRegistry);
+
+    var patient = new Patient();
+    patient.setId("test-patient");
+    patient
+        .getMeta()
+        .addProfile(
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
+    patient.setBirthDateElement(new DateType("1990-01-01"));
+
+    var innerBundle = new Bundle();
+    innerBundle.addEntry().setResource(patient);
+
+    var outerBundle = new Bundle();
+    outerBundle.addEntry().setResource(innerBundle);
+    outerBundle.setTotal(1);
+
+    var cpb =
+        new ConsentedPatientBundle(outerBundle, new ConsentedPatient("test-patient", "system"));
+
+    wireMock.register(
+        transportMappingRequest()
+            .willReturn(
+                jsonResponse(
+                    """
+                    {"transferId": "date-only-transfer"}
+                    """)));
+
+    create(dateOnlyStep.deidentify(cpb))
+        .assertNext(tb -> assertThat(tb.transferId()).isEqualTo("date-only-transfer"))
         .verifyComplete();
   }
 
