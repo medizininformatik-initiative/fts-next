@@ -44,7 +44,7 @@ details, code and code quality.*
 * **Code Quality**: CodeQL will be used for static code analysis. Ensure code passes these checks.
 * **Testing**: New code must be tested. Code coverage will be collected automatically, and
   the patch diff should be 100%. Maintainers may skip these requirements if there are valid reasons
-  to do so.
+  to do so. See the [Testing](testing) page for details on test types and how to run them.
 * **Code Readability**: Use comments to indicate hard-to-understand code snippets, but aim to name
   all entities so that the code is as human-readable as possible.
 

@@ -155,6 +155,7 @@ export default withMermaid({
           text: 'Development', link: '/contributing/overview',
           items: [
             {text: 'Contributing', link: '/contributing/contributing'},
+            {text: 'Testing', link: '/contributing/testing'},
             {text: 'Repository Structure', link: '/contributing/structure'},
             {text: 'Clinical Domain Agent', link: '/contributing/clinical-domain-agent'},
             {
