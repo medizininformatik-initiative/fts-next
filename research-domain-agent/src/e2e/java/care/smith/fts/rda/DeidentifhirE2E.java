@@ -13,6 +13,7 @@ import care.smith.fts.util.fhir.FhirDecoder;
 import care.smith.fts.util.fhir.FhirEncoder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -34,11 +36,11 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 /**
- * End-to-end tests for Research Domain Agent (RDA) functionality. Tests the complete RDA processing
- * pipeline using container-based integration testing.
+ * E2E test for the deprecated DeidentiFHIR-based deidentification pipeline in RDA. Validates that
+ * the old DeidentiFHIR flow still works end-to-end before removal.
  */
 @Slf4j
-public class RdaE2E {
+public class DeidentifhirE2E {
   private final FhirContext fhirContext = forR4();
   private final FhirEncoder fhirEncoder = new FhirEncoder(fhirContext);
   private final FhirDecoder fhirDecoder = new FhirDecoder(fhirContext);
@@ -51,10 +53,14 @@ public class RdaE2E {
               "ghcr.io/medizininformatik-initiative/fts/research-domain-agent:"
                   + (buildId != null ? buildId : "local"))
           .withCopyFileToContainer(
-              MountableFile.forClasspathResource("projects/example.yaml"),
-              "/app/projects/example.yaml")
+              MountableFile.forClasspathResource("projects/deidentifhir-example.yaml"),
+              "/app/projects/deidentifhir-example.yaml")
           .withCopyFileToContainer(
               MountableFile.forClasspathResource("application.yaml"), "/app/application.yaml")
+          .withFileSystemBind(
+              Paths.get("src/e2e/resources/deidentifhir").toAbsolutePath().toString(),
+              "/app/projects/deidentifhir-example/deidentifhir",
+              BindMode.READ_ONLY)
           .withNetwork(network)
           .withExposedPorts(8080)
           .withLogConsumer(outputFrame -> System.out.print("RDA: " + outputFrame.getUtf8String()))
@@ -195,7 +201,7 @@ public class RdaE2E {
   }
 
   @Test
-  void testProcessPatientBundleWithMockPipeline() throws IOException {
+  void testDeidentifhirPipeline() throws IOException {
     var rdaBaseUrl = "http://" + rda.getHost() + ":" + rda.getMappedPort(8080);
     var webClient = createWebClientWithFhirCodecs(rdaBaseUrl);
     var testBundle = createTestBundle("transfer-123");
@@ -221,7 +227,7 @@ public class RdaE2E {
   private Mono<ResponseEntity<Void>> startTransferProcess(WebClient webClient, Bundle testBundle) {
     return webClient
         .post()
-        .uri("/api/v2/process/example/patient")
+        .uri("/api/v2/process/deidentifhir-example/patient")
         .header("Content-Type", "application/fhir+json")
         .bodyValue(testBundle)
         .retrieve()
