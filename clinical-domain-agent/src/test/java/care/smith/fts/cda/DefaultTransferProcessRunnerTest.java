@@ -13,6 +13,7 @@ import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
+import care.smith.fts.cda.TransferProcessStatus.Step;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ class DefaultTransferProcessRunnerTest {
   private static final String PATIENT_IDENTIFIER_2 = "patient-142391";
   private static final ConsentedPatient PATIENT_2 =
       new ConsentedPatient(PATIENT_IDENTIFIER_2, "system");
+  private static final String PATIENT_IDENTIFIER_3 = "patient-293847";
+  private static final ConsentedPatient PATIENT_3 =
+      new ConsentedPatient(PATIENT_IDENTIFIER_3, "system");
 
   private DefaultTransferProcessRunner runner;
 
@@ -166,12 +171,7 @@ class DefaultTransferProcessRunnerTest {
 
     sleep(110L); // wait TTL seconds for process 1 and 2 to be removed
 
-    create(runner.statuses())
-        .assertNext(
-            r -> {
-              assertThat(r.size()).isEqualTo(0);
-            })
-        .verifyComplete();
+    create(runner.statuses()).assertNext(r -> assertThat(r.size()).isEqualTo(0)).verifyComplete();
   }
 
   @Test
@@ -236,7 +236,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT, DefaultTransferProcessRunnerTest.PATIENT_2)),
+            pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             errorOnSecond(new Result()));
@@ -253,6 +253,133 @@ class DefaultTransferProcessRunnerTest {
         first.getAndSet(false)
             ? just(result)
             : Mono.error(new RuntimeException("Cannot send bundle"));
+  }
+
+  private static DataSelector failOnSecondCall(Bundle bundle) {
+    var counter = new AtomicInteger(0);
+    return p ->
+        counter.incrementAndGet() == 2
+            ? Flux.error(new RuntimeException("Cannot select data"))
+            : Flux.just(bundle).map(b -> new ConsentedPatientBundle(b, p));
+  }
+
+  private static Deidentificator failOnSecondCall(TransportBundle bundle) {
+    var counter = new AtomicInteger(0);
+    return p ->
+        counter.incrementAndGet() == 2
+            ? Mono.error(new RuntimeException("Cannot deidentify bundle"))
+            : just(bundle);
+  }
+
+  private static BundleSender failOnSecondCall(Result result) {
+    var counter = new AtomicInteger(0);
+    return p ->
+        counter.incrementAndGet() == 2
+            ? Mono.error(new RuntimeException("Cannot send bundle"))
+            : just(result);
+  }
+
+  @Test
+  void errorInDataSelectorRecordsFailedPatient() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
+            failOnSecondCall(new Bundle()),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+              assertThat(r.sentBundles()).isEqualTo(2);
+              assertThat(r.failedPatients()).hasSize(1);
+              assertThat(r.failedPatients().getFirst().patientId()).isEqualTo(PATIENT_IDENTIFIER_2);
+              assertThat(r.failedPatients().getFirst().step()).isEqualTo(Step.SELECT_DATA);
+              assertThat(r.failedPatients().getFirst().errorMessage())
+                  .isEqualTo("Cannot select data");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void errorInDeidentificatorRecordsFailedPatient() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            failOnSecondCall(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+              assertThat(r.sentBundles()).isEqualTo(2);
+              assertThat(r.failedPatients()).hasSize(1);
+              assertThat(r.failedPatients().getFirst().step()).isEqualTo(Step.DEIDENTIFY);
+              assertThat(r.failedPatients().getFirst().errorMessage())
+                  .isEqualTo("Cannot deidentify bundle");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void errorInBundleSenderRecordsFailedPatient() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            failOnSecondCall(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+              assertThat(r.sentBundles()).isEqualTo(2);
+              assertThat(r.failedPatients()).hasSize(1);
+              assertThat(r.failedPatients().getFirst().step()).isEqualTo(Step.SEND_BUNDLE);
+              assertThat(r.failedPatients().getFirst().errorMessage())
+                  .isEqualTo("Cannot send bundle");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void successfulTransferHasNoFailedPatients() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+              assertThat(r.failedPatients()).isEmpty();
+            })
+        .verifyComplete();
   }
 
   @Test

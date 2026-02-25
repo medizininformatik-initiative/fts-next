@@ -8,6 +8,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
+import care.smith.fts.cda.TransferProcessStatus.Step;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -151,10 +152,17 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .dataSelector()
           .select(patient)
-          .doOnError(e -> logError("select data", patient.identifier(), e));
+          .onErrorResume(e -> handlePatientError(patient.identifier(), Step.SELECT_DATA, e));
     }
 
-    private void logError(String step, String patientIdentifier, Throwable e) {
+    private <T> Mono<T> handlePatientError(String patientId, Step step, Throwable e) {
+      logError(step, patientId, e);
+      status.updateAndGet(
+          s -> s.incSkippedBundles().addFailedPatient(patientId, step, e.getMessage()));
+      return Mono.empty();
+    }
+
+    private void logError(Step step, String patientIdentifier, Throwable e) {
       var msg = "[Process {}] Failed to {} for patient {}. {}";
       log.error(
           msg, processId(), step, patientIdentifier, log.isDebugEnabled() ? e : e.getMessage());
@@ -171,25 +179,26 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Mono<PatientContext<TransportBundle>> deidentifyForPatient(
         ConsentedPatientBundle bundle) {
+      var patientId = bundle.consentedPatient().identifier();
       return process
           .deidentificator()
           .deidentify(bundle)
-          .doOnError(e -> logError("deidentify bundle", bundle.consentedPatient().identifier(), e))
-          .map(t -> new PatientContext<>(t, bundle.consentedPatient()));
+          .map(t -> new PatientContext<>(t, bundle.consentedPatient()))
+          .onErrorResume(e -> handlePatientError(patientId, Step.DEIDENTIFY, e));
     }
 
     private Flux<Result> sendBundles(Flux<PatientContext<TransportBundle>> deidentification) {
       return deidentification
           .flatMap(this::sendBundleForPatient, config.maxSendConcurrency)
-          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles))
-          .onErrorContinue((e, r) -> status.updateAndGet(TransferProcessStatus::incSkippedBundles));
+          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles));
     }
 
     private Mono<Result> sendBundleForPatient(PatientContext<TransportBundle> b) {
+      var patientId = b.consentedPatient().identifier();
       return process
           .bundleSender()
           .send(b.data())
-          .doOnError(e -> logError("send bundle", b.consentedPatient().identifier(), e));
+          .onErrorResume(e -> handlePatientError(patientId, Step.SEND_BUNDLE, e));
     }
 
     private void onComplete() {
