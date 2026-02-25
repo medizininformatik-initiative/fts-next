@@ -71,9 +71,43 @@ The status response looks like this:
 | `totalBundles`        | Total number of bundles to be processed                                                  |
 | `deidentifiedBundles` | Number of bundles after deidentification                                                 |
 | `sentBundles`         | Number of bundles sent to RDA                                                            |
-| `skippedBundles`      | Number of skipped bundles; if greater than zero, investigate logs to determine the cause |
+| `skippedBundles`      | Number of skipped bundles; if greater than zero, query the [failed patients endpoint](#failed-patients) for details |
 
 [API Reference for Status Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-)
+
+### Failed Patients
+
+When `skippedBundles` is greater than zero, the failed patients endpoint returns
+which patients failed and at which step:
+
+```shell
+curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c0eafbe8ead0/failed_patients"
+```
+
+<!--@formatter:off-->
+```json
+[
+  {
+    "patientId": "patient-001",
+    "step": "SELECT_DATA",
+    "errorMessage": "Connection refused"
+  },
+  {
+    "patientId": "patient-042",
+    "step": "DEIDENTIFY",
+    "errorMessage": "Cannot deidentify bundle"
+  }
+]
+```
+<!--@formatter:on-->
+
+| Field          | Description                                                                                      |
+|----------------|--------------------------------------------------------------------------------------------------|
+| `patientId`    | Identifier of the patient whose transfer failed                                                  |
+| `step`         | Processing step where the error occurred (`SELECT_DATA`, `DEIDENTIFY`, `SEND_BUNDLE`)            |
+| `errorMessage` | Error message describing the failure                                                             |
+
+[API Reference for Failed Patients Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-/failed_patients)
 
 ## Monitoring
 

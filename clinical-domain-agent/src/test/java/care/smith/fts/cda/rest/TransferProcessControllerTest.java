@@ -14,6 +14,7 @@ import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessStatus;
+import care.smith.fts.cda.TransferProcessStatus.Step;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -169,5 +170,38 @@ class TransferProcessControllerTest {
   void unknownProject() {
     var config = api.project("unknown");
     assertThat(config.getStatusCode()).isEqualTo(NOT_FOUND);
+  }
+
+  @Test
+  void failedPatientsReturnsErrors() {
+    var processId = "failed-123456";
+    var result =
+        TransferProcessStatus.create(processId)
+            .addFailedPatient("patient-001", Step.SELECT_DATA, "Connection refused")
+            .addFailedPatient("patient-042", Step.DEIDENTIFY, "Cannot deidentify bundle");
+
+    when(mockRunner.status(processId)).thenReturn(Mono.just(result));
+
+    create(api.failedPatients(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode()).isEqualTo(OK);
+              assertThat(r.getBody()).hasSize(2);
+              assertThat(r.getBody().get(0).patientId()).isEqualTo("patient-001");
+              assertThat(r.getBody().get(0).step()).isEqualTo(Step.SELECT_DATA);
+              assertThat(r.getBody().get(1).patientId()).isEqualTo("patient-042");
+              assertThat(r.getBody().get(1).step()).isEqualTo(Step.DEIDENTIFY);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void failedPatientsWithUnknownProcessIdReturns404() {
+    when(mockRunner.status(Mockito.anyString()))
+        .thenReturn(Mono.error(new IllegalStateException("No transfer process with processId: ")));
+
+    create(api.failedPatients("unknown"))
+        .assertNext(r -> assertThat(r.getStatusCode()).isEqualTo(NOT_FOUND))
+        .verifyComplete();
   }
 }
