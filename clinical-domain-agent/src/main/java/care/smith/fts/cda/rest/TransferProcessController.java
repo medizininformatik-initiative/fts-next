@@ -9,6 +9,7 @@ import care.smith.fts.cda.TransferProcessConfig;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
 import care.smith.fts.cda.TransferProcessStatus;
+import care.smith.fts.cda.TransferProcessStatus.PatientError;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -120,7 +121,7 @@ public class TransferProcessController {
 
   @GetMapping("/process/status/{processId:[\\w-]+}")
   @Operation(
-      summary = "Transfer process's status",
+      summary = "Transfer process status",
       description = "**Since 5.0**\n\n",
       parameters = {
         @Parameter(
@@ -150,6 +151,42 @@ public class TransferProcessController {
     return processRunner
         .status(processId)
         .map(s -> responseForStatus(s).body(s))
+        .onErrorResume(ErrorResponseUtil::notFound);
+  }
+
+  @GetMapping("/process/status/{processId:[\\w-]+}/failed_patients")
+  @Operation(
+      summary = "Failed patients of a transfer process",
+      description = "**Since 6.0**\n\nReturns patient IDs and error messages for failed transfers.",
+      parameters = {
+        @Parameter(
+            name = "processId",
+            schema = @Schema(implementation = String.class),
+            description = "Transfer process ID")
+      },
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = PatientError.class),
+                    examples = {
+                      @ExampleObject(
+                          name = "Failed patients",
+                          value =
+"""
+[{"patientId":"patient-001","step":"SELECT_DATA","errorMessage":"Connection refused"},\
+{"patientId":"patient-042","step":"DEIDENTIFY","errorMessage":"Cannot deidentify bundle"}]
+""")
+                    })),
+        @ApiResponse(responseCode = "404", description = "The process could not be found")
+      })
+  Mono<ResponseEntity<List<PatientError>>> failedPatients(
+      @PathVariable(value = "processId") String processId) {
+    return processRunner
+        .status(processId)
+        .map(s -> ResponseEntity.ok().body(s.failedPatients()))
         .onErrorResume(ErrorResponseUtil::notFound);
   }
 
