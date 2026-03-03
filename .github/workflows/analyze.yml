@@ -39,8 +39,8 @@ jobs:
     - name: Install google-java-format
       env:
         # renovate: datasource=github-release-attachments depName=google/google-java-format
-        JAVA_FORMAT_VERSION: v1.34.1
-        JAVA_FORMAT_CHECKSUM: 79e1cb5c8bd698c572c0ae504d07816129b8fc06204fb49550bec83bd5ea0aa8
+        JAVA_FORMAT_VERSION: v1.35.0
+        JAVA_FORMAT_CHECKSUM: bfb7f9ead6cd328389bc2da53860443bc0e805dfd08cc889bfdf43b26cb2a6e8
       run: .github/scripts/install-google-java-format.sh
 
     - name: Format Java files
