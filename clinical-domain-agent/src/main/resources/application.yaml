@@ -18,6 +18,7 @@ security:
 
 runner:
   maxSendConcurrency: 32
+  maxDeidentifyConcurrency: 32
   maxConcurrentProcesses: 4
   processTtl: P1D
 

@@ -14,6 +14,8 @@ public class TransferProcessRunnerConfig {
 
   @NestedConfigurationProperty @NotNull int maxSendConcurrency = 128;
 
+  @NotNull int maxDeidentifyConcurrency = 32;
+
   @NotNull int maxConcurrentProcesses = 4;
   @NotNull Duration processTtl = Duration.ofDays(1);
 }

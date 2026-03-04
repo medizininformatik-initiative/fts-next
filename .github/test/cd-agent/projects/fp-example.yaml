@@ -1,0 +1,63 @@
+### FTS Project Configuration - FHIR Pseudonymizer Flow
+##! Uses external FHIR Pseudonymizer instead of DeidentiFHIR
+
+### Cohort Selection Configuration
+cohortSelector:
+  trustCenterAgent:
+    server:
+      baseUrl: https://tc-agent:8080
+      auth:
+        basic:
+          user: cd-agent
+          password: Aj6cloJYsTpu+op+
+      ssl:
+        bundle: tca
+    domain: MII
+    patientIdentifierSystem: "http://fts.smith.care"
+    signerIdType: "Pseudonym"
+    policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3"
+    policies:
+    - 2.16.840.1.113883.3.1937.777.24.5.3.2
+    - 2.16.840.1.113883.3.1937.777.24.5.3.3
+    - 2.16.840.1.113883.3.1937.777.24.5.3.6
+    - 2.16.840.1.113883.3.1937.777.24.5.3.7
+
+### Data Selection Configuration
+dataSelector:
+  everything:
+    fhirServer:
+      baseUrl: http://cd-hds:8080/fhir
+    pageSize: 500
+
+### Deidentificator Configuration
+##! Uses FHIR Pseudonymizer for identity pseudonymization via gPAS
+deidentificator:
+  fhir-pseudonymizer:
+    server:
+      baseUrl: http://fhir-pseudonymizer:8080/fhir
+    anonymizationConfig: /app/projects/fp-example/anonymization-config.yaml
+    trustCenterAgent:
+      server:
+        baseUrl: https://tc-agent:8080
+        auth:
+          basic:
+            user: cd-agent
+            password: Aj6cloJYsTpu+op+
+        ssl:
+          bundle: tca
+      domains:
+        pseudonym: MII
+        salt: MII
+        dateShift: MII
+    maxDateShift: P14D
+    dateShiftPreserve: NONE
+
+### Bundle Sender Configuration
+bundleSender:
+  researchDomainAgent:
+    server:
+      baseUrl: http://rd-agent:8080
+      auth:
+        oauth2:
+          registration: rd-agent
+    project: example

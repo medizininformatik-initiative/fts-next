@@ -96,6 +96,26 @@ public interface FhirParameterExtractor {
   }
 
   /**
+   * Validates that a string value meets length constraints without character restrictions.
+   *
+   * <p>Unlike {@link #validateIdentifier}, this allows any characters (e.g., FHIR identifiers
+   * containing {@code |}, {@code /}, {@code :}, {@code .}).
+   *
+   * @param value the value to validate
+   * @param paramName the parameter name for error messages
+   * @return the validated value
+   * @throws IllegalArgumentException if the value exceeds max length
+   */
+  static String validateValue(String value, String paramName) {
+    if (value.length() > MAX_IDENTIFIER_LENGTH) {
+      throw new IllegalArgumentException(
+          "Parameter '%s' exceeds maximum length of %d"
+              .formatted(paramName, MAX_IDENTIFIER_LENGTH));
+    }
+    return value;
+  }
+
+  /**
    * Validates that a string is a safe identifier (word characters and hyphens only).
    *
    * @param value the value to validate

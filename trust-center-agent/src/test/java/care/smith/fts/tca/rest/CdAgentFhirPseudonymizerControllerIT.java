@@ -34,14 +34,14 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 /**
  * Integration tests for CdAgentFhirPseudonymizerController.
  *
- * <p>Tests the Vfps-compatible endpoint that generates transport IDs for CDA requests.
+ * <p>Tests the MII $pseudonymize endpoint that generates transport IDs for CDA requests.
  */
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
 class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
 
-  private static final String VFPS_ENDPOINT = "/api/v2/cd/fhir/$create-pseudonym";
+  private static final String PSEUDONYMIZE_ENDPOINT = "/api/v2/cd/fhir/$pseudonymize";
 
   @Autowired private RedissonClient redisClient;
   private WebClient cdClient;
@@ -49,7 +49,6 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
   @BeforeEach
   void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     cdClient = factory.webClient("https://localhost:" + port, "cd-agent");
-    // Clean up Redis before each test
     redisClient.getKeys().deleteByPattern("transport-mapping:*");
   }
 
@@ -59,8 +58,7 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
   }
 
   @Test
-  void createPseudonym_shouldReturnTransportId() throws IOException {
-    // Setup gPAS mock to return a real pseudonym
+  void pseudonymize_shouldReturnTransportId() throws IOException {
     var fhirGenerator =
         gpasGetOrCreateResponse(
             fromList(List.of("patient-123")), fromList(List.of("sID-real-pseudonym-abc")));
@@ -71,14 +69,12 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
                 .willReturn(fhirResponse(fhirGenerator.generateString())));
 
-    // Build Vfps-format request
-    var requestParams = buildVfpsRequest("clinical-domain", "patient-123");
+    var requestParams = buildMiiRequest("clinical-domain", "patient-123");
 
-    // Send request
     var response =
         cdClient
             .post()
-            .uri(VFPS_ENDPOINT)
+            .uri(PSEUDONYMIZE_ENDPOINT)
             .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
@@ -89,25 +85,20 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .assertNext(
             params -> {
               assertThat(params).isNotNull();
-              // Single value response has 3 flat parameters: namespace, originalValue,
-              // pseudonymValue
-              assertThat(params.getParameter()).hasSize(3);
+              assertThat(params.getParameter()).hasSize(1);
 
-              // The response should contain a pseudonymValue that is a transport ID (not the real
-              // sID)
-              var pseudonymValue = extractPseudonymValue(params);
-              assertThat(pseudonymValue)
+              var pseudonym = findParameterValue(params, "pseudonym");
+              assertThat(pseudonym)
                   .isNotNull()
-                  .isNotEqualTo("sID-real-pseudonym-abc") // Must NOT be the real pseudonym
-                  .hasSize(32) // Transport IDs are 32 chars (24 bytes Base64URL)
+                  .isNotEqualTo("sID-real-pseudonym-abc")
+                  .hasSize(32)
                   .matches(s -> s.matches("^[A-Za-z0-9_-]+$"), "should be Base64URL encoded");
             })
         .verifyComplete();
   }
 
   @Test
-  void createPseudonym_shouldStoreMapping() throws IOException {
-    // Setup gPAS mock
+  void pseudonymize_shouldStoreMapping() throws IOException {
     var fhirGenerator =
         gpasGetOrCreateResponse(
             fromList(List.of("patient-456")), fromList(List.of("sID-stored-pseudonym")));
@@ -118,98 +109,36 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
                 .willReturn(fhirResponse(fhirGenerator.generateString())));
 
-    // Build and send request
-    var requestParams = buildVfpsRequest("clinical-domain", "patient-456");
+    var requestParams = buildMiiRequest("clinical-domain", "patient-456");
 
     var transportId =
         cdClient
             .post()
-            .uri(VFPS_ENDPOINT)
+            .uri(PSEUDONYMIZE_ENDPOINT)
             .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class)
-            .map(this::extractPseudonymValue)
+            .map(params -> findParameterValue(params, "pseudonym"))
             .block();
 
-    // Verify mapping was stored in Redis with tid: prefix
     var keys = redisClient.getKeys().getKeysByPattern("tid:*");
     assertThat(keys).isNotEmpty();
 
-    // The mapping should contain the transport ID -> real pseudonym
     var storedSid = redisClient.<String>getBucket("tid:" + transportId).get();
     assertThat(storedSid).isEqualTo("sID-stored-pseudonym");
   }
 
   @Test
-  void createPseudonym_withMultipleOriginals_shouldReturnMultipleTransportIds() throws IOException {
-    // Setup gPAS mock for batch processing
-    var fhirGenerator =
-        gpasGetOrCreateResponse(
-            fromList(List.of("patient-1", "patient-2", "patient-3")),
-            fromList(List.of("sID-1", "sID-2", "sID-3")));
-
-    gpas()
-        .register(
-            post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                .willReturn(fhirResponse(fhirGenerator.generateString())));
-
-    // Build request with multiple originals
+  void pseudonymize_withMissingTarget_shouldReturn400() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("namespace").setValue(new StringType("clinical-domain"));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("patient-1"));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("patient-2"));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("patient-3"));
+    requestParams.addParameter().setName("original").setValue(new StringType("patient-123"));
 
     var response =
         cdClient
             .post()
-            .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
-            .header("Accept", APPLICATION_FHIR_JSON)
-            .bodyValue(requestParams)
-            .retrieve()
-            .bodyToMono(Parameters.class);
-
-    create(response)
-        .assertNext(
-            params -> {
-              assertThat(params).isNotNull();
-              // For batch response (>1 original), should have nested "pseudonym" parameters
-              // Total parameters should be 3 (one for each original)
-              var pseudonymParams =
-                  params.getParameter().stream()
-                      .filter(p -> "pseudonym".equals(p.getName()))
-                      .toList();
-
-              // If we have nested structure, pseudonymParams should have 3 entries
-              // If not (e.g., flat structure reused), we need to count differently
-              if (pseudonymParams.isEmpty()) {
-                // Check if flat structure was used (should not happen for batch)
-                assertThat(params.getParameter()).hasSizeGreaterThanOrEqualTo(3);
-              } else {
-                assertThat(pseudonymParams).hasSize(3);
-
-                // All should have unique transport IDs
-                var transportIds =
-                    pseudonymParams.stream().map(this::extractPseudonymValueFromPart).toList();
-                assertThat(transportIds).hasSize(3).doesNotHaveDuplicates();
-              }
-            })
-        .verifyComplete();
-  }
-
-  @Test
-  void createPseudonym_withMissingNamespace_shouldReturn400() {
-    var requestParams = new Parameters();
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("patient-123"));
-
-    var response =
-        cdClient
-            .post()
-            .uri(VFPS_ENDPOINT)
+            .uri(PSEUDONYMIZE_ENDPOINT)
             .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
@@ -227,14 +156,14 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
   }
 
   @Test
-  void createPseudonym_withMissingOriginalValue_shouldReturn400() {
+  void pseudonymize_withMissingOriginal_shouldReturn400() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("namespace").setValue(new StringType("clinical-domain"));
+    requestParams.addParameter().setName("target").setValue(new StringType("clinical-domain"));
 
     var response =
         cdClient
             .post()
-            .uri(VFPS_ENDPOINT)
+            .uri(PSEUDONYMIZE_ENDPOINT)
             .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
@@ -251,30 +180,16 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .verify();
   }
 
-  private Parameters buildVfpsRequest(String namespace, String originalValue) {
+  private Parameters buildMiiRequest(String target, String original) {
     var params = new Parameters();
-    params.addParameter().setName("namespace").setValue(new StringType(namespace));
-    params.addParameter().setName("originalValue").setValue(new StringType(originalValue));
+    params.addParameter().setName("target").setValue(new StringType(target));
+    params.addParameter().setName("original").setValue(new StringType(original));
     return params;
   }
 
-  private String extractPseudonymValue(Parameters params) {
+  private String findParameterValue(Parameters params, String name) {
     return params.getParameter().stream()
-        .filter(p -> "pseudonymValue".equals(p.getName()))
-        .findFirst()
-        .map(p -> p.getValue().primitiveValue())
-        .orElseGet(
-            () ->
-                params.getParameter().stream()
-                    .filter(p -> "pseudonym".equals(p.getName()))
-                    .findFirst()
-                    .map(this::extractPseudonymValueFromPart)
-                    .orElse(null));
-  }
-
-  private String extractPseudonymValueFromPart(Parameters.ParametersParameterComponent param) {
-    return param.getPart().stream()
-        .filter(p -> "pseudonymValue".equals(p.getName()) || "pseudonym".equals(p.getName()))
+        .filter(p -> name.equals(p.getName()))
         .findFirst()
         .map(p -> p.getValue().primitiveValue())
         .orElse(null);
