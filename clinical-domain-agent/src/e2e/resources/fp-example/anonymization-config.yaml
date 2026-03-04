@@ -1,0 +1,5 @@
+fhirPathRules:
+  - path: "Encounter.period.start"
+    method: "dateshift"
+  - path: "Encounter.period.end"
+    method: "dateshift"
