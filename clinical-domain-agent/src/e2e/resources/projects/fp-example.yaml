@@ -1,0 +1,39 @@
+cohortSelector:
+  trustCenterAgent:
+    server:
+      baseUrl: http://tc-agent:8080
+    domain: MII
+    patientIdentifierSystem: "http://fts.smith.care"
+    policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3"
+    policies:
+    - 2.16.840.1.113883.3.1937.777.24.5.3.2
+    - 2.16.840.1.113883.3.1937.777.24.5.3.3
+    - 2.16.840.1.113883.3.1937.777.24.5.3.6
+    - 2.16.840.1.113883.3.1937.777.24.5.3.7
+
+dataSelector:
+  everything:
+    fhirServer:
+      baseUrl: http://cd-hds:8080/fhir
+    pageSize: 500
+
+deidentificator:
+  fhir-pseudonymizer:
+    server:
+      baseUrl: http://fhir-pseudonymizer:8080/fhir
+    anonymizationConfig: /app/projects/fp-example/anonymization-config.yaml
+    trustCenterAgent:
+      server:
+        baseUrl: http://tc-agent:8080
+      domains:
+        pseudonym: MII
+        salt: MII
+        dateShift: MII
+    maxDateShift: P14D
+    dateShiftPreserve: NONE
+
+bundleSender:
+  researchDomainAgent:
+    server:
+      baseUrl: http://rd-agent:8080
+    project: example

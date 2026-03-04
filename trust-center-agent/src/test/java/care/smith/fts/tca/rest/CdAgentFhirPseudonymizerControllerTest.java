@@ -1,9 +1,7 @@
 package care.smith.fts.tca.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -37,8 +35,8 @@ class CdAgentFhirPseudonymizerControllerTest {
   }
 
   @Test
-  void createPseudonymSuccessfullyReturnsSingleEntry() {
-    var requestParams = createSingleValueRequest("test-domain", "patient-123");
+  void pseudonymizeSuccessfullyReturnsPseudonym() {
+    var requestParams = createRequest("test-domain", "patient-123");
     var ttl = Duration.ofMinutes(10);
 
     when(transportIdService.generateId()).thenReturn("tId-abc123");
@@ -48,7 +46,7 @@ class CdAgentFhirPseudonymizerControllerTest {
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.just(Map.of("patient-123", "sId-456")));
 
-    var result = controller.createPseudonym(requestParams);
+    var result = controller.pseudonymize(requestParams);
 
     StepVerifier.create(result)
         .assertNext(
@@ -57,51 +55,18 @@ class CdAgentFhirPseudonymizerControllerTest {
               var params = response.getBody();
               assertThat(params).isNotNull();
 
-              var namespace = findParameterValue(params, "namespace");
-              var originalValue = findParameterValue(params, "originalValue");
-              var pseudonymValue = findParameterValue(params, "pseudonymValue");
-
-              assertThat(namespace).isEqualTo("test-domain");
-              assertThat(originalValue).isEqualTo("patient-123");
-              assertThat(pseudonymValue).isEqualTo("tId-abc123");
+              var pseudonym = findParameterValue(params, "pseudonym");
+              assertThat(pseudonym).isEqualTo("tId-abc123");
             })
         .verifyComplete();
   }
 
   @Test
-  void createPseudonymSuccessfullyReturnsMultipleEntries() {
-    var requestParams = createMultiValueRequest("test-domain", "patient-1", "patient-2");
-    var ttl = Duration.ofMinutes(10);
-
-    when(transportIdService.generateId()).thenReturn("tId-1", "tId-2");
-    when(transportIdService.getDefaultTtl()).thenReturn(ttl);
-    when(transportIdService.storeMapping(anyString(), anyString(), any(Duration.class)))
-        .thenReturn(Mono.empty());
-    when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
-        .thenReturn(Mono.just(Map.of("patient-1", "sId-1", "patient-2", "sId-2")));
-
-    var result = controller.createPseudonym(requestParams);
-
-    StepVerifier.create(result)
-        .assertNext(
-            response -> {
-              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              assertThat(params.getParameter()).hasSize(2);
-
-              var firstPseudonym = params.getParameter().get(0);
-              assertThat(firstPseudonym.getName()).isEqualTo("pseudonym");
-            })
-        .verifyComplete();
-  }
-
-  @Test
-  void createPseudonymReturnsBadRequestForMissingNamespace() {
+  void pseudonymizeReturnsBadRequestForMissingTarget() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("patient-123"));
+    requestParams.addParameter().setName("original").setValue(new StringType("patient-123"));
 
-    var result = controller.createPseudonym(requestParams);
+    var result = controller.pseudonymize(requestParams);
 
     StepVerifier.create(result)
         .assertNext(
@@ -111,18 +76,18 @@ class CdAgentFhirPseudonymizerControllerTest {
               assertThat(params).isNotNull();
               var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
               assertThat(outcome.getIssueFirstRep().getDiagnostics())
-                  .contains("Missing required parameter 'namespace'");
+                  .contains("Missing required parameter 'target'");
             })
         .verifyComplete();
   }
 
   @Test
-  void createPseudonymReturnsBadRequestForEmptyNamespace() {
+  void pseudonymizeReturnsBadRequestForEmptyTarget() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("namespace").setValue(new StringType("   "));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("patient-123"));
+    requestParams.addParameter().setName("target").setValue(new StringType("   "));
+    requestParams.addParameter().setName("original").setValue(new StringType("patient-123"));
 
-    var result = controller.createPseudonym(requestParams);
+    var result = controller.pseudonymize(requestParams);
 
     StepVerifier.create(result)
         .assertNext(
@@ -137,11 +102,11 @@ class CdAgentFhirPseudonymizerControllerTest {
   }
 
   @Test
-  void createPseudonymReturnsBadRequestForMissingOriginalValue() {
+  void pseudonymizeReturnsBadRequestForMissingOriginal() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("namespace").setValue(new StringType("test-domain"));
+    requestParams.addParameter().setName("target").setValue(new StringType("test-domain"));
 
-    var result = controller.createPseudonym(requestParams);
+    var result = controller.pseudonymize(requestParams);
 
     StepVerifier.create(result)
         .assertNext(
@@ -151,19 +116,19 @@ class CdAgentFhirPseudonymizerControllerTest {
               assertThat(params).isNotNull();
               var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
               assertThat(outcome.getIssueFirstRep().getDiagnostics())
-                  .contains("At least one 'originalValue' parameter is required");
+                  .contains("Missing required parameter 'original'");
             })
         .verifyComplete();
   }
 
   @Test
-  void createPseudonymReturnsInternalServerErrorOnBackendFailure() {
-    var requestParams = createSingleValueRequest("test-domain", "patient-123");
+  void pseudonymizeReturnsInternalServerErrorOnBackendFailure() {
+    var requestParams = createRequest("test-domain", "patient-123");
 
     when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
         .thenReturn(Mono.error(new RuntimeException("Backend connection failed")));
 
-    var result = controller.createPseudonym(requestParams);
+    var result = controller.pseudonymize(requestParams);
 
     StepVerifier.create(result)
         .assertNext(
@@ -173,19 +138,10 @@ class CdAgentFhirPseudonymizerControllerTest {
         .verifyComplete();
   }
 
-  private Parameters createSingleValueRequest(String namespace, String originalValue) {
+  private Parameters createRequest(String target, String original) {
     var params = new Parameters();
-    params.addParameter().setName("namespace").setValue(new StringType(namespace));
-    params.addParameter().setName("originalValue").setValue(new StringType(originalValue));
-    return params;
-  }
-
-  private Parameters createMultiValueRequest(String namespace, String... originalValues) {
-    var params = new Parameters();
-    params.addParameter().setName("namespace").setValue(new StringType(namespace));
-    for (String value : originalValues) {
-      params.addParameter().setName("originalValue").setValue(new StringType(value));
-    }
+    params.addParameter().setName("target").setValue(new StringType(target));
+    params.addParameter().setName("original").setValue(new StringType(original));
     return params;
   }
 
