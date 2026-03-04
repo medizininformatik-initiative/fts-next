@@ -180,6 +180,7 @@ public class CdAgentFhirPseudonymizerController {
   private Mono<PseudonymEntry> createPseudonymEntry(
       String original, String sId, String namespace, Duration ttl) {
     var tId = transportIdService.generateId();
+
     return transportIdService
         .storeMapping(tId, sId, ttl)
         .thenReturn(new PseudonymEntry(namespace, original, tId));
