@@ -9,6 +9,7 @@ lifecycle of processes managed by FTSnext
 ```yaml
 runner:
   maxSendConcurrency: 32
+  maxDeidentifyConcurrency: 32
   maxConcurrentProcesses: 4
   processTtl: P1D
 ```
@@ -24,6 +25,17 @@ runner:
   ```yaml
   runner:
     maxSendConcurrency: 50
+  ```
+
+### `maxDeidentifyConcurrency` <Badge type="warning" text="Since 5.0" />
+
+* **Description**: The maximum number of concurrent deidentification operations that can run in parallel per patient.
+* **Type**: Integer
+* **Default**: `32`
+* **Example**:
+  ```yaml
+  runner:
+    maxDeidentifyConcurrency: 16
   ```
 
 ### `maxConcurrentProcesses` <Badge type="warning" text="Since 5.0" />

@@ -17,6 +17,7 @@ spring:
 
 runner:
   maxConcurrency: 128
+  maxDeidentifyConcurrency: 4
   maxProcesses: 4
   processTtl: P1D
 
