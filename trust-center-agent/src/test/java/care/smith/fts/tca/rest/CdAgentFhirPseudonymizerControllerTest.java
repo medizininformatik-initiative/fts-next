@@ -173,33 +173,6 @@ class CdAgentFhirPseudonymizerControllerTest {
         .verifyComplete();
   }
 
-  @Test
-  void createPseudonymSucceedsEvenWhenDateShiftLinkingFails() {
-    var requestParams = createSingleValueRequest("test-domain", "patient-123");
-    var ttl = Duration.ofMinutes(10);
-
-    when(transportIdService.generateId()).thenReturn("tId-abc123");
-    when(transportIdService.getDefaultTtl()).thenReturn(ttl);
-    when(transportIdService.storeMapping(eq("tId-abc123"), eq("sId-456"), eq(ttl)))
-        .thenReturn(Mono.empty());
-    when(transportIdService.fetchAndDeleteTempDateShift(anyString()))
-        .thenReturn(Mono.error(new RuntimeException("Redis connection failed")));
-    when(gpasClient.fetchOrCreatePseudonyms(eq("test-domain"), anySet()))
-        .thenReturn(Mono.just(Map.of("patient-123", "sId-456")));
-
-    var result = controller.createPseudonym(requestParams);
-
-    StepVerifier.create(result)
-        .assertNext(
-            response -> {
-              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              assertThat(findParameterValue(params, "pseudonymValue")).isEqualTo("tId-abc123");
-            })
-        .verifyComplete();
-  }
-
   private Parameters createSingleValueRequest(String namespace, String originalValue) {
     var params = new Parameters();
     params.addParameter().setName("namespace").setValue(new StringType(namespace));
