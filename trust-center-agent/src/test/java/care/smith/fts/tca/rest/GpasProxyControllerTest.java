@@ -93,9 +93,7 @@ class GpasProxyControllerTest {
               assertThat(params).isNotNull();
               assertThat(params.getParameter()).hasSize(2);
 
-              params
-                  .getParameter()
-                  .forEach(p -> assertThat(p.getName()).isEqualTo("pseudonym"));
+              params.getParameter().forEach(p -> assertThat(p.getName()).isEqualTo("pseudonym"));
             })
         .verifyComplete();
   }
@@ -147,8 +145,7 @@ class GpasProxyControllerTest {
     StepVerifier.create(controller.pseudonymizeAllowCreate(requestParams))
         .assertNext(
             response ->
-                assertThat(response.getStatusCode())
-                    .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR))
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR))
         .verifyComplete();
   }
 
@@ -163,9 +160,6 @@ class GpasProxyControllerTest {
 
   private Parameters.ParametersParameterComponent findPart(
       Parameters.ParametersParameterComponent param, String name) {
-    return param.getPart().stream()
-        .filter(p -> name.equals(p.getName()))
-        .findFirst()
-        .orElse(null);
+    return param.getPart().stream().filter(p -> name.equals(p.getName())).findFirst().orElse(null);
   }
 }

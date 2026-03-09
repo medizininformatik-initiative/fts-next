@@ -10,7 +10,6 @@ import care.smith.fts.tca.services.TransportIdService;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import jakarta.validation.Valid;
-import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -65,8 +64,7 @@ public class FpTransportMappingController {
         .map(m -> m.get(seedKey));
   }
 
-  private Map<String, String> computeShiftedDates(
-      String seed, FpTransportMappingRequest request) {
+  private Map<String, String> computeShiftedDates(String seed, FpTransportMappingRequest request) {
     if (request.dateMappings().isEmpty()) {
       return Map.of();
     }

@@ -20,8 +20,8 @@ import org.yaml.snakeyaml.Yaml;
 
 /**
  * Parses a FHIR Pseudonymizer anonymization config and selectively nullifies date elements matching
- * dateshift rules. For each nullified date, generates a transport ID and adds a DATE_SHIFT extension
- * so RDA can later restore the shifted date.
+ * dateshift rules. For each nullified date, generates a transport ID and adds a DATE_SHIFT
+ * extension so RDA can later restore the shifted date.
  */
 public interface DateShiftAnonymizer {
 

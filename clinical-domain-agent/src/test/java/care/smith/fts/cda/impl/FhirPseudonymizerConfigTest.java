@@ -34,7 +34,11 @@ class FhirPseudonymizerConfigTest {
 
     var config =
         new FhirPseudonymizerConfig(
-            serviceUrl, new File("anon.yaml"), tcaConfig, Duration.ofDays(14), DateShiftPreserve.WEEKDAY);
+            serviceUrl,
+            new File("anon.yaml"),
+            tcaConfig,
+            Duration.ofDays(14),
+            DateShiftPreserve.WEEKDAY);
 
     assertThat(config.dateShiftPreserve()).isEqualTo(DateShiftPreserve.WEEKDAY);
   }

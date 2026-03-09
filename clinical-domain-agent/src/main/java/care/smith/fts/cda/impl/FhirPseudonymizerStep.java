@@ -75,11 +75,8 @@ class FhirPseudonymizerStep implements Deidentificator {
                     if (identityTIds.isEmpty() && dateMappings.isEmpty()) {
                       return Mono.empty();
                     }
-                    return consolidateViaTca(
-                            patient.identifier(), identityTIds, dateMappings)
-                        .map(
-                            transferId ->
-                                new TransportBundle(pseudonymizedBundle, transferId));
+                    return consolidateViaTca(patient.identifier(), identityTIds, dateMappings)
+                        .map(transferId -> new TransportBundle(pseudonymizedBundle, transferId));
                   });
         });
   }
@@ -116,7 +113,12 @@ class FhirPseudonymizerStep implements Deidentificator {
 
     var request =
         new FpTransportMappingRequest(
-            patientIdentifier, identityTIds, dateMappings, domains.dateShift(), maxDateShift, preserve);
+            patientIdentifier,
+            identityTIds,
+            dateMappings,
+            domains.dateShift(),
+            maxDateShift,
+            preserve);
 
     log.trace(
         "Consolidating {} identity tIDs + {} date mappings via TCA",

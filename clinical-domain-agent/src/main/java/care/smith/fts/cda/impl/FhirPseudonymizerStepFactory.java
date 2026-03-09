@@ -17,8 +17,7 @@ public class FhirPseudonymizerStepFactory
   private final WebClientFactory clientFactory;
   private final MeterRegistry meterRegistry;
 
-  public FhirPseudonymizerStepFactory(
-      WebClientFactory clientFactory, MeterRegistry meterRegistry) {
+  public FhirPseudonymizerStepFactory(WebClientFactory clientFactory, MeterRegistry meterRegistry) {
     this.clientFactory = clientFactory;
     this.meterRegistry = meterRegistry;
   }
@@ -37,8 +36,7 @@ public class FhirPseudonymizerStepFactory
     List<String> dateShiftPaths;
     try {
       dateShiftPaths =
-          DateShiftAnonymizer.parseDateShiftPaths(
-              requireNonNull(implConfig.anonymizationConfig()));
+          DateShiftAnonymizer.parseDateShiftPaths(requireNonNull(implConfig.anonymizationConfig()));
     } catch (IOException e) {
       throw new IllegalStateException("Failed to parse anonymization config", e);
     }

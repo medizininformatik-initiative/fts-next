@@ -1,13 +1,12 @@
 package care.smith.fts.tca.rest;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
+import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.tca.deidentification.GpasClient;
 import care.smith.fts.tca.services.TransportIdService;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import jakarta.validation.Valid;
-import static java.util.stream.Collectors.toMap;
-
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
@@ -131,9 +130,7 @@ public class GpasProxyController {
         .map(ParametersParameterComponent::getValue)
         .map(Base::primitiveValue)
         .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Missing required parameter '%s'".formatted(name)));
+            () -> new IllegalArgumentException("Missing required parameter '%s'".formatted(name)));
   }
 
   private List<String> extractAll(Parameters params, String name) {
