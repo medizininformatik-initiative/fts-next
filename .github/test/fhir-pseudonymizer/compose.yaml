@@ -1,0 +1,21 @@
+name: fts-fhir-pseudonymizer
+
+services:
+  fhir-pseudonymizer:
+    image: ghcr.io/miracum/fhir-pseudonymizer:v2.24.1
+    ports: [ ":8080" ]
+    networks: [ "clinical-domain", "agents" ]
+    environment:
+      PseudonymizationService: gPAS
+      gPAS__Url: https://tc-agent:8080/api/v2/cd/fp-gpas-proxy/
+      gPAS__Version: 2025.2.0
+      gPAS__Auth__Basic__Username: cd-agent
+      gPAS__Auth__Basic__Password: Aj6cloJYsTpu+op+
+      AnonymizationEngineConfigPath: /etc/anonymization.yaml
+      SSL_CERT_FILE: /etc/ssl/certs/ca.crt
+    volumes:
+    - ./anonymization.yaml:/etc/anonymization.yaml:ro
+    - ../ssl/ca.crt:/etc/ssl/certs/ca.crt:ro
+    depends_on:
+      tc-agent:
+        condition: service_healthy
