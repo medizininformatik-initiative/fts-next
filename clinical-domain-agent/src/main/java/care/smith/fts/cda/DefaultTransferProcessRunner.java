@@ -165,7 +165,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     private Flux<PatientContext<TransportBundle>> deidentify(
         Flux<ConsentedPatientBundle> dataSelection) {
       return dataSelection
-          .flatMap(this::deidentifyForPatient)
+          .flatMap(this::deidentifyForPatient, config.maxDeidentifyConcurrency)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles));
     }
 
