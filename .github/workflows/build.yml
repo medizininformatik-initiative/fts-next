@@ -380,9 +380,20 @@ jobs:
         check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
         check-pseudonymization.sh
 
+    - name: Clean RD-HDS for FHIR Pseudonymizer Test
+      run: make clean-rd-hds
+
+    - name: Run e2e for FHIR Pseudonymizer Flow
+      run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+        make transfer-all PROJECT=fp-example
+        make wait
+        make check-status RESULTS_FILE=fp-example.json
+        check-resources.sh fp-example.json "${LAST_UPDATED}"
+
     - name: Collect Agent Logs
       if: failure() || cancelled()
-      run: docker compose logs cd-agent tc-agent rd-agent
+      run: docker compose logs cd-agent tc-agent rd-agent fhir-pseudonymizer
 
     - name: Collect MOSAIC Logs
       if: failure() || cancelled()
