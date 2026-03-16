@@ -28,14 +28,14 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 /**
  * Integration tests for RdAgentFhirPseudonymizerController.
  *
- * <p>Tests the Vfps-compatible endpoint that resolves transport IDs to secure pseudonyms (sIDs).
+ * <p>Tests the MII $de-pseudonymize endpoint that resolves transport IDs to secure pseudonyms.
  */
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
 class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
 
-  private static final String VFPS_ENDPOINT = "/api/v2/rd/fhir/$create-pseudonym";
+  private static final String DE_PSEUDONYMIZE_ENDPOINT = "/api/v2/rd/fhir/$de-pseudonymize";
 
   @Autowired private RedissonClient redisClient;
   @Autowired private TransportIdService transportIdService;
@@ -44,7 +44,6 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   @BeforeEach
   void setUp(@LocalServerPort int port, @Autowired TestWebClientFactory factory) {
     rdClient = factory.webClient("https://localhost:" + port, "rd-agent");
-    // Clean up Redis before each test
     redisClient.getKeys().deleteByPattern("tid:*");
   }
 
@@ -54,21 +53,18 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   }
 
   @Test
-  void resolvePseudonyms_shouldReturnSecurePseudonym() {
-    // First, store a mapping (simulating what CDA endpoint would do)
+  void dePseudonymize_shouldReturnSecurePseudonym() {
     var tId = "test-transport-id-resolve";
     var sId = "secure-pseudonym-final";
 
     transportIdService.storeMapping(tId, sId, Duration.ofMinutes(5)).block();
 
-    // Build Vfps-format request with the tID
-    var requestParams = buildVfpsRequest("test-domain", tId);
+    var requestParams = buildMiiRequest("test-domain", tId);
 
-    // Send request to resolve
     var response =
         rdClient
             .post()
-            .uri(VFPS_ENDPOINT)
+            .uri(DE_PSEUDONYMIZE_ENDPOINT)
             .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
@@ -79,29 +75,26 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .assertNext(
             params -> {
               assertThat(params).isNotNull();
-              // Single value response has 3 flat parameters
-              assertThat(params.getParameter()).hasSize(3);
 
-              // Verify the resolved pseudonym is the sID, not the tID
-              var pseudonymValue = extractPseudonymValue(params);
-              assertThat(pseudonymValue)
+              var originalValue = extractOriginalValue(params);
+              assertThat(originalValue)
                   .isNotNull()
-                  .isEqualTo(sId) // Should be the real secure pseudonym
-                  .isNotEqualTo(tId); // NOT the transport ID
+                  .isEqualTo(sId)
+                  .isNotEqualTo(tId);
             })
         .verifyComplete();
   }
 
   @Test
-  void resolvePseudonyms_withUnknownTransportId_shouldReturnOriginal() {
+  void dePseudonymize_withUnknownTransportId_shouldReturnOriginal() {
     var unknownTId = "unknown-transport-id";
 
-    var requestParams = buildVfpsRequest("test-domain", unknownTId);
+    var requestParams = buildMiiRequest("test-domain", unknownTId);
 
     var response =
         rdClient
             .post()
-            .uri(VFPS_ENDPOINT)
+            .uri(DE_PSEUDONYMIZE_ENDPOINT)
             .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
@@ -112,22 +105,21 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .assertNext(
             params -> {
               assertThat(params).isNotNull();
-              // Unknown tID should return the tID itself (not fail)
-              var pseudonymValue = extractPseudonymValue(params);
-              assertThat(pseudonymValue).isEqualTo(unknownTId);
+              var originalValue = extractOriginalValue(params);
+              assertThat(originalValue).isEqualTo(unknownTId);
             })
         .verifyComplete();
   }
 
   @Test
-  void resolvePseudonyms_withMissingNamespace_shouldReturn400() {
+  void dePseudonymize_withMissingTarget_shouldReturn400() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("some-tid"));
+    requestParams.addParameter().setName("pseudonym").setValue(new StringType("some-tid"));
 
     var response =
         rdClient
             .post()
-            .uri(VFPS_ENDPOINT)
+            .uri(DE_PSEUDONYMIZE_ENDPOINT)
             .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
@@ -144,73 +136,24 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .verify();
   }
 
-  @Test
-  void resolvePseudonyms_multipleMappings_shouldResolveAll() {
-    // Store multiple mappings
-    var domain = "test-domain";
-    var ttl = Duration.ofMinutes(5);
-
-    transportIdService.storeMapping("tId-1", "sId-1", ttl).block();
-    transportIdService.storeMapping("tId-2", "sId-2", ttl).block();
-    transportIdService.storeMapping("tId-3", "sId-3", ttl).block();
-
-    // Build request with multiple tIDs
-    var requestParams = new Parameters();
-    requestParams.addParameter().setName("namespace").setValue(new StringType(domain));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-1"));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-2"));
-    requestParams.addParameter().setName("originalValue").setValue(new StringType("tId-3"));
-
-    var response =
-        rdClient
-            .post()
-            .uri(VFPS_ENDPOINT)
-            .header(CONTENT_TYPE, APPLICATION_FHIR_JSON)
-            .header("Accept", APPLICATION_FHIR_JSON)
-            .bodyValue(requestParams)
-            .retrieve()
-            .bodyToMono(Parameters.class);
-
-    create(response)
-        .assertNext(
-            params -> {
-              assertThat(params).isNotNull();
-              // Should have 3 nested pseudonym entries
-              var pseudonymParams =
-                  params.getParameter().stream()
-                      .filter(p -> "pseudonym".equals(p.getName()))
-                      .toList();
-              assertThat(pseudonymParams).hasSize(3);
-            })
-        .verifyComplete();
-  }
-
-  private Parameters buildVfpsRequest(String namespace, String transportId) {
+  private Parameters buildMiiRequest(String target, String pseudonym) {
     var params = new Parameters();
-    params.addParameter().setName("namespace").setValue(new StringType(namespace));
-    params.addParameter().setName("originalValue").setValue(new StringType(transportId));
+    params.addParameter().setName("target").setValue(new StringType(target));
+    params.addParameter().setName("pseudonym").setValue(new StringType(pseudonym));
     return params;
   }
 
-  private String extractPseudonymValue(Parameters params) {
+  /** Extracts the value from MII $de-pseudonymize response: original -> part[value] */
+  private String extractOriginalValue(Parameters params) {
     return params.getParameter().stream()
-        .filter(p -> "pseudonymValue".equals(p.getName()))
+        .filter(p -> "original".equals(p.getName()))
         .findFirst()
-        .map(p -> p.getValue().primitiveValue())
-        .orElseGet(
-            () ->
-                params.getParameter().stream()
-                    .filter(p -> "pseudonym".equals(p.getName()))
+        .flatMap(
+            p ->
+                p.getPart().stream()
+                    .filter(part -> "value".equals(part.getName()))
                     .findFirst()
-                    .map(this::extractPseudonymValueFromPart)
-                    .orElse(null));
-  }
-
-  private String extractPseudonymValueFromPart(Parameters.ParametersParameterComponent param) {
-    return param.getPart().stream()
-        .filter(p -> "pseudonymValue".equals(p.getName()))
-        .findFirst()
-        .map(p -> p.getValue().primitiveValue())
+                    .map(part -> part.getValue().primitiveValue()))
         .orElse(null);
   }
 }

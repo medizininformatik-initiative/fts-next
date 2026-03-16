@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
@@ -33,32 +32,30 @@ public class FpTransportMappingE2E extends AbstractTcaE2E {
   void testFpTransportMappingConsolidation() {
     var webClient = createTcaWebClient();
 
-    // Step 1: Create tID->sID in Redis via gPAS proxy
-    var proxyRequest = new Parameters();
-    proxyRequest.addParameter().setName("target").setValue(new StringType("domain"));
-    proxyRequest.addParameter().setName("original").setValue(new StringType("patient-id-1"));
+    // Step 1: Create tID->sID in Redis via MII $pseudonymize endpoint
+    var pseudonymizeRequest = new Parameters();
+    pseudonymizeRequest.addParameter().setName("target").setValue(new StringType("domain"));
+    pseudonymizeRequest.addParameter().setName("original").setValue(new StringType("patient-id-1"));
 
-    var proxyResponse =
+    var pseudonymizeResponse =
         webClient
             .post()
-            .uri("/api/v2/cd/fp-gpas-proxy/$pseudonymizeAllowCreate")
+            .uri("/api/v2/cd/fhir/$pseudonymize")
             .header("Content-Type", "application/fhir+json")
             .header("Accept", "application/fhir+json")
-            .bodyValue(proxyRequest)
+            .bodyValue(pseudonymizeRequest)
             .retrieve()
             .bodyToMono(Parameters.class)
             .block();
 
     var tId =
-        proxyResponse.getParameter().stream()
+        pseudonymizeResponse.getParameter().stream()
             .filter(p -> "pseudonym".equals(p.getName()))
-            .flatMap(p -> p.getPart().stream())
-            .filter(p -> "pseudonym".equals(p.getName()))
-            .map(p -> ((Identifier) p.getValue()).getValue())
+            .map(p -> p.getValue().primitiveValue())
             .findFirst()
             .orElseThrow();
 
-    log.info("Got transport ID from proxy: {}", tId);
+    log.info("Got transport ID from $pseudonymize: {}", tId);
 
     // Step 2: Consolidate via FP transport mapping endpoint
     var fpRequest =
