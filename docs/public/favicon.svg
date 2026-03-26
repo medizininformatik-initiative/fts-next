@@ -22,12 +22,10 @@
       fill: #116599;
       }
 
-    @media (prefers-color-scheme: dark) {
-      #light-icon {
-        display: none;
-      }
-      #dark-icon {
-        display: inline;
+      @media (prefers-color-scheme: dark) {
+        .cls-5 {
+          fill: #fff;
+        }
       }
     </style>
   </defs>
