@@ -2,20 +2,21 @@ import {withMermaid} from 'vitepress-plugin-mermaid';
 
 const shortVersion = (process.env.VITE_LATEST_RELEASE || "local").split(".")[0];
 const currentYear = new Date().getFullYear();
+const base = process.env.DOCS_BASE || "";
 
 export default withMermaid({
   title: "FTSnext",
   description: "SMITH FHIR Transfer Services",
 
-  base: process.env.DOCS_BASE || "",
+  base: base,
   lastUpdated: true,
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
-    ['link', { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
-    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' }],
-    ['link', { rel: 'manifest', href: '/site.webmanifest' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: base + '/favicon.svg' }],
+    ['link', { rel: 'icon', type: 'image/x-icon', href: base + '/favicon.ico' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: base + '/apple-touch-icon.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '96x96', href: base + '/favicon-96x96.png' }],
+    ['link', { rel: 'manifest', href: base + '/site.webmanifest' }],
   ],
 
   markdown: {
