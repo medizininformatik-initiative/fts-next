@@ -24,6 +24,7 @@ import org.redisson.api.BatchResult;
 import org.redisson.api.RBatchReactive;
 import org.redisson.api.RBucketReactive;
 import org.redisson.api.RBucketsReactive;
+import org.redisson.api.RKeysReactive;
 import org.redisson.api.RMapCacheReactive;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
@@ -39,6 +40,7 @@ class TransportIdServiceTest {
   @Mock private RBucketReactive<String> bucket;
   @Mock private RBatchReactive batch;
   @Mock private RBucketsReactive buckets;
+  @Mock private RKeysReactive keys;
 
   private TransportIdService service;
   private MeterRegistry meterRegistry;
@@ -59,6 +61,7 @@ class TransportIdServiceTest {
     lenient().when(reactiveClient.<String>getBucket(anyString())).thenReturn(bucket);
     lenient().when(reactiveClient.createBatch()).thenReturn(batch);
     lenient().when(reactiveClient.getBuckets()).thenReturn(buckets);
+    lenient().when(reactiveClient.getKeys()).thenReturn(keys);
 
     service = new TransportIdService(redisClient, config, meterRegistry, randomGenerator);
   }
@@ -172,12 +175,10 @@ class TransportIdServiceTest {
     var result = service.storeMappings(Map.of(), defaultTtl);
 
     StepVerifier.create(result).verifyComplete();
-    // No Redis interactions should occur - batch.execute() would fail if called without setup
   }
 
   @Test
   void fetchMappingsRetrievesMultipleMappings() {
-    // RBuckets.get() returns map with full keys (including prefix)
     when(buckets.<String>get(any(String[].class)))
         .thenReturn(Mono.just(Map.of("tid:tId-1", "sId-1", "tid:tId-2", "sId-2")));
 
@@ -198,12 +199,10 @@ class TransportIdServiceTest {
     var result = service.fetchMappings(Set.of());
 
     StepVerifier.create(result).expectNext(Map.of()).verifyComplete();
-    // No Redis interactions should occur - buckets.get() would fail if called without setup
   }
 
   @Test
   void fetchMappingsExcludesNotFoundMappings() {
-    // RBuckets.get() only returns keys that exist - missing keys are not in the result map
     when(buckets.<String>get(any(String[].class)))
         .thenReturn(Mono.just(Map.of("tid:tId-1", "sId-1")));
 
@@ -215,6 +214,63 @@ class TransportIdServiceTest {
               assertThat(retrieved).hasSize(1);
               assertThat(retrieved).containsEntry("tId-1", "sId-1");
             })
+        .verifyComplete();
+  }
+
+  @Test
+  void consolidateMappingsMergesIdentityAndDateShiftEntries() {
+    // fetchMappings for identity tIDs
+    when(buckets.<String>get(any(String[].class)))
+        .thenReturn(Mono.just(Map.of("tid:tId-1", "sId-1", "tid:tId-2", "sId-2")));
+
+    // storeAllMappings
+    when(mapCache.expire(any(Duration.class))).thenReturn(Mono.just(true));
+    when(mapCache.putAll(any())).thenReturn(Mono.empty());
+
+    // deleteIndividualTidKeys
+    when(keys.delete(any(String[].class))).thenReturn(Mono.just(2L));
+
+    var dateShiftEntries = Map.of("ds:dateTid-1", "2020-06-15", "ds:dateTid-2", "2020-12-25");
+
+    var result =
+        service.consolidateMappings(Set.of("tId-1", "tId-2"), dateShiftEntries, defaultTtl);
+
+    StepVerifier.create(result)
+        .assertNext(
+            transferId -> {
+              assertThat(transferId).isNotNull().hasSize(32);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void consolidateMappingsWithEmptyDateShiftEntries() {
+    when(buckets.<String>get(any(String[].class)))
+        .thenReturn(Mono.just(Map.of("tid:tId-1", "sId-1")));
+
+    when(mapCache.expire(any(Duration.class))).thenReturn(Mono.just(true));
+    when(mapCache.putAll(any())).thenReturn(Mono.empty());
+    when(keys.delete(any(String[].class))).thenReturn(Mono.just(1L));
+
+    var result = service.consolidateMappings(Set.of("tId-1"), Map.of(), defaultTtl);
+
+    StepVerifier.create(result)
+        .assertNext(transferId -> assertThat(transferId).hasSize(32))
+        .verifyComplete();
+  }
+
+  @Test
+  void consolidateMappingsWithEmptyIdentityTidsSkipsDelete() {
+    when(mapCache.expire(any(Duration.class))).thenReturn(Mono.just(true));
+    when(mapCache.putAll(any())).thenReturn(Mono.empty());
+
+    // fetchMappings with empty set returns empty map directly (no Redis call)
+    var dateShiftEntries = Map.of("ds:dateTid-1", "2020-06-15");
+
+    var result = service.consolidateMappings(Set.of(), dateShiftEntries, defaultTtl);
+
+    StepVerifier.create(result)
+        .assertNext(transferId -> assertThat(transferId).hasSize(32))
         .verifyComplete();
   }
 }
