@@ -119,6 +119,31 @@ class FhirParameterExtractorTest {
   }
 
   @Test
+  void validateValue_withValidValue_returnsValue() {
+    String result = FhirParameterExtractor.validateValue("any|chars:ok/here", "testParam");
+
+    assertThat(result).isEqualTo("any|chars:ok/here");
+  }
+
+  @Test
+  void validateValue_withTooLongValue_throwsException() {
+    String tooLong = "a".repeat(257);
+
+    assertThatThrownBy(() -> FhirParameterExtractor.validateValue(tooLong, "testParam"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'testParam' exceeds maximum length of 256");
+  }
+
+  @Test
+  void validateValue_withMaxLengthValue_returnsValue() {
+    String maxLength = "a".repeat(256);
+
+    String result = FhirParameterExtractor.validateValue(maxLength, "testParam");
+
+    assertThat(result).isEqualTo(maxLength);
+  }
+
+  @Test
   void validateIdentifier_withValidValue_returnsValue() {
     String result = FhirParameterExtractor.validateIdentifier("valid-id_123", "testParam");
 

@@ -9,8 +9,10 @@ openssl req -x509 -new -key "ca.key" -days 60 -out "ca.crt" -subj "/CN=fts.smith
 # Create server certificate
 echo "Creating server certificate..."
 openssl genpkey -quiet -algorithm Ed25519 -out "server.key" >/dev/null
-openssl req -new -key "server.key" -subj "/CN=${1:-server.example.com}/OU=Server/O=FTSnext" \
-  | openssl x509 -req -CA "ca.crt" -CAkey "ca.key" -CAcreateserial -out "server.crt" -days 30
+SERVER_CN="${1:-server.example.com}"
+openssl req -new -key "server.key" -subj "/CN=${SERVER_CN}/OU=Server/O=FTSnext" \
+  | openssl x509 -req -CA "ca.crt" -CAkey "ca.key" -CAcreateserial -out "server.crt" -days 30 \
+    -extfile <(printf "subjectAltName=DNS:%s" "$SERVER_CN")
 
 for CLIENT_CN in "${@:2}"; do
   echo "Creating '$CLIENT_CN' client certificate for CN=$CLIENT_CN..."

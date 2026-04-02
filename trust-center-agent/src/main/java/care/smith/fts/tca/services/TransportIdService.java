@@ -211,7 +211,7 @@ public class TransportIdService {
    * <p>This is the bridge between the FHIR Pseudonymizer's per-tID storage and the RDA's
    * transferId-based retrieval via /rd/secure-mapping.
    *
-   * @param identityTIds identity transport IDs from $create-pseudonym (stored as tid:tId→sId)
+   * @param identityTIds identity transport IDs from $pseudonymize (stored as tid:tId→sId)
    * @param dateShiftEntries already-prefixed ds:tId→shiftedDate entries
    * @param ttl time-to-live for the consolidated MapCache
    * @return Mono emitting the generated transferId
