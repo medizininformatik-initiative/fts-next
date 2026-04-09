@@ -4,5 +4,5 @@ RUN dnf install --installroot /mnt/rootfs curl jq --releasever 9 --setopt instal
     dnf --installroot /mnt/rootfs clean all && \
     rpm --root /mnt/rootfs -e --nodeps setup
 
-FROM quay.io/keycloak/keycloak:26.5.7@sha256:45ae20191531eb608ddb0b775d012b40d3e4f942697f3214694887dd7c108d13
+FROM quay.io/keycloak/keycloak:26.6.0@sha256:b0e5dbced1775de4d629f103c0a9cfc057decc62ce8d3cb1c54f8849a6c6eb62
 COPY --from=ubi-micro-build /mnt/rootfs /
