@@ -107,7 +107,7 @@ jobs:
           -Dproject.build.outputTimestamp="$(git log -1 --date="iso-strict-local" --format="%cd")"
 
     - name: Upload Jar
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ matrix.agent }}-jar
         path: ${{ matrix.agent }}/target/${{ matrix.agent }}.jar
@@ -115,7 +115,7 @@ jobs:
         retention-days: 7
 
     - name: Upload Maven SBOM
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ matrix.agent }}-sbom-mvn
         path: ${{ matrix.agent }}/target/sbom-mvn.json
@@ -235,7 +235,7 @@ jobs:
         scan-type: image
 
     - name: Upload Trivy SBOM
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ matrix.agent }}-sbom-trivy
         path: sbom-trivy.json
@@ -434,7 +434,7 @@ jobs:
       run: cyclonedx merge --input-files sbom-mvn.json sbom-trivy.json --output-file sbom.json
 
     - name: Upload Combined SBOM
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ matrix.agent }}-sbom
         path: sbom.json
@@ -586,7 +586,7 @@ jobs:
         echo "files=${files}" >>"${GITHUB_OUTPUT}"
 
     - name: Upload Release Archives
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: release-archives
         path: |
