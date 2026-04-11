@@ -464,7 +464,7 @@ jobs:
       uses: slsa-framework/slsa-verifier/actions/installer@ea584f4502babc6f60d9bc799dbbb13c1caa9ee6 # v2.7.1
 
     - name: Install crane
-      uses: iarekylew00t/crane-installer@65372ffaef057f1714fed388fc3df3ad2c441aef # v4.0.10
+      uses: iarekylew00t/crane-installer@ac16685e02456242238a457cf3d448a4820f4eed # v4.0.11
 
     - name: Login to GHCR
       uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
