@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9@sha256:039095faabf1edde946ff528b3b6906efa046ee129f3e33fd933280bb6936221 AS ubi-micro-build
+FROM registry.access.redhat.com/ubi9@sha256:8805abe5b8a32c826d46926c069f20e6a7f854d59d5bd75c55e68278aea65ccc AS ubi-micro-build
 RUN mkdir -p /mnt/rootfs
 RUN dnf install --installroot /mnt/rootfs curl jq --releasever 9 --setopt install_weak_deps=false --nodocs -y && \
     dnf --installroot /mnt/rootfs clean all && \
