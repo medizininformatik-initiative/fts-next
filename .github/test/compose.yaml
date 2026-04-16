@@ -75,7 +75,7 @@ services:
       MYSQL_PASSWORD: gics_password
     networks: [ "gics" ]
     healthcheck:
-      test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugics_user", "-pgics_password" ]
+      test: [ "CMD", "/usr/bin/mysql", "-h", "localhost", "-ugics_user", "-pgics_password", "gics", "-e", "SELECT ready FROM _ready LIMIT 1" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -110,7 +110,7 @@ services:
       MYSQL_PASSWORD: gpas_password
     networks: [ "gpas" ]
     healthcheck:
-      test: [ "CMD", "/usr/bin/mysqladmin", "ping", "-h", "localhost", "-ugpas_user", "-pgpas_password" ]
+      test: [ "CMD", "/usr/bin/mysql", "-h", "localhost", "-ugpas_user", "-pgpas_password", "gpas", "-e", "SELECT ready FROM _ready LIMIT 1" ]
       interval: 10s
       timeout: 5s
       retries: 3
