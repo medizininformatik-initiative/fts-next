@@ -59,11 +59,11 @@ services:
       gics-db:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/gics/gicsService?wsdl" ]
+      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/ttp-fhir/fhir/gics/metadata" ]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 120s
+      start_period: 300s
   gics-db:
     image: mysql:9.6.0@sha256:c5df04bee1a42b74a5841c6409e669cf62126cd0416f00c1cea8ab933b9361b9
     volumes:
@@ -95,11 +95,11 @@ services:
       gpas-db:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/gpas/gpasService?wsdl" ]
+      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/ttp-fhir/fhir/gpas/metadata" ]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 120s
+      start_period: 300s
   gpas-db:
     image: mysql:9.6.0@sha256:c5df04bee1a42b74a5841c6409e669cf62126cd0416f00c1cea8ab933b9361b9
     volumes:
