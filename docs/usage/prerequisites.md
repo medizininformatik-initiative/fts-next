@@ -40,6 +40,25 @@ internally by FTSnext, so one domain can serve all three purposes if desired.
 Please see [here](../details/deidentification) for further explanation on how these domains are used
 in the deidentification process.
 
+## Research Domain FHIR Store: Referential Integrity
+
+The Research Domain Agent writes de-identified bundles to a FHIR store (e.g.
+[Blaze](https://github.com/samply/blaze)). Because the agent transfers resources into the research
+domain incrementally, references between resources (e.g. an `Observation` referencing a `Patient`)
+may temporarily point to targets that have not yet been written. Additionally, de-identification
+can rewrite references such that the referential graph intentionally differs from the source.
+
+For this reason, the FHIR store used as the research domain's health data store must be configured
+to **not enforce referential integrity**. For Blaze, this means setting:
+
+```yaml
+ENFORCE_REFERENTIAL_INTEGRITY: "false"
+```
+
+See the [Blaze documentation](https://github.com/samply/blaze/blob/master/docs/deployment/environment-variables.md)
+for details. Without this setting, writes from the Research Domain Agent will fail with
+referential integrity violations.
+
 [gics]: https://www.ths-greifswald.de/forscher/gics
 
 [gpas]: https://www.ths-greifswald.de/forscher/gpas/
