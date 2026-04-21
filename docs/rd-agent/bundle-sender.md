@@ -25,6 +25,12 @@ bundleSender:
 
 This implementation sends processed bundles to a FHIR store.
 
+::: warning Referential Integrity
+The target FHIR store must be configured to not enforce referential integrity. See
+[Prerequisites](../usage/prerequisites#research-domain-fhir-store-referential-integrity) for
+details.
+:::
+
 #### `server`
 
 * **Description**: Contains settings for connecting to the RDA server.
