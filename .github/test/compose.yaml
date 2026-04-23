@@ -53,8 +53,6 @@ services:
     environment:
       TTP_GICS_DB_HOST: "gics-db"
       WF_NO_ADMIN: "true"
-      TTP_DISABLE_NOTI_CLIENT: "true"
-      TTP_DISABLE_NOTI_SERVICE: "true"
     depends_on:
       gics-db:
         condition: service_healthy
@@ -89,8 +87,6 @@ services:
     environment:
       TTP_GPAS_DB_HOST: "gpas-db"
       WF_NO_ADMIN: "true"
-      TTP_DISABLE_NOTI_CLIENT: "true"
-      TTP_DISABLE_NOTI_SERVICE: "true"
     depends_on:
       gpas-db:
         condition: service_healthy
