@@ -384,6 +384,13 @@ jobs:
       if: failure() || cancelled()
       run: docker compose logs cd-agent tc-agent rd-agent
 
+    - name: Collect MOSAIC Container State
+      if: failure() || cancelled()
+      run: |
+        docker ps -a
+        docker inspect fts-test-gics-1 --format '{{json .State}} {{.RestartCount}}'
+        docker inspect fts-test-gpas-1 --format '{{json .State}} {{.RestartCount}}'
+
     - name: Collect MOSAIC Logs
       if: failure() || cancelled()
       run: docker compose logs gics gpas
