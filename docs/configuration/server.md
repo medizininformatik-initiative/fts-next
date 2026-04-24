@@ -71,12 +71,27 @@ the client and the server by encrypting data.
     certificate files into the container. Ensure that the SSL bundle files (certificates, private
     keys, and CA certificates) are properly mounted as volumes or bind mounts to make them
     accessible to the agent within the container.
-  * Health checks in the compose configuration must be updated to use `https` instead of `http` when
-    SSL is enabled. Using wget with `--no-check-certificate` or `--ca-certificate` might be
-    necessary.
+  * Health checks in the compose configuration must be updated to use `https` instead of `http`
+    when SSL is enabled. The agent images ship with GNU `wget`, which supports TLS options such
+    as `--ca-certificate`, `--certificate`, and `--private-key`.
   * When client authentication is set to `need`, the health check must include a valid client
-    certificate (via wget `--certificate` and `--private-key`) to successfully authenticate with the
-    server. For `want` mode, client certificates are optional for health checks.
+    certificate to authenticate with the server. Mount the client certificate, private key, and
+    CA certificate into the container and pass them to `wget`, for example:
+
+    ```yaml
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - -qO-
+      - --ca-certificate=/app/ssl/ca.crt
+      - --certificate=/app/ssl/client.crt
+      - --private-key=/app/ssl/client.key
+      - https://localhost:8080/actuator/health
+    ```
+
+    For `want` mode, client certificates are optional for health checks; omit `--certificate`
+    and `--private-key` but still validate the server certificate with `--ca-certificate`.
 
 * **Reverse Proxy**:
   * When behind a reverse proxy, `forward-headers-strategy: framework` ensures correct link 

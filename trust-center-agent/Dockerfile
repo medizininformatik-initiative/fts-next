@@ -1,5 +1,9 @@
 FROM eclipse-temurin:21.0.10_7-jre-alpine@sha256:ad0cdd9782db550ca7dde6939a16fd850d04e683d37d3cff79d84a5848ba6a5a
 
+# GNU wget for mTLS-aware healthchecks; BusyBox wget lacks --certificate,
+# --private-key, and --ca-certificate.
+RUN apk add --no-cache -q wget
+
 COPY --chown=nobody:nobody target/trust-center-agent.jar /app/trust-center-agent.jar
 COPY --chown=nobody:nobody application.yaml              /app/application.yaml
 
