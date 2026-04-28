@@ -4,12 +4,26 @@ set -euo pipefail
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 export SCRIPT_DIR
 
-share="https://speicherwolke.uni-leipzig.de/index.php/s/MioAzTLMjzbPNyx"
+base_url="https://speicherwolke.uni-leipzig.de/public.php/webdav"
+share="MioAzTLMjzbPNyx"
 
 export share
 
-echo "Uploading test data files"
-curl -sSf --retry 3 "${share}/download?files=authored.json" | jq -rc "to_entries | .[0:${1:-100}] | .[].key" \
-| xargs -P8 -I{} bash -c  '${SCRIPT_DIR}/upload-consent.sh "{}"'
+requested="${1:-100}"
+echo "Fetching patient keys (requested=${requested})"
+keys=$(curl -sSLf --retry 3 -u "${share}:" "${base_url}/authored.json" \
+  | jq -rc "to_entries | .[0:${requested}] | .[].key")
 
-echo "Upload finished"
+count=$(printf '%s\n' "${keys}" | grep -c . || true)
+if [ "${count}" -eq 0 ]; then
+  >&2 echo "ERROR: no patient keys retrieved from ${base_url}/authored.json"
+  exit 1
+fi
+if [ "${count}" -lt "${requested}" ]; then
+  >&2 echo "WARN: requested ${requested} keys, got ${count}"
+fi
+
+echo "Uploading consents for ${count} patients"
+printf '%s\n' "${keys}" | xargs -P8 -I{} bash -c '${SCRIPT_DIR}/upload-consent.sh "{}"'
+
+echo "Upload finished (${count} patients)"
