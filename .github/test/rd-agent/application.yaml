@@ -6,6 +6,9 @@ spring:
     bundle:
       pem:
         tca:
+          keystore:
+            certificate: file:ssl/client-rd-agent.crt
+            private-key: file:ssl/client-rd-agent.key
           truststore:
             certificate: file:ssl/ca.crt
 

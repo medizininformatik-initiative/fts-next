@@ -9,22 +9,26 @@ spring:
           keystore:
             certificate: file:ssl/server.crt
             private-key: file:ssl/server.key
+          truststore:
+            certificate: file:ssl/ca.crt
 
 server:
   ssl:
     bundle: server
+    client-auth: want
 
 security:
   auth:
-    basic:
+    client-cert:
       users:
       - username: cd-agent
-        password: "{bcrypt}$2a$10$S7FXGqbbci2YOjBAAaeC9.KaTP8sZ2Hyi5d3aub1L..oe3L2kqv/K"
-        # password: "{noop}Aj6cloJYsTpu+op+"
         role: cd-client
       - username: rd-agent
-        password: "{bcrypt}$2a$10$m0kteW3J47snneNzGTzkzeAtGo8FfODkmPP0uLXOz8uRvkc5Lqwme"
-        # password: "{noop}1J5MhEhhiGh33dgt"
         role: rd-client
+  endpoints:
+  - path: /api/v2/cd/**
+    role: cd-client
+  - path: /api/v2/rd/**
+    role: rd-client
 
 spring.codec.max-in-memory-size: 5MB

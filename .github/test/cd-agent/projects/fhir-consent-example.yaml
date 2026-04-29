@@ -48,11 +48,6 @@ deidentificator:
       server:
         # Base URL of the Trust Center Agent server.
         baseUrl: https://tc-agent:8080
-        auth:
-          basic:
-            user: cd-agent
-            password: Aj6cloJYsTpu+op+
-            # password: "{noop}Aj6cloJYsTpu+op+"
         ssl:
           bundle: tca
       # Deidentification parameters can be store in different or in the same TCA domain

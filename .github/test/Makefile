@@ -11,7 +11,7 @@ pull:
 
 generate-certs:
 	mkdir -p ./ssl
-	(cd ./ssl && ../../../util/src/main/bash/generate-certificates.sh tc-agent tca && chmod +r *.key)
+	(cd ./ssl && ../../../util/src/main/bash/generate-certificates.sh tc-agent tca cd-agent rd-agent && chmod +r *.key)
 
 start:
 	docker compose up --wait --pull missing

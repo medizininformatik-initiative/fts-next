@@ -6,6 +6,9 @@ spring:
     bundle:
       pem:
         tca:
+          keystore:
+            certificate: file:ssl/client-cd-agent.crt
+            private-key: file:ssl/client-cd-agent.key
           truststore:
             certificate: file:ssl/ca.crt
   security:
