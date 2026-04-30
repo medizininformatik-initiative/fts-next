@@ -1,0 +1,40 @@
+logging.level:
+  care.smith.fts: DEBUG
+
+spring:
+  ssl:
+    bundle:
+      pem:
+        server:
+          keystore:
+            certificate: file:ssl/server-rd-agent.crt
+            private-key: file:ssl/server-rd-agent.key
+          truststore:
+            certificate: file:ssl/ca.crt
+        tca-mtls:
+          keystore:
+            certificate: file:ssl/client-rd-agent.crt
+            private-key: file:ssl/client-rd-agent.key
+          truststore:
+            certificate: file:ssl/ca.crt
+  codec:
+    max-in-memory-size: 5MB
+
+server:
+  ssl:
+    bundle: server
+    client-auth: need
+
+management:
+  server:
+    port: 9080
+    ssl:
+      enabled: false
+  endpoints.web.exposure.include: health
+
+security:
+  auth:
+    client-cert:
+      users:
+      - username: cd-agent
+        role: cd-agent

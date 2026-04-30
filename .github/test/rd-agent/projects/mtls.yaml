@@ -1,0 +1,15 @@
+### FTS Project Configuration — mTLS scenario
+##! https://medizininformatik-initiative.github.io/fts-next/rd-agent/project
+
+deidentificator:
+  idMapper:
+    trustCenterAgent:
+      server:
+        baseUrl: https://tc-agent:8080
+        ssl:
+          bundle: tca-mtls
+
+bundleSender:
+  fhirStore:
+    server:
+      baseUrl: http://rd-hds:8080/fhir

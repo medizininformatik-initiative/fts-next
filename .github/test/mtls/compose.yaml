@@ -1,0 +1,26 @@
+name: fts-test
+
+services:
+  cd-agent:
+    volumes:
+    - ./mtls/cd-agent/application.yaml:/app/application.yaml:ro
+
+  tc-agent:
+    volumes:
+    - ./mtls/tc-agent/application.yaml:/app/application.yaml:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:9080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  rd-agent:
+    volumes:
+    - ./mtls/rd-agent/application.yaml:/app/application.yaml:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:9080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
