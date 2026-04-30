@@ -2,14 +2,13 @@
 ##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/project
 
 cohortSelector:
-  trustCenterAgent:
+  # FHIR-backed consent on cd-hds (no gics dependency in the mtls leg).
+  # mTLS is still exercised on the three inter-agent hops:
+  # CDA→TCA (deidentification), CDA→RDA (bundle send), RDA→TCA (idMapper).
+  fhir:
     server:
-      baseUrl: https://tc-agent:8080
-      ssl:
-        bundle: tca-mtls
-    domain: MII
+      baseUrl: http://cd-hds:8080/fhir
     patientIdentifierSystem: "http://fts.smith.care"
-    signerIdType: "Pseudonym"
     policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3"
     policies:
     - 2.16.840.1.113883.3.1937.777.24.5.3.2

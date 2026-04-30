@@ -277,6 +277,7 @@ jobs:
         mvn ${MAVEN_ARGS} verify
 
   e2e-tests:
+    name: e2e-tests (${{ matrix.id }})
     needs: [ build-image ]
     runs-on: ubuntu-24.04
     defaults:
@@ -292,19 +293,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - id: slim
+        - id: basic-and-oauth2-fail
           services: cd-agent tc-agent rd-agent
           compose_files: -f compose.yaml
           needs_data: false
           mosaic_log_services: ""
           db_log_services: keystore
-        - id: gpas-only
-          services: cd-agent tc-agent rd-agent gpas
-          compose_files: -f compose.yaml
-          needs_data: true
-          mosaic_log_services: gpas
-          db_log_services: gpas-db keystore
-        - id: full
+        - id: gics-consent
           services: cd-agent tc-agent rd-agent gics gpas
           compose_files: -f compose.yaml
           needs_data: true
@@ -342,7 +337,7 @@ jobs:
       run: install-blazectl.sh
 
     - name: Prepare Auth Failing Tests
-      if: matrix.id == 'slim'
+      if: matrix.id == 'basic-and-oauth2-fail'
       uses: mikefarah/yq@751d8ad57b84f1794661bc70c0afb92a22ad7b3c # v4.53.2
       with:
         cmd: >-
@@ -382,11 +377,11 @@ jobs:
       run: make upload-test-data
 
     - name: Check Consent
-      if: matrix.id == 'full'
+      if: matrix.id == 'gics-consent'
       run: make check-consent
 
     - name: Run e2e with failing Basic Auth
-      if: matrix.id == 'slim'
+      if: matrix.id == 'basic-and-oauth2-fail'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=basic-fail
@@ -395,7 +390,7 @@ jobs:
         check-resources.sh fail-fatal.json "${LAST_UPDATED}"
 
     - name: Run e2e with failing OAuth2 Auth
-      if: matrix.id == 'slim'
+      if: matrix.id == 'basic-and-oauth2-fail'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=oauth2-fail
@@ -403,18 +398,8 @@ jobs:
         make check-status RESULTS_FILE=fail-fatal.json
         check-resources.sh fail-fatal.json "${LAST_UPDATED}"
 
-    - name: Run e2e for 10 Consented Patients with FHIR Consent
-      if: matrix.id == 'gpas-only'
-      run: |
-        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-        make transfer-with-fhir-consent-list PROJECT=fhir-consent-example TEST_SET_SIZE=10
-        make wait
-        make check-status RESULTS_FILE=example-with-fhir-consent.json
-        check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
-        check-pseudonymization.sh
-
     - name: Run e2e for all Consented Patients with gICS Consent
-      if: matrix.id == 'full'
+      if: matrix.id == 'gics-consent'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=gics-consent-example
@@ -427,19 +412,19 @@ jobs:
       if: matrix.id == 'mtls'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-        make transfer-all PROJECT=mtls-fail
+        make transfer-with-fhir-consent-list PROJECT=mtls-fail TEST_SET_SIZE=10
         make wait
-        make check-status RESULTS_FILE=fail-completed-with-errors.json
-        check-resources.sh fail-completed-with-errors.json "${LAST_UPDATED}"
+        make check-status RESULTS_FILE=fail-with-fhir-consent.json
+        check-resources.sh fail-with-fhir-consent.json "${LAST_UPDATED}"
 
     - name: Run e2e with mTLS
       if: matrix.id == 'mtls'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-        make transfer-all PROJECT=mtls
+        make transfer-with-fhir-consent-list PROJECT=mtls TEST_SET_SIZE=10
         make wait
-        make check-status RESULTS_FILE=example.json
-        check-resources.sh example.json "${LAST_UPDATED}"
+        make check-status RESULTS_FILE=example-with-fhir-consent.json
+        check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
         check-pseudonymization.sh
 
     - name: Collect Agent Logs
@@ -471,6 +456,19 @@ jobs:
       run: |
         # shellcheck disable=SC2086
         docker compose ${COMPOSE_FILES} logs keycloak
+
+  e2e-status:
+    name: e2e-status
+    needs: [ e2e-tests ]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Verify all e2e-tests legs succeeded
+      env:
+        E2E_RESULT: ${{ needs.e2e-tests.result }}
+      run: |
+        echo "e2e-tests result: ${E2E_RESULT}"
+        [ "${E2E_RESULT}" = "success" ] || exit 1
 
   combine-sboms:
     needs: [ build-jar, scan-image ]
