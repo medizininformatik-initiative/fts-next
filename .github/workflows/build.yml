@@ -310,13 +310,7 @@ jobs:
           needs_data: true
           mosaic_log_services: gics gpas
           db_log_services: gics-db gpas-db keystore
-        - id: mtls-slim
-          services: cd-agent tc-agent rd-agent
-          compose_files: -f compose.yaml -f mtls/compose.yaml
-          needs_data: false
-          mosaic_log_services: ""
-          db_log_services: keystore
-        - id: mtls-gpas
+        - id: mtls
           services: cd-agent tc-agent rd-agent gpas
           compose_files: -f compose.yaml -f mtls/compose.yaml
           needs_data: true
@@ -430,7 +424,7 @@ jobs:
         check-pseudonymization.sh
 
     - name: Run e2e with failing mTLS
-      if: matrix.id == 'mtls-slim'
+      if: matrix.id == 'mtls'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=mtls-fail
@@ -439,7 +433,7 @@ jobs:
         check-resources.sh fail-completed-with-errors.json "${LAST_UPDATED}"
 
     - name: Run e2e with mTLS
-      if: matrix.id == 'mtls-gpas'
+      if: matrix.id == 'mtls'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=mtls
