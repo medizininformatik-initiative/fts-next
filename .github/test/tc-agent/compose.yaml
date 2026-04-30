@@ -17,10 +17,6 @@ services:
     depends_on:
       keystore:
         condition: service_healthy
-      gics:                                                                                # CI_ONLY
-        condition: service_healthy                                                         # CI_ONLY
-      gpas:                                                                                # CI_ONLY
-        condition: service_healthy                                                         # CI_ONLY
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "--no-check-certificate", "https://localhost:8080/actuator/health" ]
       interval: 10s

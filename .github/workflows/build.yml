@@ -284,6 +284,44 @@ jobs:
         working-directory: .github/test
     env:
       TEST_SET_SIZE: 100
+      COMPOSE_FILES: ${{ matrix.compose_files }}
+      SERVICES: ${{ matrix.services }}
+      MOSAIC_LOG_SERVICES: ${{ matrix.mosaic_log_services }}
+      DB_LOG_SERVICES: ${{ matrix.db_log_services }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - id: slim
+          services: cd-agent tc-agent rd-agent
+          compose_files: -f compose.yaml
+          needs_data: false
+          mosaic_log_services: ""
+          db_log_services: keystore
+        - id: gpas-only
+          services: cd-agent tc-agent rd-agent gpas
+          compose_files: -f compose.yaml
+          needs_data: true
+          mosaic_log_services: gpas
+          db_log_services: gpas-db keystore
+        - id: full
+          services: cd-agent tc-agent rd-agent gics gpas
+          compose_files: -f compose.yaml
+          needs_data: true
+          mosaic_log_services: gics gpas
+          db_log_services: gics-db gpas-db keystore
+        - id: mtls-slim
+          services: cd-agent tc-agent rd-agent
+          compose_files: -f compose.yaml -f mtls/compose.yaml
+          needs_data: false
+          mosaic_log_services: ""
+          db_log_services: keystore
+        - id: mtls-gpas
+          services: cd-agent tc-agent rd-agent gpas
+          compose_files: -f compose.yaml -f mtls/compose.yaml
+          needs_data: true
+          mosaic_log_services: gpas
+          db_log_services: gpas-db keystore
 
     steps:
     - name: Harden Runner
@@ -301,6 +339,7 @@ jobs:
       run: echo "${GITHUB_WORKSPACE}/.github/scripts" >>"${GITHUB_PATH}"
 
     - name: Install Blazectl
+      if: matrix.needs_data
       env:
         # renovate: datasource=github-release-attachments depName=samply/blazectl
         BLAZECTL_VERSION: v1.4.0
@@ -309,21 +348,23 @@ jobs:
       run: install-blazectl.sh
 
     - name: Prepare Auth Failing Tests
+      if: matrix.id == 'slim'
       uses: mikefarah/yq@751d8ad57b84f1794661bc70c0afb92a22ad7b3c # v4.53.2
       with:
         cmd: >-
           cd .github/test/cd-agent/projects &&
           yq '.cohortSelector.trustCenterAgent.server.auth.basic.password = "wrong-password"' gics-consent-example.yaml >basic-fail.yaml &&
-          yq 'del(.bundleSender.researchDomainAgent.server.auth)' gics-consent-example.yaml >oauth2-fail.yaml
+          yq '.cohortSelector.trustCenterAgent.server.auth = {"oauth2": {"registration": "broken-oauth2"}}' gics-consent-example.yaml >oauth2-fail.yaml
 
     - name: Start Test Environment
       run: make generate-certs start
 
     - name: Download Test Data Checksums
-      run: |
-        make download-test-data-checksums
+      if: matrix.needs_data
+      run: make download-test-data-checksums
 
     - name: Cache Test Data
+      if: matrix.needs_data
       id: cache-test-data
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
@@ -331,49 +372,27 @@ jobs:
         key: test-data:${{ env.TEST_SET_SIZE }}@${{ hashFiles('.github/test/test-data/**/checksums.*') }}
 
     - name: Check Test Data
+      if: matrix.needs_data
       id: check-test-data
       continue-on-error: true
       run: make check-test-data
 
     - name: Download Test Data
-      if: steps.cache-test-data.outputs.cache-hit != 'true'
-        || steps.check-test-data.outcome != 'success'
+      if: matrix.needs_data
+        && (steps.cache-test-data.outputs.cache-hit != 'true'
+            || steps.check-test-data.outcome != 'success')
       run: make download-test-data
 
     - name: Upload Test Data
+      if: matrix.needs_data
       run: make upload-test-data
 
     - name: Check Consent
+      if: matrix.id == 'full'
       run: make check-consent
 
-    - name: Start Agents with mTLS Profile
-      run: |
-        docker compose -f compose.yaml -f mtls/compose.yaml up \
-          --wait --force-recreate --no-deps cd-agent tc-agent rd-agent
-
-    - name: Run e2e with failing mTLS
-      run: |
-        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-        make transfer-all PROJECT=mtls-fail
-        make wait
-        make check-status RESULTS_FILE=fail-completed-with-errors.json
-        check-resources.sh fail-completed-with-errors.json "${LAST_UPDATED}"
-
-    - name: Run e2e with mTLS
-      run: |
-        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-        make transfer-all PROJECT=mtls
-        make wait
-        make check-status RESULTS_FILE=example.json
-        check-resources.sh example.json "${LAST_UPDATED}"
-        check-pseudonymization.sh
-
-    - name: Restart Agents in Default Mode
-      run: |
-        docker compose up --wait --force-recreate --no-deps cd-agent tc-agent rd-agent
-        make clean-rd-hds-and-gpas-db
-
     - name: Run e2e with failing Basic Auth
+      if: matrix.id == 'slim'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=basic-fail
@@ -382,14 +401,26 @@ jobs:
         check-resources.sh fail-fatal.json "${LAST_UPDATED}"
 
     - name: Run e2e with failing OAuth2 Auth
+      if: matrix.id == 'slim'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=oauth2-fail
         make wait
-        make check-status RESULTS_FILE=fail-completed-with-errors.json
-        check-resources.sh fail-completed-with-errors.json "${LAST_UPDATED}"
+        make check-status RESULTS_FILE=fail-fatal.json
+        check-resources.sh fail-fatal.json "${LAST_UPDATED}"
+
+    - name: Run e2e for 10 Consented Patients with FHIR Consent
+      if: matrix.id == 'gpas-only'
+      run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+        make transfer-with-fhir-consent-list PROJECT=fhir-consent-example TEST_SET_SIZE=10
+        make wait
+        make check-status RESULTS_FILE=example-with-fhir-consent.json
+        check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
+        check-pseudonymization.sh
 
     - name: Run e2e for all Consented Patients with gICS Consent
+      if: matrix.id == 'full'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=gics-consent-example
@@ -398,34 +429,54 @@ jobs:
         check-resources.sh example.json "${LAST_UPDATED}"
         check-pseudonymization.sh
 
-    - name: Run e2e for 10 Consented Patients with FHIR Consent
+    - name: Run e2e with failing mTLS
+      if: matrix.id == 'mtls-slim'
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-        make transfer-with-fhir-consent-list PROJECT=fhir-consent-example TEST_SET_SIZE=10 
+        make transfer-all PROJECT=mtls-fail
         make wait
-        make check-status RESULTS_FILE=example-with-fhir-consent.json
-        check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
+        make check-status RESULTS_FILE=fail-completed-with-errors.json
+        check-resources.sh fail-completed-with-errors.json "${LAST_UPDATED}"
+
+    - name: Run e2e with mTLS
+      if: matrix.id == 'mtls-gpas'
+      run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+        make transfer-all PROJECT=mtls
+        make wait
+        make check-status RESULTS_FILE=example.json
+        check-resources.sh example.json "${LAST_UPDATED}"
         check-pseudonymization.sh
 
     - name: Collect Agent Logs
       if: failure() || cancelled()
-      run: docker compose logs cd-agent tc-agent rd-agent
+      run: |
+        # shellcheck disable=SC2086
+        docker compose ${COMPOSE_FILES} logs cd-agent tc-agent rd-agent
 
     - name: Collect MOSAIC Logs
-      if: failure() || cancelled()
-      run: docker compose logs gics gpas
+      if: (failure() || cancelled()) && matrix.mosaic_log_services != ''
+      run: |
+        # shellcheck disable=SC2086
+        docker compose ${COMPOSE_FILES} logs ${MOSAIC_LOG_SERVICES}
 
     - name: Collect HDS Logs
       if: failure() || cancelled()
-      run: docker compose logs cd-hds rd-hds
+      run: |
+        # shellcheck disable=SC2086
+        docker compose ${COMPOSE_FILES} logs cd-hds rd-hds
 
     - name: Collect DB Logs
       if: failure() || cancelled()
-      run: docker compose logs gics-db gpas-db keystore
+      run: |
+        # shellcheck disable=SC2086
+        docker compose ${COMPOSE_FILES} logs ${DB_LOG_SERVICES}
 
     - name: Collect OAuth2 Server Logs
       if: failure() || cancelled()
-      run: docker compose logs keycloak
+      run: |
+        # shellcheck disable=SC2086
+        docker compose ${COMPOSE_FILES} logs keycloak
 
   combine-sboms:
     needs: [ build-jar, scan-image ]
