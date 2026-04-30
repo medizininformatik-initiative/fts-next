@@ -1,0 +1,49 @@
+### FTS Project Configuration — mTLS negative scenario
+##! Cohort and deidentification succeed; bundle send to RDA fails because
+##! the client SSL bundle has no keystore (no client cert) — TCA's `need`
+##! requires it. Mirrors oauth2-fail semantics: 118 patients skipped.
+
+cohortSelector:
+  trustCenterAgent:
+    server:
+      baseUrl: https://tc-agent:8080
+      ssl:
+        bundle: tca-mtls
+    domain: MII
+    patientIdentifierSystem: "http://fts.smith.care"
+    signerIdType: "Pseudonym"
+    policySystem: "urn:oid:2.16.840.1.113883.3.1937.777.24.5.3"
+    policies:
+    - 2.16.840.1.113883.3.1937.777.24.5.3.2
+    - 2.16.840.1.113883.3.1937.777.24.5.3.3
+    - 2.16.840.1.113883.3.1937.777.24.5.3.6
+    - 2.16.840.1.113883.3.1937.777.24.5.3.7
+
+dataSelector:
+  everything:
+    fhirServer:
+      baseUrl: http://cd-hds:8080/fhir
+    pageSize: 500
+
+deidentificator:
+  deidentifhir:
+    trustCenterAgent:
+      server:
+        baseUrl: https://tc-agent:8080
+        ssl:
+          bundle: tca-mtls
+      domains:
+        pseudonym: MII
+        salt: MII
+        dateShift: MII
+    maxDateShift: P14D
+    dateShiftPreserve: NONE
+    deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
+
+bundleSender:
+  researchDomainAgent:
+    server:
+      baseUrl: https://rd-agent:8080
+      ssl:
+        bundle: rda-mtls-bad
+    project: mtls

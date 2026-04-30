@@ -11,7 +11,12 @@ pull:
 
 generate-certs:
 	mkdir -p ./ssl
-	(cd ./ssl && ../../../util/src/main/bash/generate-certificates.sh tc-agent tca && chmod +r *.key)
+	(cd ./ssl && ../../../util/src/main/bash/generate-certificates.sh tc-agent tca cd-agent rd-agent && chmod +r *.key)
+	(cd ./ssl && \
+	  openssl genpkey -quiet -algorithm Ed25519 -out server-rd-agent.key && \
+	  openssl req -new -key server-rd-agent.key -subj "/CN=rd-agent/OU=Server/O=FTSnext" \
+	  | openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -out server-rd-agent.crt -days 30 && \
+	  chmod +r server-rd-agent.key)
 
 start:
 	docker compose up --wait --pull missing

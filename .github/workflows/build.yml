@@ -346,21 +346,48 @@ jobs:
     - name: Check Consent
       run: make check-consent
 
+    - name: Start Agents with mTLS Profile
+      run: |
+        docker compose -f compose.yaml -f mtls/compose.yaml up \
+          --wait --force-recreate --no-deps cd-agent tc-agent rd-agent
+
+    - name: Run e2e with failing mTLS
+      run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+        make transfer-all PROJECT=mtls-fail
+        make wait
+        make check-status RESULTS_FILE=fail-completed-with-errors.json
+        check-resources.sh fail-completed-with-errors.json "${LAST_UPDATED}"
+
+    - name: Run e2e with mTLS
+      run: |
+        LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+        make transfer-all PROJECT=mtls
+        make wait
+        make check-status RESULTS_FILE=example.json
+        check-resources.sh example.json "${LAST_UPDATED}"
+        check-pseudonymization.sh
+
+    - name: Restart Agents in Default Mode
+      run: |
+        docker compose up --wait --force-recreate --no-deps cd-agent tc-agent rd-agent
+        make clean-rd-hds-and-gpas-db
+
     - name: Run e2e with failing Basic Auth
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=basic-fail
         make wait
-        make check-status RESULTS_FILE=basic-fail.json
-        check-resources.sh basic-fail.json "${LAST_UPDATED}"
+        make check-status RESULTS_FILE=fail-fatal.json
+        check-resources.sh fail-fatal.json "${LAST_UPDATED}"
 
     - name: Run e2e with failing OAuth2 Auth
       run: |
         LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
         make transfer-all PROJECT=oauth2-fail
         make wait
-        make check-status RESULTS_FILE=oauth2-fail.json
-        check-resources.sh oauth2-fail.json "${LAST_UPDATED}"
+        make check-status RESULTS_FILE=fail-completed-with-errors.json
+        check-resources.sh fail-completed-with-errors.json "${LAST_UPDATED}"
 
     - name: Run e2e for all Consented Patients with gICS Consent
       run: |
