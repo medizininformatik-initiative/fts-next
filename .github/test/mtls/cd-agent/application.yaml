@@ -11,6 +11,9 @@ spring:
             private-key: file:ssl/client-cd-agent.key
           truststore:
             certificate: file:ssl/ca.crt
+        tca-mtls-bad:
+          truststore:
+            certificate: file:ssl/ca.crt
         rda-mtls:
           keystore:
             certificate: file:ssl/client-cd-agent.crt

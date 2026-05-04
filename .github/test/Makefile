@@ -6,8 +6,11 @@
 
 all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources check-pseudonymization show-hds clean-dbs
 
+COMPOSE_FILES?=-f compose.yaml
+SERVICES?=
+
 pull:
-	docker compose pull -q --ignore-pull-failures
+	docker compose ${COMPOSE_FILES} pull -q --ignore-pull-failures ${SERVICES}
 
 generate-certs:
 	mkdir -p ./ssl
@@ -19,7 +22,7 @@ generate-certs:
 	  chmod +r server-rd-agent.key)
 
 start:
-	docker compose up --wait --pull missing
+	docker compose ${COMPOSE_FILES} up --wait --pull missing ${SERVICES}
 
 download-test-data-checksums:
 	../scripts/download-test-data-checksums.sh MioAzTLMjzbPNyx
@@ -76,16 +79,16 @@ show-hds:
 	../scripts/show-hds.sh
 
 clean-dbs:
-	docker compose down cd-hds rd-hds gics-db gpas-db
-	docker compose up --wait cd-hds rd-hds gics-db gpas-db
+	docker compose ${COMPOSE_FILES} down cd-hds rd-hds gics-db gpas-db
+	docker compose ${COMPOSE_FILES} up --wait cd-hds rd-hds gics-db gpas-db
 
 clean-rd-hds:
-	docker compose down rd-hds
-	docker compose up --wait rd-hds
+	docker compose ${COMPOSE_FILES} down rd-hds
+	docker compose ${COMPOSE_FILES} up --wait rd-hds
 
 clean-rd-hds-and-gpas-db:
-	docker compose down rd-hds gpas-db
-	docker compose up --wait rd-hds gpas-db
+	docker compose ${COMPOSE_FILES} down rd-hds gpas-db
+	docker compose ${COMPOSE_FILES} up --wait rd-hds gpas-db
 
 openapi-specs:
 	../scripts/openapi-specs.sh ${AGENT}
