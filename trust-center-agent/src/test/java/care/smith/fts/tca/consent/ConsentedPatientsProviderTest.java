@@ -1,6 +1,6 @@
 package care.smith.fts.tca.consent;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import org.junit.jupiter.api.Test;
