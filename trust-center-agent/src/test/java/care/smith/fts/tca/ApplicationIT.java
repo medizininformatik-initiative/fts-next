@@ -5,6 +5,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.test.TestWebClientFactory;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,5 +35,6 @@ public class ApplicationIT extends BaseIT {
     create(response).expectNextMatches(health -> health.status().equals("UP")).verifyComplete();
   }
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   record Health(String status) {}
 }

@@ -17,7 +17,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT;
 
 import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.error.fhir.NoFhirServerException;
@@ -161,8 +161,8 @@ public abstract class AbstractFhirClientIT<T, R, S> {
     setupErrorResponse(
         fhirResourceToString(new OperationOutcome()),
         "Missing or incorrect patient attributes",
-        UNPROCESSABLE_ENTITY,
-        UNPROCESSABLE_ENTITY);
+        UNPROCESSABLE_CONTENT,
+        UNPROCESSABLE_CONTENT);
   }
 
   /** */

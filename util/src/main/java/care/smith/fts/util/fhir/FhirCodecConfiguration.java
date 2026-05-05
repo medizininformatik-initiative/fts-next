@@ -1,7 +1,7 @@
 package care.smith.fts.util.fhir;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
+import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;

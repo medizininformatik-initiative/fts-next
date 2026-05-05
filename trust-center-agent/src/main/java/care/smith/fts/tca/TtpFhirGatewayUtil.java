@@ -7,7 +7,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT;
 import static reactor.core.Exceptions.isRetryExhausted;
 
 import care.smith.fts.util.error.fhir.FhirException;
@@ -92,8 +92,8 @@ public interface TtpFhirGatewayUtil {
           new FhirException(
               SERVICE_UNAVAILABLE, "Invalid %s FHIR gateway configuration".formatted(toolName));
       case NOT_FOUND -> new FhirUnknownDomainException("%s domain not found".formatted(toolName));
-      case UNPROCESSABLE_ENTITY ->
-          new FhirException(UNPROCESSABLE_ENTITY, "Missing or incorrect patient attributes");
+      case UNPROCESSABLE_CONTENT ->
+          new FhirException(UNPROCESSABLE_CONTENT, "Missing or incorrect patient attributes");
       default -> new FhirException(INTERNAL_SERVER_ERROR, "Unknown Error. This should not happen");
     };
   }

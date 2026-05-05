@@ -9,7 +9,7 @@ import care.smith.fts.util.auth.HttpClientCookieTokenAuth;
 import care.smith.fts.util.auth.HttpClientOAuth2Auth;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
+import org.springframework.boot.webclient.autoconfigure.WebClientSsl;
 import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;

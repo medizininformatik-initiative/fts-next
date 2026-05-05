@@ -4,7 +4,7 @@ import static java.time.Duration.ofSeconds;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
-import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
+import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.JdkClientHttpConnector;
 import org.springframework.http.codec.ClientCodecConfigurer;
