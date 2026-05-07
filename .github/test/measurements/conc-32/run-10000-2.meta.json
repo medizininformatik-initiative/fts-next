@@ -1,0 +1,22 @@
+{
+  "size": 10000,
+  "runIndex": 2,
+  "project": "gics-consent-example",
+  "started": "2026-05-06T13:49:32Z",
+  "ended": "2026-05-06T14:23:14Z",
+  "durationSeconds": 2022,
+  "phase": "COMPLETED",
+  "intervalSeconds": 2,
+  "concurrency": 1,
+  "processStatus": {
+    "processId": "LvSRKJ",
+    "phase": "COMPLETED",
+    "createdAt": "2026-05-06T13:49:32.214737066",
+    "finishedAt": "2026-05-06T14:23:09.387889958",
+    "totalPatients": 10000,
+    "totalBundles": 10885,
+    "deidentifiedBundles": 10625,
+    "sentBundles": 10625,
+    "skippedBundles": 0
+  }
+}

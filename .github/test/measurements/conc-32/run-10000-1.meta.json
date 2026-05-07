@@ -1,0 +1,22 @@
+{
+  "size": 10000,
+  "runIndex": 1,
+  "project": "gics-consent-example",
+  "started": "2026-05-06T13:14:37Z",
+  "ended": "2026-05-06T13:48:21Z",
+  "durationSeconds": 2024,
+  "phase": "COMPLETED",
+  "intervalSeconds": 2,
+  "concurrency": 1,
+  "processStatus": {
+    "processId": "cHvLEx",
+    "phase": "COMPLETED",
+    "createdAt": "2026-05-06T13:14:37.777205871",
+    "finishedAt": "2026-05-06T13:48:17.549642047",
+    "totalPatients": 10000,
+    "totalBundles": 10885,
+    "deidentifiedBundles": 10625,
+    "sentBundles": 10625,
+    "skippedBundles": 0
+  }
+}
