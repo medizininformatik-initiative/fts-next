@@ -168,7 +168,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       // Increment counter first so a concurrent reader never observes more queued
       // failures than skippedBundles reports.
       status.updateAndGet(TransferProcessStatus::incSkippedBundles);
-      failedPatients.offer(new PatientError(patientId, step, e.getMessage()));
+      failedPatients.add(new PatientError(patientId, step, e.getMessage()));
       return Mono.empty();
     }
 
