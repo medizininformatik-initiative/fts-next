@@ -81,7 +81,7 @@ services:
       retries: 3
       start_period: 120s
   gpas:
-    image: mosaicgreifswald/gpas:2025.2.0@sha256:e61946ae994e658ecdeb5dfc86b4102d248e22cfdde10b6c6e6dfefeb654739c
+    image: mosaicgreifswald/gpas:2025.2.1@sha256:7c371a43b19e761d079e64d50c46f1b886324836e1a6c8fd5dc727ec1ddf7aab
     ports: [ ":8080" ]
     networks: [ "gpas", "trust-center" ]
     restart: on-failure:3
