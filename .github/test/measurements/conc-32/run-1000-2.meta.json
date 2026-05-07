@@ -1,0 +1,22 @@
+{
+  "size": 1000,
+  "runIndex": 2,
+  "project": "gics-consent-example",
+  "started": "2026-05-06T12:56:59Z",
+  "ended": "2026-05-06T13:00:41Z",
+  "durationSeconds": 222,
+  "phase": "COMPLETED",
+  "intervalSeconds": 2,
+  "concurrency": 1,
+  "processStatus": {
+    "processId": "VYgZQl",
+    "phase": "COMPLETED",
+    "createdAt": "2026-05-06T12:57:00.119942203",
+    "finishedAt": "2026-05-06T13:00:39.760730761",
+    "totalPatients": 1000,
+    "totalBundles": 1104,
+    "deidentifiedBundles": 1076,
+    "sentBundles": 1076,
+    "skippedBundles": 0
+  }
+}

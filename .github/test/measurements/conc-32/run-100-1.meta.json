@@ -1,0 +1,22 @@
+{
+  "size": 100,
+  "runIndex": 1,
+  "project": "gics-consent-example",
+  "started": "2026-05-06T12:45:28Z",
+  "ended": "2026-05-06T12:46:14Z",
+  "durationSeconds": 46,
+  "phase": "COMPLETED",
+  "intervalSeconds": 2,
+  "concurrency": 1,
+  "processStatus": {
+    "processId": "bRnAPj",
+    "phase": "COMPLETED",
+    "createdAt": "2026-05-06T12:45:28.504558434",
+    "finishedAt": "2026-05-06T12:46:11.232608061",
+    "totalPatients": 100,
+    "totalBundles": 119,
+    "deidentifiedBundles": 118,
+    "sentBundles": 118,
+    "skippedBundles": 0
+  }
+}
