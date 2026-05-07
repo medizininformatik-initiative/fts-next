@@ -2,7 +2,7 @@
 	transfer-all transfer-list transfer-with-fhir-consent-list wait  \
 	check-status check-resources check-pseudonymization show-status show-hds clean-dbs clean-rd-hds \
 	download-test-data download-test-data-checksums check-test-data \
-	openapi-specs list-projects show-project
+	openapi-specs list-projects show-project measure-e2e
 
 all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources check-pseudonymization show-hds clean-dbs
 
@@ -92,3 +92,11 @@ clean-rd-hds-and-gpas-db:
 
 openapi-specs:
 	../scripts/openapi-specs.sh ${AGENT}
+
+# Sweep gICS-consent E2E across SIZES (default "100 1000 10000") and capture
+# per-container resource samples. Stack must already be up (run `make start`).
+# Override knobs: SIZES, OUT_DIR, INTERVAL, PROJECT, SHARE.
+measure-e2e:
+	SIZES="$(SIZES)" OUT_DIR="$(OUT_DIR)" INTERVAL="$(INTERVAL)" \
+	PROJECT="$(PROJECT)" SHARE="$(SHARE)" \
+	../scripts/measure-e2e.sh
