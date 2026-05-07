@@ -12,9 +12,10 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.cda.TransferProcessConfig;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
+import care.smith.fts.cda.TransferProcessRunner.PatientError;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
+import care.smith.fts.cda.TransferProcessRunner.Step;
 import care.smith.fts.cda.TransferProcessStatus;
-import care.smith.fts.cda.TransferProcessStatus.Step;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -175,12 +176,12 @@ class TransferProcessControllerTest {
   @Test
   void failedPatientsReturnsErrors() {
     var processId = "failed-123456";
-    var result =
-        TransferProcessStatus.create(processId)
-            .addFailedPatient("patient-001", Step.SELECT_DATA, "Connection refused")
-            .addFailedPatient("patient-042", Step.DEIDENTIFY, "Cannot deidentify bundle");
+    var errors =
+        List.of(
+            new PatientError("patient-001", Step.SELECT_DATA, "Connection refused"),
+            new PatientError("patient-042", Step.DEIDENTIFY, "Cannot deidentify bundle"));
 
-    when(mockRunner.status(processId)).thenReturn(Mono.just(result));
+    when(mockRunner.failedPatients(processId)).thenReturn(Mono.just(errors));
 
     create(api.failedPatients(processId))
         .assertNext(
@@ -197,7 +198,7 @@ class TransferProcessControllerTest {
 
   @Test
   void failedPatientsWithUnknownProcessIdReturns404() {
-    when(mockRunner.status(Mockito.anyString()))
+    when(mockRunner.failedPatients(Mockito.anyString()))
         .thenReturn(Mono.error(new IllegalStateException("No transfer process with processId: ")));
 
     create(api.failedPatients("unknown"))

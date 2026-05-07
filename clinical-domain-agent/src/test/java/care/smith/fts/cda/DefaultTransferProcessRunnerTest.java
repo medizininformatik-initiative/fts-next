@@ -13,7 +13,7 @@ import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
-import care.smith.fts.cda.TransferProcessStatus.Step;
+import care.smith.fts.cda.TransferProcessRunner.Step;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -298,11 +299,15 @@ class DefaultTransferProcessRunnerTest {
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
               assertThat(r.sentBundles()).isEqualTo(2);
-              assertThat(r.failedPatients()).hasSize(1);
-              assertThat(r.failedPatients().getFirst().patientId()).isEqualTo(PATIENT_IDENTIFIER_2);
-              assertThat(r.failedPatients().getFirst().step()).isEqualTo(Step.SELECT_DATA);
-              assertThat(r.failedPatients().getFirst().errorMessage())
-                  .isEqualTo("Cannot select data");
+            })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(
+            errors -> {
+              assertThat(errors).hasSize(1);
+              assertThat(errors.getFirst().patientId()).isEqualTo(PATIENT_IDENTIFIER_2);
+              assertThat(errors.getFirst().step()).isEqualTo(Step.SELECT_DATA);
+              assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot select data");
             })
         .verifyComplete();
   }
@@ -326,10 +331,14 @@ class DefaultTransferProcessRunnerTest {
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
               assertThat(r.sentBundles()).isEqualTo(2);
-              assertThat(r.failedPatients()).hasSize(1);
-              assertThat(r.failedPatients().getFirst().step()).isEqualTo(Step.DEIDENTIFY);
-              assertThat(r.failedPatients().getFirst().errorMessage())
-                  .isEqualTo("Cannot deidentify bundle");
+            })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(
+            errors -> {
+              assertThat(errors).hasSize(1);
+              assertThat(errors.getFirst().step()).isEqualTo(Step.DEIDENTIFY);
+              assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot deidentify bundle");
             })
         .verifyComplete();
   }
@@ -353,10 +362,14 @@ class DefaultTransferProcessRunnerTest {
             r -> {
               assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
               assertThat(r.sentBundles()).isEqualTo(2);
-              assertThat(r.failedPatients()).hasSize(1);
-              assertThat(r.failedPatients().getFirst().step()).isEqualTo(Step.SEND_BUNDLE);
-              assertThat(r.failedPatients().getFirst().errorMessage())
-                  .isEqualTo("Cannot send bundle");
+            })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(
+            errors -> {
+              assertThat(errors).hasSize(1);
+              assertThat(errors.getFirst().step()).isEqualTo(Step.SEND_BUNDLE);
+              assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot send bundle");
             })
         .verifyComplete();
   }
@@ -374,10 +387,70 @@ class DefaultTransferProcessRunnerTest {
 
     var processId = runner.start(process, List.of());
     create(runner.status(processId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED))
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(errors -> assertThat(errors).isEmpty())
+        .verifyComplete();
+  }
+
+  @Test
+  void failedPatientsForUnknownProcessIdErrors() {
+    create(runner.failedPatients("unknown"))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalStateException
+                    && e.getMessage().contains("No transfer process with processId"))
+        .verify();
+  }
+
+  @Test
+  void failedPatientsForQueuedProcessIsEmpty() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b ->
+                just(new TransportBundle(new Bundle(), "transferId"))
+                    .delayElement(Duration.ofMillis(100)),
+            b -> just(new Result()));
+
+    runner.start(process, List.of());
+    runner.start(process, List.of());
+    var queuedId = runner.start(process, List.of());
+
+    create(runner.failedPatients(queuedId))
+        .assertNext(errors -> assertThat(errors).isEmpty())
+        .verifyComplete();
+  }
+
+  @Test
+  void manyFailuresAreAllRecorded() {
+    int n = 5_000;
+    var patients =
+        IntStream.range(0, n)
+            .mapToObj(i -> new ConsentedPatient("patient-" + i, "system"))
+            .toList();
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(patients),
+            p -> Flux.error(new RuntimeException("Cannot select data")),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.failedPatients(processId))
         .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
-              assertThat(r.failedPatients()).isEmpty();
+            errors -> {
+              assertThat(errors).hasSize(n);
+              assertThat(errors).allMatch(e -> e.step() == Step.SELECT_DATA);
+              assertThat(errors).allMatch(e -> "Cannot select data".equals(e.errorMessage()));
             })
         .verifyComplete();
   }
