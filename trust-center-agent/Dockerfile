@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.10_7-jre-alpine@sha256:ad0cdd9782db550ca7dde6939a16fd850d04e683d37d3cff79d84a5848ba6a5a
+FROM eclipse-temurin:21.0.11_10-jre-alpine@sha256:704db3c40204a44f471191446ddd9cda5d60dab40f0e15c6507b815ed897238b
 
 # GNU wget for mTLS-aware healthchecks; BusyBox wget lacks --certificate,
 # --private-key, and --ca-certificate.
