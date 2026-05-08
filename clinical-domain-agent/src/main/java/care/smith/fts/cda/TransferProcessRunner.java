@@ -11,6 +11,8 @@ public interface TransferProcessRunner {
 
   Mono<TransferProcessStatus> status(String processId);
 
+  Mono<List<PatientError>> failedPatients(String processId);
+
   enum Phase {
     QUEUED,
     RUNNING,
@@ -18,4 +20,23 @@ public interface TransferProcessRunner {
     COMPLETED_WITH_ERROR,
     FATAL
   }
+
+  enum Step {
+    SELECT_DATA("select data"),
+    DEIDENTIFY("deidentify bundle"),
+    SEND_BUNDLE("send bundle");
+
+    private final String displayName;
+
+    Step(String displayName) {
+      this.displayName = displayName;
+    }
+
+    @Override
+    public String toString() {
+      return displayName;
+    }
+  }
+
+  record PatientError(String patientId, Step step, String errorMessage) {}
 }

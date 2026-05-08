@@ -8,8 +8,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import care.smith.fts.cda.TransferProcessConfig;
 import care.smith.fts.cda.TransferProcessDefinition;
 import care.smith.fts.cda.TransferProcessRunner;
+import care.smith.fts.cda.TransferProcessRunner.PatientError;
 import care.smith.fts.cda.TransferProcessStatus;
-import care.smith.fts.cda.TransferProcessStatus.PatientError;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -185,8 +185,8 @@ public class TransferProcessController {
   Mono<ResponseEntity<List<PatientError>>> failedPatients(
       @PathVariable(value = "processId") String processId) {
     return processRunner
-        .status(processId)
-        .map(s -> ResponseEntity.ok().body(s.failedPatients()))
+        .failedPatients(processId)
+        .map(ResponseEntity::ok)
         .onErrorResume(ErrorResponseUtil::notFound);
   }
 

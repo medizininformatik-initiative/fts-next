@@ -8,7 +8,6 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
-import care.smith.fts.cda.TransferProcessStatus.Step;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -16,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,17 +87,24 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   @Override
   public synchronized Mono<TransferProcessStatus> status(String processId) {
-    var transferProcessInstance = instances.get(processId);
-    if (transferProcessInstance != null) {
-      return Mono.just(transferProcessInstance.status());
-    } else {
-      return Mono.justOrEmpty(
-              queued.stream().filter(q -> q.processId().equals(processId)).findFirst())
-          .map(TransferProcessInstance::status)
-          .switchIfEmpty(
-              Mono.error(
-                  new IllegalStateException("No transfer process with processId: " + processId)));
+    return findInstance(processId).map(TransferProcessInstance::status);
+  }
+
+  @Override
+  public synchronized Mono<List<PatientError>> failedPatients(String processId) {
+    return findInstance(processId).map(TransferProcessInstance::failedPatients);
+  }
+
+  private Mono<TransferProcessInstance> findInstance(String processId) {
+    var instance = instances.get(processId);
+    if (instance != null) {
+      return Mono.just(instance);
     }
+    return Mono.justOrEmpty(
+            queued.stream().filter(q -> q.processId().equals(processId)).findFirst())
+        .switchIfEmpty(
+            Mono.error(
+                new IllegalStateException("No transfer process with processId: " + processId)));
   }
 
   private synchronized void onComplete() {
@@ -112,6 +119,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private final TransferProcessDefinition process;
     private final AtomicReference<TransferProcessStatus> status;
+    private final Queue<PatientError> failedPatients = new ConcurrentLinkedQueue<>();
     private final List<String> identifiers;
 
     public TransferProcessInstance(
@@ -157,8 +165,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private <T> Mono<T> handlePatientError(String patientId, Step step, Throwable e) {
       logError(step, patientId, e);
-      status.updateAndGet(
-          s -> s.incSkippedBundles().addFailedPatient(patientId, step, e.getMessage()));
+      // Increment counter first so a concurrent reader never observes more queued
+      // failures than skippedBundles reports.
+      status.updateAndGet(TransferProcessStatus::incSkippedBundles);
+      failedPatients.add(new PatientError(patientId, step, e.getMessage()));
       return Mono.empty();
     }
 
@@ -214,6 +224,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     public TransferProcessStatus status() {
       return status.get();
+    }
+
+    public List<PatientError> failedPatients() {
+      return List.copyOf(failedPatients);
     }
 
     private String processId() {
