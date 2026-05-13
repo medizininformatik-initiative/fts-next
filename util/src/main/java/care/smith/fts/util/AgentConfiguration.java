@@ -7,6 +7,7 @@ import care.smith.fts.util.auth.HttpServerAuthConfig;
 import care.smith.fts.util.auth.OAuth2ConfigurationExistsCondition;
 import care.smith.fts.util.fhir.FhirCodecConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.net.http.HttpClient;
 import org.springframework.context.annotation.Bean;
@@ -44,7 +45,9 @@ public class AgentConfiguration {
   @Bean
   @Primary
   public ObjectMapper defaultObjectMapper() {
-    return new ObjectMapper().registerModule(new JavaTimeModule());
+    return new ObjectMapper()
+        .registerModule(new JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
   @Bean
