@@ -45,7 +45,7 @@ public class GicsConfiguration {
   ApplicationRunner runner(@Qualifier("gicsFhirHttpClient") WebClient gicsClient) {
     return args ->
         verifyGicsCapabilities(gicsClient)
-            .doOnNext(c -> log.info("gICS {} available", c.getSoftware().getVersion()))
+            .doOnNext(c -> log.info("gICS available"))
             .doOnError(GicsConfiguration::logWarning)
             .onErrorComplete()
             .subscribe();
