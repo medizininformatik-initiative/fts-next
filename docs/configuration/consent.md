@@ -39,7 +39,7 @@ consent:
 ## Notes
 
 * **Domain Prerequisites**:
-  * The domain specified in the CDA's project configuration **must be created in gPAS before
+  * The domain specified in the CDA's project configuration **must be created in gICS before
     FTSnext can use them**.
   * FTSnext does not create domains, so this setup must be done manually
     or through other administrative interfaces.
