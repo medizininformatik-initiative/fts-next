@@ -50,8 +50,8 @@ The status response looks like this:
 {
   "processId": "e17d319e-d967-467e-8c8a-0c464bb14951",
   "phase": "COMPLETED",
-  "createdAt": [ 2024, 11, 13, 8, 35, 35, 262354492 ],
-  "finishedAt": [ 2024, 11, 13, 8, 36, 17, 358171815 ],
+  "createdAt": "2024-11-13T08:35:35.262354492",
+  "finishedAt": "2024-11-13T08:36:17.358171815",
   "totalPatients": 100,
   "totalBundles": 119,
   "deidentifiedBundles": 118,
