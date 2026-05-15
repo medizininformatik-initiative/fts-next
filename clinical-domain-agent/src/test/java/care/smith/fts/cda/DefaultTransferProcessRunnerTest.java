@@ -305,7 +305,7 @@ class DefaultTransferProcessRunnerTest {
         .assertNext(
             errors -> {
               assertThat(errors).hasSize(1);
-              assertThat(errors.getFirst().patientId()).isEqualTo(PATIENT_IDENTIFIER_2);
+              assertThat(errors.getFirst().patientIdentifier()).isEqualTo(PATIENT_IDENTIFIER_2);
               assertThat(errors.getFirst().step()).isEqualTo(Step.SELECT_DATA);
               assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot select data");
             })

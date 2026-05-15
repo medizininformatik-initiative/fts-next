@@ -58,8 +58,8 @@ public class TransferProcessController {
           """
           **Since 5.0**
 
-          Start a transfer of patients with IDs given in the request body or if empty start
-           a transfer of all consented patients.
+          Start a transfer of patients with identifiers given in the request body or if empty
+           start a transfer of all consented patients.
           """,
       parameters = {
         @Parameter(
@@ -70,15 +70,15 @@ public class TransferProcessController {
       },
       requestBody =
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
-              description = "IDs of patients to transfer",
+              description = "Identifiers of patients to transfer",
               content =
                   @Content(
                       mediaType = "application/json",
                       schema = @Schema(implementation = String.class),
                       examples =
                           @ExampleObject(
-                              name = "List of three patient IDs",
-                              value = "[\"id1\", \"id2\", \"id3\"]"))),
+                              name = "List of three patient identifiers",
+                              value = "[\"identifier-1\", \"identifier-2\", \"identifier-3\"]"))),
       responses = {
         @ApiResponse(
             responseCode = "202",
@@ -157,7 +157,8 @@ public class TransferProcessController {
   @GetMapping("/process/status/{processId:[\\w-]+}/failed_patients")
   @Operation(
       summary = "Failed patients of a transfer process",
-      description = "**Since 6.0**\n\nReturns patient IDs and error messages for failed transfers.",
+      description =
+          "**Since 6.0**\n\nReturns patient identifiers and error messages for failed transfers.",
       parameters = {
         @Parameter(
             name = "processId",
@@ -176,8 +177,8 @@ public class TransferProcessController {
                           name = "Failed patients",
                           value =
 """
-[{"patientId":"patient-001","step":"SELECT_DATA","errorMessage":"Connection refused"},\
-{"patientId":"patient-042","step":"DEIDENTIFY","errorMessage":"Cannot deidentify bundle"}]
+[{"patientIdentifier":"patient-001","step":"SELECT_DATA","errorMessage":"Connection refused"},\
+{"patientIdentifier":"patient-042","step":"DEIDENTIFY","errorMessage":"Cannot deidentify bundle"}]
 """)
                     })),
         @ApiResponse(responseCode = "404", description = "The process could not be found")

@@ -88,12 +88,12 @@ curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c
 ```json
 [
   {
-    "patientId": "patient-001",
+    "patientIdentifier": "patient-001",
     "step": "SELECT_DATA",
     "errorMessage": "Connection refused"
   },
   {
-    "patientId": "patient-042",
+    "patientIdentifier": "patient-042",
     "step": "DEIDENTIFY",
     "errorMessage": "Cannot deidentify bundle"
   }
@@ -103,7 +103,7 @@ curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c
 
 | Field          | Description                                                                                      |
 |----------------|--------------------------------------------------------------------------------------------------|
-| `patientId`    | Identifier of the patient whose transfer failed                                                  |
+| `patientIdentifier` | Identifier of the patient whose transfer failed                                             |
 | `step`         | Processing step where the error occurred (`SELECT_DATA`, `DEIDENTIFY`, `SEND_BUNDLE`)            |
 | `errorMessage` | Error message describing the failure                                                             |
 
