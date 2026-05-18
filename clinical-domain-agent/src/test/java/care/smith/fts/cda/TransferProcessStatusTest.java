@@ -3,7 +3,8 @@ package care.smith.fts.cda;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.cda.TransferProcessRunner.Phase;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class TransferProcessStatusTest {
@@ -68,7 +69,7 @@ class TransferProcessStatusTest {
   @Test
   void testMayBeRemoved() {
     var status = TransferProcessStatus.create("process123");
-    LocalDateTime pastDate = LocalDateTime.now().plusDays(1);
+    Instant pastDate = Instant.now().plus(Duration.ofDays(1));
 
     // Initially finishedAt is null
     assertThat(status.mayBeRemoved(pastDate)).isFalse();

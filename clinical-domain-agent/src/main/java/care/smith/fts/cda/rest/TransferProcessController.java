@@ -141,7 +141,7 @@ public class TransferProcessController {
                           name = "Transfer process status",
                           value =
 """
-{"processId":"ChlblQ","phase":"RUNNING","createdAt":"2024-12-16T09:29:37.186662587","finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
+{"processId":"ChlblQ","phase":"RUNNING","createdAt":"2024-12-16T10:29:37.186+01:00","finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
 """)
                     })),
         @ApiResponse(responseCode = "404", description = "The project could not be found")
@@ -208,8 +208,8 @@ public class TransferProcessController {
                           value =
 """
 [
-  {"processId":"8R9JGu","phase":"COMPLETED","createdAt":"2024-12-16T09:28:50.772443200","finishedAt":"2024-12-16T09:29:31.776068091","totalPatients":100,"totalBundles":119,"deidentifiedBundles":118,"sentBundles":118,"skippedBundles":0},
-  {"processId":"ChlblQ","phase":"RUNNING","createdAt":"2024-12-16T09:29:37.186662587","finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
+  {"processId":"8R9JGu","phase":"COMPLETED","createdAt":"2024-12-16T10:28:50.772+01:00","finishedAt":"2024-12-16T10:29:31.776+01:00","totalPatients":100,"totalBundles":119,"deidentifiedBundles":118,"sentBundles":118,"skippedBundles":0},
+  {"processId":"ChlblQ","phase":"RUNNING","createdAt":"2024-12-16T10:29:37.186+01:00","finishedAt":null,"totalPatients":100,"totalBundles":53,"deidentifiedBundles":32,"sentBundles":0,"skippedBundles":0}
 ]
 """)
                     })),
