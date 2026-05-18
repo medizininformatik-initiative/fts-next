@@ -1,6 +1,6 @@
 # TCA Cohort Selector <Badge type="tip" text="Clinical Domain Agent" /> <Badge type="warning" text="Since 5.0" />
 
-The TCA based implementation uses the connection to the TCA to select patient IDs for transfer.
+The TCA based implementation uses the connection to the TCA to select patient identifiers for transfer.
 
 ## Example Configuration
 

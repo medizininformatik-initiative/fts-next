@@ -38,5 +38,12 @@ public interface TransferProcessRunner {
     }
   }
 
-  record PatientError(String patientId, Step step, String errorMessage) {}
+  /**
+   * Error information for a failed patient transfer.
+   *
+   * @param patientIdentifier the patient identifier value
+   * @param step the transfer step at which the failure occurred
+   * @param errorMessage human-readable error message
+   */
+  record PatientError(String patientIdentifier, Step step, String errorMessage) {}
 }

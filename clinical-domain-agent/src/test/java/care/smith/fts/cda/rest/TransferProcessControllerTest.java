@@ -188,9 +188,9 @@ class TransferProcessControllerTest {
             r -> {
               assertThat(r.getStatusCode()).isEqualTo(OK);
               assertThat(r.getBody()).hasSize(2);
-              assertThat(r.getBody().get(0).patientId()).isEqualTo("patient-001");
+              assertThat(r.getBody().get(0).patientIdentifier()).isEqualTo("patient-001");
               assertThat(r.getBody().get(0).step()).isEqualTo(Step.SELECT_DATA);
-              assertThat(r.getBody().get(1).patientId()).isEqualTo("patient-042");
+              assertThat(r.getBody().get(1).patientIdentifier()).isEqualTo("patient-042");
               assertThat(r.getBody().get(1).step()).isEqualTo(Step.DEIDENTIFY);
             })
         .verifyComplete();
