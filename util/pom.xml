@@ -110,7 +110,7 @@
     <dependency>
       <groupId>no.nav.security</groupId>
       <artifactId>mock-oauth2-server</artifactId>
-      <version>3.0.3</version>
+      <version>4.0.0</version>
       <scope>test</scope>
     </dependency>
 
