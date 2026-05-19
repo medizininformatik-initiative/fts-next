@@ -11,6 +11,7 @@ documentation. Each configuration entry contains a link to the documentation pag
 
 * [Projects](./configuration/projects)
 * [Runner](./configuration/runner)
+* [Time Zone](./configuration/time-zone)
 * [Logging](./configuration/logging)
 * [SSL](./configuration/ssl-bundles)
 * [Server](./configuration/server)

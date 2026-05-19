@@ -1,3 +1,7 @@
+spring:
+  jackson:
+    time-zone: ${TZ:Europe/Berlin}
+
 management:
   endpoints:
     web:

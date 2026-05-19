@@ -50,8 +50,8 @@ The status response looks like this:
 {
   "processId": "e17d319e-d967-467e-8c8a-0c464bb14951",
   "phase": "COMPLETED",
-  "createdAt": "2024-11-13T08:35:35.262354492",
-  "finishedAt": "2024-11-13T08:36:17.358171815",
+  "createdAt": "2024-11-13T09:35:35.262+01:00",
+  "finishedAt": "2024-11-13T09:36:17.358+01:00",
   "totalPatients": 100,
   "totalBundles": 119,
   "deidentifiedBundles": 118,
@@ -65,8 +65,8 @@ The status response looks like this:
 |-----------------------|------------------------------------------------------------------------------------------|
 | `processId`           | Process ID                                                                               |
 | `phase`               | Status of the process (`QUEUED`, `RUNNING`, `COMPLETED`)                                 |
-| `createdAt`           | Point in time when the process was created                                               |
-| `finishedAt`          | Point in time when the process finished                                                  |
+| `createdAt`           | Point in time when the process was created (ISO-8601 with offset; see [Time Zone](../configuration/time-zone)) |
+| `finishedAt`          | Point in time when the process finished (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))    |
 | `totalPatients`       | Total number of patients to be processed, may change while the process is running        |
 | `totalBundles`        | Total number of bundles to be processed                                                  |
 | `deidentifiedBundles` | Number of bundles after deidentification                                                 |

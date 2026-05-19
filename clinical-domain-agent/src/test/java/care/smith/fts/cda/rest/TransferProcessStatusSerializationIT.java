@@ -10,7 +10,7 @@ import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessStatus;
 import care.smith.fts.test.TestWebClientFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,12 +19,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @SpringBootTest(classes = ClinicalDomainAgent.class, webEnvironment = RANDOM_PORT)
 @Import(TestWebClientFactory.class)
+@TestPropertySource(properties = "spring.jackson.time-zone=Europe/Berlin")
 class TransferProcessStatusSerializationIT {
 
   @MockitoBean private TransferProcessRunner processRunner;
@@ -39,14 +41,14 @@ class TransferProcessStatusSerializationIT {
   }
 
   @Test
-  void statusBodySerializesLocalDateTimeAsIsoString() {
+  void statusBodySerializesInstantInConfiguredZone() {
     var processId = "iso-test";
     var status =
         new TransferProcessStatus(
             processId,
             Phase.COMPLETED,
-            LocalDateTime.of(2026, 5, 13, 3, 0, 0, 818008066),
-            LocalDateTime.of(2026, 5, 13, 3, 0, 10, 543337718),
+            Instant.parse("2026-05-13T03:00:00.818008066Z"),
+            Instant.parse("2026-05-13T03:00:10.543337718Z"),
             0,
             0,
             0,
@@ -62,8 +64,8 @@ class TransferProcessStatusSerializationIT {
                 .bodyToMono(String.class))
         .assertNext(
             body -> {
-              assertThat(body).contains("\"createdAt\":\"2026-05-13T03:00:00.818008066\"");
-              assertThat(body).contains("\"finishedAt\":\"2026-05-13T03:00:10.543337718\"");
+              assertThat(body).contains("\"createdAt\":\"2026-05-13T05:00:00.818+02:00\"");
+              assertThat(body).contains("\"finishedAt\":\"2026-05-13T05:00:10.543+02:00\"");
               assertThat(body).doesNotContain("\"createdAt\":[");
               assertThat(body).doesNotContain("\"finishedAt\":[");
             })
@@ -71,20 +73,20 @@ class TransferProcessStatusSerializationIT {
   }
 
   @Test
-  void primaryObjectMapperSerializesLocalDateTimeAsIsoString() throws Exception {
+  void primaryObjectMapperSerializesInstantWithOffset() throws Exception {
     var status = TransferProcessStatus.create("direct");
     var json = primaryObjectMapper.writeValueAsString(status);
     assertThat(json).doesNotContain("\"createdAt\":[");
-    assertThat(json).contains("\"createdAt\":\"2");
+    assertThat(json).containsPattern("\"createdAt\":\"[^\"]+\\+\\d\\d:\\d\\d\"");
   }
 
   @Test
-  void statusesBodySerializesLocalDateTimeAsIsoString() {
+  void statusesBodySerializesInstantInConfiguredZone() {
     var status =
         new TransferProcessStatus(
             "iso-list",
             Phase.RUNNING,
-            LocalDateTime.of(2026, 5, 13, 3, 0, 0, 818008066),
+            Instant.parse("2026-05-13T03:00:00.818008066Z"),
             null,
             0,
             0,
@@ -96,7 +98,7 @@ class TransferProcessStatusSerializationIT {
     create(client.get().uri("/api/v2/process/statuses").retrieve().bodyToMono(String.class))
         .assertNext(
             body -> {
-              assertThat(body).contains("\"createdAt\":\"2026-05-13T03:00:00.818008066\"");
+              assertThat(body).contains("\"createdAt\":\"2026-05-13T05:00:00.818+02:00\"");
               assertThat(body).doesNotContain("\"createdAt\":[");
             })
         .verifyComplete();

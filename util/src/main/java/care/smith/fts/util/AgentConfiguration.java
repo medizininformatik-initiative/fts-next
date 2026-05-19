@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.net.http.HttpClient;
+import java.util.TimeZone;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -44,10 +46,12 @@ public class AgentConfiguration {
 
   @Bean
   @Primary
-  public ObjectMapper defaultObjectMapper() {
+  public ObjectMapper defaultObjectMapper(
+      @Value("${spring.jackson.time-zone:UTC}") String timeZone) {
     return new ObjectMapper()
         .registerModule(new JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .setTimeZone(TimeZone.getTimeZone(timeZone));
   }
 
   @Bean

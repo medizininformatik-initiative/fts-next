@@ -86,6 +86,7 @@ export default withMermaid({
               [
                 {text: 'Projects', link: '/configuration/projects'},
                 {text: 'Runner', link: '/configuration/runner'},
+                {text: 'Time Zone', link: '/configuration/time-zone'},
                 {text: 'Logging', link: '/configuration/logging'},
                 {text: 'SSL Bundles', link: '/configuration/ssl-bundles'},
                 {text: 'Server', link: '/configuration/server'},
