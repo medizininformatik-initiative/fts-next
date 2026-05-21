@@ -33,8 +33,8 @@ spring:
       pem:
         server:
           keystore:
-            certificate: classpath:/server.crt
-            private-key: classpath:/server.key
+            certificate: classpath:/server-localhost.crt
+            private-key: classpath:/server-localhost.key
           truststore:
             certificate: classpath:/ca.crt
         client:

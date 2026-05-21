@@ -5,20 +5,42 @@ set -euo pipefail
 # CERT_TTL_SECONDS into the future. Exit 1 otherwise (cert missing or
 # expiring within the window).
 #
-# Usage: check-certs.sh <ssl-dir> [ttl-seconds]
+# Usage: check-certs.sh <ssl-dir> <ttl-seconds> --server <CN> [--server <CN> ...] --client <CN> [--client <CN> ...]
 
-SSL_DIR="${1:?usage: check-certs.sh <ssl-dir> [ttl-seconds]}"
-TTL="${2:-${CERT_TTL_SECONDS:-86400}}"
+SSL_DIR="${1:?usage: check-certs.sh <ssl-dir> <ttl-seconds> --server <CN> ... --client <CN> ...}"
+shift
+TTL="${1:?usage: check-certs.sh <ssl-dir> <ttl-seconds> --server <CN> ... --client <CN> ...}"
+shift
 
-CERTS=(
-  ca.crt
-  server.crt
-  server-rd-agent.crt
-  client-tca.crt
-  client-cd-agent.crt
-  client-rd-agent.crt
-  client-no-ca.crt
-)
+SERVERS=()
+CLIENTS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --server)
+      SERVERS+=("$2")
+      shift 2
+      ;;
+    --client)
+      CLIENTS+=("$2")
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Build the list of expected cert files
+CERTS=("ca.crt")
+for cn in "${SERVERS[@]}"; do
+  CERTS+=("server-${cn}.crt")
+done
+for cn in "${CLIENTS[@]}"; do
+  CERTS+=("client-${cn}.crt")
+done
+CERTS+=("client-no-ca.crt")
 
 for name in "${CERTS[@]}"; do
   path="$SSL_DIR/$name"

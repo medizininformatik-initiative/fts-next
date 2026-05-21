@@ -7,8 +7,8 @@ spring:
       pem:
         server:
           keystore:
-            certificate: file:ssl/server.crt
-            private-key: file:ssl/server.key
+            certificate: file:ssl/server-tc-agent.crt
+            private-key: file:ssl/server-tc-agent.key
           truststore:
             certificate: file:ssl/ca.crt
   codec:
