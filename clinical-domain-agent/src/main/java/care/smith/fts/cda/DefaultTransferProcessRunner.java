@@ -146,7 +146,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .cohortSelector()
           .selectCohort(identifiers)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalPatients))
-          .doOnError(e -> status.updateAndGet(s -> s.setPhase(Phase.FATAL)))
+          .doOnError(
+              e -> {
+                log.error("[Process {}] Cohort selection failed", processId(), e);
+                status.updateAndGet(s -> s.setPhase(Phase.FATAL));
+              })
           .onErrorComplete();
     }
 

@@ -105,6 +105,43 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
+  void cohortSelectorErrorIsLoggedWithStacktrace() {
+    var logger = (Logger) LoggerFactory.getLogger(DefaultTransferProcessRunner.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    var originalLevel = logger.getLevel();
+    logger.setLevel(Level.ERROR);
+
+    try {
+      var process =
+          new TransferProcessDefinition(
+              "test",
+              rawConfig,
+              pids -> Flux.error(new RuntimeException("Cohort fetch boom")),
+              p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+              b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
+              b -> Mono.just(new Result()));
+
+      var processId = runner.start(process, List.of());
+      waitForCompletion(processId);
+
+      var errorEvents =
+          appender.list.stream()
+              .filter(e -> e.getLevel() == Level.ERROR)
+              .filter(e -> e.getFormattedMessage().contains("Cohort selection failed"))
+              .toList();
+      assertThat(errorEvents).isNotEmpty();
+      var event = errorEvents.getFirst();
+      assertThat(event.getThrowableProxy()).isNotNull();
+      assertThat(event.getThrowableProxy().getMessage()).isEqualTo("Cohort fetch boom");
+    } finally {
+      logger.detachAppender(appender);
+      logger.setLevel(originalLevel);
+    }
+  }
+
+  @Test
   void startMultipleProcessesWithQueueing() {
     var process =
         new TransferProcessDefinition(
