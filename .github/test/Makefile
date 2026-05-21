@@ -1,4 +1,4 @@
-.PHONY: all pull generate-certs start upload-consents check-consent upload-test-data \
+.PHONY: all pull generate-certs check-certs start upload-consents check-consent upload-test-data \
 	transfer-all transfer-list transfer-with-fhir-consent-list wait  \
 	check-status check-resources check-pseudonymization show-status show-hds clean-dbs clean-rd-hds \
 	download-test-data download-test-data-checksums check-test-data \
@@ -8,6 +8,7 @@ all: pull generate-certs start upload-test-data transfer-all wait check-status c
 
 COMPOSE_FILES?=-f compose.yaml
 SERVICES?=
+CERT_TTL_SECONDS?=86400
 
 pull:
 	docker compose ${COMPOSE_FILES} pull -q --ignore-pull-failures ${SERVICES}
@@ -21,10 +22,10 @@ generate-certs:
 	  | openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -out server-rd-agent.crt -days 30 && \
 	  chmod +r server-rd-agent.key)
 
-ssl/server.crt:
-	$(MAKE) generate-certs
+check-certs:
+	@../scripts/check-certs.sh ./ssl $(CERT_TTL_SECONDS) || $(MAKE) generate-certs
 
-start: ssl/server.crt
+start: check-certs
 	docker compose ${COMPOSE_FILES} up --wait --pull missing ${SERVICES}
 
 download-test-data-checksums:
