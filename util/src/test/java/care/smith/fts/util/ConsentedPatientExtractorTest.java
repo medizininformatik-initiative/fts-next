@@ -175,6 +175,27 @@ class ConsentedPatientExtractorTest {
   }
 
   @Test
+  void getConsentedPoliciesFromProvision_withDateOnlyPeriod() {
+    var provision =
+        new Consent.ProvisionComponent()
+            .setType(Consent.ConsentProvisionType.PERMIT)
+            .setCode(
+                List.of(
+                    new CodeableConcept()
+                        .addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode("POLICY_A"))))
+            .setPeriod(
+                new Period()
+                    .setStartElement(new org.hl7.fhir.r4.model.DateTimeType("2024-02-23"))
+                    .setEndElement(new org.hl7.fhir.r4.model.DateTimeType("2054-01-31")));
+
+    var result =
+        ConsentedPatientExtractor.getConsentedPoliciesFromProvision(
+            POLICY_SYSTEM, provision, Set.of("POLICY_A"));
+
+    assertThat(result.hasAllPolicies(Set.of("POLICY_A"))).isTrue();
+  }
+
+  @Test
   void extractPolicyFromCodeableConcept() {
     var concept =
         new CodeableConcept()
