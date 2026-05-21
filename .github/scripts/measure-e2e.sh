@@ -50,6 +50,15 @@
 #   MAX_SEND_CONCURRENCY=32  # cd-agent runner.maxSendConcurrency (Spring relaxed
 #                            # binding via RUNNER_MAXSENDCONCURRENCY env). Picked
 #                            # up on each per-run cd-agent restart.
+#   LOCAL_BUNDLES_FILE=""    # path to a gzipped ndjson of transaction bundles
+#                            # (one Bundle per line). When set together with
+#                            # LOCAL_AUTHORED_JSON the remote test-data download
+#                            # is skipped and these files drive cd-hds upload
+#                            # and consent enumeration. Intended for datasets
+#                            # not hosted on speicherwolke (e.g. synthea output).
+#   LOCAL_AUTHORED_JSON=""   # path to a {patientId: date} JSON map matching
+#                            # the bundles. Must be set iff LOCAL_BUNDLES_FILE
+#                            # is set. Patient IDs become the consent keys.
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -66,6 +75,26 @@ SEEDED_CONSENTS="${SEEDED_CONSENTS:-100}"
 CONCURRENCY="${CONCURRENCY:-1}"
 MAX_SEND_CONCURRENCY="${MAX_SEND_CONCURRENCY:-32}"
 export MAX_SEND_CONCURRENCY  # consumed by cd-agent compose env interpolation
+LOCAL_BUNDLES_FILE="${LOCAL_BUNDLES_FILE:-}"
+LOCAL_AUTHORED_JSON="${LOCAL_AUTHORED_JSON:-}"
+
+if [ -n "${LOCAL_BUNDLES_FILE}" ] || [ -n "${LOCAL_AUTHORED_JSON}" ]; then
+  if [ -z "${LOCAL_BUNDLES_FILE}" ] || [ -z "${LOCAL_AUTHORED_JSON}" ]; then
+    echo "[measure-e2e] ERROR: LOCAL_BUNDLES_FILE and LOCAL_AUTHORED_JSON must both be set or both unset" >&2
+    exit 2
+  fi
+  LOCAL_BUNDLES_FILE="$(readlink -f "${LOCAL_BUNDLES_FILE}")"
+  LOCAL_AUTHORED_JSON="$(readlink -f "${LOCAL_AUTHORED_JSON}")"
+  if [ ! -f "${LOCAL_BUNDLES_FILE}" ]; then
+    echo "[measure-e2e] ERROR: LOCAL_BUNDLES_FILE=${LOCAL_BUNDLES_FILE} not found" >&2
+    exit 2
+  fi
+  if [ ! -f "${LOCAL_AUTHORED_JSON}" ]; then
+    echo "[measure-e2e] ERROR: LOCAL_AUTHORED_JSON=${LOCAL_AUTHORED_JSON} not found" >&2
+    exit 2
+  fi
+fi
+USE_LOCAL_DATA="$( [ -n "${LOCAL_BUNDLES_FILE}" ] && echo 1 || echo 0 )"
 
 read -r -a SIZE_ARR <<< "${SIZES}"
 IFS=$'\n' SIZE_ARR=($(printf '%s\n' "${SIZE_ARR[@]}" | sort -n))
@@ -83,6 +112,10 @@ ensure_stack_up() {
     log "compose stack '${COMPOSE_PROJECT}' already running"
     return
   fi
+  if [ ! -f "${TEST_DIR}/ssl/server.crt" ]; then
+    log "ssl/server.crt missing — running 'make generate-certs'"
+    make generate-certs
+  fi
   log "compose stack not running — invoking 'make start' (gics/gpas warmup ~60-180s)"
   make start
 }
@@ -94,6 +127,30 @@ wipe_gics_to_seed() {
   log "wiping gics + gics-db volumes to restore seeded baseline (${SEEDED_CONSENTS} consents)"
   docker compose -p "${COMPOSE_PROJECT}" down -v gics gics-db
   docker compose -p "${COMPOSE_PROJECT}" up --wait gics gics-db
+}
+
+# When using local test data, the seeded consents reference UUIDs that don't
+# match the local Patient IDs. Truncate every consent-related table after the
+# seed init scripts have run, then restart gics so its JPA caches are flushed.
+# We rely on the canonical initdb tables enumerated in gics/initdb/03_consent.sql.gz.
+truncate_gics_consents() {
+  log "truncating gICS consent tables (local-data mode — seed UUIDs would not match bundles)"
+  docker compose -p "${COMPOSE_PROJECT}" exec -T gics-db \
+    mysql -uroot -proot gics -e "
+      SET FOREIGN_KEY_CHECKS=0;
+      TRUNCATE TABLE consent;
+      TRUNCATE TABLE qc;
+      TRUNCATE TABLE qc_hist;
+      TRUNCATE TABLE signature;
+      TRUNCATE TABLE signed_policy;
+      TRUNCATE TABLE signer_id;
+      TRUNCATE TABLE virtual_person;
+      TRUNCATE TABLE virtual_person_signer_id;
+      SET FOREIGN_KEY_CHECKS=1;
+    "
+  log "restarting gics to flush JPA caches"
+  docker compose -p "${COMPOSE_PROJECT}" restart gics
+  docker compose -p "${COMPOSE_PROJECT}" up --wait gics
 }
 
 record_host() {
@@ -119,6 +176,10 @@ record_host() {
 
 ensure_test_data() {
   local n="${1}"
+  if [ "${USE_LOCAL_DATA}" = "1" ]; then
+    log "LOCAL_BUNDLES_FILE=${LOCAL_BUNDLES_FILE} — skipping remote download"
+    return
+  fi
   log "ensuring test data for share=${SHARE} size=${n}"
   make download-test-data-checksums >/dev/null
   if make check-test-data >/dev/null 2>&1; then
@@ -144,7 +205,13 @@ ensure_cd_hds_loaded() {
     return
   fi
   log "cd-hds underloaded — uploading test data (one-time)"
-  make upload-test-data
+  if [ "${USE_LOCAL_DATA}" = "1" ]; then
+    log "using local bundles ${LOCAL_BUNDLES_FILE}"
+    COMPOSE_PROJECT="${COMPOSE_PROJECT}" \
+      "${SCRIPT_DIR}/upload-data-local.sh" "${LOCAL_BUNDLES_FILE}"
+  else
+    make upload-test-data
+  fi
 }
 
 # Bouncing rd-hds + gpas + gpas-db gives each run a cold pseudonym cache and a
@@ -174,7 +241,12 @@ ensure_consents_for() {
     return
   fi
   log "uploading consent delta [${CURRENT_CONSENTS}..${n})"
-  "${SCRIPT_DIR}/upload-consents-range.sh" "${CURRENT_CONSENTS}" "${n}"
+  if [ "${USE_LOCAL_DATA}" = "1" ]; then
+    LOCAL_AUTHORED_JSON="${LOCAL_AUTHORED_JSON}" \
+      "${SCRIPT_DIR}/upload-consents-local-range.sh" "${CURRENT_CONSENTS}" "${n}"
+  else
+    "${SCRIPT_DIR}/upload-consents-range.sh" "${CURRENT_CONSENTS}" "${n}"
+  fi
   CURRENT_CONSENTS="${n}"
 }
 
@@ -233,8 +305,16 @@ run_one() {
 
 main() {
   log "config: SIZES=${SIZES} RUNS=${RUNS} MAX_SEND_CONCURRENCY=${MAX_SEND_CONCURRENCY} OUT_DIR=${OUT_DIR}"
+  if [ "${USE_LOCAL_DATA}" = "1" ]; then
+    log "config: LOCAL_BUNDLES_FILE=${LOCAL_BUNDLES_FILE} LOCAL_AUTHORED_JSON=${LOCAL_AUTHORED_JSON}"
+  fi
   ensure_stack_up
   wipe_gics_to_seed
+  if [ "${USE_LOCAL_DATA}" = "1" ]; then
+    truncate_gics_consents
+    CURRENT_CONSENTS=0
+    log "CURRENT_CONSENTS reset to 0 (consents come from LOCAL_AUTHORED_JSON)"
+  fi
   record_host
   ensure_test_data "${MAX_N}"
   ensure_cd_hds_loaded "${MAX_N}"
