@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -39,8 +40,26 @@ public class AgentConfiguration {
     return FhirContext.forR4();
   }
 
+  /**
+   * Pooled JDK HTTP client used by every agent's outbound WebClient.
+   *
+   * <p>JDK HttpClient exposes no builder API for connection-pool keep-alive; the only knob is the
+   * {@code jdk.httpclient.keepalive.timeout} system property. We set it here so the pool evicts
+   * cached connections before any upstream server closes them on its own idle timeout. The value
+   * must stay below the lowest idle timeout among the agent's upstreams; if client keep-alive ≥
+   * server idle, the pool reuses a half-dead socket and the first request after an idle gap fails
+   * with "HTTP/1.1 header parser received no bytes" / {@code EOFException}.
+   *
+   * <p>Default 25s targets the tightest upstream we know about: Samply Blaze (Jetty, 30s idle),
+   * reached by cd-agent and rd-agent via cd-hds / rd-hds. tc-agent talks to gICS and gPAS
+   * (WildFly/Undertow) and serves inbound calls from cd-/rd-agent itself, so the same pool covers
+   * those flows too. See {@code docs/configuration/http-client.md}.
+   */
   @Bean
-  public HttpClient httpClient() {
+  public HttpClient httpClient(
+      @Value("${fts.http.client.keepalive-timeout:PT25S}") Duration keepaliveTimeout) {
+    System.setProperty(
+        "jdk.httpclient.keepalive.timeout", String.valueOf(keepaliveTimeout.toSeconds()));
     return HttpClient.newBuilder().connectTimeout(ofSeconds(10)).build();
   }
 

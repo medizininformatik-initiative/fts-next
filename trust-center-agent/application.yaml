@@ -68,6 +68,15 @@
 #   # Prefix for all API routes (useful if the agent is served under a subpath)
 #   webflux.base-path: /
 
+### FTS Outbound HTTP Client
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/http-client
+# fts.http.client:
+#   # Pool keep-alive for outbound http connections. Must stay below the
+#   # idle timeout of every upstream (for tc-agent: gICS, gPAS) to avoid
+#   # "header parser received no bytes" / EOF on the first request after an idle gap.
+#   # ISO-8601 duration; default PT25S.
+#   keepalive-timeout: PT25S
+
 ### FTS Server Security Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/security
 # security:

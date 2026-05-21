@@ -73,6 +73,8 @@ final class RdaBundleSender implements BundleSender {
     }
   }
 
+  private static final int MAX_STATUS_POLLS = 10;
+
   private Mono<ResponseEntity<Void>> waitForRDACompleted(ResponseEntity<Void> response) {
     return Mono.just(response)
         .flatMap(this::extractStatusUri)
@@ -83,15 +85,23 @@ final class RdaBundleSender implements BundleSender {
                     .expand(
                         r -> fetchStatus(uri).delayElement(Duration.ofSeconds(getRetryAfter(r))))
                     .takeUntil(r -> r.getStatusCode() != ACCEPTED)
-                    .take(10)
+                    .take(MAX_STATUS_POLLS)
                     .last())
         .flatMap(
             r -> {
-              if (r.getStatusCode() == OK) {
+              var status = r.getStatusCode();
+              if (status == OK) {
                 return Mono.just(r);
+              } else if (status == ACCEPTED) {
+                var message =
+                    "RDA polling budget exhausted after "
+                        + MAX_STATUS_POLLS
+                        + " attempts, status still ACCEPTED";
+                log.error(message);
+                return Mono.error(new TransferProcessException(message));
               } else {
-                log.error("Error: {}", r.getStatusCode());
-                return Mono.error(new TransferProcessException("Error: " + r.getStatusCode()));
+                log.error("Unexpected RDA status: {}", status);
+                return Mono.error(new TransferProcessException("Unexpected RDA status: " + status));
               }
             });
   }

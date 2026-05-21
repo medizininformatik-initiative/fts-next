@@ -212,7 +212,7 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
   }
 
   @Test
-  void withNumberFormatExceptionInGetRetryAfterWithRetriesExhausted() {
+  void pollingBudgetExhaustedWithStatusStillAccepted() {
     wireMock.register(
         rdaRequest()
             .willReturn(
@@ -223,7 +223,24 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
-        .expectError(TransferProcessException.class)
+        .expectErrorMessage("RDA polling budget exhausted after 10 attempts, status still ACCEPTED")
+        .verify();
+  }
+
+  @Test
+  void unexpectedStatusFromPollingEndpoint() {
+    wireMock.register(
+        rdaRequest()
+            .willReturn(
+                accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
+    wireMock.register(get("/api/v2/process/status/processId").willReturn(created()));
+
+    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
+        .expectErrorMatches(
+            e ->
+                e instanceof TransferProcessException
+                    && e.getMessage().startsWith("Unexpected RDA status: 201"))
         .verify();
   }
 
