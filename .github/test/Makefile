@@ -21,7 +21,10 @@ generate-certs:
 	  | openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -out server-rd-agent.crt -days 30 && \
 	  chmod +r server-rd-agent.key)
 
-start:
+ssl/server.crt:
+	$(MAKE) generate-certs
+
+start: ssl/server.crt
 	docker compose ${COMPOSE_FILES} up --wait --pull missing ${SERVICES}
 
 download-test-data-checksums:
