@@ -59,6 +59,11 @@
 #   LOCAL_AUTHORED_JSON=""   # path to a {patientId: date} JSON map matching
 #                            # the bundles. Must be set iff LOCAL_BUNDLES_FILE
 #                            # is set. Patient IDs become the consent keys.
+#   REUSE_STATE=0            # when 1, skip gICS wipe + consent truncate +
+#                            # consent upload. Assumes cd-hds + gICS already
+#                            # hold the dataset from a previous invocation.
+#                            # Useful after fixing infra issues (e.g. ssl certs)
+#                            # without paying the 100k-patient upload cost again.
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -77,6 +82,7 @@ MAX_SEND_CONCURRENCY="${MAX_SEND_CONCURRENCY:-32}"
 export MAX_SEND_CONCURRENCY  # consumed by cd-agent compose env interpolation
 LOCAL_BUNDLES_FILE="${LOCAL_BUNDLES_FILE:-}"
 LOCAL_AUTHORED_JSON="${LOCAL_AUTHORED_JSON:-}"
+REUSE_STATE="${REUSE_STATE:-0}"
 
 if [ -n "${LOCAL_BUNDLES_FILE}" ] || [ -n "${LOCAL_AUTHORED_JSON}" ]; then
   if [ -z "${LOCAL_BUNDLES_FILE}" ] || [ -z "${LOCAL_AUTHORED_JSON}" ]; then
@@ -304,16 +310,21 @@ run_one() {
 }
 
 main() {
-  log "config: SIZES=${SIZES} RUNS=${RUNS} MAX_SEND_CONCURRENCY=${MAX_SEND_CONCURRENCY} OUT_DIR=${OUT_DIR}"
+  log "config: SIZES=${SIZES} RUNS=${RUNS} MAX_SEND_CONCURRENCY=${MAX_SEND_CONCURRENCY} OUT_DIR=${OUT_DIR} REUSE_STATE=${REUSE_STATE}"
   if [ "${USE_LOCAL_DATA}" = "1" ]; then
     log "config: LOCAL_BUNDLES_FILE=${LOCAL_BUNDLES_FILE} LOCAL_AUTHORED_JSON=${LOCAL_AUTHORED_JSON}"
   fi
   ensure_stack_up
-  wipe_gics_to_seed
-  if [ "${USE_LOCAL_DATA}" = "1" ]; then
-    truncate_gics_consents
-    CURRENT_CONSENTS=0
-    log "CURRENT_CONSENTS reset to 0 (consents come from LOCAL_AUTHORED_JSON)"
+  if [ "${REUSE_STATE}" = "1" ]; then
+    log "REUSE_STATE=1 — skipping gICS wipe, consent truncate, consent upload (assuming cd-hds + gICS already loaded)"
+    CURRENT_CONSENTS=$((MAX_N + 1))  # forces ensure_consents_for to no-op for every size
+  else
+    wipe_gics_to_seed
+    if [ "${USE_LOCAL_DATA}" = "1" ]; then
+      truncate_gics_consents
+      CURRENT_CONSENTS=0
+      log "CURRENT_CONSENTS reset to 0 (consents come from LOCAL_AUTHORED_JSON)"
+    fi
   fi
   record_host
   ensure_test_data "${MAX_N}"
