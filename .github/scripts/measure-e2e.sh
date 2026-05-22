@@ -59,11 +59,14 @@
 #   LOCAL_AUTHORED_JSON=""   # path to a {patientId: date} JSON map matching
 #                            # the bundles. Must be set iff LOCAL_BUNDLES_FILE
 #                            # is set. Patient IDs become the consent keys.
-#   REUSE_STATE=0            # when 1, skip gICS wipe + consent truncate +
-#                            # consent upload. Assumes cd-hds + gICS already
-#                            # hold the dataset from a previous invocation.
-#                            # Useful after fixing infra issues (e.g. ssl certs)
-#                            # without paying the 100k-patient upload cost again.
+#   REUSE_STATE=0            # when 1, reuse existing cd-hds bundle data
+#                            # (skip the upload entirely). gICS is still wiped
+#                            # + re-seeded and consents are still uploaded per
+#                            # size, so cohort selection is honest.
+#                            # Use when cd-hds already holds the dataset (e.g.
+#                            # re-running after fixing infra issues) and you
+#                            # don't want to pay the 100k bundle upload cost
+#                            # again — at -c8 it takes ~10min for 100k.
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -315,20 +318,19 @@ main() {
     log "config: LOCAL_BUNDLES_FILE=${LOCAL_BUNDLES_FILE} LOCAL_AUTHORED_JSON=${LOCAL_AUTHORED_JSON}"
   fi
   ensure_stack_up
-  if [ "${REUSE_STATE}" = "1" ]; then
-    log "REUSE_STATE=1 — skipping gICS wipe, consent truncate, consent upload (assuming cd-hds + gICS already loaded)"
-    CURRENT_CONSENTS=$((MAX_N + 1))  # forces ensure_consents_for to no-op for every size
-  else
-    wipe_gics_to_seed
-    if [ "${USE_LOCAL_DATA}" = "1" ]; then
-      truncate_gics_consents
-      CURRENT_CONSENTS=0
-      log "CURRENT_CONSENTS reset to 0 (consents come from LOCAL_AUTHORED_JSON)"
-    fi
+  wipe_gics_to_seed
+  if [ "${USE_LOCAL_DATA}" = "1" ]; then
+    truncate_gics_consents
+    CURRENT_CONSENTS=0
+    log "CURRENT_CONSENTS reset to 0 (consents come from LOCAL_AUTHORED_JSON)"
   fi
   record_host
-  ensure_test_data "${MAX_N}"
-  ensure_cd_hds_loaded "${MAX_N}"
+  if [ "${REUSE_STATE}" = "1" ]; then
+    log "REUSE_STATE=1 — reusing existing cd-hds data, skipping test-data download + upload"
+  else
+    ensure_test_data "${MAX_N}"
+    ensure_cd_hds_loaded "${MAX_N}"
+  fi
   for n in "${SIZE_ARR[@]}"; do
     ensure_consents_for "${n}"
     for r in $(seq 1 "${RUNS}"); do
