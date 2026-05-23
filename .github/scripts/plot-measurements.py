@@ -54,7 +54,7 @@ def discover(root: Path) -> list[dict]:
                 continue
             meta = json.loads(meta_path.read_text())
             runs.append({
-                "concurrency": concurrency,
+                "max_send_concurrency": int(meta.get("maxSendConcurrency", concurrency)),
                 "size": size,
                 "run_index": run_index,
                 "csv": csv_path,
@@ -90,7 +90,7 @@ def load_csvs(runs: list[dict]) -> pl.DataFrame:
             ).alias("t_sec_raw"),
         ).with_columns(
             ((pl.col("t_sec_raw") // BUCKET_SECONDS) * BUCKET_SECONDS).cast(pl.Int64).alias("t_sec"),
-            pl.lit(r["concurrency"], dtype=pl.Int64).alias("concurrency"),
+            pl.lit(r["max_send_concurrency"], dtype=pl.Int64).alias("max_send_concurrency"),
             pl.lit(r["size"], dtype=pl.Int64).alias("size"),
             pl.lit(r["run_index"], dtype=pl.Int64).alias("run_index"),
         ).with_columns(
@@ -105,7 +105,7 @@ def load_csvs(runs: list[dict]) -> pl.DataFrame:
 
 def add_io_rates(df: pl.DataFrame) -> pl.DataFrame:
     """Cumulative byte counters → bytes/sec, partitioned per run/container."""
-    keys = ["concurrency", "size", "run_index", "container"]
+    keys = ["max_send_concurrency", "size", "run_index", "container"]
     df = df.sort(keys + ["t_sec"])
     cols = ["net_rx_bytes", "net_tx_bytes", "block_r_bytes", "block_w_bytes"]
     rate_exprs = []
@@ -128,7 +128,7 @@ def meta_throughput(runs: list[dict]) -> pl.DataFrame:
         ps = r["meta"]["processStatus"]
         dur = r["meta"]["durationSeconds"] or 1
         rows.append({
-            "concurrency": r["concurrency"],
+            "max_send_concurrency": r["max_send_concurrency"],
             "size": r["size"],
             "run_index": r["run_index"],
             "duration_seconds": dur,
@@ -148,22 +148,23 @@ def save(fig, base: Path) -> None:
 
 
 def plot_timeseries(df: pl.DataFrame, value_col: str, ylabel: str, out: Path) -> None:
-    pdf = df.select(["concurrency", "size", "run_index", "agent", "t_sec", value_col]).to_pandas()
+    pdf = df.select(["max_send_concurrency", "size", "run_index", "agent", "t_sec", value_col]).to_pandas()
+    pdf = pdf.rename(columns={"max_send_concurrency": "concurrent patients"})
     g = sns.relplot(
         data=pdf, kind="line",
         x="t_sec", y=value_col,
-        hue="agent", row="concurrency", col="size",
+        hue="agent", row="concurrent patients", col="size",
         errorbar=None,
         height=3.0, aspect=1.6, facet_kws={"sharey": False, "sharex": False},
     )
     g.set_axis_labels("Seconds since run start", ylabel)
-    g.set_titles("conc={row_name} | size={col_name}")
+    g.set_titles("concurrent patients={row_name} | size={col_name}")
     g.figure.suptitle(f"{ylabel} over time", y=1.02)
     save(g.figure, out)
 
 
 def plot_bars(df: pl.DataFrame, value_col: str, ylabel: str, out: Path) -> None:
-    keys = ["concurrency", "size", "run_index", "agent"]
+    keys = ["max_send_concurrency", "size", "run_index", "agent"]
     per_run = df.group_by(keys).agg(
         pl.col(value_col).max().alias("peak"),
         pl.col(value_col).mean().alias("mean"),
@@ -171,53 +172,48 @@ def plot_bars(df: pl.DataFrame, value_col: str, ylabel: str, out: Path) -> None:
         index=keys, on=["peak", "mean"], variable_name="stat", value_name="value",
     )
     pdf = per_run.to_pandas()
+    pdf = pdf.rename(columns={"max_send_concurrency": "concurrent patients"})
     size_order = sorted(pdf["size"].unique().tolist())
     pdf["size"] = pdf["size"].astype(str)
     size_order_str = [str(s) for s in size_order]
     g = sns.catplot(
         data=pdf, kind="bar",
         x="size", y="value", hue="agent",
-        row="concurrency", col="stat",
+        row="concurrent patients", col="stat",
         order=size_order_str,
         errorbar=None,
         height=3.5, aspect=1.4, sharey=False,
     )
     g.set_axis_labels("Patient count", ylabel)
-    g.set_titles("conc={row_name} | {col_name}")
+    g.set_titles("concurrent patients={row_name} | {col_name}")
     g.figure.suptitle(f"{ylabel} — peak and mean per run", y=1.02)
     save(g.figure, out)
 
 
-def plot_throughput(meta_df: pl.DataFrame, out: Path) -> None:
-    pdf = meta_df.unpivot(
-        index=["concurrency", "size", "run_index"],
-        on=["bundles_per_sec", "patients_per_sec"],
-        variable_name="metric", value_name="rate",
-    ).to_pandas()
-    pdf["metric"] = pdf["metric"].map({
-        "bundles_per_sec": "bundles/sec",
-        "patients_per_sec": "patients/sec",
-    })
+def plot_throughput(meta_df: pl.DataFrame, value_col: str, ylabel: str, out: Path) -> None:
+    pdf = meta_df.select(["max_send_concurrency", "size", "run_index", value_col]).to_pandas()
+    msc_order = [str(v) for v in sorted(pdf["max_send_concurrency"].unique().tolist())]
+    pdf["max_send_concurrency"] = pdf["max_send_concurrency"].astype(str)
+    pdf = pdf.rename(columns={"max_send_concurrency": "concurrent patients"})
     g = sns.relplot(
         data=pdf, kind="line",
-        x="size", y="rate",
-        hue="concurrency", style="concurrency",
-        col="metric",
+        x="size", y=value_col,
+        hue="concurrent patients", style="concurrent patients",
+        hue_order=msc_order, style_order=msc_order,
         markers=True, dashes=False,
         errorbar=None,
-        height=4, aspect=1.3, facet_kws={"sharey": False},
+        height=4, aspect=1.4,
     )
     for ax in g.axes.flat:
         ax.set_xscale("log")
-    g.set_axis_labels("Patient count (log)", "rate")
-    g.set_titles("{col_name}")
-    g.figure.suptitle("End-to-end throughput", y=1.02)
+    g.set_axis_labels("Patient count (log)", ylabel)
+    g.figure.suptitle(f"End-to-end throughput — {ylabel}", y=1.02)
     save(g.figure, out)
 
 
 def plot_io(df: pl.DataFrame, value_cols: list[tuple[str, str]], title: str, out: Path) -> None:
-    long = df.select(["concurrency", "size", "run_index", "agent", "t_sec", *[c for c, _ in value_cols]]).unpivot(
-        index=["concurrency", "size", "run_index", "agent", "t_sec"],
+    long = df.select(["max_send_concurrency", "size", "run_index", "agent", "t_sec", *[c for c, _ in value_cols]]).unpivot(
+        index=["max_send_concurrency", "size", "run_index", "agent", "t_sec"],
         variable_name="direction",
         value_name="rate_kibps",
     )
@@ -225,22 +221,23 @@ def plot_io(df: pl.DataFrame, value_cols: list[tuple[str, str]], title: str, out
         pl.col("direction").replace({c: lbl for c, lbl in value_cols}),
     )
     pdf = long.drop_nulls("rate_kibps").to_pandas()
+    pdf = pdf.rename(columns={"max_send_concurrency": "concurrent patients"})
     g = sns.relplot(
         data=pdf, kind="line",
         x="t_sec", y="rate_kibps",
         hue="agent", style="direction",
-        row="concurrency", col="size",
+        row="concurrent patients", col="size",
         errorbar=None,
         height=3.0, aspect=1.6, facet_kws={"sharey": False, "sharex": False},
     )
     g.set_axis_labels("Seconds since run start", "KiB/s")
-    g.set_titles("conc={row_name} | size={col_name}")
+    g.set_titles("concurrent patients={row_name} | size={col_name}")
     g.figure.suptitle(title, y=1.02)
     save(g.figure, out)
 
 
 def plot_scaling_mem(df: pl.DataFrame, out: Path) -> None:
-    keys = ["concurrency", "size", "run_index", "agent"]
+    keys = ["max_send_concurrency", "size", "run_index", "agent"]
     per_run = df.group_by(keys).agg(
         pl.col("mem_used_mib").max().alias("peak_mib"),
         pl.col("mem_used_mib").mean().alias("mean_mib"),
@@ -248,13 +245,14 @@ def plot_scaling_mem(df: pl.DataFrame, out: Path) -> None:
         index=keys, on=["peak_mib", "mean_mib"], variable_name="stat", value_name="mem_mib",
     )
     pdf = per_run.to_pandas()
+    pdf = pdf.rename(columns={"max_send_concurrency": "concurrent patients"})
     pdf["stat"] = pdf["stat"].map({"peak_mib": "peak", "mean_mib": "mean"})
     size_order = sorted(pdf["size"].unique().tolist())
     pdf["size"] = pdf["size"].astype(str)
     size_order_str = [str(s) for s in size_order]
     g = sns.relplot(
         data=pdf, kind="line",
-        x="concurrency", y="mem_mib",
+        x="concurrent patients", y="mem_mib",
         hue="size", style="size",
         hue_order=size_order_str, style_order=size_order_str,
         row="agent", col="stat",
@@ -262,9 +260,9 @@ def plot_scaling_mem(df: pl.DataFrame, out: Path) -> None:
         errorbar=None,
         height=3.0, aspect=1.5, facet_kws={"sharey": False},
     )
-    g.set_axis_labels("Send concurrency", "Memory (MiB)")
+    g.set_axis_labels("Concurrent patients", "Memory (MiB)")
     g.set_titles("{row_name} | {col_name}")
-    g.figure.suptitle("Memory usage vs send-concurrency", y=1.02)
+    g.figure.suptitle("Memory usage vs concurrent patients", y=1.02)
     save(g.figure, out)
 
 
@@ -301,7 +299,8 @@ def main() -> None:
     plot_timeseries(df, "mem_used_mib", "Memory (MiB)", args.out / "timeseries_mem")
     plot_bars(df, "cpu_perc", "CPU (%)", args.out / "bars_cpu")
     plot_bars(df, "mem_used_mib", "Memory (MiB)", args.out / "bars_mem")
-    plot_throughput(meta_df, args.out / "throughput")
+    plot_throughput(meta_df, "bundles_per_sec", "bundles/sec", args.out / "throughput_bundles")
+    plot_throughput(meta_df, "patients_per_sec", "patients/sec", args.out / "throughput_patients")
     plot_io(df_io, [("net_rx_kibps", "rx"), ("net_tx_kibps", "tx")],
             "Network IO rate", args.out / "io_net")
     plot_io(df_io, [("block_r_kibps", "read"), ("block_w_kibps", "write")],
