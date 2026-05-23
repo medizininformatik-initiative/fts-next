@@ -153,12 +153,12 @@ def plot_timeseries(df: pl.DataFrame, value_col: str, ylabel: str, out: Path) ->
         data=pdf, kind="line",
         x="t_sec", y=value_col,
         hue="agent", row="concurrency", col="size",
-        errorbar=("pi", 100),
+        errorbar=None,
         height=3.0, aspect=1.6, facet_kws={"sharey": False, "sharex": False},
     )
     g.set_axis_labels("Seconds since run start", ylabel)
     g.set_titles("conc={row_name} | size={col_name}")
-    g.figure.suptitle(f"{ylabel} over time (mean ± min/max across runs)", y=1.02)
+    g.figure.suptitle(f"{ylabel} over time", y=1.02)
     save(g.figure, out)
 
 
@@ -179,7 +179,7 @@ def plot_bars(df: pl.DataFrame, value_col: str, ylabel: str, out: Path) -> None:
         x="size", y="value", hue="agent",
         row="concurrency", col="stat",
         order=size_order_str,
-        errorbar=("pi", 100),
+        errorbar=None,
         height=3.5, aspect=1.4, sharey=False,
     )
     g.set_axis_labels("Patient count", ylabel)
@@ -204,9 +204,8 @@ def plot_throughput(meta_df: pl.DataFrame, out: Path) -> None:
         hue="concurrency", style="concurrency",
         col="metric",
         markers=True, dashes=False,
-        errorbar=("pi", 100),
+        errorbar=None,
         height=4, aspect=1.3, facet_kws={"sharey": False},
-        palette="viridis",
     )
     for ax in g.axes.flat:
         ax.set_xscale("log")
@@ -231,7 +230,7 @@ def plot_io(df: pl.DataFrame, value_cols: list[tuple[str, str]], title: str, out
         x="t_sec", y="rate_kibps",
         hue="agent", style="direction",
         row="concurrency", col="size",
-        errorbar=("pi", 100),
+        errorbar=None,
         height=3.0, aspect=1.6, facet_kws={"sharey": False, "sharex": False},
     )
     g.set_axis_labels("Seconds since run start", "KiB/s")
@@ -260,9 +259,8 @@ def plot_scaling_mem(df: pl.DataFrame, out: Path) -> None:
         hue_order=size_order_str, style_order=size_order_str,
         row="agent", col="stat",
         markers=True, dashes=False,
-        errorbar=("pi", 100),
+        errorbar=None,
         height=3.0, aspect=1.5, facet_kws={"sharey": False},
-        palette="viridis",
     )
     g.set_axis_labels("Send concurrency", "Memory (MiB)")
     g.set_titles("{row_name} | {col_name}")
@@ -295,7 +293,7 @@ def main() -> None:
     df_io = add_io_rates(df)
     meta_df = meta_throughput(runs)
 
-    sns.set_theme(context="talk", style="whitegrid")
+    sns.set_theme(context="talk", style="whitegrid", palette="tab10")
     wipe_outputs(args.out)
     args.out.mkdir(parents=True, exist_ok=True)
 
