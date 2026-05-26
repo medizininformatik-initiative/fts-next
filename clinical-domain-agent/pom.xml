@@ -146,10 +146,12 @@
                 ${project.basedir}/../util/src/main/bash/generate-certificates.sh
               </executable>
               <arguments>
+                <argument>${project.build.testOutputDirectory}</argument>
+                <argument>--server</argument>
                 <argument>localhost</argument>
+                <argument>--client</argument>
                 <argument>default</argument>
               </arguments>
-              <workingDirectory>${project.build.testOutputDirectory}</workingDirectory>
             </configuration>
           </execution>
         </executions>
