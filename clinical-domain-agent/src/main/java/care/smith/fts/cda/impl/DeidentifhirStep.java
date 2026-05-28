@@ -57,16 +57,24 @@ class DeidentifhirStep implements Deidentificator {
     return Mono.defer(
         () -> {
           var patient = bundle.consentedPatient();
+          var inputBundleSize = bundle.bundle().getEntry().size();
+          var deidentifyMsg = "deidentify for patient {}, input bundle has {} entries";
+          log.trace(deidentifyMsg, patient.identifier(), inputBundleSize);
           var provider = new GeneratingReplacementProvider(patient.identifier());
           var registry = buildRegistry(provider);
           var deidentified =
               DeidentifhirUtils.deidentify(
                   config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
+          var deidentifiedMsg = "deidentified bundle for patient {} has {} entries";
+          log.trace(deidentifiedMsg, patient.identifier(), deidentified.getEntry().size());
 
           var idMappings = provider.getIdMappings();
           var dateMappings = provider.getDateMappings();
+          var producedMsg =
+              "deidentify produced {} ID mappings and {} date mappings for patient {}";
+          log.trace(producedMsg, idMappings.size(), dateMappings.size(), patient.identifier());
           return (idMappings.isEmpty() && dateMappings.isEmpty())
-              ? Mono.empty()
+              ? Mono.fromRunnable(() -> log.warn("No mappings to send to TCA"))
               : sendMappingsToTca(patient, idMappings, dateMappings)
                   .map(transferId -> new TransportBundle(deidentified, transferId));
         });

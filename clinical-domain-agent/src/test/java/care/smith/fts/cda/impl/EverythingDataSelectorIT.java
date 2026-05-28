@@ -45,6 +45,7 @@ import reactor.core.publisher.Mono;
 class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
   private static WireMock wireMock;
+  private static WireMockRuntimeInfo wireMockRuntime;
   private static final String PATIENT_IDENTIFIER = "patient-112348";
   private static final int PAGE_SIZE = 500;
   private static final PatientIdResolver pidResolver =
@@ -60,6 +61,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
       WireMockRuntimeInfo wireMockRuntime,
       @Autowired WebClientFactory clientFactory,
       @Autowired MeterRegistry meterRegistry) {
+    EverythingDataSelectorIT.wireMockRuntime = wireMockRuntime;
     wireMock = wireMockRuntime.getWireMock();
     client = clientFactory.create(clientConfig(wireMockRuntime));
     var common = new DataSelector.Config(false);
@@ -134,5 +136,20 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     wireMock.register(fhirStoreRequestWithConsent().willReturn(fhirResponse(new Bundle())));
 
     create(dataSelector.select(consentedPatient)).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void selectionFollowsPagination() {
+    var firstBundle = new Bundle();
+    firstBundle
+        .addLink()
+        .setRelation("next")
+        .setUrl("http://localhost:" + wireMockRuntime.getHttpPort() + "/page2");
+    var secondBundle = new Bundle();
+
+    wireMock.register(fhirStoreRequestWithConsent().willReturn(fhirResponse(firstBundle)));
+    wireMock.register(get("/page2").willReturn(fhirResponse(secondBundle)));
+
+    create(dataSelector.select(consentedPatient)).expectNextCount(2).verifyComplete();
   }
 }

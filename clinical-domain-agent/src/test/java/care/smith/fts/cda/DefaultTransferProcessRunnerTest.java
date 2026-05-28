@@ -105,6 +105,34 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
+  void unexpectedPipelineErrorIsFatal() {
+    DataSelector throwingSelector =
+        p -> {
+          throw new RuntimeException("Data selector boom");
+        };
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT)),
+            throwingSelector,
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.FATAL);
+              assertThat(r.sentBundles()).isEqualTo(0);
+              assertThat(r.skippedBundles()).isEqualTo(0);
+            })
+        .verifyComplete();
+  }
+
+  @Test
   void cohortSelectorErrorIsLoggedWithStacktrace() {
     var logger = (Logger) LoggerFactory.getLogger(DefaultTransferProcessRunner.class);
     var appender = new ListAppender<ILoggingEvent>();

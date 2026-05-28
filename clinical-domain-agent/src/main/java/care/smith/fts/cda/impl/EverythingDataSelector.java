@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.util.Optional.ofNullable;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
@@ -26,6 +27,11 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 public class EverythingDataSelector implements DataSelector {
+
+  private static final String RESOLVED_MSG = "Resolved patient {} to FHIR ID {}";
+  private static final String FETCH_EVERYTHING_MSG =
+      "fetchEverything for patient {}, FHIR ID {}, ignoreConsent={}";
+
   private final Config common;
   private final WebClient hdsClient;
   private final PatientIdResolver pidResolver;
@@ -49,11 +55,15 @@ public class EverythingDataSelector implements DataSelector {
   public Flux<ConsentedPatientBundle> select(ConsentedPatient patient) {
     return pidResolver
         .resolve(patient)
+        .doOnNext(fhirId -> log.trace(RESOLVED_MSG, patient.identifier(), fhirId.getIdPart()))
         .flatMapMany(fhirId -> fetchEverything(patient, fhirId))
-        .map(b -> new ConsentedPatientBundle(b, patient));
+        .map(b -> new ConsentedPatientBundle(b, patient))
+        .doOnComplete(() -> log.trace("select for patient {} completed", patient.identifier()));
   }
 
   private Flux<Bundle> fetchEverything(ConsentedPatient patient, IIdType fhirId) {
+    log.trace(
+        FETCH_EVERYTHING_MSG, patient.identifier(), fhirId.getIdPart(), common.ignoreConsent());
     var uriBuilder = common.ignoreConsent() ? withoutConsent(fhirId) : withConsent(patient, fhirId);
     return fetchBundle("/Patient/{id}/$everything", uriBuilder)
         .doOnError(e -> log.error("Unable to fetch patient data from HDS: {}", e.getMessage()))
@@ -74,7 +84,10 @@ public class EverythingDataSelector implements DataSelector {
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle) {
-    return Mono.justOrEmpty(bundle.getLink("next"))
+    var nextLink = ofNullable(bundle.getLink("next"));
+    if (nextLink.isEmpty()) log.trace("fetchNextPage: no next link");
+    return Mono.justOrEmpty(nextLink)
+        .doOnNext(l -> log.trace("fetchNextPage: {}", l.getUrl()))
         .map(BundleLinkComponent::getUrl)
         .flatMap(uri -> fetchBundle(uri, UriBuilder::build));
   }
@@ -86,15 +99,17 @@ public class EverythingDataSelector implements DataSelector {
   private Function<UriBuilder, URI> withConsent(ConsentedPatient patient, IIdType fhirId) {
     var period = patient.maxConsentedPeriod();
     if (period.isEmpty()) {
-      log.error("Patient has no consent configured, and ignoreConsent is false.");
-      throw new IllegalArgumentException(
-          "Patient has no consent configured, and ignoreConsent is false.");
+      var msg = "Patient has no consent configured, and ignoreConsent is false.";
+      log.error(msg);
+      throw new IllegalArgumentException(msg);
     }
+    var p = period.get();
+    log.trace("withConsent: patient {}, period {} to {}", patient.identifier(), p.start(), p.end());
     return (uriBuilder) ->
         uriBuilder
             .queryParam("_count", pageSize)
-            .queryParam("start", formatWithSystemTZ(period.get().start()))
-            .queryParam("end", formatWithSystemTZ(period.get().end()))
+            .queryParam("start", formatWithSystemTZ(p.start()))
+            .queryParam("end", formatWithSystemTZ(p.end()))
             .build(Map.of("id", fhirId.getIdPart()));
   }
 
