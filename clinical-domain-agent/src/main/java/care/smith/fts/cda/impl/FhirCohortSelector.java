@@ -43,6 +43,7 @@ class FhirCohortSelector implements CohortSelector {
 
   @Override
   public Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
+    log.trace("selectCohort: {} identifiers", identifiers.size());
     return fetchBundle(b -> buildFhirSearchQuery(b, identifiers))
         .expand(this::fetchNextPage)
         .timeout(Duration.ofSeconds(30))
@@ -61,7 +62,9 @@ class FhirCohortSelector implements CohortSelector {
               .collect(joining(","));
       builder = builder.queryParam("patient.identifier", identifierQuery);
     }
-    return builder.build();
+    var uri = builder.build();
+    log.trace("buildFhirSearchQuery: {}", uri);
+    return uri;
   }
 
   private Mono<Bundle> fetchBundle(Function<UriBuilder, URI> uriBuilder) {
@@ -71,7 +74,8 @@ class FhirCohortSelector implements CohortSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchFhirBundle"));
+        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchFhirBundle"))
+        .doOnNext(b -> log.trace("fetchBundle: {} entries", b.getEntry().size()));
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle) {
@@ -94,12 +98,14 @@ class FhirCohortSelector implements CohortSelector {
     var patientIdentifierSystem = config.patientIdentifierSystem();
     var bundles = groupPatientsAndConsents(bundle);
     return Flux.fromStream(
-        processConsentedPatients(
-            patientIdentifierSystem,
-            config.policySystem(),
-            bundles,
-            config.policies(),
-            b -> getPatientIdentifier(patientIdentifierSystem, b)));
+            processConsentedPatients(
+                patientIdentifierSystem,
+                config.policySystem(),
+                bundles,
+                config.policies(),
+                b -> getPatientIdentifier(patientIdentifierSystem, b)))
+        .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
+        .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
   }
 
   private static Stream<Bundle> groupPatientsAndConsents(Bundle bundle) {

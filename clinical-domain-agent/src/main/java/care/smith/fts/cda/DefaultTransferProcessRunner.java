@@ -71,6 +71,12 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
         instances.values().stream()
             .filter(inst -> inst.status().mayBeRemoved(removeBefore))
             .toList();
+    if (!forRemoval.isEmpty()) {
+      log.trace(
+          "[Process Runner] Removing {} old processes older than {}",
+          forRemoval.size(),
+          removeBefore);
+    }
     forRemoval.forEach(p -> instances.remove(p.processId()));
   }
 
@@ -110,8 +116,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   private synchronized void onComplete() {
     var next = queued.poll();
     if (next != null) {
+      log.trace("[Process Runner] Dequeued process {} from queue", next.processId());
       next.execute();
       instances.put(next.processId(), next);
+    } else {
+      log.trace("[Process Runner] Queue empty, no process to dequeue");
     }
   }
 
@@ -137,33 +146,64 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .transform(this::sendBundles)
           .doOnComplete(this::onComplete)
           .doOnComplete(DefaultTransferProcessRunner.this::onComplete)
+          .doOnError(
+              e -> {
+                log.error("[Process {}] Unexpected pipeline error", processId(), e);
+                status.updateAndGet(s -> s.setPhase(Phase.FATAL));
+                DefaultTransferProcessRunner.this.onComplete();
+              })
           .subscribe();
       log.info("[Process {}] Started", processId());
     }
 
     private Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
+      log.trace("[Process {}] selectCohort with {} identifiers", processId(), identifiers.size());
       return process
           .cohortSelector()
           .selectCohort(identifiers)
-          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalPatients))
+          .doOnNext(
+              p -> {
+                log.trace(
+                    "[Process {}] selectCohort emitted patient {}", processId(), p.identifier());
+                status.updateAndGet(TransferProcessStatus::incTotalPatients);
+              })
           .doOnError(
               e -> {
-                log.error("[Process {}] Cohort selection failed", processId(), e);
                 status.updateAndGet(s -> s.setPhase(Phase.FATAL));
+                log.error("[Process {}] Cohort selection failed", processId(), e);
               })
           .onErrorComplete();
     }
 
     private Flux<ConsentedPatientBundle> selectData(Flux<ConsentedPatient> cohortSelection) {
       return cohortSelection
+          .doOnNext(
+              p -> log.trace("[Process {}] selectData for patient {}", processId(), p.identifier()))
           .flatMap(this::selectDataForPatient)
-          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incTotalBundles));
+          .doOnNext(
+              b -> {
+                status.updateAndGet(TransferProcessStatus::incTotalBundles);
+                var msg = "[Process {}] selectData produced bundle for patient {}";
+                log.trace(msg, processId(), b.consentedPatient().identifier());
+              })
+          .doOnComplete(() -> log.trace("[Process {}] selectData completed", processId()));
     }
 
     private Flux<ConsentedPatientBundle> selectDataForPatient(ConsentedPatient patient) {
+      log.trace("[Process {}] selectDataForPatient {}", processId(), patient.identifier());
       return process
           .dataSelector()
           .select(patient)
+          .doOnNext(
+              b -> {
+                String msg = "[Process {}] selectDataForPatient {} produced {} entries";
+                log.trace(msg, processId(), patient.identifier(), b.bundle().getEntry().size());
+              })
+          .doOnComplete(
+              () -> {
+                var msg = "[Process {}] selectDataForPatient {} completed (no bundles)";
+                log.trace(msg, processId(), patient.identifier());
+              })
           .onErrorResume(e -> handlePatientError(patient.identifier(), Step.SELECT_DATA, e));
     }
 
@@ -186,38 +226,64 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Flux<PatientContext<TransportBundle>> deidentify(
         Flux<ConsentedPatientBundle> dataSelection) {
+      var beforeMsg = "[Process {}] deidentify for patient {}";
       return dataSelection
+          .doOnNext(b -> log.trace(beforeMsg, processId(), b.consentedPatient().identifier()))
           .flatMap(this::deidentifyForPatient)
-          .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles));
+          .doOnNext(
+              b -> {
+                status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles);
+                var doneMsg = "[Process {}] deidentify completed for patient {}";
+                log.trace(doneMsg, processId(), b.consentedPatient().identifier());
+              });
     }
 
     private Mono<PatientContext<TransportBundle>> deidentifyForPatient(
         ConsentedPatientBundle bundle) {
       var patientId = bundle.consentedPatient().identifier();
+      log.trace("[Process {}] deidentifyForPatient {}", processId(), patientId);
+      var producedMsg = "[Process {}] deidentifyForPatient {} produced transport bundle";
+      var completedMsg = "[Process {}] deidentifyForPatient {} completed";
       return process
           .deidentificator()
           .deidentify(bundle)
+          .doOnSuccess(t -> log.trace(producedMsg, processId(), patientId))
+          .doOnSuccess(v -> log.trace(completedMsg, processId(), patientId))
           .map(t -> new PatientContext<>(t, bundle.consentedPatient()))
           .onErrorResume(e -> handlePatientError(patientId, Step.DEIDENTIFY, e));
     }
 
     private Flux<Result> sendBundles(Flux<PatientContext<TransportBundle>> deidentification) {
+      var beforeMsg = "[Process {}] sendBundles for patient {}";
       return deidentification
+          .doOnNext(b -> log.trace(beforeMsg, processId(), b.consentedPatient().identifier()))
           .flatMap(this::sendBundleForPatient, config.maxSendConcurrency)
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles));
     }
 
     private Mono<Result> sendBundleForPatient(PatientContext<TransportBundle> b) {
       var patientId = b.consentedPatient().identifier();
+      log.trace("[Process {}] sendBundleForPatient {}", processId(), patientId);
+      var successMsg = "[Process {}] sendBundleForPatient {} succeeded";
       return process
           .bundleSender()
           .send(b.data())
+          .doOnSuccess(r -> log.trace(successMsg, processId(), patientId))
           .onErrorResume(e -> handlePatientError(patientId, Step.SEND_BUNDLE, e));
     }
 
     private void onComplete() {
       var status = this.status.updateAndGet(s -> s.phase() != Phase.FATAL ? checkCompletion(s) : s);
       log.info("[Process {}] Finished with: {}", processId(), status.phase());
+      log.trace(
+          "[Process {}] Summary: totalPatients={}, totalBundles={}, deidentifiedBundles={}, "
+              + "sentBundles={}, skippedBundles={}",
+          processId(),
+          status.totalPatients(),
+          status.totalBundles(),
+          status.deidentifiedBundles(),
+          status.sentBundles(),
+          status.skippedBundles());
     }
 
     private TransferProcessStatus checkCompletion(TransferProcessStatus s) {

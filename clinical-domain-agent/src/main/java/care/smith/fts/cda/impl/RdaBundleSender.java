@@ -42,10 +42,14 @@ final class RdaBundleSender implements BundleSender {
 
   @Override
   public Mono<Result> send(TransportBundle bundle) {
+    log.trace("send bundle with transferId {}", bundle.transferId());
     return sendBundle(toPlainBundle(requireNonNull(bundle))).map(v -> new Result());
   }
 
   private static Bundle toPlainBundle(TransportBundle transportBundle) {
+    var resourceCount = transportBundle.bundle().getEntry().size();
+    log.trace(
+        "toPlainBundle: transferId {}, {} resources", transportBundle.transferId(), resourceCount);
     Parameters transportIdMap = new Parameters();
     transportIdMap.setId("transfer-id");
     transportIdMap.addParameter("id", transportBundle.transferId());
@@ -53,6 +57,7 @@ final class RdaBundleSender implements BundleSender {
   }
 
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {
+    log.trace("sendBundle to project {}", config.project());
     return rdaClient
         .post()
         .uri("/api/v2/process/{project}/patient", Map.of("project", config.project()))
@@ -67,8 +72,10 @@ final class RdaBundleSender implements BundleSender {
 
   private Mono<ResponseEntity<Void>> processOrWaitForRDACompleted(ResponseEntity<Void> response) {
     if (response.getStatusCode() == OK) {
+      log.trace("RDA responded with OK, sync path");
       return Mono.just(response);
     } else {
+      log.trace("RDA responded with {}, async polling path", response.getStatusCode());
       return waitForRDACompleted(response);
     }
   }
@@ -93,12 +100,9 @@ final class RdaBundleSender implements BundleSender {
               if (status == OK) {
                 return Mono.just(r);
               } else if (status == ACCEPTED) {
-                var message =
-                    "RDA polling budget exhausted after "
-                        + MAX_STATUS_POLLS
-                        + " attempts, status still ACCEPTED";
-                log.error(message);
-                return Mono.error(new TransferProcessException(message));
+                var msg = "RDA polling budget exhausted after {} attempts, status still ACCEPTED";
+                log.error(msg, MAX_STATUS_POLLS);
+                return Mono.error(new TransferProcessException("RDA polling budget exhausted"));
               } else {
                 log.error("Unexpected RDA status: {}", status);
                 return Mono.error(new TransferProcessException("Unexpected RDA status: " + status));
@@ -107,7 +111,13 @@ final class RdaBundleSender implements BundleSender {
   }
 
   private Mono<ResponseEntity<Void>> fetchStatus(URI uri) {
-    return rdaClient.get().uri(uri.toString()).retrieve().toBodilessEntity();
+    log.trace("fetchStatus from {}", uri);
+    return rdaClient
+        .get()
+        .uri(uri.toString())
+        .retrieve()
+        .toBodilessEntity()
+        .doOnSuccess(r -> log.trace("fetchStatus response: {}", r.getStatusCode()));
   }
 
   private Mono<URI> extractStatusUri(ResponseEntity<Void> response) {
@@ -131,9 +141,12 @@ final class RdaBundleSender implements BundleSender {
   private static Long getRetryAfter(ResponseEntity<Void> response) {
     var retryAfter = response.getHeaders().get(RETRY_AFTER);
     if (retryAfter == null) {
+      log.trace("No Retry-After header, defaulting to 1s");
       return 1L;
     } else {
-      return retryAfter.stream().findFirst().map(RdaBundleSender::parseRetryAfter).orElse(1L);
+      var parsed = retryAfter.stream().findFirst().map(RdaBundleSender::parseRetryAfter).orElse(1L);
+      log.trace("Retry-After: {}s", parsed);
+      return parsed;
     }
   }
 

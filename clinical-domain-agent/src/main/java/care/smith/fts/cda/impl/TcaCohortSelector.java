@@ -50,6 +50,7 @@ class TcaCohortSelector implements CohortSelector {
         identifiers.isEmpty()
             ? "/api/v2/cd/consented-patients/fetch-all"
             : "/api/v2/cd/consented-patients/fetch";
+    log.trace("selectCohort: url={}, {} identifiers", url, identifiers.size());
 
     return fetchBundle(url, identifiers)
         .expand(bundle -> fetchNextPage(bundle, identifiers))
@@ -92,18 +93,23 @@ class TcaCohortSelector implements CohortSelector {
       body = body.put("patientIdentifierSystem", getGicsIdentifierSystem());
       body = body.put("identifiers", identifiers);
     }
-    return body.build();
+    var result = body.build();
+    log.trace(
+        "constructBody: policies={}, identifiers={}", config.policies().size(), identifiers.size());
+    return result;
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
     var resources = typedResourceStream(outerBundle, Bundle.class);
     return Flux.fromStream(
-        processConsentedPatients(
-            config.patientIdentifierSystem(),
-            config.policySystem(),
-            resources,
-            config.policies(),
-            b -> getPatientIdentifier(getGicsIdentifierSystem(), b)));
+            processConsentedPatients(
+                config.patientIdentifierSystem(),
+                config.policySystem(),
+                resources,
+                config.policies(),
+                b -> getPatientIdentifier(getGicsIdentifierSystem(), b)))
+        .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
+        .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {

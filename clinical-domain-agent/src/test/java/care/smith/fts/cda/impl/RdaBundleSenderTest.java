@@ -51,10 +51,7 @@ class RdaBundleSenderTest {
         .expectErrorMatches(
             e ->
                 e instanceof TransferProcessException
-                    && e.getMessage()
-                        .equals(
-                            "RDA polling budget exhausted after 10 attempts, status still"
-                                + " ACCEPTED"))
+                    && e.getMessage().equals("RDA polling budget exhausted"))
         .verify();
   }
 
