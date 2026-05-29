@@ -11,6 +11,12 @@ version the feature is or will be available, e.g. <Badge type="warning" text="Si
 The latest stable version
 is: [{{ release }}](https://github.com/medizininformatik-initiative/fts-next/releases/latest)
 
+## Applying Configuration Changes
+
+FTSnext reads its configuration **once at startup**. Changing any setting — the agents'
+`application.yaml`, transfer project files, or JVM options — only takes effect after the
+affected agent is **restarted**. There is no runtime configuration reload.
+
 ## Agent Configuration
 
 Agent configuration in the context of FTSnext means the configuration of the server components,
