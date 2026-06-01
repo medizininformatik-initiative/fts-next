@@ -103,6 +103,7 @@ export default withMermaid({
                 {text: 'De-Identification', link: '/configuration/de-identification'},
                 {text: 'Consent', link: '/configuration/consent'},
                 {text: 'WebFlux', link: '/configuration/webflux'},
+                {text: 'HTTP Client', link: '/configuration/http-client'},
               ]
         },
         {
