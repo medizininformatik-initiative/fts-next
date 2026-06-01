@@ -12,9 +12,13 @@ import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.rda.RdaRunnerConfig;
 import care.smith.fts.rda.TransferProcessConfig;
 import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
+import care.smith.fts.rda.TransferProcessRunner.StartResult;
+import care.smith.fts.rda.TransferProcessRunner.StartResult.Accepted;
+import care.smith.fts.rda.TransferProcessRunner.StartResult.Rejected;
 import care.smith.fts.rda.TransferProcessRunner.Status;
 import care.smith.fts.util.error.ErrorResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +39,7 @@ import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.r4.model.PrimitiveType;
 import org.hl7.fhir.r4.model.StringType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseEntity.BodyBuilder;
@@ -51,11 +56,15 @@ public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
   private final List<TransferProcessDefinition> processes;
+  private final RdaRunnerConfig runnerConfig;
 
   public TransferProcessController(
-      TransferProcessRunner runner, List<TransferProcessDefinition> processes) {
+      TransferProcessRunner runner,
+      List<TransferProcessDefinition> processes,
+      RdaRunnerConfig runnerConfig) {
     this.processRunner = runner;
     this.processes = processes;
+    this.runnerConfig = runnerConfig;
   }
 
   @PostMapping(
@@ -111,14 +120,25 @@ public class TransferProcessController {
     return data.map(TransferProcessController::fromPlainBundle)
         .doOnNext(b -> log.debug("Running process: {}", transferProcessDefinition))
         .map(tb -> processRunner.start(transferProcessDefinition, Mono.just(tb)))
-        .doOnNext(id -> log.trace("projectId {}", id))
-        .map(id -> generateJobUri(uriBuilder, id))
-        .doOnNext(jobUri -> log.trace("jobUri {}", jobUri))
-        .map(
-            jobUri ->
-                ResponseEntity.accepted()
-                    .headers(h -> h.add(CONTENT_LOCATION, jobUri.toString()))
-                    .build());
+        .map(result -> toResponse(result, uriBuilder));
+  }
+
+  private ResponseEntity<Object> toResponse(StartResult result, UriComponentsBuilder uriBuilder) {
+    return switch (result) {
+      case Accepted accepted -> {
+        var jobUri = generateJobUri(uriBuilder, accepted.processId());
+        log.trace("jobUri {}", jobUri);
+        yield ResponseEntity.accepted()
+            .headers(h -> h.add(CONTENT_LOCATION, jobUri.toString()))
+            .build();
+      }
+      case Rejected() -> {
+        log.debug("Admission rejected; responding 429");
+        yield ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .headers(h -> h.add(RETRY_AFTER, String.valueOf(runnerConfig.getRetryAfterSeconds())))
+            .build();
+      }
+    };
   }
 
   static TransportBundle fromPlainBundle(Bundle bundle) {

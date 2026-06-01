@@ -26,6 +26,7 @@ public class FhirStoreBundleSenderFactory
   public BundleSender create(
       BundleSender.Config commonConfig, FhirStoreBundleSenderConfig implConfig) {
     var client = clientFactory.create(implConfig.server());
-    return new FhirStoreBundleSender(client, retryStrategy);
+    return new FhirStoreBundleSender(
+        client, retryStrategy, implConfig.server().baseUrl(), implConfig.maxConcurrency());
   }
 }

@@ -59,8 +59,11 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
-    var client = clientFactory.create(clientConfig(wireMockRuntime));
-    bundleSender = new FhirStoreBundleSender(client, new DefaultRetryStrategy(meterRegistry));
+    var clientConfig = clientConfig(wireMockRuntime);
+    var client = clientFactory.create(clientConfig);
+    bundleSender =
+        new FhirStoreBundleSender(
+            client, new DefaultRetryStrategy(meterRegistry), clientConfig.baseUrl(), 2);
     wireMock = wireMockRuntime.getWireMock();
   }
 

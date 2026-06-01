@@ -106,4 +106,17 @@ class RdaBundleSenderTest {
         .expectNextCount(1)
         .verifyComplete();
   }
+
+  @Test
+  void acceptedWithoutContentLocationErrors() {
+    var client = buildClient(request -> ClientResponse.create(HttpStatus.ACCEPTED).build());
+    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
+
+    create(sender.send(new TransportBundle(new Bundle(), "tid")))
+        .expectErrorMatches(
+            e ->
+                e instanceof TransferProcessException
+                    && e.getMessage().equals("Missing Content-Location"))
+        .verify();
+  }
 }

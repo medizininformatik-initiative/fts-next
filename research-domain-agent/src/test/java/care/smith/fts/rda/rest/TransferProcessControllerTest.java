@@ -13,10 +13,12 @@ import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.rda.RdaRunnerConfig;
 import care.smith.fts.rda.TransferProcessConfig;
 import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
 import care.smith.fts.rda.TransferProcessRunner.Phase;
+import care.smith.fts.rda.TransferProcessRunner.StartResult;
 import care.smith.fts.rda.TransferProcessRunner.Status;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
@@ -48,7 +50,9 @@ class TransferProcessControllerTest {
   @BeforeEach
   void setUp() {
     mockRunner = mock(TransferProcessRunner.class);
-    api = new TransferProcessController(mockRunner, of(mockTransferProcess()));
+    var config = new RdaRunnerConfig();
+    config.setRetryAfterSeconds(5);
+    api = new TransferProcessController(mockRunner, of(mockTransferProcess()), config);
   }
 
   @Test
@@ -60,7 +64,7 @@ class TransferProcessControllerTest {
                 resourceStream(new Bundle()))
             .collect(toBundle());
     when(mockRunner.start(any(TransferProcessDefinition.class), any(Mono.class)))
-        .thenReturn(RUNNING_PROCESS_ID);
+        .thenReturn(StartResult.accepted(RUNNING_PROCESS_ID));
 
     var start =
         api.start(
@@ -81,10 +85,32 @@ class TransferProcessControllerTest {
   }
 
   @Test
-  void startNonExistingProjectErrors() {
+  void startRejectedReturns429WithRetryAfter() {
+    var bundle =
+        concat(
+                Stream.of(
+                    new Parameters().addParameter("id", "transfer-142609").setId("transfer-id")),
+                resourceStream(new Bundle()))
+            .collect(toBundle());
     when(mockRunner.start(any(TransferProcessDefinition.class), any(Mono.class)))
-        .thenThrow(new RuntimeException("Project 'non-existent' could not be found"));
+        .thenReturn(StartResult.rejected());
 
+    var start =
+        api.start(
+            "example",
+            Mono.just(bundle),
+            UriComponentsBuilder.fromUriString("http://localhost:1234"));
+
+    create(start)
+        .expectNext(
+            ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(h -> h.add(RETRY_AFTER, "5"))
+                .build())
+        .verifyComplete();
+  }
+
+  @Test
+  void startNonExistingProjectErrors() {
     create(
             api.start(
                 "non-existent",

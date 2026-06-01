@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
@@ -22,7 +23,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
-import care.smith.fts.util.DefaultRetryStrategy;
+import care.smith.fts.util.RdaBackpressureRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
@@ -62,7 +63,8 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
     wireMock = wireMockRuntime.getWireMock();
 
     var config = new RdaBundleSenderConfig(server, "example");
-    bundleSender = new RdaBundleSender(config, client, new DefaultRetryStrategy(meterRegistry));
+    bundleSender =
+        new RdaBundleSender(config, client, new RdaBackpressureRetryStrategy(meterRegistry));
   }
 
   private static MappingBuilder rdaRequest() {
@@ -243,6 +245,30 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
                 e instanceof TransferProcessException
                     && e.getMessage().startsWith("Unexpected RDA status: 201"))
         .verify();
+  }
+
+  @Test
+  void tooManyRequestsIsRetried() {
+    wireMock.register(
+        rdaRequest()
+            .inScenario("Backpressure")
+            .whenScenarioStateIs(FIRST)
+            .willReturn(status(429).withHeader(RETRY_AFTER, "1"))
+            .willSetStateTo(REST));
+
+    wireMock.register(
+        rdaRequest()
+            .inScenario("Backpressure")
+            .whenScenarioStateIs(REST)
+            .willReturn(
+                accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
+
+    wireMock.register(get("/api/v2/process/status/processId").willReturn(ok()));
+
+    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
+        .expectNext(new BundleSender.Result())
+        .verifyComplete();
   }
 
   @AfterEach
