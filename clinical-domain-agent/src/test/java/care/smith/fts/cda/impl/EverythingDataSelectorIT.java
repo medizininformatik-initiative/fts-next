@@ -66,11 +66,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     EverythingDataSelectorIT.meterRegistry = meterRegistry;
     dataSelector =
         new EverythingDataSelector(
-            common,
-            client,
-            pidResolver,
-            new DefaultRetryStrategy(meterRegistry),
-            PAGE_SIZE);
+            common, client, pidResolver, new DefaultRetryStrategy(meterRegistry), PAGE_SIZE);
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
