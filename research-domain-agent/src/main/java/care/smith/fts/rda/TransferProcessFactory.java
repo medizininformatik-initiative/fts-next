@@ -60,21 +60,25 @@ public class TransferProcessFactory {
           Class<CC> commonConfigClass,
           @NotNull Map<String, ?> config) {
 
-    var impl = findImpl(stepClass, factoryClass, commonConfigClass, config);
-    CC commonConfig = createConfig(commonConfigClass, config);
+    Set<String> commonConfigKeys = commonConfigKeys(commonConfigClass);
+    var impl = findImpl(stepClass, factoryClass, commonConfigKeys, config);
+    var rawCommonConfig =
+        config.entrySet().stream()
+            .filter(e -> commonConfigKeys.contains(e.getKey()))
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+    CC commonConfig = createConfig(commonConfigClass, rawCommonConfig);
     return instantiate(stepClass, factoryClass, commonConfig, impl);
   }
 
-  private static <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>
+  static <TYPE, CC, IC, FACTORY extends TransferProcessStepFactory<TYPE, CC, IC>>
       Entry<String, ?> findImpl(
           Class<TYPE> stepClass,
           Class<FACTORY> factoryClass,
-          Class<CC> commonConfigClass,
+          Set<String> commonConfigKeys,
           Map<String, ?> config) {
-    var commonConfigEntries = commonConfigEntries(commonConfigClass);
     var configEntries = config.entrySet();
     var implementations =
-        configEntries.stream().filter(e -> !commonConfigEntries.contains(e.getKey())).toList();
+        configEntries.stream().filter(e -> !commonConfigKeys.contains(e.getKey())).toList();
 
     checkImplementationFound(factoryClass, implementations);
     checkOnlyOneImplementation(stepClass, implementations);
@@ -101,7 +105,7 @@ public class TransferProcessFactory {
     }
   }
 
-  private static <CC> Set<String> commonConfigEntries(Class<CC> commonConfigClass) {
+  private static <CC> Set<String> commonConfigKeys(Class<CC> commonConfigClass) {
     var fields = stream(commonConfigClass.getFields()).map(Field::getName);
     var components = stream(commonConfigClass.getRecordComponents()).map(RecordComponent::getName);
     return Streams.concat(fields, components).collect(Collectors.toSet());

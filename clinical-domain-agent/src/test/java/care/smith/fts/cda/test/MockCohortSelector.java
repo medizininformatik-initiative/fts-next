@@ -1,6 +1,7 @@
 package care.smith.fts.cda.test;
 
 import care.smith.fts.api.cda.CohortSelector;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -19,5 +20,5 @@ public class MockCohortSelector implements CohortSelector.Factory<MockCohortSele
     };
   }
 
-  public record Config(String known) {}
+  public record Config(List<String> pids) {}
 }
