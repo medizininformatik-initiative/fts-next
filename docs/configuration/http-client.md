@@ -75,6 +75,12 @@ under the upstream idle.
 The value is applied at agent startup, before any request flows through the pool. Changing it
 requires an agent restart.
 
+### Redirect following
+
+Whether redirects are followed is **not** an agent-wide setting; it is configured per upstream
+connection via [`HttpClientConfig.redirects`](../types/HttpClientConfig). See that page for the
+behaviour and the silent-empty-transfer guarantee.
+
 ## References
 
 * [ISO-8601 `Duration` syntax](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence))

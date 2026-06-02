@@ -10,7 +10,9 @@ import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Component
 public class WebClientDefaults implements WebClientCustomizer {
@@ -36,8 +38,24 @@ public class WebClientDefaults implements WebClientCustomizer {
   @Override
   public void customize(WebClient.Builder builder) {
     builder
-        .filter((r, n) -> n.exchange(r).timeout(ofSeconds(10)))
+        .filter(
+            (request, next) ->
+                next.exchange(request)
+                    .timeout(ofSeconds(10))
+                    .flatMap(WebClientDefaults::errorOnRedirect))
         .codecs(this::configureObjectMapper);
+  }
+
+  /**
+   * A 3xx reaching here means the transport layer did not follow it (a downgrade refused under
+   * {@code FOLLOW_SAFE}, or any redirect under {@code DONT_FOLLOW}). Surface it as an error so the
+   * transfer fails loudly instead of letting the empty redirect body pass through {@code
+   * retrieve()} as a silent success (#1706).
+   */
+  private static Mono<ClientResponse> errorOnRedirect(ClientResponse response) {
+    return response.statusCode().is3xxRedirection()
+        ? response.createException().flatMap(Mono::error)
+        : Mono.just(response);
   }
 
   private void configureObjectMapper(ClientCodecConfigurer cs) {
