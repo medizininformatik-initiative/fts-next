@@ -2,8 +2,8 @@ package care.smith.fts.cda.impl;
 
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.FhirResolveService;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.WebClientFactory;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
 @Component("everythingDataSelector")
@@ -11,12 +11,12 @@ public class EverythingDataSelectorFactory
     implements DataSelector.Factory<EverythingDataSelectorConfig> {
 
   private final WebClientFactory clientFactory;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   public EverythingDataSelectorFactory(
-      WebClientFactory clientFactory, MeterRegistry meterRegistry) {
+      WebClientFactory clientFactory, RetryStrategy retryStrategy) {
     this.clientFactory = clientFactory;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -27,7 +27,7 @@ public class EverythingDataSelectorFactory
   @Override
   public DataSelector create(DataSelector.Config common, EverythingDataSelectorConfig config) {
     var client = clientFactory.create(config.fhirServer());
-    var resolver = new FhirResolveService(client, meterRegistry);
-    return new EverythingDataSelector(common, client, resolver, meterRegistry, config.pageSize());
+    var resolver = new FhirResolveService(client, retryStrategy);
+    return new EverythingDataSelector(common, client, resolver, retryStrategy, config.pageSize());
   }
 }

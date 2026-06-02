@@ -8,8 +8,8 @@ import care.smith.fts.tca.consent.GicsConfigured;
 import care.smith.fts.tca.consent.GicsFhirConsentedPatientsProvider;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.LogUtil;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.WebClientFactory;
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -63,7 +63,7 @@ public class GicsConfiguration {
 
   @Bean
   public GicsFhirConsentedPatientsProvider fhirConsentedPatientsProvider(
-      @Qualifier("gicsFhirHttpClient") WebClient gicsClient, MeterRegistry meterRegistry) {
-    return new GicsFhirConsentedPatientsProvider(gicsClient, meterRegistry);
+      @Qualifier("gicsFhirHttpClient") WebClient gicsClient, RetryStrategy retryStrategy) {
+    return new GicsFhirConsentedPatientsProvider(gicsClient, retryStrategy);
   }
 }

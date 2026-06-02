@@ -5,12 +5,11 @@ import static care.smith.fts.tca.TtpFhirGatewayUtil.handleError;
 import static care.smith.fts.tca.consent.GicsFhirUtil.GICS_OPERATIONS;
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
 import care.smith.fts.util.tca.ConsentRequest;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
@@ -23,16 +22,16 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvider {
   private final WebClient gicsClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   /**
    * Constructs a FhirConsentProvider with the specified parameters.
    *
    * @param gicsClient the WebClient used for HTTP requests
    */
-  public GicsFhirConsentedPatientsProvider(WebClient gicsClient, MeterRegistry meterRegistry) {
+  public GicsFhirConsentedPatientsProvider(WebClient gicsClient, RetryStrategy retryStrategy) {
     this.gicsClient = gicsClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -81,7 +80,7 @@ public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvi
             r -> handle4xxError("gICS", gicsClient, GICS_OPERATIONS, r))
         .bodyToMono(Bundle.class)
         .doOnNext(b -> log.trace("body(n: {})", b.getEntry().size()))
-        .retryWhen(defaultRetryStrategy(meterRegistry, helper.requestName()))
+        .retryWhen(retryStrategy.forRequest(helper.requestName()))
         .onErrorResume(e -> handleError("gICS", e))
         .doOnError(b -> log.error("Unable to fetch consent from gICS", b))
         .map(outerBundle -> filterOuterBundle(req.policySystem(), req.policies(), outerBundle))

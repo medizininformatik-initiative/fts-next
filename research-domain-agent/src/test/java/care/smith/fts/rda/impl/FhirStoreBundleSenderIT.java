@@ -13,6 +13,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.BundleSender.Result;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -59,7 +60,7 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
     var client = clientFactory.create(clientConfig(wireMockRuntime));
-    bundleSender = new FhirStoreBundleSender(client, meterRegistry);
+    bundleSender = new FhirStoreBundleSender(client, new DefaultRetryStrategy(meterRegistry));
     wireMock = wireMockRuntime.getWireMock();
   }
 

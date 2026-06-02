@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.impl.IdMapperStepConfig.TCAConfig;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -20,7 +21,7 @@ class IdMapperStepFactoryIT {
 
   @BeforeEach
   void setUp(@Autowired WebClientFactory clientFactory) {
-    factory = new IdMapperStepFactory(clientFactory, meterRegistry);
+    factory = new IdMapperStepFactory(clientFactory, new DefaultRetryStrategy(meterRegistry));
   }
 
   @Test

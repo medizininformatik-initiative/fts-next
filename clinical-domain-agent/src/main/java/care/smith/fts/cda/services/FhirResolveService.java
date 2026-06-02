@@ -1,13 +1,12 @@
 package care.smith.fts.cda.services;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -24,11 +23,11 @@ import reactor.core.publisher.Mono;
 public class FhirResolveService implements PatientIdResolver {
 
   private final WebClient hdsClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
-  public FhirResolveService(WebClient hdsClient, MeterRegistry meterRegistry) {
+  public FhirResolveService(WebClient hdsClient, RetryStrategy retryStrategy) {
     this.hdsClient = hdsClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   /**
@@ -61,7 +60,7 @@ public class FhirResolveService implements PatientIdResolver {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchPatientBundleResolvePID"))
+        .retryWhen(retryStrategy.forRequest("fetchPatientBundleResolvePID"))
         .doOnError(
             e -> log.error("Unable to fetch patient identifier from HDS: {}", e.getMessage()))
         .onErrorResume(

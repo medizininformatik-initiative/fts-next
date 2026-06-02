@@ -19,6 +19,7 @@ import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.PatientIdResolver;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -65,7 +66,11 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     EverythingDataSelectorIT.meterRegistry = meterRegistry;
     dataSelector =
         new EverythingDataSelector(
-            common, client, pidResolver, EverythingDataSelectorIT.meterRegistry, PAGE_SIZE);
+            common,
+            client,
+            pidResolver,
+            new DefaultRetryStrategy(meterRegistry),
+            PAGE_SIZE);
 
     var consentedPolicies = new ConsentedPolicies();
     consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
@@ -116,7 +121,9 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
   @Test
   void noConsentSucceedsIfConsentIgnored() {
     DataSelector.Config common = new DataSelector.Config(true);
-    var dataSelector = new EverythingDataSelector(common, client, pidResolver, meterRegistry, 500);
+    var dataSelector =
+        new EverythingDataSelector(
+            common, client, pidResolver, new DefaultRetryStrategy(meterRegistry), 500);
 
     wireMock.register(fhirStoreRequestWithoutConsent().willReturn(fhirResponse(new Bundle())));
 

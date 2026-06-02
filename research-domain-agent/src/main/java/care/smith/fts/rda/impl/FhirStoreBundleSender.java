@@ -1,12 +1,11 @@
 package care.smith.fts.rda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;
-import io.micrometer.core.instrument.MeterRegistry;
+import care.smith.fts.util.RetryStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -17,11 +16,11 @@ import reactor.core.publisher.Mono;
 @Slf4j
 final class FhirStoreBundleSender implements BundleSender {
   private final WebClient hdsClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
-  public FhirStoreBundleSender(WebClient hdsClient, MeterRegistry meterRegistry) {
+  public FhirStoreBundleSender(WebClient hdsClient, RetryStrategy retryStrategy) {
     this.hdsClient = hdsClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -34,7 +33,7 @@ final class FhirStoreBundleSender implements BundleSender {
         .bodyValue(toTransactionBundle(bundle))
         .retrieve()
         .toBodilessEntity()
-        .retryWhen(defaultRetryStrategy(meterRegistry, "sendBundleToHds"))
+        .retryWhen(retryStrategy.forRequest("sendBundleToHds"))
         .doOnNext(res -> log.trace("Response received: {}", res))
         .doOnError(err -> log.debug("Error received", err))
         .map(b -> new Result());

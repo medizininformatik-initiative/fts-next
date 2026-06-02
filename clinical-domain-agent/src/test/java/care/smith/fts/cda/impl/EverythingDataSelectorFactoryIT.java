@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -17,7 +18,8 @@ class EverythingDataSelectorFactoryIT {
 
   @BeforeEach
   void setUp(@Autowired MeterRegistry meterRegistry, @Autowired WebClientFactory clientFactory) {
-    factory = new EverythingDataSelectorFactory(clientFactory, meterRegistry);
+    factory =
+        new EverythingDataSelectorFactory(clientFactory, new DefaultRetryStrategy(meterRegistry));
   }
 
   @Test

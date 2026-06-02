@@ -3,6 +3,7 @@ package care.smith.fts.rda.impl;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.rda.Deidentificator;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import com.typesafe.config.ConfigFactory;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -16,10 +17,13 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
 
   private final WebClientFactory clientFactory;
   private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
-  public DeidentifhirStepFactory(WebClientFactory clientFactory, MeterRegistry meterRegistry) {
+  public DeidentifhirStepFactory(
+      WebClientFactory clientFactory, MeterRegistry meterRegistry, RetryStrategy retryStrategy) {
     this.clientFactory = clientFactory;
     this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -35,6 +39,6 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
             + " 'deidentifhirConfig' and 'dateShift' fields will be removed in a future release.");
     var httpClient = clientFactory.create(implConfig.trustCenterAgent().server());
     var config = ConfigFactory.parseFile(requireNonNull(implConfig.deidentifhirConfig()));
-    return new DeidentifhirStep(config, httpClient, meterRegistry);
+    return new DeidentifhirStep(config, httpClient, meterRegistry, retryStrategy);
   }
 }

@@ -2,15 +2,14 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.ConsentedPatientExtractor.*;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.util.UriComponentsBuilder.*;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -32,13 +31,13 @@ import reactor.core.publisher.Mono;
 class FhirCohortSelector implements CohortSelector {
   private final FhirCohortSelectorConfig config;
   private final WebClient fhirClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   public FhirCohortSelector(
-      FhirCohortSelectorConfig config, WebClient fhirClient, MeterRegistry meterRegistry) {
+      FhirCohortSelectorConfig config, WebClient fhirClient, RetryStrategy retryStrategy) {
     this.config = config;
     this.fhirClient = fhirClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -71,7 +70,7 @@ class FhirCohortSelector implements CohortSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchFhirBundle"));
+        .retryWhen(retryStrategy.forRequest("fetchFhirBundle"));
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle) {

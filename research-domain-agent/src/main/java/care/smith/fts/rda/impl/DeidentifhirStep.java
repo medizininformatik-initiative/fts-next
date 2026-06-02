@@ -1,11 +1,11 @@
 package care.smith.fts.rda.impl;
 
 import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.generateRegistry;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.tca.SecureMappingResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +20,17 @@ class DeidentifhirStep implements Deidentificator {
   private final WebClient tcaClient;
   private final com.typesafe.config.Config deidentifhirConfig;
   private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   public DeidentifhirStep(
-      com.typesafe.config.Config config, WebClient tcaClient, MeterRegistry meterRegistry) {
+      com.typesafe.config.Config config,
+      WebClient tcaClient,
+      MeterRegistry meterRegistry,
+      RetryStrategy retryStrategy) {
     this.tcaClient = tcaClient;
     this.deidentifhirConfig = config;
     this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -55,7 +60,7 @@ class DeidentifhirStep implements Deidentificator {
         .bodyValue(transferId)
         .retrieve()
         .bodyToMono(SecureMappingResponse.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchSecureMapping"))
+        .retryWhen(retryStrategy.forRequest("fetchSecureMapping"))
         .doOnError(e -> log.error("Unable to resolve transport IDs: {}", e.getMessage()));
   }
 }

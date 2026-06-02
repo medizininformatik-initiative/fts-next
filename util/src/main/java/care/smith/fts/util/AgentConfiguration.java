@@ -9,6 +9,7 @@ import care.smith.fts.util.fhir.FhirCodecConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.TimeZone;
@@ -38,6 +39,11 @@ public class AgentConfiguration {
   @Bean
   public FhirContext fhirContext() {
     return FhirContext.forR4();
+  }
+
+  @Bean
+  public RetryStrategy retryStrategy(MeterRegistry meterRegistry) {
+    return new DefaultRetryStrategy(meterRegistry);
   }
 
   /**

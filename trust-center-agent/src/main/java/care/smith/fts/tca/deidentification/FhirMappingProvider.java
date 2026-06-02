@@ -2,12 +2,12 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.tca.deidentification.DateShiftUtil.shiftDate;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TcaDomains;
@@ -16,7 +16,6 @@ import care.smith.fts.util.tca.TransportMappingResponse;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
@@ -38,19 +37,19 @@ public class FhirMappingProvider implements MappingProvider {
   private final GpasClient gpasClient;
   private final TransportMappingConfiguration configuration;
   private final RedissonClient redisClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
   private final RandomStringGenerator randomStringGenerator;
 
   public FhirMappingProvider(
       GpasClient gpasClient,
       RedissonClient redisClient,
       TransportMappingConfiguration configuration,
-      MeterRegistry meterRegistry,
+      RetryStrategy retryStrategy,
       RandomStringGenerator randomStringGenerator) {
     this.gpasClient = gpasClient;
     this.configuration = configuration;
     this.redisClient = redisClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
     this.randomStringGenerator = randomStringGenerator;
   }
 
@@ -178,7 +177,7 @@ public class FhirMappingProvider implements MappingProvider {
     RedissonReactiveClient redis = redisClient.reactive();
     return Mono.just(transferId)
         .flatMap(name -> redis.<String, String>getMapCache(name).readAllMap())
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchSecureMapping"))
+        .retryWhen(retryStrategy.forRequest("fetchSecureMapping"))
         .map(SecureMappingResponse::buildResolveResponse);
   }
 }

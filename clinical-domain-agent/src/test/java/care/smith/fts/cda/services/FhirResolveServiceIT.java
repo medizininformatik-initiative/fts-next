@@ -20,6 +20,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -57,7 +58,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
   void setUp(WireMockRuntimeInfo wiremockRuntime, @Autowired WebClientFactory clientFactory)
       throws Exception {
     client = clientFactory.create(clientConfig(wiremockRuntime));
-    this.service = new FhirResolveService(client, meterRegistry);
+    this.service = new FhirResolveService(client, new DefaultRetryStrategy(meterRegistry));
     wireMock = wiremockRuntime.getWireMock();
     try (var inStream = MockServerUtil.getResourceAsStream("metadata.json")) {
       var capStatement = new String(requireNonNull(inStream).readAllBytes(), UTF_8);

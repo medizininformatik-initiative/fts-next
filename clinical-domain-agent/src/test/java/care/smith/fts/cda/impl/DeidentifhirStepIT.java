@@ -25,6 +25,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TcaDomains;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
@@ -62,7 +63,15 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     var domains = new TcaDomains("domain", "domain", "domain");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     wireMock = wireMockRuntime.getWireMock();
-    step = new DeidentifhirStep(client, domains, ofDays(14), NONE, config, meterRegistry);
+    step =
+        new DeidentifhirStep(
+            client,
+            domains,
+            ofDays(14),
+            NONE,
+            config,
+            meterRegistry,
+            new DefaultRetryStrategy(meterRegistry));
 
     var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");
@@ -180,7 +189,8 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             ofDays(14),
             NONE,
             dateOnlyConfig,
-            meterRegistry);
+            meterRegistry,
+            new DefaultRetryStrategy(meterRegistry));
 
     var patient = new Patient();
     patient.setId("test-patient");
