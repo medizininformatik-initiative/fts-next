@@ -16,6 +16,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.cda.impl.mock.MockCohortSelector;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
@@ -65,7 +66,9 @@ class TcaCohortSelectorIT {
         new TcaCohortSelectorConfig(server, PID_SYSTEM, POLICY_SYSTEM, POLICIES, "MII", null);
     cohortSelector =
         new TcaCohortSelector(
-            config, clientFactory.create(clientConfig(wireMockRuntime)), meterRegistry);
+            config,
+            clientFactory.create(clientConfig(wireMockRuntime)),
+            new DefaultRetryStrategy(meterRegistry));
     wireMock = wireMockRuntime.getWireMock();
     allCohortSelector = MockCohortSelector.fetchAll(wireMock);
     listCohortSelector = MockCohortSelector.fetch(wireMock);
@@ -212,12 +215,14 @@ class TcaCohortSelectorIT {
 
     var selectorWithNull =
         new TcaCohortSelector(
-            configWithNull, clientFactory.create(clientConfig(wireMockRuntime)), meterRegistry);
+            configWithNull,
+            clientFactory.create(clientConfig(wireMockRuntime)),
+            new DefaultRetryStrategy(meterRegistry));
     var selectorWithPseudonym =
         new TcaCohortSelector(
             configWithPseudonym,
             clientFactory.create(clientConfig(wireMockRuntime)),
-            meterRegistry);
+            new DefaultRetryStrategy(meterRegistry));
 
     // Both should behave identically
     var selector = MockCohortSelector.fetchAll(wireMock);

@@ -3,17 +3,16 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
 import static care.smith.fts.util.ConsentedPatientExtractor.processConsentedPatients;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.fhir.FhirException;
 import com.google.common.collect.ImmutableMap;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -31,13 +30,13 @@ import reactor.core.publisher.Mono;
 class TcaCohortSelector implements CohortSelector {
   private final TcaCohortSelectorConfig config;
   private final WebClient tcaClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   public TcaCohortSelector(
-      TcaCohortSelectorConfig config, WebClient tcaClient, MeterRegistry meterRegistry) {
+      TcaCohortSelectorConfig config, WebClient tcaClient, RetryStrategy retryStrategy) {
     this.config = config;
     this.tcaClient = tcaClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   private String getGicsIdentifierSystem() {
@@ -71,7 +70,7 @@ class TcaCohortSelector implements CohortSelector {
         .retrieve()
         .onStatus(r -> r.equals(BAD_REQUEST), TcaCohortSelector::handleBadRequest)
         .bodyToMono(Bundle.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchBundle"));
+        .retryWhen(retryStrategy.forRequest("fetchBundle"));
   }
 
   private Mono<Bundle> fetchNextPage(Bundle bundle, List<String> identifiers) {

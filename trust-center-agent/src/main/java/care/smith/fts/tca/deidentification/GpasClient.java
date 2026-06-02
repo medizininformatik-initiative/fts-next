@@ -4,12 +4,11 @@ import static care.smith.fts.tca.TtpFhirGatewayUtil.handle4xxError;
 import static care.smith.fts.tca.TtpFhirGatewayUtil.handleError;
 import static care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration.GPAS_OPERATIONS;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.util.List.of;
 
 import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
+import care.smith.fts.util.RetryStrategy;
 import com.google.common.collect.Lists;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,16 +26,16 @@ import reactor.core.publisher.Mono;
 @Component
 public class GpasClient {
   private final WebClient gpasClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
   private final int batchSize;
   private final int concurrency;
 
   public GpasClient(
       @Qualifier("gpasFhirHttpClient") WebClient gpasClient,
-      MeterRegistry meterRegistry,
+      RetryStrategy retryStrategy,
       GpasDeIdentificationConfiguration config) {
     this.gpasClient = gpasClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
     this.batchSize = config.getBatchSize();
     this.concurrency = config.getConcurrency();
   }
@@ -91,7 +90,7 @@ public class GpasClient {
             HttpStatusCode::is4xxClientError,
             r -> handle4xxError("gPAS", gpasClient, GPAS_OPERATIONS, r))
         .bodyToMono(GpasParameterResponse.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchOrCreatePseudonymsOnGpas"))
+        .retryWhen(retryStrategy.forRequest("fetchOrCreatePseudonymsOnGpas"))
         .onErrorResume(e -> handleError("gPAS", e))
         .doOnError(e -> log.error("Unable to fetch pseudonyms from gPAS: {}", e.getMessage()))
         .doOnNext(r -> log.trace("$pseudonymizeAllowCreate batch response: {}", r.parameter()))

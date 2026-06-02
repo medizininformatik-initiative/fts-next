@@ -1,12 +1,11 @@
 package care.smith.fts.rda.impl;
 
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.Deidentificator;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.tca.SecureMappingResponse;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -26,11 +25,11 @@ import reactor.core.publisher.Mono;
 @Slf4j
 class IdMapperStep implements Deidentificator {
   private final WebClient tcaClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
-  IdMapperStep(WebClient tcaClient, MeterRegistry meterRegistry) {
+  IdMapperStep(WebClient tcaClient, RetryStrategy retryStrategy) {
     this.tcaClient = tcaClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -60,7 +59,7 @@ class IdMapperStep implements Deidentificator {
         .bodyValue(transferId)
         .retrieve()
         .bodyToMono(SecureMappingResponse.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchSecureMapping"))
+        .retryWhen(retryStrategy.forRequest("fetchSecureMapping"))
         .doOnError(
             e -> log.error("Unable to resolve transport IDs for transferId={}", transferId, e));
   }

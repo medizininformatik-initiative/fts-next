@@ -22,6 +22,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
@@ -61,7 +62,7 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
     wireMock = wireMockRuntime.getWireMock();
 
     var config = new RdaBundleSenderConfig(server, "example");
-    bundleSender = new RdaBundleSender(config, client, meterRegistry);
+    bundleSender = new RdaBundleSender(config, client, new DefaultRetryStrategy(meterRegistry));
   }
 
   private static MappingBuilder rdaRequest() {

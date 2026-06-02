@@ -16,6 +16,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -75,7 +76,7 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory)
       throws IOException {
     var client = clientFactory.create(clientConfig(wireMockRuntime));
-    step = new IdMapperStep(client, meterRegistry);
+    step = new IdMapperStep(client, new DefaultRetryStrategy(meterRegistry));
     wireMock = wireMockRuntime.getWireMock();
     bundle = generateOnePatient("tid1", "2024", "identifierSystem", "tidentifier1");
   }

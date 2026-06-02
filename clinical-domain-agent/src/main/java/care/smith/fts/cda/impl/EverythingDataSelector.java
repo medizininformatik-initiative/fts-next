@@ -1,14 +1,13 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.cda.services.PatientIdResolver;
-import io.micrometer.core.instrument.MeterRegistry;
+import care.smith.fts.util.RetryStrategy;
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZoneId;
@@ -30,19 +29,19 @@ public class EverythingDataSelector implements DataSelector {
   private final Config common;
   private final WebClient hdsClient;
   private final PatientIdResolver pidResolver;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
   private final int pageSize;
 
   public EverythingDataSelector(
       Config common,
       WebClient hdsClient,
       PatientIdResolver patientIdResolver,
-      MeterRegistry meterRegistry,
+      RetryStrategy retryStrategy,
       int pageSize) {
     this.common = common;
     this.hdsClient = hdsClient;
     this.pidResolver = patientIdResolver;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
     this.pageSize = pageSize;
   }
 
@@ -69,7 +68,7 @@ public class EverythingDataSelector implements DataSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .bodyToMono(Bundle.class)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchEverything"))
+        .retryWhen(retryStrategy.forRequest("fetchEverything"))
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.trace("Fetched Bundle with {} resources", b.getEntry().size()));
   }

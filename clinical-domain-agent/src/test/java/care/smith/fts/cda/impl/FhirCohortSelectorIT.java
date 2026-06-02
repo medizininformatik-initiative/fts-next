@@ -12,6 +12,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
@@ -60,7 +61,8 @@ class FhirCohortSelectorIT {
     var config = new FhirCohortSelectorConfig(ignored, PID_SYSTEM, POLICY_SYSTEM, POLICIES);
     this.config = MockServerUtil.clientConfig(wireMockRuntime);
     var fhirClient = clientFactory.create(this.config);
-    cohortSelector = new FhirCohortSelector(config, fhirClient, meterRegistry);
+    cohortSelector =
+        new FhirCohortSelector(config, fhirClient, new DefaultRetryStrategy(meterRegistry));
     wireMock = wireMockRuntime.getWireMock();
     cohortGenerator = new FhirCohortGenerator(PID_SYSTEM, POLICY_SYSTEM, POLICIES);
   }

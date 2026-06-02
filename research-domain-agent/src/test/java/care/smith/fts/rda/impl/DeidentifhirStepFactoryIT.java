@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.impl.DeidentifhirStepConfig.TCAConfig;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -22,7 +23,9 @@ class DeidentifhirStepFactoryIT {
 
   @BeforeEach
   void setUp(@Autowired WebClientFactory clientFactory) {
-    factory = new DeidentifhirStepFactory(clientFactory, meterRegistry);
+    factory =
+        new DeidentifhirStepFactory(
+            clientFactory, meterRegistry, new DefaultRetryStrategy(meterRegistry));
   }
 
   @Test

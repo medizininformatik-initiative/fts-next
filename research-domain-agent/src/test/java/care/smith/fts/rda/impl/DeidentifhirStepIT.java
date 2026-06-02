@@ -17,6 +17,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -68,7 +69,9 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       throws IOException {
     var config = parseResources(DeidentifhirUtil.class, "TransportToRD.profile");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
-    step = new DeidentifhirStep(config, client, meterRegistry);
+    step =
+        new DeidentifhirStep(
+            config, client, meterRegistry, new DefaultRetryStrategy(meterRegistry));
     wireMock = wireMockRuntime.getWireMock();
     bundle = generateOnePatient("tid1", "2024", "identifierSystem", "tidentifier1");
   }

@@ -5,6 +5,7 @@ import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.error.TransferProcessException;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -45,7 +46,7 @@ class RdaBundleSenderTest {
               }
               return ClientResponse.create(HttpStatus.ACCEPTED).header(RETRY_AFTER, "0").build();
             });
-    var sender = new RdaBundleSender(CONFIG, client, meterRegistry);
+    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectErrorMatches(
@@ -70,7 +71,7 @@ class RdaBundleSenderTest {
               }
               return ClientResponse.create(HttpStatus.CREATED).build();
             });
-    var sender = new RdaBundleSender(CONFIG, client, meterRegistry);
+    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectErrorMatches(
@@ -92,7 +93,7 @@ class RdaBundleSenderTest {
               }
               return ClientResponse.create(HttpStatus.OK).build();
             });
-    var sender = new RdaBundleSender(CONFIG, client, meterRegistry);
+    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectNextCount(1)
@@ -102,7 +103,7 @@ class RdaBundleSenderTest {
   @Test
   void postOkSkipsPolling() {
     var client = buildClient(request -> ClientResponse.create(HttpStatus.OK).build());
-    var sender = new RdaBundleSender(CONFIG, client, meterRegistry);
+    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectNextCount(1)

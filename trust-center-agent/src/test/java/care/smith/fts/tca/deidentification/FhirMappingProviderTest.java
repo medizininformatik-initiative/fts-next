@@ -27,6 +27,7 @@ import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationCon
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
@@ -99,14 +100,17 @@ class FhirMappingProviderTest {
 
     var gpasConfig = new GpasDeIdentificationConfiguration();
     var gpasClient =
-        new GpasClient(httpClientBuilder.baseUrl(address).build(), meterRegistry, gpasConfig);
+        new GpasClient(
+            httpClientBuilder.baseUrl(address).build(),
+            new DefaultRetryStrategy(meterRegistry),
+            gpasConfig);
 
     mappingProvider =
         new FhirMappingProvider(
             gpasClient,
             redisClient,
             transportMappingConfiguration,
-            meterRegistry,
+            new DefaultRetryStrategy(meterRegistry),
             new RandomStringGenerator(new Random(0)));
   }
 

@@ -1,6 +1,5 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static java.util.Objects.requireNonNull;
@@ -14,8 +13,8 @@ import static org.springframework.http.HttpStatus.OK;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.util.MediaTypes;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
@@ -31,13 +30,13 @@ import reactor.core.publisher.Mono;
 final class RdaBundleSender implements BundleSender {
   private final RdaBundleSenderConfig config;
   private final WebClient rdaClient;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   public RdaBundleSender(
-      RdaBundleSenderConfig config, WebClient rdaClient, MeterRegistry meterRegistry) {
+      RdaBundleSenderConfig config, WebClient rdaClient, RetryStrategy retryStrategy) {
     this.config = config;
     this.rdaClient = rdaClient;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -61,7 +60,7 @@ final class RdaBundleSender implements BundleSender {
         .retrieve()
         .toBodilessEntity()
         .flatMap(this::processOrWaitForRDACompleted)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "sendBundleToRda"))
+        .retryWhen(retryStrategy.forRequest("sendBundleToRda"))
         .doOnError(e -> log.error("Unable to send Bundle to RDA: {}", e.getMessage()));
   }
 

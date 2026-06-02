@@ -1,7 +1,6 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.buildRegistry;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
@@ -10,6 +9,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.cda.services.deidentifhir.GeneratingReplacementProvider;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
@@ -33,6 +33,7 @@ class DeidentifhirStep implements Deidentificator {
   private final DateShiftPreserve preserve;
   private final com.typesafe.config.Config config;
   private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   public DeidentifhirStep(
       WebClient tcaClient,
@@ -40,13 +41,15 @@ class DeidentifhirStep implements Deidentificator {
       Duration maxDateShift,
       DateShiftPreserve preserve,
       com.typesafe.config.Config config,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      RetryStrategy retryStrategy) {
     this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
     this.preserve = preserve;
     this.config = config;
     this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -94,7 +97,7 @@ class DeidentifhirStep implements Deidentificator {
         .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), DeidentifhirStep::handleBadRequest)
         .bodyToMono(TransportMappingResponse.class)
         .timeout(Duration.ofSeconds(30))
-        .retryWhen(defaultRetryStrategy(meterRegistry, "sendMappingsToTca"))
+        .retryWhen(retryStrategy.forRequest("sendMappingsToTca"))
         .doOnError(DeidentifhirStep::handleError)
         .map(TransportMappingResponse::transferId);
   }

@@ -9,6 +9,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.AbstractFhirClientIT;
 import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
+import care.smith.fts.util.DefaultRetryStrategy;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
@@ -52,7 +53,10 @@ public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, Map<S
   @Override
   protected GpasClient createClient(String baseUrl) {
     var config = new GpasDeIdentificationConfiguration();
-    return new GpasClient(httpClientBuilder.baseUrl(baseUrl).build(), meterRegistry, config);
+    return new GpasClient(
+        httpClientBuilder.baseUrl(baseUrl).build(),
+        new DefaultRetryStrategy(meterRegistry),
+        config);
   }
 
   @Override

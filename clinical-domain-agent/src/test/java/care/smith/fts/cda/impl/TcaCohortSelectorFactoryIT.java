@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -20,7 +21,7 @@ class TcaCohortSelectorFactoryIT {
 
   @BeforeEach
   void setUp() {
-    factory = new TcaCohortSelectorFactory(clientFactory, meterRegistry);
+    factory = new TcaCohortSelectorFactory(clientFactory, new DefaultRetryStrategy(meterRegistry));
   }
 
   @Test

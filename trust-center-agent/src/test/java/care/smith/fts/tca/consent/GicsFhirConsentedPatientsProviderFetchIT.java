@@ -13,6 +13,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
 import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.tca.ConsentFetchRequest;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -93,7 +94,7 @@ class GicsFhirConsentedPatientsProviderFetchIT
   @Override
   protected GicsFhirConsentedPatientsProvider createClient(String baseUrl) {
     return new GicsFhirConsentedPatientsProvider(
-        httpClientBuilder.baseUrl(baseUrl).build(), meterRegistry);
+        httpClientBuilder.baseUrl(baseUrl).build(), new DefaultRetryStrategy(meterRegistry));
   }
 
   @Override
