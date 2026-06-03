@@ -224,7 +224,7 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
-        .expectErrorMessage("RDA polling budget exhausted after 10 attempts, status still ACCEPTED")
+        .expectErrorMessage("RDA polling budget exhausted")
         .verify();
   }
 
