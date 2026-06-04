@@ -1,7 +1,5 @@
 package care.smith.fts.util;
 
-import static java.time.Duration.ofSeconds;
-
 import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.util.auth.HttpServerAuthConfig;
 import care.smith.fts.util.auth.OAuth2ConfigurationExistsCondition;
@@ -10,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,11 +16,13 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.client.ReactorResourceFactory;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
+import reactor.netty.resources.ConnectionProvider;
 
 @Configuration
 @Import({
@@ -47,26 +46,41 @@ public class AgentConfiguration {
   }
 
   /**
-   * Pooled JDK HTTP client used by every agent's outbound WebClient.
+   * Reactor Netty connection-pool resources shared by every agent's outbound WebClient. Spring Boot
+   * feeds this {@link ReactorResourceFactory} into the auto-detected Reactor Netty connector, so
+   * the same pool backs both plain and SSL/mTLS clients.
    *
-   * <p>JDK HttpClient exposes no builder API for connection-pool keep-alive; the only knob is the
-   * {@code jdk.httpclient.keepalive.timeout} system property. We set it here so the pool evicts
-   * cached connections before any upstream server closes them on its own idle timeout. The value
-   * must stay below the lowest idle timeout among the agent's upstreams; if client keep-alive ≥
-   * server idle, the pool reuses a half-dead socket and the first request after an idle gap fails
-   * with "HTTP/1.1 header parser received no bytes" / {@code EOFException}.
+   * <p>Unlike the JDK client's single JVM-global {@code jdk.httpclient.keepalive.timeout} knob, the
+   * pool is configured programmatically: {@code maxIdleTime} evicts connections idle longer than
+   * the configured duration, and a pooled channel sits on an event loop so a server FIN evicts it
+   * before reuse. Together these largely remove the "reuse a half-dead socket → EOF after an idle
+   * gap" failure mode without under-tuning a global timeout. {@code maxLifeTime} caps total
+   * connection age and {@code evictInBackground} sweeps expired connections without waiting for
+   * traffic.
    *
-   * <p>Default 25s targets the tightest upstream we know about: Samply Blaze (Jetty, 30s idle),
-   * reached by cd-agent and rd-agent via cd-hds / rd-hds. tc-agent talks to gICS and gPAS
-   * (WildFly/Undertow) and serves inbound calls from cd-/rd-agent itself, so the same pool covers
-   * those flows too. See {@code docs/configuration/http-client.md}.
+   * <p>{@code maxIdleTime} should still stay below the tightest upstream idle timeout (e.g. Samply
+   * Blaze defaults to 30s). See {@code docs/configuration/http-client.md}.
+   *
+   * <p>Marked {@code @Primary} because Spring Boot still auto-configures its own {@code
+   * reactorResourceFactory}; without a primary, the Netty server's single-typed injection of {@code
+   * ReactorResourceFactory} is ambiguous. With {@code @Primary}, both the outbound client connector
+   * and the Netty server resolve to this instance. The connection pool is only exercised by
+   * outbound clients; the server merely shares its event-loop resources.
    */
   @Bean
-  public HttpClient httpClient(
-      @Value("${fts.http.client.keepalive-timeout:PT25S}") Duration keepaliveTimeout) {
-    System.setProperty(
-        "jdk.httpclient.keepalive.timeout", String.valueOf(keepaliveTimeout.toSeconds()));
-    return HttpClient.newBuilder().connectTimeout(ofSeconds(10)).build();
+  @Primary
+  public ReactorResourceFactory ftsClientResources(
+      @Value("${fts.http.client.max-idle-time:PT25S}") Duration maxIdleTime) {
+    var connectionProvider =
+        ConnectionProvider.builder("fts-http-client")
+            .maxIdleTime(maxIdleTime)
+            .maxLifeTime(Duration.ofMinutes(5))
+            .evictInBackground(Duration.ofSeconds(30))
+            .build();
+    var resourceFactory = new ReactorResourceFactory();
+    resourceFactory.setUseGlobalResources(false);
+    resourceFactory.setConnectionProvider(connectionProvider);
+    return resourceFactory;
   }
 
   @Bean

@@ -3,10 +3,8 @@ package care.smith.fts.util;
 import static java.time.Duration.ofSeconds;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.http.HttpClient;
 import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.JdkClientHttpConnector;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -24,18 +22,20 @@ public class WebClientDefaults implements WebClientCustomizer {
         MediaType.APPLICATION_PROBLEM_JSON
       };
 
-  private final HttpClient httpClient;
   private final ObjectMapper objectMapper;
 
-  public WebClientDefaults(HttpClient httpClient, ObjectMapper objectMapper) {
-    this.httpClient = httpClient;
+  public WebClientDefaults(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Applies shared request defaults. The outbound connector is left to Spring Boot's auto-detected
+   * Reactor Netty {@code ClientHttpConnector} (tuned via {@code ftsClientResources}); overriding it
+   * here would also discard the connection-pool configuration on the SSL/mTLS path.
+   */
   @Override
   public void customize(WebClient.Builder builder) {
     builder
-        .clientConnector(new JdkClientHttpConnector(httpClient))
         .filter((r, n) -> n.exchange(r).timeout(ofSeconds(10)))
         .codecs(this::configureObjectMapper);
   }
