@@ -10,6 +10,7 @@ _For what **project** means in this context, please see [Project Configuration](
 ```yaml
 projects:
   directory: "./projects"
+  strict-validation: false
 ```
 
 ## Fields
@@ -25,7 +26,27 @@ projects:
     directory: "./my-custom-projects"
   ```
 
+### `strict-validation` <Badge type="warning" text="Since 5.7" />
+
+* **Description**: Controls whether the agent fails to start when a project configuration
+  is invalid or contains unknown keys. When set to `false` (default), invalid projects are
+  skipped and logged; the agent starts with the remaining valid projects. When set to `true`,
+  any invalid project configuration causes the agent to abort startup immediately.
+* **Type**: Boolean
+* **Default**: `false`
+* **Example**:
+  ```yaml
+  projects:
+    strict-validation: true
+  ```
+
 ## Notes
 
 * The `directory` field must be a valid relative or absolute path pointing to the desired directory.
 * Ensure the specified path exists and has the necessary read/write permissions.
+* With `strict-validation: false`, invalid projects are silently skipped. Check the agent logs
+  for `ERROR` messages if a project does not appear in the running configuration.
+* With `strict-validation: true`, the agent will fail to start with a `ProjectConfigurationException`
+  if any project file is unreadable, unparseable, contains unknown configuration keys, or fails
+  step instantiation. This is recommended for production deployments and especially initial setups
+  to catch configuration errors early.

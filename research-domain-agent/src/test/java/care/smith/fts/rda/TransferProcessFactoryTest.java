@@ -1,18 +1,18 @@
 package care.smith.fts.rda;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.test.MockBundleSender;
 import care.smith.fts.rda.test.MockDeidentificator;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,15 +33,16 @@ class TransferProcessFactoryTest {
 
   @BeforeEach
   void setUp() {
-    var mapper =
-        new ObjectMapper(new YAMLFactory())
-            .registerModule(new JavaTimeModule())
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    var mapper = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
 
-    given(appContext.getBean("mockDeidentificator", Deidentificator.Factory.class))
-        .willReturn(deidentificatorFactory);
-    given(appContext.getBean("mockBundleSender", BundleSender.Factory.class))
-        .willReturn(bundleSenderFactory);
+    lenient()
+        .doReturn(deidentificatorFactory)
+        .when(appContext)
+        .getBean("mockDeidentificator", Deidentificator.Factory.class);
+    lenient()
+        .doReturn(bundleSenderFactory)
+        .when(appContext)
+        .getBean("mockBundleSender", BundleSender.Factory.class);
 
     factory = new TransferProcessFactory(appContext, mapper);
   }
@@ -68,4 +69,19 @@ class TransferProcessFactoryTest {
   }
 
   // commonConfig passing omitted, as no common config entries are exposed in RDA steps
+
+  @Test
+  void findImplFiltersOutCommonConfigKeys() {
+    var config =
+        Map.<String, Object>of(
+            "shared", Map.of(),
+            "mock", Map.of());
+
+    Entry<String, ?> impl =
+        TransferProcessFactory.findImpl(
+            Deidentificator.class, Deidentificator.Factory.class, Set.of("shared"), config);
+
+    assertThat(impl.getKey()).isEqualTo("mock");
+    assertThat(impl.getValue()).isEqualTo(Map.of());
+  }
 }

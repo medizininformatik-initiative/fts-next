@@ -2,6 +2,8 @@ package care.smith.fts.cda;
 
 import static java.nio.file.Files.*;
 import static java.util.Optional.empty;
+import static org.slf4j.event.Level.ERROR;
+import static org.slf4j.event.Level.WARN;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -13,7 +15,9 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
@@ -26,14 +30,17 @@ public class ProjectReader {
   private final TransferProcessFactory processFactory;
   private final ObjectMapper objectMapper;
   private final Path projectsDir;
+  private final boolean strictValidation;
 
   public ProjectReader(
       TransferProcessFactory processFactory,
       @Qualifier("transferProcessObjectMapper") ObjectMapper objectMapper,
-      Path projectsDir) {
+      @Value("${projects.directory:projects}") Path projectsDir,
+      @Value("${projects.strict-validation:false}") boolean strictValidation) {
     this.processFactory = processFactory;
     this.objectMapper = objectMapper;
     this.projectsDir = projectsDir;
+    this.strictValidation = strictValidation;
   }
 
   @Bean
@@ -42,8 +49,8 @@ public class ProjectReader {
     try (var files = Files.list(projectsDir)) {
       return files
           .filter(this::matchesFilePattern)
-          .filter(withWarning(Files::isRegularFile, "File %s is not a regular file"))
-          .filter(withWarning(Files::isReadable, "File %s is not readable"))
+          .filter(withValidation(Files::isRegularFile, "File %s is not a regular file"))
+          .filter(withValidation(Files::isReadable, "File %s is not readable"))
           .map(this::createConfigAndProcess)
           .filter(Optional::isPresent)
           .map(Optional::get)
@@ -51,10 +58,12 @@ public class ProjectReader {
     }
   }
 
-  private static <T> Predicate<T> withWarning(Predicate<T> predicate, String warnFormat) {
+  private <T> Predicate<T> withValidation(Predicate<T> predicate, String warnFormat) {
     return p -> {
       boolean test = predicate.test(p);
-      if (!test) log.warn(warnFormat, p);
+      if (!test) {
+        throwOrLog(WARN, warnFormat.formatted(p));
+      }
       return test;
     };
   }
@@ -64,7 +73,7 @@ public class ProjectReader {
     if (matcher.find()) {
       return openConfigAndParse(projectFile, matcher.group("name"));
     } else {
-      log.error("Could not determine project name for file {}", projectFile);
+      throwOrLog(ERROR, "Could not determine project name for file %s".formatted(projectFile));
       return empty();
     }
   }
@@ -73,7 +82,7 @@ public class ProjectReader {
     try (var inStream = newInputStream(projectFile)) {
       return parseConfig(inStream, name).flatMap(config -> createProcess(config, name));
     } catch (IOException e) {
-      log.error("Unable to read '{}' project's configuration", name, e);
+      throwOrLog(ERROR, "Unable to read '%s' project's configuration".formatted(name), e);
       return empty();
     }
   }
@@ -84,7 +93,7 @@ public class ProjectReader {
       log.info("Project '{}' created: {}", name, config);
       return Optional.of(processFactory.create(config, name));
     } catch (Exception e) {
-      log.error("Could not create project '{}'", name, e);
+      throwOrLog(ERROR, "Could not create project '%s'".formatted(name), e);
       return empty();
     }
   }
@@ -93,8 +102,24 @@ public class ProjectReader {
     try {
       return Optional.of(objectMapper.readValue(inStream, TransferProcessConfig.class));
     } catch (IOException e) {
-      log.error("Unable to parse '{}' project's configuration", name, e);
+      throwOrLog(ERROR, "Unable to parse '%s' project's configuration".formatted(name), e);
       return empty();
+    }
+  }
+
+  private void throwOrLog(Level level, String msg) {
+    throwOrLog(level, msg, null);
+  }
+
+  private void throwOrLog(Level level, String msg, Throwable cause) {
+    if (strictValidation) {
+      throw new ProjectConfigurationException(msg, cause);
+    } else {
+      if (cause == null) {
+        log.atLevel(level).log(msg);
+      } else {
+        log.atLevel(level).setCause(cause).log(msg);
+      }
     }
   }
 

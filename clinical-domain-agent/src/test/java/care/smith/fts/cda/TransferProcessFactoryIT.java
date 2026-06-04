@@ -43,7 +43,7 @@ class TransferProcessFactoryIT {
   }
 
   @Test
-  void commonConfigEntriesDoNotThrow() {
+  void commonConfigKeysDoNotThrow() {
     TransferProcessConfig processDefinition =
         new TransferProcessConfig(
             Map.of("mock", Map.of()),
