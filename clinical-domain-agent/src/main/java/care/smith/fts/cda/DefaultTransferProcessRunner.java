@@ -1,5 +1,6 @@
 package care.smith.fts.cda;
 
+import static care.smith.fts.util.AgentConfiguration.MAX_OUTBOUND_FANOUT;
 import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
@@ -179,7 +180,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return cohortSelection
           .doOnNext(
               p -> log.trace("[Process {}] selectData for patient {}", processId(), p.identifier()))
-          .flatMap(this::selectDataForPatient)
+          // Bound the per-patient fan-out to the shared outbound connection budget so this stage
+          // never dispatches more concurrent upstream requests than the pool can hold.
+          .flatMap(this::selectDataForPatient, MAX_OUTBOUND_FANOUT)
           .doOnNext(
               b -> {
                 status.updateAndGet(TransferProcessStatus::incTotalBundles);
@@ -229,7 +232,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       var beforeMsg = "[Process {}] deidentify for patient {}";
       return dataSelection
           .doOnNext(b -> log.trace(beforeMsg, processId(), b.consentedPatient().identifier()))
-          .flatMap(this::deidentifyForPatient)
+          // Bound the per-patient fan-out to the shared outbound connection budget so this stage
+          // never dispatches more concurrent upstream requests than the pool can hold.
+          .flatMap(this::deidentifyForPatient, MAX_OUTBOUND_FANOUT)
           .doOnNext(
               b -> {
                 status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles);

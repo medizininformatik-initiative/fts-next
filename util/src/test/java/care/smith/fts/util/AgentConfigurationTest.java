@@ -3,43 +3,31 @@ package care.smith.fts.util;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.client.ReactorResourceFactory;
 
 class AgentConfigurationTest {
 
-  private static final String KEEPALIVE_PROP = "jdk.httpclient.keepalive.timeout";
+  @Test
+  void clientResourcesUseADedicatedConnectionProvider() {
+    ReactorResourceFactory resources =
+        new AgentConfiguration().ftsClientResources(Duration.ofSeconds(17));
 
-  private String savedKeepalive;
-
-  @BeforeEach
-  void snapshot() {
-    savedKeepalive = System.getProperty(KEEPALIVE_PROP);
-    System.clearProperty(KEEPALIVE_PROP);
-  }
-
-  @AfterEach
-  void restore() {
-    if (savedKeepalive == null) {
-      System.clearProperty(KEEPALIVE_PROP);
-    } else {
-      System.setProperty(KEEPALIVE_PROP, savedKeepalive);
-    }
+    assertThat(resources).isNotNull();
+    assertThat(resources.getConnectionProvider()).isNotNull();
+    assertThat(resources.getConnectionProvider().name()).isEqualTo("fts-http-client");
   }
 
   @Test
-  void httpClientSetsKeepaliveSystemProperty() {
-    var client = new AgentConfiguration().httpClient(Duration.ofSeconds(17));
+  void clientResourcesCapConnectionsToTheOutboundFanout() {
+    ReactorResourceFactory resources =
+        new AgentConfiguration().ftsClientResources(Duration.ofSeconds(25));
 
-    assertThat(client).isNotNull();
-    assertThat(System.getProperty(KEEPALIVE_PROP)).isEqualTo("17");
-  }
-
-  @Test
-  void httpClientRoundsToSecondsForSubSecondDurations() {
-    new AgentConfiguration().httpClient(Duration.ofMillis(1500));
-
-    assertThat(System.getProperty(KEEPALIVE_PROP)).isEqualTo("1");
+    // The per-host cap must equal the pipeline's fan-out (one constant, shared with the
+    // select/deidentify flatMaps) so the pool never throttles a transfer below its dispatch rate.
+    // Without the explicit cap the pool would fall back to reactor-netty's library default
+    // (max(cores,8)*2, >=16) and reject or stall high-fan-out bursts.
+    assertThat(resources.getConnectionProvider().maxConnections())
+        .isEqualTo(AgentConfiguration.MAX_OUTBOUND_FANOUT);
   }
 }
