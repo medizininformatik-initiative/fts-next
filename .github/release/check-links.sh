@@ -47,19 +47,41 @@ check_url() {
         return 0
     fi
 
-    # Check URL availability
-    if curl --retry 3 --max-time 2 -fsL --head "$url" >/dev/null 2>&1; then
+    # Check URL availability. A fast HEAD probe handles the common case; on any
+    # failure (transient WAF 403/429, slow TLS, or servers that reject HEAD with
+    # 405) fall back to a robust ranged GET that retries with backoff. A
+    # browser user-agent avoids reputation-based bot blocking by external hosts.
+    # -S makes curl emit the underlying error despite -s, so a hard failure can
+    # report *why* (HTTP status / connection error) instead of a bare url.
+    local ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    local common=(-A "$ua" -fsSL --connect-timeout 10 --max-time 20)
+    if curl "${common[@]}" -I "$url" >/dev/null 2>&1; then
         echo "✓ URL is available: $url"
         return 0
+    fi
+
+    # Capture the fallback's stderr (retry warnings + final error) so we can
+    # surface curl's diagnostic on failure.
+    local err
+    if err=$(curl "${common[@]}" -r 0-0 \
+                 --retry 5 --retry-all-errors --retry-delay 1 --retry-max-time 30 \
+                 "$url" 2>&1 >/dev/null); then
+        echo "✓ URL is available: $url"
+        return 0
+    fi
+
+    # Collapse the multi-line output to its last meaningful line (the final
+    # "curl: (NN) ..." error) for a compact, informative message.
+    local detail
+    detail=$(printf '%s\n' "$err" | grep -v '^[[:space:]]*$' | tail -n 1) || true
+
+    # Check if this URL is in the required list
+    if url_matches_list "$url" "$required_urls"; then
+      echo "✗ URL is unavailable: $url${detail:+ — $detail}"
+      return 1  # Exit with error for required URLs
     else
-        # Check if this URL is in the required list
-        if url_matches_list "$url" "$required_urls"; then
-          echo "✗ URL is unavailable: $url"
-          return 1  # Exit with error for required URLs
-        else
-          echo "⚠ Optional URL is unavailable: $url" >&2
-          return 0  # Don't fail for optional URLs
-        fi
+      echo "⚠ Optional URL is unavailable: $url${detail:+ — $detail}" >&2
+      return 0  # Don't fail for optional URLs
     fi
 }
 
