@@ -50,11 +50,7 @@ class DefaultTransferProcessRunnerTest {
   private final TransferProcessConfig rawConfig = new TransferProcessConfig(null, null, null, null);
 
   DefaultTransferProcessRunnerTest() {
-    config = new TransferProcessRunnerConfig();
-    config.setMaxConcurrentPatients(64);
-    config.setMaxSendConcurrency(64);
-    config.setMaxConcurrentProcesses(2);
-    config.setProcessTtl(Duration.ofSeconds(3));
+    config = new TransferProcessRunnerConfig(64, 64, 2, Duration.ofSeconds(3));
   }
 
   @BeforeEach
@@ -221,6 +217,7 @@ class DefaultTransferProcessRunnerTest {
 
   @Test
   void ttl() throws InterruptedException {
+    var config = new TransferProcessRunnerConfig(64, 64, 2, Duration.ofMillis(100));
     var process =
         new TransferProcessDefinition(
             "test",
@@ -229,7 +226,6 @@ class DefaultTransferProcessRunnerTest {
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
-    config.setProcessTtl(Duration.ofMillis(100));
     var runner = new DefaultTransferProcessRunner(new ObjectMapper(), config);
     runner.start(process, List.of());
     runner.start(process, List.of());
@@ -576,11 +572,7 @@ class DefaultTransferProcessRunnerTest {
     int patientCount = 10;
     int maxSend = 2;
 
-    var cfg = new TransferProcessRunnerConfig();
-    cfg.setMaxConcurrentPatients(8);
-    cfg.setMaxSendConcurrency(maxSend);
-    cfg.setMaxConcurrentProcesses(1);
-    cfg.setProcessTtl(Duration.ofSeconds(10));
+    var cfg = new TransferProcessRunnerConfig(8, maxSend, 1, Duration.ofSeconds(10));
     var boundedRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
 
     var inFlight = new AtomicInteger(0);

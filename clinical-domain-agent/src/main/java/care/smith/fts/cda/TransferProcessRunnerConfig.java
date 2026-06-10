@@ -1,38 +1,29 @@
 package care.smith.fts.cda;
 
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.time.Duration;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.validation.annotation.Validated;
 
-@Configuration
 @ConfigurationProperties("runner")
-@Validated
-@Setter
-public class TransferProcessRunnerConfig {
+public record TransferProcessRunnerConfig(
 
-  /** Number of patients whose data is fetched and deidentified ahead of the send stage. */
-  @NotNull
-  @Min(1)
-  int maxConcurrentPatients = 8;
+    /* Number of patients whose data is fetched and deidentified ahead of the send stage. */
+    Integer maxConcurrentPatients,
 
-  /**
-   * Maximum number of patient bundles sent to the RDA concurrently. This is the real bottleneck and
-   * should match the target Blaze's transaction capacity. Must not exceed maxConcurrentPatients.
-   */
-  @NotNull
-  @Min(1)
-  int maxSendConcurrency = 2;
+    /*
+     * Maximum number of patient bundles sent to the RDA concurrently. This is the real bottleneck and
+     * should match the target Blaze's transaction capacity. Must not exceed maxConcurrentPatients.
+     */
+    Integer maxSendConcurrency,
+    Integer maxConcurrentProcesses,
+    Duration processTtl) {
 
-  @NotNull int maxConcurrentProcesses = 4;
-  @NotNull Duration processTtl = Duration.ofDays(1);
-
-  @AssertTrue(message = "runner.maxSendConcurrency must not exceed runner.maxConcurrentPatients")
-  boolean isSendConcurrencyWithinPrefetchWindow() {
-    return maxSendConcurrency <= maxConcurrentPatients;
+  public TransferProcessRunnerConfig {
+    checkArgument(maxConcurrentPatients > 1, "runner.maxConcurrentPatients must be greater than 0");
+    checkArgument(maxSendConcurrency > 1, "runner.maxSendConcurrency must be greater than 0");
+    checkArgument(
+        maxSendConcurrency <= maxConcurrentPatients,
+        "runner.maxSendConcurrency must not exceed runner.maxConcurrentPatients");
   }
 }

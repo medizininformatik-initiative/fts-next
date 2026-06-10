@@ -52,7 +52,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   private synchronized void startOrQueue(
       String processId, TransferProcessInstance transferProcessInstance) {
     removeOldProcesses();
-    if (runningInstances() < config.maxConcurrentProcesses) {
+    if (runningInstances() < config.maxConcurrentProcesses()) {
       transferProcessInstance.execute();
       instances.put(processId, transferProcessInstance);
     } else {
@@ -66,7 +66,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
   }
 
   private synchronized void removeOldProcesses() {
-    var removeBefore = Instant.now().minus(config.processTtl);
+    var removeBefore = Instant.now().minus(config.processTtl());
     var forRemoval =
         instances.values().stream()
             .filter(inst -> inst.status().mayBeRemoved(removeBefore))
@@ -181,7 +181,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
               p -> log.trace("[Process {}] selectData for patient {}", processId(), p.identifier()))
           // Prefetch at most maxConcurrentPatients ahead of the send stage. The send stage's
           // flatMap concurrency is the binding cap; backpressure propagates from there upward.
-          .flatMap(this::selectDataForPatient, config.maxConcurrentPatients)
+          .flatMap(this::selectDataForPatient, config.maxConcurrentPatients())
           .doOnNext(
               b -> {
                 status.updateAndGet(TransferProcessStatus::incTotalBundles);
@@ -233,7 +233,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .doOnNext(b -> log.trace(beforeMsg, processId(), b.consentedPatient().identifier()))
           // Same prefetch window as selectData — keeps deidentified bundles ready for the sender
           // without racing ahead of what the send stage can consume.
-          .flatMap(this::deidentifyForPatient, config.maxConcurrentPatients)
+          .flatMap(this::deidentifyForPatient, config.maxConcurrentPatients())
           .doOnNext(
               b -> {
                 status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles);
@@ -261,7 +261,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       var beforeMsg = "[Process {}] sendBundles for patient {}";
       return deidentification
           .doOnNext(b -> log.trace(beforeMsg, processId(), b.consentedPatient().identifier()))
-          .flatMap(this::sendBundleForPatient, config.maxSendConcurrency)
+          .flatMap(this::sendBundleForPatient, config.maxSendConcurrency())
           .doOnNext(b -> status.updateAndGet(TransferProcessStatus::incSentBundles));
     }
 
