@@ -1,6 +1,5 @@
 package care.smith.fts.cda;
 
-import static care.smith.fts.util.AgentConfiguration.MAX_OUTBOUND_FANOUT;
 import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
@@ -180,9 +179,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return cohortSelection
           .doOnNext(
               p -> log.trace("[Process {}] selectData for patient {}", processId(), p.identifier()))
-          // Bound the per-patient fan-out to the shared outbound connection budget so this stage
-          // never dispatches more concurrent upstream requests than the pool can hold.
-          .flatMap(this::selectDataForPatient, MAX_OUTBOUND_FANOUT)
+          // Prefetch at most maxConcurrentPatients ahead of the send stage. The send stage's
+          // flatMap concurrency is the binding cap; backpressure propagates from there upward.
+          .flatMap(this::selectDataForPatient, config.maxConcurrentPatients)
           .doOnNext(
               b -> {
                 status.updateAndGet(TransferProcessStatus::incTotalBundles);
@@ -232,9 +231,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       var beforeMsg = "[Process {}] deidentify for patient {}";
       return dataSelection
           .doOnNext(b -> log.trace(beforeMsg, processId(), b.consentedPatient().identifier()))
-          // Bound the per-patient fan-out to the shared outbound connection budget so this stage
-          // never dispatches more concurrent upstream requests than the pool can hold.
-          .flatMap(this::deidentifyForPatient, MAX_OUTBOUND_FANOUT)
+          // Same prefetch window as selectData — keeps deidentified bundles ready for the sender
+          // without racing ahead of what the send stage can consume.
+          .flatMap(this::deidentifyForPatient, config.maxConcurrentPatients)
           .doOnNext(
               b -> {
                 status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles);
