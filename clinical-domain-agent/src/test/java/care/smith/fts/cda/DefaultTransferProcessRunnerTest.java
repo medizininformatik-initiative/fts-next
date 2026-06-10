@@ -50,10 +50,7 @@ class DefaultTransferProcessRunnerTest {
   private final TransferProcessConfig rawConfig = new TransferProcessConfig(null, null, null, null);
 
   DefaultTransferProcessRunnerTest() {
-    config = new TransferProcessRunnerConfig();
-    config.setMaxSendConcurrency(64);
-    config.setMaxConcurrentProcesses(2);
-    config.setProcessTtl(Duration.ofSeconds(3));
+    config = new TransferProcessRunnerConfig(64, 64, 2, Duration.ofSeconds(3));
   }
 
   @BeforeEach
@@ -220,6 +217,7 @@ class DefaultTransferProcessRunnerTest {
 
   @Test
   void ttl() throws InterruptedException {
+    var config = new TransferProcessRunnerConfig(64, 64, 2, Duration.ofMillis(100));
     var process =
         new TransferProcessDefinition(
             "test",
@@ -228,7 +226,6 @@ class DefaultTransferProcessRunnerTest {
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
-    config.setProcessTtl(Duration.ofMillis(100));
     var runner = new DefaultTransferProcessRunner(new ObjectMapper(), config);
     runner.start(process, List.of());
     runner.start(process, List.of());
@@ -570,9 +567,53 @@ class DefaultTransferProcessRunnerTest {
         b -> just(new Result()));
   }
 
+  @Test
+  void sendConcurrencyIsRespected() {
+    int patientCount = 10;
+    int maxSend = 2;
+
+    var cfg = new TransferProcessRunnerConfig(8, maxSend, 1, Duration.ofSeconds(10));
+    var boundedRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
+
+    var inFlight = new AtomicInteger(0);
+    var peakInFlight = new AtomicInteger(0);
+
+    var patients =
+        IntStream.range(0, patientCount)
+            .mapToObj(i -> new ConsentedPatient("patient-" + i, "system"))
+            .toList();
+
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(patients),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> {
+              int current = inFlight.incrementAndGet();
+              peakInFlight.updateAndGet(peak -> Math.max(peak, current));
+              // Decrement in doOnNext so the count drops before flatMap sees the
+              // completion signal and opens the next slot — avoids a off-by-one
+              // in the peak measurement.
+              return Mono.just(new Result())
+                  .delayElement(Duration.ofMillis(20))
+                  .doOnNext(r -> inFlight.decrementAndGet());
+            });
+
+    var processId = boundedRunner.start(process, List.of());
+    waitForCompletion(boundedRunner, processId);
+
+    assertThat(peakInFlight.get()).isLessThanOrEqualTo(maxSend);
+  }
+
   private void waitForCompletion(String processId) {
+    waitForCompletion(runner, processId);
+  }
+
+  private void waitForCompletion(DefaultTransferProcessRunner r, String processId) {
     Flux.interval(Duration.ofMillis(10))
-        .flatMap(i -> runner.status(processId))
+        .flatMap(i -> r.status(processId))
         .takeUntil(s -> TransferProcessStatus.isCompleted(s.phase()))
         .take(Duration.ofSeconds(5))
         .last()

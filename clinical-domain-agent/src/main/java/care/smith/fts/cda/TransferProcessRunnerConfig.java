@@ -1,19 +1,29 @@
 package care.smith.fts.cda;
 
-import jakarta.validation.constraints.NotNull;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.time.Duration;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
 @ConfigurationProperties("runner")
-@Setter
-public class TransferProcessRunnerConfig {
+public record TransferProcessRunnerConfig(
 
-  @NestedConfigurationProperty @NotNull int maxSendConcurrency = 128;
+    /* Number of patients whose data is fetched and deidentified ahead of the send stage. */
+    Integer maxConcurrentPatients,
 
-  @NotNull int maxConcurrentProcesses = 4;
-  @NotNull Duration processTtl = Duration.ofDays(1);
+    /*
+     * Maximum number of patient bundles sent to the RDA concurrently. This is the real bottleneck and
+     * should match the target Blaze's transaction capacity. Must not exceed maxConcurrentPatients.
+     */
+    Integer maxSendConcurrency,
+    Integer maxConcurrentProcesses,
+    Duration processTtl) {
+
+  public TransferProcessRunnerConfig {
+    checkArgument(maxConcurrentPatients > 1, "runner.maxConcurrentPatients must be greater than 0");
+    checkArgument(maxSendConcurrency > 1, "runner.maxSendConcurrency must be greater than 0");
+    checkArgument(
+        maxSendConcurrency <= maxConcurrentPatients,
+        "runner.maxSendConcurrency must not exceed runner.maxConcurrentPatients");
+  }
 }
