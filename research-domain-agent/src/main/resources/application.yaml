@@ -21,6 +21,9 @@ security:
   - path: /api/v2/**
     role: cd-agent
 
+runner:
+  maxConcurrentTransactions: 2
+
 springdoc:
   api-docs:
     path: /api/v2/openapi
