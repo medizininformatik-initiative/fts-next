@@ -1,6 +1,5 @@
 package care.smith.fts.util;
 
-import static com.google.common.base.Predicates.or;
 import static java.lang.Boolean.parseBoolean;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -32,16 +31,28 @@ public class DefaultRetryStrategy implements RetryStrategy {
     var counter = meterRegistry.counter("http.client.requests.retries", "request_name", name);
     return Retry.backoff(3, Duration.ofSeconds(1))
         .doBeforeRetry(retry -> log.debug("RetrySignal {}", retry))
-        .filter(
-            or(
-                DefaultRetryStrategy::is5xxServerError,
-                this::isTimeout,
-                DefaultRetryStrategy::isConnectException))
+        .filter(this::isRetryable)
         .doAfterRetry(i -> counter.increment());
+  }
+
+  private boolean isRetryable(Throwable e) {
+    // A 3xx that reaches here was not followed by the transport (policy DONT_FOLLOW, or an
+    // HTTPS->HTTP downgrade refused by FOLLOW_SAFE). Re-issuing the identical request only yields
+    // another redirect, not the resource, so it is terminal, never retryable; classified
+    // explicitly so it can never slip into a retry (#1706).
+    if (is3xxRedirection(e)) {
+      return false;
+    }
+    return is5xxServerError(e) || isTimeout(e) || isConnectException(e);
   }
 
   private boolean isTimeout(Throwable e) {
     return retryTimeout && e instanceof TimeoutException;
+  }
+
+  private static boolean is3xxRedirection(Throwable e) {
+    return e instanceof WebClientResponseException
+        && ((WebClientResponseException) e).getStatusCode().is3xxRedirection();
   }
 
   private static boolean is5xxServerError(Throwable e) {

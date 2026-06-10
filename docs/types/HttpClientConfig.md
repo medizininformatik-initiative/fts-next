@@ -27,13 +27,31 @@ ssl:
 
 ## Fields
 
-| Field Name | Type                        | Required | Default | Description                   |
-|------------|-----------------------------|----------|---------|-------------------------------|
-| `baseUrl`  | `String`                    | Yes      |         | Server base URL.              |
-| `auth`     | [`AuthMethod`](#authmethod) | No       | `NONE`  | Authentication configuration. |
-| `ssl`      | [`SSL`](#ssl)               | No       |         | SSL Configuration.            |
+| Field Name  | Type                          | Required | Default                | Description                   |
+|-------------|-------------------------------|----------|------------------------|-------------------------------|
+| `baseUrl`   | `String`                      | Yes      |                        | Server base URL.              |
+| `auth`      | [`AuthMethod`](#authmethod)   | No       | `NONE`                 | Authentication configuration. |
+| `ssl`       | [`SSL`](#ssl)                 | No       |                        | SSL Configuration.            |
+| `redirects` | [`Redirects`](#redirects)     | No       | `FOLLOW_SAFE`          | Redirect-following policy.    |
 
 ## Other Types
+
+### Redirects <Badge type="warning" text="Since 5.7" />
+
+Controls whether HTTP redirects (3xx) are followed for this connection.
+
+| Value           | Behaviour                                                                                                                                                                            |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `FOLLOW_SAFE`   | Follow redirects (e.g. an HDS behind a reverse proxy answering `307`), but refuse HTTPS&rarr;HTTP downgrades. **Default.**                                                          |
+| `ALWAYS_FOLLOW` | Follow all redirects, **including** HTTPS&rarr;HTTP downgrades. A downgrade exposes credentials and data over plaintext, so only use this for a trusted cross-scheme upstream.      |
+| `DONT_FOLLOW`   | Do not follow redirects.                                                                                                                                                            |
+
+A redirect that is **not** followed (every 3xx under `DONT_FOLLOW`, or an HTTPS&rarr;HTTP
+downgrade / unfollowed `POST` `307`/`308` under the follow modes) is turned into an **error**
+instead of passing through as an empty-bodied success — the failure mode that otherwise produces a
+silently empty transfer. Because a redirect is deterministic, it is treated as terminal and is
+**not retried**. Use `DONT_FOLLOW` to fail fast and force a misconfigured upstream `baseUrl` to be
+corrected so the server returns `200` directly.
 
 ### AuthMethod <Badge type="warning" text="Since 5.0" />
 

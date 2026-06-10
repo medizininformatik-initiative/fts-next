@@ -122,6 +122,19 @@ class DefaultRetryStrategyTest {
   }
 
   @Test
+  void doesNotRetryOn3xx() {
+    // A 3xx surfaces when follow-redirects=NEVER lets a redirect reach WebClient (#1706). It is
+    // deterministic, so it must be terminal: no retry, propagated as an error, no latency penalty.
+    var calls = new AtomicInteger();
+    StepVerifier.withVirtualTime(() -> withRetry(calls, 1, responseException(307), "threeXX"))
+        .thenAwait(Duration.ofSeconds(60))
+        .expectError(WebClientResponseException.class)
+        .verify();
+    assertThat(calls.get()).isEqualTo(1);
+    assertThat(retryCount("threeXX")).isZero();
+  }
+
+  @Test
   void exhaustsAfterThreeRetries() {
     var calls = new AtomicInteger();
     StepVerifier.withVirtualTime(
