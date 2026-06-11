@@ -4,6 +4,13 @@
 #   # Directory where the project files are located
 #   directory: "./projects"
 
+### FTS Transfer Process Runner
+##! https://medizininformatik-initiative.github.io/fts-next/configuration/runner
+# runner:
+#   # Maximum number of concurrent store-write transactions per project.
+#   # Excess sends wait for a permit (resilience4j Bulkhead). Must be >= 1.
+#   maxConcurrentTransactions: 2
+
 ### Spring Logging Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/logging
 # logging.level:

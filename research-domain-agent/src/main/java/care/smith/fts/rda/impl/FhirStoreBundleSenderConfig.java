@@ -8,4 +8,4 @@ public record FhirStoreBundleSenderConfig(
     @NotNull HttpClientConfig server,
 
     /* */
-    String project) {}
+    @NotNull String project) {}
