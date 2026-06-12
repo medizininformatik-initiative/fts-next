@@ -5,6 +5,7 @@ import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.util.BackpressureRetryStrategy;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.error.TransferProcessException;
@@ -46,7 +47,7 @@ class RdaBundleSenderTest {
               }
               return ClientResponse.create(HttpStatus.ACCEPTED).header(RETRY_AFTER, "0").build();
             });
-    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
+    var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectErrorMatches(
@@ -54,6 +55,10 @@ class RdaBundleSenderTest {
                 e instanceof TransferProcessException
                     && e.getMessage().equals("RDA polling budget exhausted"))
         .verify();
+  }
+
+  private BackpressureRetryStrategy buildRetryStrategy() {
+    return new BackpressureRetryStrategy(meterRegistry, new DefaultRetryStrategy(meterRegistry));
   }
 
   @Test
@@ -68,7 +73,7 @@ class RdaBundleSenderTest {
               }
               return ClientResponse.create(HttpStatus.CREATED).build();
             });
-    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
+    var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectErrorMatches(
@@ -90,7 +95,7 @@ class RdaBundleSenderTest {
               }
               return ClientResponse.create(HttpStatus.OK).build();
             });
-    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
+    var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectNextCount(1)
@@ -100,7 +105,7 @@ class RdaBundleSenderTest {
   @Test
   void postOkSkipsPolling() {
     var client = buildClient(request -> ClientResponse.create(HttpStatus.OK).build());
-    var sender = new RdaBundleSender(CONFIG, client, new DefaultRetryStrategy(meterRegistry));
+    var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
         .expectNextCount(1)

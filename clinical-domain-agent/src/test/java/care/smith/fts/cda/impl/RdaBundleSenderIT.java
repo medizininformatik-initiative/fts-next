@@ -22,6 +22,7 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.BackpressureRetryStrategy;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
@@ -62,7 +63,11 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
     wireMock = wireMockRuntime.getWireMock();
 
     var config = new RdaBundleSenderConfig(server, "example");
-    bundleSender = new RdaBundleSender(config, client, new DefaultRetryStrategy(meterRegistry));
+    bundleSender =
+        new RdaBundleSender(
+            config,
+            client,
+            new BackpressureRetryStrategy(meterRegistry, new DefaultRetryStrategy(meterRegistry)));
   }
 
   private static MappingBuilder rdaRequest() {
@@ -243,6 +248,38 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
                 e instanceof TransferProcessException
                     && e.getMessage().startsWith("Unexpected RDA status: 201"))
         .verify();
+  }
+
+  @Test
+  void retriesOn429ThenSucceeds() {
+    wireMock.register(
+        rdaRequest()
+            .inScenario("429ThenAccept")
+            .whenScenarioStateIs(FIRST)
+            .willReturn(WireMock.status(429).withHeader(RETRY_AFTER, "1"))
+            .willSetStateTo(REST));
+
+    wireMock.register(
+        rdaRequest()
+            .inScenario("429ThenAccept")
+            .whenScenarioStateIs(REST)
+            .willReturn(
+                accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
+
+    wireMock.register(get("/api/v2/process/status/processId").willReturn(ok()));
+
+    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
+        .expectNext(new BundleSender.Result())
+        .verifyComplete();
+  }
+
+  @Test
+  void exhaustsRetriesOnPersistent429() {
+    wireMock.register(rdaRequest().willReturn(WireMock.status(429).withHeader(RETRY_AFTER, "1")));
+
+    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
+    create(bundleSender.send(new TransportBundle(bundle, "transferId"))).expectError().verify();
   }
 
   @AfterEach

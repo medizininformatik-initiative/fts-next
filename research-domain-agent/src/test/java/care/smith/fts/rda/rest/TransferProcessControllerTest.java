@@ -17,7 +17,9 @@ import care.smith.fts.rda.TransferProcessConfig;
 import care.smith.fts.rda.TransferProcessDefinition;
 import care.smith.fts.rda.TransferProcessRunner;
 import care.smith.fts.rda.TransferProcessRunner.Phase;
+import care.smith.fts.rda.TransferProcessRunner.StartResult;
 import care.smith.fts.rda.TransferProcessRunner.Status;
+import care.smith.fts.rda.TransferProcessRunnerConfig;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +50,11 @@ class TransferProcessControllerTest {
   @BeforeEach
   void setUp() {
     mockRunner = mock(TransferProcessRunner.class);
-    api = new TransferProcessController(mockRunner, of(mockTransferProcess()));
+    api =
+        new TransferProcessController(
+            mockRunner,
+            of(mockTransferProcess()),
+            new StartResponseMapper(new TransferProcessRunnerConfig(10, 5)));
   }
 
   @Test
@@ -60,7 +66,7 @@ class TransferProcessControllerTest {
                 resourceStream(new Bundle()))
             .collect(toBundle());
     when(mockRunner.start(any(TransferProcessDefinition.class), any(Mono.class)))
-        .thenReturn(RUNNING_PROCESS_ID);
+        .thenReturn(new StartResult.Accepted(RUNNING_PROCESS_ID));
 
     var start =
         api.start(
@@ -77,6 +83,31 @@ class TransferProcessControllerTest {
             ResponseEntity.accepted()
                 .headers(h -> h.add("Content-Location", uri.toString()))
                 .build())
+        .verifyComplete();
+  }
+
+  @Test
+  void startRejectedReturns429() {
+    var bundle =
+        concat(
+                Stream.of(
+                    new Parameters().addParameter("id", "transfer-142602").setId("transfer-id")),
+                resourceStream(new Bundle()))
+            .collect(toBundle());
+    when(mockRunner.start(any(TransferProcessDefinition.class), any(Mono.class)))
+        .thenReturn(new StartResult.Rejected());
+
+    var start =
+        api.start(
+            "example",
+            Mono.just(bundle),
+            UriComponentsBuilder.fromUriString("http://localhost:1234"));
+    create(start)
+        .assertNext(
+            response -> {
+              assertThat(response.getStatusCode().value()).isEqualTo(429);
+              assertThat(response.getHeaders().getFirst(RETRY_AFTER)).isEqualTo("5");
+            })
         .verifyComplete();
   }
 

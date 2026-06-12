@@ -4,7 +4,7 @@ import care.smith.fts.api.TransportBundle;
 import reactor.core.publisher.Mono;
 
 public interface TransferProcessRunner {
-  String start(TransferProcessDefinition process, Mono<TransportBundle> data);
+  StartResult start(TransferProcessDefinition process, Mono<TransportBundle> data);
 
   record Result(long receivedResources, long sentResources) {}
 
@@ -16,5 +16,12 @@ public interface TransferProcessRunner {
     RUNNING,
     COMPLETED,
     ERROR
+  }
+
+  sealed interface StartResult {
+
+    record Accepted(String processId) implements StartResult {}
+
+    record Rejected() implements StartResult {}
   }
 }

@@ -7,7 +7,6 @@ import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.google.common.base.Predicates.and;
 import static java.util.function.Predicate.not;
-import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -51,11 +50,15 @@ public class TransferProcessController {
 
   private final TransferProcessRunner processRunner;
   private final List<TransferProcessDefinition> processes;
+  private final StartResponseMapper responseMapper;
 
   public TransferProcessController(
-      TransferProcessRunner runner, List<TransferProcessDefinition> processes) {
+      TransferProcessRunner runner,
+      List<TransferProcessDefinition> processes,
+      StartResponseMapper responseMapper) {
     this.processRunner = runner;
     this.processes = processes;
+    this.responseMapper = responseMapper;
   }
 
   @PostMapping(
@@ -111,14 +114,8 @@ public class TransferProcessController {
     return data.map(TransferProcessController::fromPlainBundle)
         .doOnNext(b -> log.debug("Running process: {}", transferProcessDefinition))
         .map(tb -> processRunner.start(transferProcessDefinition, Mono.just(tb)))
-        .doOnNext(id -> log.trace("projectId {}", id))
-        .map(id -> generateJobUri(uriBuilder, id))
-        .doOnNext(jobUri -> log.trace("jobUri {}", jobUri))
-        .map(
-            jobUri ->
-                ResponseEntity.accepted()
-                    .headers(h -> h.add(CONTENT_LOCATION, jobUri.toString()))
-                    .build());
+        .doOnNext(result -> log.trace("startResult {}", result))
+        .map(result -> responseMapper.fromResult(result, uriBuilder).response());
   }
 
   static TransportBundle fromPlainBundle(Bundle bundle) {
@@ -145,10 +142,6 @@ public class TransferProcessController {
 
   private Optional<TransferProcessDefinition> findProcess(String project) {
     return processes.stream().filter(p -> p.project().equalsIgnoreCase(project)).findFirst();
-  }
-
-  private URI generateJobUri(UriComponentsBuilder uriBuilder, String id) {
-    return uriBuilder.replacePath("api/v2/process/status/{id}").build(id);
   }
 
   @GetMapping("/process/status/{processId:[\\w-]+}")
