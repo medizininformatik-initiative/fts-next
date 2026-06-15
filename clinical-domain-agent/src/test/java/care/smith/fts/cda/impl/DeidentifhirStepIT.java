@@ -168,18 +168,18 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       @Autowired MeterRegistry meterRegistry) {
     var dateOnlyConfig =
         parseString(
-            """
-            {
-              deidentiFHIR.profile.version=0.2
-              modules {
-                test_patient {
-                  base = ["Patient.id", "Patient.birthDate", "Patient.meta.profile"]
-                  paths { "Patient.birthDate" { handler = shiftDateHandler } }
-                  pattern = "Patient.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient'"
-                }
-              }
-            }
-            """);
+"""
+{
+  deidentiFHIR.profile.version=0.2
+  modules {
+    test_patient {
+      base = ["Patient.id", "Patient.birthDate", "Patient.meta.profile"]
+      paths { "Patient.birthDate" { handler = shiftDateHandler } }
+      pattern = "Patient.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient'"
+    }
+  }
+}
+""");
 
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     var dateOnlyStep =

@@ -7,9 +7,11 @@
 ### FTS Transfer Process Runner
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/runner
 # runner:
-#   # Maximum number of concurrent store-write transactions per project.
-#   # Excess sends wait for a permit (resilience4j Bulkhead). Must be >= 1.
+#   # Maximum number of concurrent transfer processes per project.
+#   # Excess requests are rejected with 429 Too Many Requests. Must be >= 1.
 #   maxConcurrentTransactions: 2
+#   # Seconds to wait before retrying when RDA is saturated (429 response). Must be >= 1.
+#   retryAfterSeconds: 5
 
 ### Spring Logging Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/configuration/logging

@@ -2,7 +2,6 @@ package care.smith.fts.rda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import care.smith.fts.rda.TransferProcessRunnerConfig;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
@@ -23,10 +22,7 @@ class FhirStoreBundleSenderFactoryIT {
   @BeforeEach
   void setUp() {
     factory =
-        new FhirStoreBundleSenderFactory(
-            clientFactory,
-            new DefaultRetryStrategy(meterRegistry),
-            new TransferProcessRunnerConfig(2));
+        new FhirStoreBundleSenderFactory(clientFactory, new DefaultRetryStrategy(meterRegistry));
   }
 
   @Test

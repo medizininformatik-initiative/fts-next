@@ -6,13 +6,14 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.Deidentificator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.bulkhead.Bulkhead;
+import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -22,20 +23,27 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   private final Map<String, TransferProcessInstance> instances = new ConcurrentHashMap<>();
   private final ObjectMapper om;
+  private final BulkheadRegistry bulkheadRegistry;
 
-  public DefaultTransferProcessRunner(@Autowired ObjectMapper om) {
+  public DefaultTransferProcessRunner(ObjectMapper om, BulkheadRegistry bulkheadRegistry) {
     this.om = om;
+    this.bulkheadRegistry = bulkheadRegistry;
   }
 
   @Override
-  public String start(TransferProcessDefinition process, Mono<TransportBundle> data) {
+  public StartResult start(TransferProcessDefinition process, Mono<TransportBundle> data) {
+    var bulkhead = bulkheadRegistry.bulkhead(process.project());
+    if (!bulkhead.tryAcquirePermission()) {
+      log.info("Project {} saturated, rejecting admission", process.project());
+      return new StartResult.Rejected();
+    }
     var processId = UUID.randomUUID().toString();
     log.info("Run process with processId: {}", processId);
     log.info("Project configuration: {}", asJson(om, process.rawConfig()));
     TransferProcessInstance transferProcessInstance = new TransferProcessInstance(process);
-    transferProcessInstance.execute(data);
+    transferProcessInstance.execute(data, bulkhead);
     instances.put(processId, transferProcessInstance);
-    return processId;
+    return new StartResult.Accepted(processId);
   }
 
   @Override
@@ -64,7 +72,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       sentResources = new AtomicLong();
     }
 
-    public void execute(Mono<TransportBundle> data) {
+    public void execute(Mono<TransportBundle> data, Bulkhead bulkhead) {
       data.doOnNext(
               b ->
                   log.debug(
@@ -78,6 +86,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .doOnError(err -> phase.set(Phase.ERROR))
           .map(r -> new Result(receivedResources.get(), sentResources.get()))
           .doOnNext(b -> phase.set(Phase.COMPLETED))
+          .doFinally(s -> bulkhead.onComplete())
           .onErrorComplete()
           .subscribe();
     }

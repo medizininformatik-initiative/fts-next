@@ -6,8 +6,6 @@ import static org.hl7.fhir.r4.model.Bundle.BundleType.TRANSACTION;
 
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.util.RetryStrategy;
-import io.github.resilience4j.bulkhead.Bulkhead;
-import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -19,13 +17,10 @@ import reactor.core.publisher.Mono;
 final class FhirStoreBundleSender implements BundleSender {
   private final WebClient hdsClient;
   private final RetryStrategy retryStrategy;
-  private final Bulkhead bulkhead;
 
-  public FhirStoreBundleSender(
-      WebClient hdsClient, RetryStrategy retryStrategy, Bulkhead bulkhead) {
+  public FhirStoreBundleSender(WebClient hdsClient, RetryStrategy retryStrategy) {
     this.hdsClient = hdsClient;
     this.retryStrategy = retryStrategy;
-    this.bulkhead = bulkhead;
   }
 
   @Override
@@ -41,8 +36,7 @@ final class FhirStoreBundleSender implements BundleSender {
         .retryWhen(retryStrategy.forRequest("sendBundleToHds"))
         .doOnNext(res -> log.trace("Response received: {}", res))
         .doOnError(err -> log.debug("Error received", err))
-        .map(b -> new Result())
-        .transformDeferred(BulkheadOperator.of(bulkhead));
+        .map(b -> new Result());
   }
 
   private static Bundle toTransactionBundle(Bundle bundle) {
