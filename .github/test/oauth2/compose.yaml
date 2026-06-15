@@ -5,8 +5,7 @@ networks:
 
 services:
   keycloak:
-    build:
-      dockerfile: Dockerfile
+    image: quay.io/keycloak/keycloak:26.6.3@sha256:5fdbf2dbb5897cc34e82de49d13e23db011f9925089dbc555fc095f2c8bc1dac
     command:
     - start-dev
     - --import-realm
@@ -17,7 +16,7 @@ services:
     environment:
       KC_HEALTH_ENABLED: true
     healthcheck:
-      test: [ "CMD-SHELL", "curl -sSf http://localhost:9000/health > /tmp/health.json && cat /tmp/health.json | jq -e '.status == \"UP\"'" ]
+      test: [ "CMD-SHELL", "{ printf 'HEAD /health/ready HTTP/1.0\r\n\r\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000" ]
       interval: 10s
       timeout: 5s
       retries: 3
