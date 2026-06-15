@@ -32,9 +32,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
   @Override
   public StartResult start(TransferProcessDefinition process, Mono<TransportBundle> data) {
-    var bulkhead = bulkheadRegistry.bulkhead(process.project());
+    var destination = process.bundleSender().destinationId();
+    var bulkhead = bulkheadRegistry.bulkhead(destination);
     if (!bulkhead.tryAcquirePermission()) {
-      log.info("Project {} saturated, rejecting admission", process.project());
+      log.info("Destination {} saturated, rejecting admission", destination);
       return new StartResult.Rejected();
     }
     var processId = UUID.randomUUID().toString();

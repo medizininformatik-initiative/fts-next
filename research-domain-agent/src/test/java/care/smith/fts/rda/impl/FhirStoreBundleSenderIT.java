@@ -1,6 +1,7 @@
 package care.smith.fts.rda.impl;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
+import static care.smith.fts.util.DestinationId.fromBaseUrl;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -60,8 +61,10 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime) {
-    var client = clientFactory.create(clientConfig(wireMockRuntime));
-    bundleSender = new FhirStoreBundleSender(client, new DefaultRetryStrategy(meterRegistry));
+    var config = clientConfig(wireMockRuntime);
+    var client = clientFactory.create(config);
+    var registry = new DefaultRetryStrategy(meterRegistry);
+    bundleSender = new FhirStoreBundleSender(client, registry, fromBaseUrl(config.baseUrl()));
     wireMock = wireMockRuntime.getWireMock();
   }
 

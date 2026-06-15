@@ -17,10 +17,18 @@ import reactor.core.publisher.Mono;
 final class FhirStoreBundleSender implements BundleSender {
   private final WebClient hdsClient;
   private final RetryStrategy retryStrategy;
+  private final String destinationId;
 
-  public FhirStoreBundleSender(WebClient hdsClient, RetryStrategy retryStrategy) {
+  public FhirStoreBundleSender(
+      WebClient hdsClient, RetryStrategy retryStrategy, String destinationId) {
     this.hdsClient = hdsClient;
     this.retryStrategy = retryStrategy;
+    this.destinationId = destinationId;
+  }
+
+  @Override
+  public String destinationId() {
+    return destinationId;
   }
 
   @Override
