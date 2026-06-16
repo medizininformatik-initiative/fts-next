@@ -1,5 +1,7 @@
 package care.smith.fts.rda.impl;
 
+import static care.smith.fts.util.DestinationId.fromBaseUrl;
+
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.WebClientFactory;
@@ -26,6 +28,7 @@ public class FhirStoreBundleSenderFactory
   public BundleSender create(
       BundleSender.Config commonConfig, FhirStoreBundleSenderConfig implConfig) {
     var client = clientFactory.create(implConfig.server());
-    return new FhirStoreBundleSender(client, retryStrategy);
+    var destinationId = fromBaseUrl(implConfig.server().baseUrl());
+    return new FhirStoreBundleSender(client, retryStrategy, destinationId);
   }
 }

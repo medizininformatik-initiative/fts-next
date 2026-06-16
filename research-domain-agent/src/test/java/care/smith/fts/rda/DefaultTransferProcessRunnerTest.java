@@ -8,6 +8,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.BundleSender;
+import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.TransferProcessRunner.Phase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
@@ -120,5 +121,92 @@ class DefaultTransferProcessRunnerTest {
                 new TransportBundle(
                     new Bundle().addEntry(new Bundle().getEntryFirstRep()), "transferId-2")));
     assertThat(afterCompletion).isInstanceOf(TransferProcessRunner.StartResult.Accepted.class);
+  }
+
+  @Test
+  void sharedDestinationSharesBudgetAcrossProjects() {
+    var registry = bulkheadRegistry(1);
+    var runner = new DefaultTransferProcessRunner(new ObjectMapper(), registry);
+    var slowSender =
+        new FixedDestinationSender(
+            "same-dest", Mono.delay(Duration.ofSeconds(10)).then(Mono.just(new Result())));
+    Deidentificator deidentificator =
+        (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep()));
+
+    var processA =
+        new TransferProcessDefinition(
+            "project-a", new TransferProcessConfig(null, null), deidentificator, slowSender);
+    var processB =
+        new TransferProcessDefinition(
+            "project-b", new TransferProcessConfig(null, null), deidentificator, slowSender);
+
+    var first =
+        runner.start(
+            processA,
+            Mono.just(
+                new TransportBundle(new Bundle().addEntry(new Bundle().getEntryFirstRep()), "t1")));
+    assertThat(first).isInstanceOf(TransferProcessRunner.StartResult.Accepted.class);
+
+    var second =
+        runner.start(
+            processB,
+            Mono.just(
+                new TransportBundle(new Bundle().addEntry(new Bundle().getEntryFirstRep()), "t2")));
+    assertThat(second).isInstanceOf(TransferProcessRunner.StartResult.Rejected.class);
+  }
+
+  @Test
+  void differentDestinationsGetIndependentBudgets() {
+    var registry = bulkheadRegistry(1);
+    var runner = new DefaultTransferProcessRunner(new ObjectMapper(), registry);
+    var slowSenderA =
+        new FixedDestinationSender(
+            "dest-a", Mono.delay(Duration.ofSeconds(10)).then(Mono.just(new Result())));
+    var slowSenderB =
+        new FixedDestinationSender(
+            "dest-b", Mono.delay(Duration.ofSeconds(10)).then(Mono.just(new Result())));
+    Deidentificator deidentificator =
+        (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep()));
+
+    var processA =
+        new TransferProcessDefinition(
+            "project-a", new TransferProcessConfig(null, null), deidentificator, slowSenderA);
+    var processB =
+        new TransferProcessDefinition(
+            "project-b", new TransferProcessConfig(null, null), deidentificator, slowSenderB);
+
+    var first =
+        runner.start(
+            processA,
+            Mono.just(
+                new TransportBundle(new Bundle().addEntry(new Bundle().getEntryFirstRep()), "t1")));
+    assertThat(first).isInstanceOf(TransferProcessRunner.StartResult.Accepted.class);
+
+    var second =
+        runner.start(
+            processB,
+            Mono.just(
+                new TransportBundle(new Bundle().addEntry(new Bundle().getEntryFirstRep()), "t2")));
+    assertThat(second).isInstanceOf(TransferProcessRunner.StartResult.Accepted.class);
+  }
+
+  private static class FixedDestinationSender implements BundleSender {
+    private final String id;
+    private final Mono<Result> response;
+
+    FixedDestinationSender(String id, Mono<Result> response) {
+      this.id = id;
+      this.response = response;
+    }
+
+    @Override
+    public Mono<Result> send(Bundle bundle) {
+      return response;
+    }
+
+    @Override
+    public String destinationId() {
+      return id;
+    }
   }
 }
