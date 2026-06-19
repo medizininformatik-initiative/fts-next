@@ -119,8 +119,11 @@ public class DeidentifhirE2E {
                     .withBody(
                         """
                         {
-                          "resourceType": "OperationOutcome",
-                          "issue": []
+                          "resourceType": "Bundle",
+                          "type": "transaction-response",
+                          "entry": [
+                            { "response": { "status": "201 Created" } }
+                          ]
                         }
                         """)));
   }
