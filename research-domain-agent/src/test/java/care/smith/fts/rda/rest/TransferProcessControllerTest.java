@@ -4,6 +4,7 @@ import static care.smith.fts.rda.rest.TransferProcessController.fromPlainBundle;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
+import static java.time.Duration.ofHours;
 import static java.util.List.of;
 import static java.util.stream.Stream.concat;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,7 +55,7 @@ class TransferProcessControllerTest {
         new TransferProcessController(
             mockRunner,
             of(mockTransferProcess()),
-            new StartResponseMapper(new TransferProcessRunnerConfig(10, 5)));
+            new StartResponseMapper(new TransferProcessRunnerConfig(10, 5, ofHours(1))));
   }
 
   @Test
