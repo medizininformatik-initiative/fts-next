@@ -1,6 +1,7 @@
 package care.smith.fts.rda.impl;
 
 import static care.smith.fts.test.MockServerUtil.clientConfig;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.DestinationId.fromBaseUrl;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
@@ -16,6 +17,7 @@ import care.smith.fts.api.rda.BundleSender.Result;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
+import care.smith.fts.util.error.TransferProcessException;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -81,6 +83,34 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
     bundle.addEntry().setResource(patient);
     wireMock.register(fhirStoreRequest().willReturn(ok()));
     create(bundleSender.send(bundle)).expectNext(new BundleSender.Result()).verifyComplete();
+  }
+
+  @Test
+  void transactionResponseSucceeds() {
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(new Patient());
+    wireMock.register(fhirStoreRequest().willReturn(fhirResponse(transactionResponse("200 OK"))));
+    create(bundleSender.send(bundle)).expectNext(new Result()).verifyComplete();
+  }
+
+  @Test
+  void nonSuccessEntryFails() {
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(new Patient());
+    wireMock.register(
+        fhirStoreRequest().willReturn(fhirResponse(transactionResponse("400 Bad Request"))));
+    create(bundleSender.send(bundle)).expectError(TransferProcessException.class).verify();
+  }
+
+  private static Bundle transactionResponse(String... statusCodes) {
+    var responseBundle = new Bundle();
+    responseBundle.setType(Bundle.BundleType.TRANSACTIONRESPONSE);
+    for (var status : statusCodes) {
+      responseBundle
+          .addEntry()
+          .setResponse(new Bundle.BundleEntryResponseComponent().setStatus(status));
+    }
+    return responseBundle;
   }
 
   private static MappingBuilder fhirStoreRequest() {
