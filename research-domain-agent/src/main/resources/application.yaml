@@ -24,6 +24,7 @@ security:
 runner:
   maxConcurrentTransactions: 2
   retryAfterSeconds: 5
+  processTtl: PT10M
 
 springdoc:
   api-docs:

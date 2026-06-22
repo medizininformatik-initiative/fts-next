@@ -39,6 +39,7 @@ security:
 runner:
   maxConcurrentTransactions: 2
   retryAfterSeconds: 5
+  processTtl: PT10M
 
 logging.level:
   care.smith.fts: DEBUG
