@@ -10,6 +10,7 @@ lifecycle of processes managed by FTSnext
 runner:
   maxSendConcurrency: 32
   maxConcurrentProcesses: 4
+  cohortSelectionConcurrency: 4
   processTtl: P1D
 ```
 
@@ -35,6 +36,19 @@ runner:
   ```yaml
   runner:
     maxConcurrentProcesses: 10
+  ```
+
+### `cohortSelectionConcurrency` <Badge type="warning" text="Since 5.7" />
+
+* **Description**: The number of parallel workers used to group patients with their consents during
+  cohort selection. This grouping is CPU-bound; raise it on hosts with more cores if cohort
+  selection is a bottleneck.
+* **Type**: Integer
+* **Default**: `4`
+* **Example**:
+  ```yaml
+  runner:
+    cohortSelectionConcurrency: 8
   ```
 
 ### `processTtl` <Badge type="warning" text="Since 5.0" />

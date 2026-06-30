@@ -14,7 +14,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -26,18 +25,24 @@ import org.springframework.web.reactive.function.client.WebClientException;
 import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 class FhirCohortSelector implements CohortSelector {
   private final FhirCohortSelectorConfig config;
   private final WebClient fhirClient;
   private final RetryStrategy retryStrategy;
+  private final int cohortSelectionConcurrency;
 
   public FhirCohortSelector(
-      FhirCohortSelectorConfig config, WebClient fhirClient, RetryStrategy retryStrategy) {
+      FhirCohortSelectorConfig config,
+      WebClient fhirClient,
+      RetryStrategy retryStrategy,
+      int cohortSelectionConcurrency) {
     this.config = config;
     this.fhirClient = fhirClient;
     this.retryStrategy = retryStrategy;
+    this.cohortSelectionConcurrency = cohortSelectionConcurrency;
   }
 
   @Override
@@ -95,30 +100,41 @@ class FhirCohortSelector implements CohortSelector {
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
     var patientIdentifierSystem = config.patientIdentifierSystem();
-    var bundles = groupPatientsAndConsents(bundle);
-    return Flux.fromStream(
-            processConsentedPatients(
-                patientIdentifierSystem,
-                config.policySystem(),
-                bundles,
-                config.policies(),
-                b -> getPatientIdentifier(patientIdentifierSystem, b)))
+    return groupPatientsAndConsents(bundle)
+        .mapNotNull(
+            b ->
+                processConsentedPatient(
+                        patientIdentifierSystem,
+                        config.policySystem(),
+                        b,
+                        config.policies(),
+                        p -> getPatientIdentifier(patientIdentifierSystem, p))
+                    .orElse(null))
         .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
   }
 
-  private static Stream<Bundle> groupPatientsAndConsents(Bundle bundle) {
-    var patients = typedResourceStream(bundle, Patient.class);
-    return patients
-        .parallel()
-        .map(
-            p -> {
-              var inner = new Bundle().addEntry(new BundleEntryComponent().setResource(p));
-              typedResourceStream(bundle, Consent.class)
-                  .filter(c -> isConsentOfPatient(p, c))
-                  .forEach(c -> inner.addEntry(new BundleEntryComponent().setResource(c)));
-              return inner;
-            });
+  /**
+   * Groups each patient in the bundle with its matching consents. The CPU-bound grouping runs on a
+   * bounded {@link reactor.core.publisher.ParallelFlux} with {@code cohortSelectionConcurrency}
+   * rails on a dedicated Reactor scheduler, instead of the JVM-wide common ForkJoinPool that a
+   * parallel {@link java.util.stream.Stream} would use.
+   */
+  private Flux<Bundle> groupPatientsAndConsents(Bundle bundle) {
+    var patients = typedResourceStream(bundle, Patient.class).toList();
+    return Flux.fromIterable(patients)
+        .parallel(cohortSelectionConcurrency)
+        .runOn(Schedulers.parallel())
+        .map(p -> groupPatientWithConsents(bundle, p))
+        .sequential();
+  }
+
+  private static Bundle groupPatientWithConsents(Bundle bundle, Patient p) {
+    var inner = new Bundle().addEntry(new BundleEntryComponent().setResource(p));
+    typedResourceStream(bundle, Consent.class)
+        .filter(c -> isConsentOfPatient(p, c))
+        .forEach(c -> inner.addEntry(new BundleEntryComponent().setResource(c)));
+    return inner;
   }
 
   private static boolean isConsentOfPatient(Patient patient, Consent c) {

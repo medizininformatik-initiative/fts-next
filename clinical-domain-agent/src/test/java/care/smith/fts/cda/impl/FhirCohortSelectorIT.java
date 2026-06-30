@@ -62,7 +62,7 @@ class FhirCohortSelectorIT {
     this.config = MockServerUtil.clientConfig(wireMockRuntime);
     var fhirClient = clientFactory.create(this.config);
     cohortSelector =
-        new FhirCohortSelector(config, fhirClient, new DefaultRetryStrategy(meterRegistry));
+        new FhirCohortSelector(config, fhirClient, new DefaultRetryStrategy(meterRegistry), 4);
     wireMock = wireMockRuntime.getWireMock();
     cohortGenerator = new FhirCohortGenerator(PID_SYSTEM, POLICY_SYSTEM, POLICIES);
   }
