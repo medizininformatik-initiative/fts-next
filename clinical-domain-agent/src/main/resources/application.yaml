@@ -25,6 +25,10 @@ runner:
   maxSendConcurrency: 2
   maxConcurrentProcesses: 4
   processTtl: P1D
+  # Patients per batched TCA transport-mapping request; larger batches reduce gPAS calls.
+  deidentifyBatchSize: 100
+  # Max wait for a deidentify batch to fill before dispatching it (ISO-8601 duration).
+  deidentifyBatchTimeout: PT2S
 
 springdoc:
   api-docs:

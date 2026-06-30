@@ -13,16 +13,21 @@ import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
-import care.smith.fts.util.tca.TransportMappingResponse;
+import care.smith.fts.util.tca.TransportMappingsRequest;
+import care.smith.fts.util.tca.TransportMappingsResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -54,60 +59,128 @@ class DeidentifhirStep implements Deidentificator {
 
   @Override
   public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
-    return Mono.defer(
-        () -> {
-          var patient = bundle.consentedPatient();
-          var inputBundleSize = bundle.bundle().getEntry().size();
-          var deidentifyMsg = "deidentify for patient {}, input bundle has {} entries";
-          log.trace(deidentifyMsg, patient.identifier(), inputBundleSize);
-          var provider = new GeneratingReplacementProvider(patient.identifier());
-          var registry = buildRegistry(provider);
-          var deidentified =
-              DeidentifhirUtils.deidentify(
-                  config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
-          var deidentifiedMsg = "deidentified bundle for patient {} has {} entries";
-          log.trace(deidentifiedMsg, patient.identifier(), deidentified.getEntry().size());
-
-          var idMappings = provider.getIdMappings();
-          var dateMappings = provider.getDateMappings();
-          var producedMsg =
-              "deidentify produced {} ID mappings and {} date mappings for patient {}";
-          log.trace(producedMsg, idMappings.size(), dateMappings.size(), patient.identifier());
-          return (idMappings.isEmpty() && dateMappings.isEmpty())
-              ? Mono.fromRunnable(() -> log.warn("No mappings to send to TCA"))
-              : sendMappingsToTca(patient, idMappings, dateMappings)
-                  .map(transferId -> new TransportBundle(deidentified, transferId));
-        });
+    return deidentify(List.of(bundle))
+        .next()
+        .flatMap(
+            result ->
+                switch (result) {
+                  case DeidentificationResult.Success s -> Mono.just(s.bundle());
+                  case DeidentificationResult.Failure f -> Mono.error(f.error());
+                });
   }
 
-  private Mono<String> sendMappingsToTca(
-      ConsentedPatient patient, Map<String, String> idMappings, Map<String, String> dateMappings) {
-    var request =
-        new TransportMappingRequest(
-            patient.identifier(),
-            patient.patientIdentifierSystem(),
-            idMappings,
-            dateMappings,
-            domains,
-            maxDateShift,
-            preserve);
+  /**
+   * Deidentifies every bundle locally, then sends the transport mappings of all patients to the TCA
+   * in a single request so the TCA can batch its gPAS pseudonym lookups. A failure of the local
+   * deidentification is isolated per patient; a failure of the TCA request propagates and fails the
+   * whole batch.
+   */
+  @Override
+  public Flux<DeidentificationResult> deidentify(List<ConsentedPatientBundle> bundles) {
+    return Flux.fromIterable(bundles)
+        .concatMap(this::deidentifyLocally)
+        .collectList()
+        .flatMapMany(this::sendBatch);
+  }
 
+  private Mono<LocalOutcome> deidentifyLocally(ConsentedPatientBundle bundle) {
+    return Mono.<LocalOutcome>fromCallable(() -> transformLocally(bundle))
+        .onErrorResume(e -> Mono.just(new LocalOutcome.Failed(bundle.consentedPatient(), e)));
+  }
+
+  private LocalOutcome transformLocally(ConsentedPatientBundle bundle) {
+    var patient = bundle.consentedPatient();
     log.trace(
-        "Send transport mappings for {} IDs and {} dates to TCA",
+        "deidentify for patient {}, input bundle has {} entries",
+        patient.identifier(),
+        bundle.bundle().getEntry().size());
+    var provider = new GeneratingReplacementProvider(patient.identifier());
+    var registry = buildRegistry(provider);
+    var deidentified =
+        DeidentifhirUtils.deidentify(
+            config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
+    var idMappings = provider.getIdMappings();
+    var dateMappings = provider.getDateMappings();
+    log.trace(
+        "deidentify produced {} ID mappings and {} date mappings for patient {}",
         idMappings.size(),
-        dateMappings.size());
+        dateMappings.size(),
+        patient.identifier());
+    if (idMappings.isEmpty() && dateMappings.isEmpty()) {
+      log.warn("No mappings to send to TCA");
+      return new LocalOutcome.Skipped(patient);
+    }
+    return new LocalOutcome.Mapped(patient, deidentified, idMappings, dateMappings);
+  }
+
+  private Flux<DeidentificationResult> sendBatch(List<LocalOutcome> outcomes) {
+    var failures =
+        outcomes.stream()
+            .filter(LocalOutcome.Failed.class::isInstance)
+            .map(LocalOutcome.Failed.class::cast)
+            .map(
+                f ->
+                    (DeidentificationResult)
+                        new DeidentificationResult.Failure(f.patient(), f.error()))
+            .toList();
+    var mapped =
+        outcomes.stream()
+            .filter(LocalOutcome.Mapped.class::isInstance)
+            .map(LocalOutcome.Mapped.class::cast)
+            .toList();
+    if (mapped.isEmpty()) {
+      return Flux.fromIterable(failures);
+    }
+    var request = new TransportMappingsRequest(mapped.stream().map(this::toRequest).toList());
+    return sendMappingsToTca(request)
+        .map(response -> toResults(mapped, response, failures))
+        .flatMapMany(Flux::fromIterable);
+  }
+
+  private TransportMappingRequest toRequest(LocalOutcome.Mapped o) {
+    return new TransportMappingRequest(
+        o.patient().identifier(),
+        o.patient().patientIdentifierSystem(),
+        o.idMappings(),
+        o.dateMappings(),
+        domains,
+        maxDateShift,
+        preserve);
+  }
+
+  private static List<DeidentificationResult> toResults(
+      List<LocalOutcome.Mapped> mapped,
+      TransportMappingsResponse response,
+      List<DeidentificationResult> failures) {
+    var transferIds = response.transferIds();
+    if (transferIds.size() != mapped.size()) {
+      throw new IllegalStateException(
+          "TCA returned %d transferIds for %d requests"
+              .formatted(transferIds.size(), mapped.size()));
+    }
+    var results = new ArrayList<>(failures);
+    for (var i = 0; i < mapped.size(); i++) {
+      var o = mapped.get(i);
+      results.add(
+          new DeidentificationResult.Success(
+              o.patient(), new TransportBundle(o.deidentified(), transferIds.get(i))));
+    }
+    return results;
+  }
+
+  private Mono<TransportMappingsResponse> sendMappingsToTca(TransportMappingsRequest request) {
+    log.trace("Send transport mappings for {} requests to TCA", request.requests().size());
     return tcaClient
         .post()
-        .uri("/api/v2/cd/transport-mapping")
+        .uri("/api/v2/cd/transport-mappings")
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(request)
         .retrieve()
         .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), DeidentifhirStep::handleBadRequest)
-        .bodyToMono(TransportMappingResponse.class)
+        .bodyToMono(TransportMappingsResponse.class)
         .timeout(Duration.ofSeconds(30))
         .retryWhen(retryStrategy.forRequest("sendMappingsToTca"))
-        .doOnError(DeidentifhirStep::handleError)
-        .map(TransportMappingResponse::transferId);
+        .doOnError(DeidentifhirStep::handleError);
   }
 
   private static Mono<Throwable> handleBadRequest(ClientResponse s) {
@@ -117,5 +190,24 @@ class DeidentifhirStep implements Deidentificator {
 
   private static void handleError(Throwable e) {
     log.error("Cannot send transport mappings to TCA: {}", e.getMessage());
+  }
+
+  /** Result of the local (non-TCA) deidentification of a single patient bundle. */
+  private sealed interface LocalOutcome {
+    ConsentedPatient patient();
+
+    /** Local deidentification threw for this patient; isolated from the rest of the batch. */
+    record Failed(ConsentedPatient patient, Throwable error) implements LocalOutcome {}
+
+    /** Local deidentification produced no mappings, so there is nothing to send to the TCA. */
+    record Skipped(ConsentedPatient patient) implements LocalOutcome {}
+
+    /** Local deidentification produced mappings that must be sent to the TCA. */
+    record Mapped(
+        ConsentedPatient patient,
+        Bundle deidentified,
+        Map<String, String> idMappings,
+        Map<String, String> dateMappings)
+        implements LocalOutcome {}
   }
 }

@@ -1,6 +1,6 @@
 package care.smith.fts.tca;
 
-import static care.smith.fts.test.FhirGenerators.gpasGetOrCreateResponse;
+import static care.smith.fts.test.FhirGenerators.gpasResponse;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -12,6 +12,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.redis.testcontainers.RedisContainer;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
@@ -228,44 +229,32 @@ public abstract class AbstractTcaE2E {
   }
 
   /**
-   * Configures a gPAS pseudonymization mock for a specific original value.
-   *
-   * @param original The original identifier value
-   * @param pseudonym The pseudonym to return
-   */
-  protected void configureGpasPseudonymizationMock(String original, String pseudonym)
-      throws IOException {
-    var gpasWireMock = new WireMock(gpas.getHost(), gpas.getPort());
-    var generator = gpasGetOrCreateResponse(() -> original, () -> pseudonym);
-
-    gpasWireMock.register(
-        post(urlPathEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-            .withRequestBody(
-                equalToJson(
-                    """
-                    {
-                      "resourceType": "Parameters",
-                      "parameter": [
-                        {"name": "target", "valueString": "domain"},
-                        {"name": "original", "valueString": "%s"}
-                      ]
-                    }
-                    """
-                        .formatted(original),
-                    true,
-                    true))
-            .willReturn(fhirResponse(generator.generateString())));
-  }
-
-  /**
-   * Configures standard gPAS mocks for transport mapping tests. Includes metadata endpoint and
-   * three parallel pseudonymization calls for patient ID, salt, and date shift.
+   * Configures standard gPAS mocks for transport mapping tests. Includes the metadata endpoint and
+   * the single batched pseudonymization call for patient ID, salt, and date shift.
    */
   protected void configureStandardGpasMocks() throws IOException {
     configureGpasMetadataMock();
-    configureGpasPseudonymizationMock("patient-id-1", "pseudonym-123");
-    configureGpasPseudonymizationMock("Salt_patient-id-1", "salt-pseudonym-123");
-    configureGpasPseudonymizationMock("PT336H_patient-id-1", "dateshift-seed-456");
+    // The TCA batches the patient, salt and dateShift lookups (same domain) into one gPAS request,
+    // so a single mock must resolve all three originals in one response.
+    configureGpasBatchMock(
+        Map.of(
+            "patient-id-1", "pseudonym-123",
+            "Salt_patient-id-1", "salt-pseudonym-123",
+            "PT336H_patient-id-1", "dateshift-seed-456"));
+  }
+
+  /**
+   * Registers a single gPAS pseudonymization mock that resolves all given originals in one
+   * response, matching the batched {@code $pseudonymizeAllowCreate} request the TCA issues per
+   * domain.
+   *
+   * @param originalToPseudonym map of original identifier to the pseudonym gPAS should return
+   */
+  protected void configureGpasBatchMock(Map<String, String> originalToPseudonym) {
+    var gpasWireMock = new WireMock(gpas.getHost(), gpas.getPort());
+    gpasWireMock.register(
+        post(urlPathEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+            .willReturn(fhirResponse(gpasResponse(originalToPseudonym))));
   }
 
   /**

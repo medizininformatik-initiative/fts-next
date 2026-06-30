@@ -175,14 +175,14 @@ public abstract class AbstractCohortSelectorE2E {
   private void setupCommonTcaMocks() {
     var tcaWireMock = new WireMock(tca.getHost(), tca.getPort());
 
+    // The CDA posts a batch of patients and expects a positional list of transferIds (one per
+    // request). The example cohort yields a single bundle, so a one-element list suffices.
     tcaWireMock.register(
         post(urlPathMatching("/api/v2/cd/transport-mapping.*"))
             .willReturn(
                 jsonResponse(
                     """
-                    {
-                      "transferId": "transfer-123"
-                    }
+                    {"transferIds": ["transfer-123"]}
                     """)));
   }
 

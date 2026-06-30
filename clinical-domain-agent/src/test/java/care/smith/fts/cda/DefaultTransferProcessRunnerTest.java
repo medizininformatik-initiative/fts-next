@@ -50,7 +50,9 @@ class DefaultTransferProcessRunnerTest {
   private final TransferProcessConfig rawConfig = new TransferProcessConfig(null, null, null, null);
 
   DefaultTransferProcessRunnerTest() {
-    config = new TransferProcessRunnerConfig(64, 64, 2, Duration.ofSeconds(3));
+    config =
+        new TransferProcessRunnerConfig(
+            64, 64, 2, Duration.ofSeconds(3), 64, Duration.ofMillis(50));
   }
 
   @BeforeEach
@@ -217,7 +219,9 @@ class DefaultTransferProcessRunnerTest {
 
   @Test
   void ttl() throws InterruptedException {
-    var config = new TransferProcessRunnerConfig(64, 64, 2, Duration.ofMillis(100));
+    var config =
+        new TransferProcessRunnerConfig(
+            64, 64, 2, Duration.ofMillis(100), 64, Duration.ofMillis(50));
     var process =
         new TransferProcessDefinition(
             "test",
@@ -406,6 +410,50 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
+  void batchDeidentificationErrorFailsEveryPatientInBatch() {
+    Deidentificator erroringBatch =
+        new Deidentificator() {
+          @Override
+          public Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle) {
+            return Mono.empty();
+          }
+
+          @Override
+          public Flux<DeidentificationResult> deidentify(List<ConsentedPatientBundle> bundles) {
+            return Flux.error(new RuntimeException("TCA unavailable"));
+          }
+        };
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            erroringBatch,
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+              assertThat(r.sentBundles()).isEqualTo(0);
+              assertThat(r.skippedBundles()).isEqualTo(2);
+            })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(
+            errors -> {
+              assertThat(errors).hasSize(2);
+              assertThat(errors).allMatch(e -> e.step() == Step.DEIDENTIFY);
+              assertThat(errors).allMatch(e -> "TCA unavailable".equals(e.errorMessage()));
+            })
+        .verifyComplete();
+  }
+
+  @Test
   void errorInBundleSenderRecordsFailedPatient() {
     var process =
         new TransferProcessDefinition(
@@ -572,7 +620,9 @@ class DefaultTransferProcessRunnerTest {
     int patientCount = 10;
     int maxSend = 2;
 
-    var cfg = new TransferProcessRunnerConfig(8, maxSend, 1, Duration.ofSeconds(10));
+    var cfg =
+        new TransferProcessRunnerConfig(
+            8, maxSend, 1, Duration.ofSeconds(10), 64, Duration.ofMillis(50));
     var boundedRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
 
     var inFlight = new AtomicInteger(0);

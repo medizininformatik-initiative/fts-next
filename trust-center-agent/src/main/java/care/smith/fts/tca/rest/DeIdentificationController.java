@@ -56,7 +56,34 @@ public class DeIdentificationController {
         .onErrorResume(DeIdentificationController::handleGenerateError);
   }
 
-  private static Mono<ResponseEntity<TransportMappingResponse>> handleGenerateError(Throwable e) {
+  @PostMapping(
+      value = "/cd/transport-mappings",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  @Operation(
+      summary = "Get the transport mappings for a batch of patients",
+      description =
+          "**Since 5.5**\n\nBundles several patients into one request so the per-domain gPAS "
+              + "pseudonym lookups can be collapsed into a single call per domain.",
+      requestBody =
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              content =
+                  @Content(schema = @Schema(implementation = TransportMappingsRequest.class))),
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            content = @Content(schema = @Schema(implementation = TransportMappingsResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Bad request"),
+      })
+  public Mono<ResponseEntity<TransportMappingsResponse>> transportMappings(
+      @Valid @RequestBody Mono<TransportMappingsRequest> requestData) {
+    return requestData
+        .flatMap(mappingProvider::generateTransportMappings)
+        .map(ResponseEntity::ok)
+        .onErrorResume(DeIdentificationController::handleGenerateError);
+  }
+
+  private static <T> Mono<ResponseEntity<T>> handleGenerateError(Throwable e) {
     if (e instanceof UnknownDomainException || e instanceof IllegalArgumentException) {
       return ErrorResponseUtil.badRequest(e);
     } else {

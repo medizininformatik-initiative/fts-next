@@ -1,13 +1,14 @@
 package care.smith.fts.tca.rest;
 
-import static care.smith.fts.test.FhirGenerators.fromList;
-import static care.smith.fts.test.FhirGenerators.gpasGetOrCreateResponse;
+import static care.smith.fts.test.FhirGenerators.gpasResponse;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.time.Duration.ofDays;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
@@ -22,8 +23,7 @@ import care.smith.fts.tca.BaseIT;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TransportMappingResponse;
-import java.io.IOException;
-import java.util.List;
+import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -45,6 +45,13 @@ class DeIdentificationControllerIT extends BaseIT {
 
   private static final Map<String, String> DEFAULT_DOMAINS =
       ofEntries(entry("pseudonym", "MII"), entry("salt", "MII"), entry("dateShift", "MII"));
+  private static final UrlPattern GPAS_URL =
+      urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate");
+  private static final Map<String, String> GPAS_PSEUDONYMS =
+      Map.of(
+          "id-144218", "469680023",
+          "Salt_id-144218", "123",
+          "PT336H_id-144218", "12345");
 
   private WebClient cdClient;
   private WebClient rdClient;
@@ -59,34 +66,8 @@ class DeIdentificationControllerIT extends BaseIT {
   }
 
   @Test
-  void successfulRequest() throws IOException {
-    var fhirGenerator =
-        gpasGetOrCreateResponse(
-            fromList(List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")),
-            fromList(List.of("469680023", "123", "12345")));
-
-    List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
-        .forEach(
-            key ->
-                gpas()
-                    .register(
-                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                            .withRequestBody(
-                                equalToJson(
-                                    """
-                                    {
-                                      "resourceType": "Parameters",
-                                      "parameter": [
-                                        {"name": "target", "valueString": "MII"},
-                                        {"name": "original", "valueString": "%s"}
-                                      ]
-                                    }
-                                    """
-                                        .formatted(key),
-                                    true,
-                                    true))
-                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
+  void successfulRequest() {
+    registerGpas();
 
     var response =
         doPost(
@@ -106,32 +87,26 @@ class DeIdentificationControllerIT extends BaseIT {
               assertThat(res.transferId()).isNotNull();
             })
         .verifyComplete();
+
+    // All three same-domain keys are resolved in a single gPAS call.
+    gpas().verifyThat(1, postRequestedFor(GPAS_URL));
   }
 
   @Test
-  void firstRequestToGpasFails() throws IOException {
-    var map =
-        Map.of("id-144218", "469680023", "Salt_id-144218", "123", "PT336H_id-144218", "12345");
-
-    for (String s : List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")) {
-      String body = gpasGetOrCreateResponse(() -> s, () -> map.get(s)).generateString();
-      gpas()
-          .register(
-              post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-                  .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                  .withRequestBody(
-                      equalToJson(
-                          """
-                          { "resourceType": "Parameters",
-                            "parameter": [
-                              {"name": "target", "valueString": "MII"},
-                              {"name": "original", "valueString": "%s"}]}
-                          """
-                              .formatted(s),
-                          true,
-                          true))
-                  .willReturn(fhirResponse(body)));
-    }
+  void firstRequestToGpasFails() {
+    gpas()
+        .register(
+            post(GPAS_URL)
+                .inScenario("gpas-retry")
+                .whenScenarioStateIs(STARTED)
+                .willReturn(aResponse().withStatus(500))
+                .willSetStateTo("recovered"));
+    gpas()
+        .register(
+            post(GPAS_URL)
+                .inScenario("gpas-retry")
+                .whenScenarioStateIs("recovered")
+                .willReturn(fhirResponse(gpasResponse(GPAS_PSEUDONYMS))));
 
     var response =
         doPost(
@@ -151,6 +126,9 @@ class DeIdentificationControllerIT extends BaseIT {
               assertThat(res.transferId()).isNotNull();
             })
         .verifyComplete();
+
+    // The initial 500 is retried, so gPAS sees the batched request twice.
+    gpas().verifyThat(2, postRequestedFor(GPAS_URL));
   }
 
   @Test
@@ -176,31 +154,8 @@ class DeIdentificationControllerIT extends BaseIT {
   }
 
   @Test
-  void transportMappingIdsAndDateShiftingValuesAndFetchPseudonyms() throws IOException {
-    var fhirGenerator =
-        gpasGetOrCreateResponse(
-            fromList(List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")),
-            fromList(List.of("469680023", "123", "12345")));
-
-    List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
-        .forEach(
-            key ->
-                gpas()
-                    .register(
-                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                            .withRequestBody(
-                                equalToJson(
-                                    """
-                                    { "resourceType": "Parameters",
-                                      "parameter": [
-                                        {"name": "target", "valueString": "MII"},
-                                        {"name": "original", "valueString": "%s"}]}
-                                    """
-                                        .formatted(key),
-                                    true,
-                                    true))
-                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
+  void transportMappingIdsAndDateShiftingValuesAndFetchPseudonyms() {
+    registerGpas();
 
     var transferId =
         doPost(
@@ -235,6 +190,14 @@ class DeIdentificationControllerIT extends BaseIT {
               assertThat(body.dateShiftMap()).containsKey("tId-date-1");
             })
         .verifyComplete();
+  }
+
+  private void registerGpas() {
+    gpas()
+        .register(
+            post(GPAS_URL)
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                .willReturn(fhirResponse(gpasResponse(GPAS_PSEUDONYMS))));
   }
 
   private Mono<TransportMappingResponse> doPost(Map<String, Object> body) {

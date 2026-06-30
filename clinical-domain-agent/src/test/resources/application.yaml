@@ -20,6 +20,8 @@ runner:
   maxSendConcurrency: 2
   maxConcurrentProcesses: 4
   processTtl: P1D
+  deidentifyBatchSize: 100
+  deidentifyBatchTimeout: PT2S
 
 server:
   ssl:

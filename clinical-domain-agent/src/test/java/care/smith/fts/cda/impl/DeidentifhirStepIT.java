@@ -22,6 +22,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
+import care.smith.fts.api.cda.Deidentificator;
 import care.smith.fts.cda.ClinicalDomainAgent;
 import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
@@ -34,6 +35,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
+import java.util.List;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Patient;
@@ -79,7 +81,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   }
 
   private static MappingBuilder transportMappingRequest() {
-    return post("/api/v2/cd/transport-mapping")
+    return post("/api/v2/cd/transport-mappings")
         .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
   }
 
@@ -125,7 +127,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                 jsonResponse(
                     """
                     {
-                      "transferId": "transferId"
+                      "transferIds": ["transferId"]
                     }
                     """)));
 
@@ -144,7 +146,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             })
         .verifyComplete();
 
-    var requests = wireMock.findAll(postRequestedFor(urlEqualTo("/api/v2/cd/transport-mapping")));
+    var requests = wireMock.findAll(postRequestedFor(urlEqualTo("/api/v2/cd/transport-mappings")));
     assertThat(requests).hasSize(1);
 
     var body = requests.getFirst().getBodyAsString();
@@ -215,12 +217,81 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             .willReturn(
                 jsonResponse(
                     """
-                    {"transferId": "date-only-transfer"}
+                    {"transferIds": ["date-only-transfer"]}
                     """)));
 
     create(dateOnlyStep.deidentify(cpb))
         .assertNext(tb -> assertThat(tb.transferId()).isEqualTo("date-only-transfer"))
         .verifyComplete();
+  }
+
+  @Test
+  void deidentifyBatchSendsSingleTcaRequest() throws IOException {
+    wireMock.register(
+        transportMappingRequest()
+            .willReturn(
+                jsonResponse(
+                    """
+                    {"transferIds": ["t1", "t2"]}
+                    """)));
+
+    var secondBundle =
+        new ConsentedPatientBundle(
+            generateOnePatient("id2", "2024", "identifierSystem", "identifier2"),
+            new ConsentedPatient("id2", "system"));
+
+    create(step.deidentify(List.of(consentedPatientBundle, secondBundle)).collectList())
+        .assertNext(
+            results -> {
+              assertThat(results)
+                  .hasSize(2)
+                  .allMatch(r -> r instanceof Deidentificator.DeidentificationResult.Success);
+              assertThat(results)
+                  .extracting(
+                      r ->
+                          ((Deidentificator.DeidentificationResult.Success) r)
+                              .bundle()
+                              .transferId())
+                  .containsExactlyInAnyOrder("t1", "t2");
+            })
+        .verifyComplete();
+
+    // Both patients are sent to the TCA in a single request, not one request per patient.
+    var requests = wireMock.findAll(postRequestedFor(urlEqualTo("/api/v2/cd/transport-mappings")));
+    assertThat(requests).hasSize(1);
+  }
+
+  @Test
+  void localFailureIsIsolatedFromTheRestOfTheBatch() {
+    wireMock.register(
+        transportMappingRequest()
+            .willReturn(
+                jsonResponse(
+                    """
+                    {"transferIds": ["transferId"]}
+                    """)));
+
+    // A null input bundle makes the local deidentification throw for this patient only.
+    var failing = new ConsentedPatientBundle(null, new ConsentedPatient("bad", "system"));
+
+    create(step.deidentify(List.of(consentedPatientBundle, failing)).collectList())
+        .assertNext(
+            results -> {
+              assertThat(results).hasSize(2);
+              assertThat(results)
+                  .filteredOn(r -> r instanceof Deidentificator.DeidentificationResult.Success)
+                  .hasSize(1);
+              assertThat(results)
+                  .filteredOn(r -> r instanceof Deidentificator.DeidentificationResult.Failure)
+                  .hasSize(1);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void singleLocalFailurePropagatesError() {
+    var failing = new ConsentedPatientBundle(null, new ConsentedPatient("bad", "system"));
+    create(step.deidentify(failing)).expectError(NullPointerException.class).verify();
   }
 
   @Test

@@ -8,6 +8,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.BundleSender.Result;
+import care.smith.fts.api.cda.Deidentificator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.HashMap;
@@ -231,9 +232,15 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       var beforeMsg = "[Process {}] deidentify for patient {}";
       return dataSelection
           .doOnNext(b -> log.trace(beforeMsg, processId(), b.consentedPatient().identifier()))
-          // Same prefetch window as selectData — keeps deidentified bundles ready for the sender
-          // without racing ahead of what the send stage can consume.
-          .flatMap(this::deidentifyForPatient, config.maxConcurrentPatients())
+          // Buffer patients into batches so the deidentificator can collapse the per-patient TCA
+          // pseudonym lookups into a single request per batch. A batch is dispatched once it
+          // reaches
+          // deidentifyBatchSize or deidentifyBatchTimeout elapses, whichever comes first. Batches
+          // are
+          // processed one at a time to bound the number of deidentified bundles held in memory.
+          .bufferTimeout(config.deidentifyBatchSize(), config.deidentifyBatchTimeout())
+          .filter(batch -> !batch.isEmpty())
+          .concatMap(this::deidentifyBatch)
           .doOnNext(
               b -> {
                 status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles);
@@ -242,19 +249,33 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
               });
     }
 
-    private Mono<PatientContext<TransportBundle>> deidentifyForPatient(
-        ConsentedPatientBundle bundle) {
-      var patientId = bundle.consentedPatient().identifier();
-      log.trace("[Process {}] deidentifyForPatient {}", processId(), patientId);
-      var producedMsg = "[Process {}] deidentifyForPatient {} produced transport bundle";
-      var completedMsg = "[Process {}] deidentifyForPatient {} completed";
+    private Flux<PatientContext<TransportBundle>> deidentifyBatch(
+        List<ConsentedPatientBundle> batch) {
+      log.trace("[Process {}] deidentifyBatch with {} patients", processId(), batch.size());
       return process
           .deidentificator()
-          .deidentify(bundle)
-          .doOnNext(t -> log.trace(producedMsg, processId(), patientId))
-          .doOnSuccess(v -> log.trace(completedMsg, processId(), patientId))
-          .map(t -> new PatientContext<>(t, bundle.consentedPatient()))
-          .onErrorResume(e -> handlePatientError(patientId, Step.DEIDENTIFY, e));
+          .deidentify(batch)
+          // The deidentificator isolates per-patient (local) failures as Failure results; a failed
+          // TCA request fails the whole batch, so every patient in it is marked failed.
+          .onErrorResume(
+              e ->
+                  Flux.fromIterable(batch)
+                      .map(
+                          b ->
+                              (Deidentificator.DeidentificationResult)
+                                  new Deidentificator.DeidentificationResult.Failure(
+                                      b.consentedPatient(), e)))
+          .concatMap(this::toPatientContext);
+    }
+
+    private Mono<PatientContext<TransportBundle>> toPatientContext(
+        Deidentificator.DeidentificationResult result) {
+      return switch (result) {
+        case Deidentificator.DeidentificationResult.Failure f ->
+            handlePatientError(f.patient().identifier(), Step.DEIDENTIFY, f.error());
+        case Deidentificator.DeidentificationResult.Success s ->
+            Mono.just(new PatientContext<>(s.bundle(), s.patient()));
+      };
     }
 
     private Flux<Result> sendBundles(Flux<PatientContext<TransportBundle>> deidentification) {

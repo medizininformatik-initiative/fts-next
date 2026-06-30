@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
 
@@ -73,6 +74,28 @@ public interface FhirGenerators {
             entry("$ORIGINAL", original),
             entry("$TARGET", target),
             entry("$PSEUDONYM", pseudonym)));
+  }
+
+  /**
+   * Renders a gPAS {@code $pseudonymizeAllowCreate} response that resolves several originals in one
+   * Parameters resource, mirroring the batched request the TCA issues per domain.
+   *
+   * @param originalToPseudonym map of original identifier to the pseudonym to return
+   * @return the FHIR JSON response body
+   */
+  static String gpasResponse(Map<String, String> originalToPseudonym) {
+    var parameters =
+        originalToPseudonym.entrySet().stream()
+            .map(
+                e ->
+                    """
+                    {"name":"pseudonym","part":[
+                      {"name":"original","valueIdentifier":{"value":"%s"}},
+                      {"name":"pseudonym","valueIdentifier":{"value":"%s"}}]}\
+                    """
+                        .formatted(e.getKey(), e.getValue()))
+            .collect(Collectors.joining(","));
+    return "{\"resourceType\":\"Parameters\",\"parameter\":[" + parameters + "]}";
   }
 
   static Supplier<String> randomUuid() {

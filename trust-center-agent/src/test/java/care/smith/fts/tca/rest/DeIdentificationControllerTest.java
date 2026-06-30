@@ -14,6 +14,9 @@ import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
+import care.smith.fts.util.tca.TransportMappingsRequest;
+import care.smith.fts.util.tca.TransportMappingsResponse;
+import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -156,6 +159,52 @@ class DeIdentificationControllerTest {
             r -> {
               assertThat(r.getStatusCode().is5xxServerError()).isTrue();
             })
+        .verifyComplete();
+  }
+
+  @Test
+  void transportMappings() {
+    var request =
+        new TransportMappingsRequest(
+            List.of(
+                new TransportMappingRequest(
+                    "id1",
+                    "patientIdentifierSystem",
+                    Map.of("id1.Patient:id1", "tid1"),
+                    Map.of(),
+                    DEFAULT_DOMAINS,
+                    ofDays(14),
+                    DateShiftPreserve.NONE)));
+    given(mappingProvider.generateTransportMappings(request))
+        .willReturn(Mono.just(new TransportMappingsResponse(List.of("transferId"))));
+
+    create(controller.transportMappings(Mono.just(request)))
+        .assertNext(
+            r -> {
+              assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+              assertThat(r.getBody().transferIds()).containsExactly("transferId");
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void transportMappingsUnknownDomain() {
+    var request =
+        new TransportMappingsRequest(
+            List.of(
+                new TransportMappingRequest(
+                    "id1",
+                    "patientIdentifierSystem",
+                    Map.of("id1.Patient:id1", "tid1"),
+                    Map.of(),
+                    new TcaDomains("unknown domain", "unknown domain", "unknown domain"),
+                    ofDays(14),
+                    DateShiftPreserve.NONE)));
+    given(mappingProvider.generateTransportMappings(request))
+        .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
+
+    create(controller.transportMappings(Mono.just(request)))
+        .assertNext(r -> assertThat(r.getStatusCode().is4xxClientError()).isTrue())
         .verifyComplete();
   }
 

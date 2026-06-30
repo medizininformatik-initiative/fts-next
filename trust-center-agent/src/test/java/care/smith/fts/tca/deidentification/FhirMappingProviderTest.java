@@ -1,19 +1,18 @@
 package care.smith.fts.tca.deidentification;
 
-import static care.smith.fts.test.FhirGenerators.fromList;
+import static care.smith.fts.test.FhirGenerators.gpasResponse;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.fhir.FhirUtils.fhirResourceToString;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -25,18 +24,17 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration;
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
-import care.smith.fts.test.FhirGenerators;
 import care.smith.fts.test.TestWebClientFactory;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
+import care.smith.fts.util.tca.TransportMappingsRequest;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ContentTypes;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -115,30 +113,17 @@ class FhirMappingProviderTest {
   }
 
   @Test
-  void generateTransportMapping() throws IOException {
-    var fhirGenerator =
-        FhirGenerators.gpasGetOrCreateResponse(
-            fromList(List.of("id1", "Salt_id1", "PT336H_id1")),
-            fromList(List.of("469680023", "123", "12345")));
-
-    List.of("id1", "Salt_id1", "PT336H_id1")
-        .forEach(
-            key ->
-                wireMock.register(
-                    post(urlEqualTo("/$pseudonymizeAllowCreate"))
-                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                        .withRequestBody(
-                            equalToJson(
-                                """
-                                { "resourceType": "Parameters",
-                                  "parameter": [
-                                    {"name": "target", "valueString": "domain"},
-                                    {"name": "original", "valueString": "%s"}]}
-                                """
-                                    .formatted(key),
-                                true,
-                                true))
-                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
+  void generateTransportMapping() {
+    wireMock.register(
+        post(urlEqualTo("/$pseudonymizeAllowCreate"))
+            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+            .willReturn(
+                fhirResponse(
+                    gpasResponse(
+                        Map.of(
+                            "id1", "469680023",
+                            "Salt_id1", "123",
+                            "PT336H_id1", "12345")))));
 
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
@@ -164,11 +149,188 @@ class FhirMappingProviderTest {
   }
 
   @Test
+  void generateTransportMappingsBatchesGpasCallsPerDomain() {
+    wireMock.register(
+        post(urlEqualTo("/$pseudonymizeAllowCreate"))
+            .willReturn(
+                fhirResponse(
+                    gpasResponse(
+                        Map.of(
+                            "id1", "p-id1",
+                            "Salt_id1", "p-salt",
+                            "PT336H_id1", "p-ds")))));
+
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
+
+    var request =
+        new TransportMappingRequest(
+            "id1",
+            "patientIdentifierSystem",
+            Map.of("id1.Patient:id1", "tid1"),
+            Map.of(),
+            DEFAULT_DOMAINS,
+            Duration.ofDays(14),
+            DateShiftPreserve.NONE);
+
+    create(
+            mappingProvider.generateTransportMappings(
+                new TransportMappingsRequest(List.of(request))))
+        .assertNext(r -> assertThat(r.transferIds()).hasSize(1))
+        .verifyComplete();
+
+    // The three same-domain keys are batched into a single gPAS call instead of one per key.
+    wireMock.verifyThat(1, postRequestedFor(urlEqualTo("/$pseudonymizeAllowCreate")));
+  }
+
+  @Test
+  void generateTransportMappingsBatchesAcrossPatients() {
+    wireMock.register(
+        post(urlEqualTo("/$pseudonymizeAllowCreate"))
+            .willReturn(
+                fhirResponse(
+                    gpasResponse(
+                        Map.of(
+                            "id1",
+                            "p1",
+                            "Salt_id1",
+                            "s1",
+                            "PT336H_id1",
+                            "d1",
+                            "id2",
+                            "p2",
+                            "Salt_id2",
+                            "s2",
+                            "PT336H_id2",
+                            "d2")))));
+
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
+
+    var requests = List.of(transportRequest("id1"), transportRequest("id2"));
+    create(mappingProvider.generateTransportMappings(new TransportMappingsRequest(requests)))
+        .assertNext(
+            r -> {
+              assertThat(r.transferIds()).hasSize(2).doesNotContainNull();
+            })
+        .verifyComplete();
+
+    // Two patients sharing one domain collapse to a single gPAS call for all six keys.
+    wireMock.verifyThat(1, postRequestedFor(urlEqualTo("/$pseudonymizeAllowCreate")));
+  }
+
+  @Test
+  void generateTransportMappingsGroupsByDistinctDomain() {
+    wireMock.register(
+        post(urlEqualTo("/$pseudonymizeAllowCreate"))
+            .willReturn(
+                fhirResponse(
+                    gpasResponse(Map.of("id1", "p1", "Salt_id1", "s1", "PT336H_id1", "d1")))));
+
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
+
+    // pseudonym and dateShift share domain "A"; salt uses domain "B".
+    var request =
+        new TransportMappingRequest(
+            "id1",
+            "patientIdentifierSystem",
+            Map.of("id1.Patient:id1", "tid1"),
+            Map.of(),
+            new TcaDomains("A", "B", "A"),
+            Duration.ofDays(14),
+            DateShiftPreserve.NONE);
+
+    create(
+            mappingProvider.generateTransportMappings(
+                new TransportMappingsRequest(List.of(request))))
+        .assertNext(r -> assertThat(r.transferIds()).hasSize(1))
+        .verifyComplete();
+
+    // Two distinct domains (A, B) produce exactly two gPAS calls — one per domain, not per key.
+    wireMock.verifyThat(2, postRequestedFor(urlEqualTo("/$pseudonymizeAllowCreate")));
+  }
+
+  @Test
+  void generateTransportMappingsSamePatientMultipleBundlesGetDistinctTransferIds() {
+    // A paginated patient yields several bundles sharing one patientIdentifier; each must still get
+    // its own transferId so no page's mappings overwrite another's in the key-value store.
+    wireMock.register(
+        post(urlEqualTo("/$pseudonymizeAllowCreate"))
+            .willReturn(
+                fhirResponse(
+                    gpasResponse(Map.of("id1", "p", "Salt_id1", "s", "PT336H_id1", "d")))));
+
+    given(redis.getMapCache(anyString())).willReturn(mapCache);
+    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
+    given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
+
+    var page1 =
+        new TransportMappingRequest(
+            "id1",
+            "patientIdentifierSystem",
+            Map.of("id1.Patient:id1", "tid-a"),
+            Map.of(),
+            DEFAULT_DOMAINS,
+            Duration.ofDays(14),
+            DateShiftPreserve.NONE);
+    var page2 =
+        new TransportMappingRequest(
+            "id1",
+            "patientIdentifierSystem",
+            Map.of("id1.Observation:obs1", "tid-b"),
+            Map.of(),
+            DEFAULT_DOMAINS,
+            Duration.ofDays(14),
+            DateShiftPreserve.NONE);
+
+    create(
+            mappingProvider.generateTransportMappings(
+                new TransportMappingsRequest(List.of(page1, page2))))
+        .assertNext(
+            r -> {
+              assertThat(r.transferIds()).hasSize(2).doesNotContainNull();
+              assertThat(r.transferIds().get(0)).isNotEqualTo(r.transferIds().get(1));
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  void generateTransportMappingsWithEmptyListReturnsEmpty() {
+    create(mappingProvider.generateTransportMappings(new TransportMappingsRequest(List.of())))
+        .assertNext(r -> assertThat(r.transferIds()).isEmpty())
+        .verifyComplete();
+  }
+
+  private static TransportMappingRequest transportRequest(String id) {
+    return new TransportMappingRequest(
+        id,
+        "patientIdentifierSystem",
+        Map.of(id + ".Patient:" + id, "tid_" + id),
+        Map.of(),
+        DEFAULT_DOMAINS,
+        Duration.ofDays(14),
+        DateShiftPreserve.NONE);
+  }
+
+  @Test
   void generateTransportMappingWhenRedisDown() {
+    wireMock.register(
+        post(urlEqualTo("/$pseudonymizeAllowCreate"))
+            .willReturn(
+                fhirResponse(
+                    gpasResponse(
+                        Map.of(
+                            "id1", "p-id1",
+                            "Salt_id1", "p-salt",
+                            "PT336H_id1", "p-ds")))));
     given(redis.getMapCache(anyString())).willThrow(new RedisTimeoutException("timeout"));
-    assertThrows(
-        RedisTimeoutException.class,
-        () -> mappingProvider.generateTransportMapping(DEFAULT_REQUEST));
+    create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
+        .expectError(RedisTimeoutException.class)
+        .verify();
   }
 
   @Test
@@ -227,9 +389,6 @@ class FhirMappingProviderTest {
                     .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
 
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
-
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(FhirException.class)
         .verify();
@@ -259,9 +418,6 @@ class FhirMappingProviderTest {
                 status(OK.value())
                     .withHeader(ContentTypes.CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(gpasMockCapabilityStatement()))));
-
-    given(redis.getMapCache(anyString())).willReturn(mapCache);
-    given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
 
     create(mappingProvider.generateTransportMapping(DEFAULT_REQUEST))
         .expectError(FhirException.class)

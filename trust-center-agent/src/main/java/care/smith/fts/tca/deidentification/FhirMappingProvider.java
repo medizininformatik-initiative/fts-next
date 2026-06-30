@@ -3,28 +3,33 @@ package care.smith.fts.tca.deidentification;
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.tca.deidentification.DateShiftUtil.shiftDate;
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
-import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
-import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
 import care.smith.fts.util.tca.TransportMappingResponse;
+import care.smith.fts.util.tca.TransportMappingsRequest;
+import care.smith.fts.util.tca.TransportMappingsResponse;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMapReactive;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.RedissonReactiveClient;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -63,26 +68,37 @@ public class FhirMappingProvider implements MappingProvider {
    */
   @Override
   public Mono<TransportMappingResponse> generateTransportMapping(TransportMappingRequest r) {
-    log.trace(
-        "Store transport mapping for patientIdentifier={}, {} IDs, {} date tIDs",
-        r.patientIdentifier(),
-        r.idMappings().size(),
-        r.dateMappings().size());
+    return generateTransportMappings(new TransportMappingsRequest(List.of(r)))
+        .map(response -> new TransportMappingResponse(response.transferIds().getFirst()));
+  }
 
+  @Override
+  public Mono<TransportMappingsResponse> generateTransportMappings(TransportMappingsRequest r) {
+    var requests = r.requests();
+    if (requests.isEmpty()) {
+      return Mono.just(new TransportMappingsResponse(List.of()));
+    }
+    log.trace("Store transport mappings for {} requests", requests.size());
+    // flatMapSequential keeps the transferIds aligned with the request order: a single patient may
+    // contribute several bundles (paginated $everything), so each request gets its own transferId.
+    return fetchPseudonyms(requests)
+        .flatMap(
+            pseudonymsByPatient ->
+                Flux.fromIterable(requests)
+                    .flatMapSequential(
+                        req -> storeMapping(req, pseudonymsByPatient.get(req.patientIdentifier())))
+                    .collectList())
+        .map(TransportMappingsResponse::new);
+  }
+
+  private Mono<String> storeMapping(TransportMappingRequest r, PseudonymData data) {
     var transferId = randomStringGenerator.generate();
     var sMap = redisClient.reactive().<String, String>getMapCache(transferId);
-
+    var dateShift = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
+    var tidToShiftedDate = computeTidToShiftedDate(r.dateMappings(), dateShift);
     return sMap.expire(configuration.getTtl())
-        .then(fetchPseudonymAndSalts(r.patientIdentifier(), r.tcaDomains(), r.maxDateShift()))
-        .flatMap(
-            data -> {
-              var dateShift =
-                  generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
-              var tidToShiftedDate = computeTidToShiftedDate(r.dateMappings(), dateShift);
-
-              return saveSecureMapping(r, data, tidToShiftedDate, sMap)
-                  .thenReturn(new TransportMappingResponse(transferId));
-            });
+        .then(saveSecureMapping(r, data, tidToShiftedDate, sMap))
+        .thenReturn(transferId);
   }
 
   private Map<String, String> computeTidToShiftedDate(
@@ -91,21 +107,53 @@ public class FhirMappingProvider implements MappingProvider {
         .collect(toMap(Entry::getKey, e -> shiftDate(e.getValue(), dateShift)));
   }
 
-  private Mono<PseudonymData> fetchPseudonymAndSalts(
-      String patientIdentifier, TcaDomains domains, Duration maxDateShift) {
-    var saltKey = "Salt_" + patientIdentifier;
-    var dateShiftKey = "%s_%s".formatted(maxDateShift.toString(), patientIdentifier);
-    return Mono.zip(
-            gpasClient
-                .fetchOrCreatePseudonyms(domains.pseudonym(), of(patientIdentifier))
-                .map(m -> m.get(patientIdentifier)),
-            gpasClient
-                .fetchOrCreatePseudonyms(domains.salt(), of(saltKey))
-                .map(m -> m.get(saltKey)),
-            gpasClient
-                .fetchOrCreatePseudonyms(domains.dateShift(), of(dateShiftKey))
-                .map(m -> m.get(dateShiftKey)))
-        .map(t -> new PseudonymData(t.getT1(), t.getT2(), t.getT3()));
+  /**
+   * Fetches or creates all pseudonyms for a batch of patients, issuing a single gPAS call per
+   * distinct domain. The pseudonym, salt and dateShift keys of every patient are grouped by their
+   * target domain, so domains shared across patients (and across the three key types) collapse into
+   * one {@code $pseudonymizeAllowCreate} request instead of one call per key per patient.
+   */
+  private Mono<Map<String, PseudonymData>> fetchPseudonyms(List<TransportMappingRequest> requests) {
+    Map<String, Set<String>> keysByDomain = new HashMap<>();
+    for (var r : requests) {
+      var domains = r.tcaDomains();
+      keysByDomain
+          .computeIfAbsent(domains.pseudonym(), d -> new HashSet<>())
+          .add(r.patientIdentifier());
+      keysByDomain.computeIfAbsent(domains.salt(), d -> new HashSet<>()).add(saltKey(r));
+      keysByDomain.computeIfAbsent(domains.dateShift(), d -> new HashSet<>()).add(dateShiftKey(r));
+    }
+    return Flux.fromIterable(keysByDomain.entrySet())
+        .flatMap(
+            e ->
+                gpasClient
+                    .fetchOrCreatePseudonyms(e.getKey(), e.getValue())
+                    .map(pseudonyms -> Map.entry(e.getKey(), pseudonyms)))
+        .collectMap(Entry::getKey, Entry::getValue)
+        .map(byDomain -> pseudonymDataByPatient(requests, byDomain));
+  }
+
+  private static Map<String, PseudonymData> pseudonymDataByPatient(
+      List<TransportMappingRequest> requests, Map<String, Map<String, String>> byDomain) {
+    Map<String, PseudonymData> byPatient = new HashMap<>();
+    for (var r : requests) {
+      var domains = r.tcaDomains();
+      byPatient.put(
+          r.patientIdentifier(),
+          new PseudonymData(
+              byDomain.get(domains.pseudonym()).get(r.patientIdentifier()),
+              byDomain.get(domains.salt()).get(saltKey(r)),
+              byDomain.get(domains.dateShift()).get(dateShiftKey(r))));
+    }
+    return byPatient;
+  }
+
+  private static String saltKey(TransportMappingRequest r) {
+    return "Salt_" + r.patientIdentifier();
+  }
+
+  private static String dateShiftKey(TransportMappingRequest r) {
+    return "%s_%s".formatted(r.maxDateShift().toString(), r.patientIdentifier());
   }
 
   private Mono<Void> saveSecureMapping(

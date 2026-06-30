@@ -17,7 +17,19 @@ public record TransferProcessRunnerConfig(
      */
     Integer maxSendConcurrency,
     Integer maxConcurrentProcesses,
-    Duration processTtl) {
+    Duration processTtl,
+
+    /*
+     * Maximum number of patients whose transport mappings are sent to the TCA in one request. Larger
+     * batches reduce the number of gPAS pseudonym calls but hold more deidentified bundles in memory.
+     */
+    Integer deidentifyBatchSize,
+
+    /*
+     * Maximum time to wait for a deidentify batch to fill before dispatching it as-is. Bounds the
+     * latency added to small or trailing cohorts that never reach deidentifyBatchSize.
+     */
+    Duration deidentifyBatchTimeout) {
 
   public TransferProcessRunnerConfig {
     checkArgument(maxConcurrentPatients > 1, "runner.maxConcurrentPatients must be greater than 0");
@@ -25,5 +37,11 @@ public record TransferProcessRunnerConfig(
     checkArgument(
         maxSendConcurrency <= maxConcurrentPatients,
         "runner.maxSendConcurrency must not exceed runner.maxConcurrentPatients");
+    checkArgument(deidentifyBatchSize > 0, "runner.deidentifyBatchSize must be greater than 0");
+    checkArgument(
+        deidentifyBatchTimeout != null
+            && !deidentifyBatchTimeout.isZero()
+            && !deidentifyBatchTimeout.isNegative(),
+        "runner.deidentifyBatchTimeout must be positive");
   }
 }
