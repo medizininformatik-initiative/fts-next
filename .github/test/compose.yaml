@@ -17,7 +17,7 @@ include:
 services:
   # Clinical Domain
   cd-hds:
-    image: samply/blaze:1.9.0@sha256:cba859fb460df3938792226f16ba9bde32bf8dd9edeeadffbd818bccdcce56dc
+    image: samply/blaze:1.10.0@sha256:4d6e55b357c71886b6e9baed6a8ed5ec1918f6ceee4e4f950659f223e69b92c9
     ports: [ ":8080" ]
     networks: [ "clinical-domain" ]
     environment:
@@ -31,7 +31,7 @@ services:
 
   # Research Domain
   rd-hds:
-    image: samply/blaze:1.9.0@sha256:cba859fb460df3938792226f16ba9bde32bf8dd9edeeadffbd818bccdcce56dc
+    image: samply/blaze:1.10.0@sha256:4d6e55b357c71886b6e9baed6a8ed5ec1918f6ceee4e4f950659f223e69b92c9
     ports: [ ":8080" ]
     networks: [ "research-domain" ]
     environment:
