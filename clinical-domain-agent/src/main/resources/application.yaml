@@ -24,6 +24,7 @@ runner:
   maxConcurrentPatients: 8
   maxSendConcurrency: 2
   maxConcurrentProcesses: 4
+  cohortSelectionConcurrency: 4
   processTtl: P1D
 
 springdoc:

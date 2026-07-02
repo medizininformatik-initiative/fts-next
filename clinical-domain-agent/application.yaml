@@ -5,6 +5,8 @@
 #   maxSendConcurrency: 32
 #   # Maximum number of processes that can run concurrently
 #   maxConcurrentProcesses: 4
+#   # Number of rails used to group patients and consents during cohort selection
+#   cohortSelectionConcurrency: 4
 #   # Time-to-live for a process, specified as an ISO-8601 duration (e.g., P1D means 1 day)
 #   # see https://de.wikipedia.org/wiki/ISO_8601
 #   processTtl: P1D
