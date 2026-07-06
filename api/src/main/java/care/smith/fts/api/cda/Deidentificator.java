@@ -14,27 +14,15 @@ public interface Deidentificator extends TransferProcessStep {
   Mono<TransportBundle> deidentify(ConsentedPatientBundle bundle);
 
   /**
-   * Deidentifies a batch of patient bundles. The default implementation processes each bundle
-   * independently and isolates per-patient failures. Implementations that talk to the TCA should
-   * override this to collapse the per-patient pseudonym lookups into a single batched request per
-   * domain.
+   * Deidentifies a batch of patient bundles, collapsing the per-patient pseudonym lookups into a
+   * single batched request per domain. Implementations isolate per-patient failures so that a single
+   * bad bundle does not fail the whole batch.
    *
    * @param bundles the patient bundles to deidentify
    * @return one {@link DeidentificationResult} per bundle that produced transport mappings; bundles
    *     without any mappings are dropped
    */
-  default Flux<DeidentificationResult> deidentify(List<ConsentedPatientBundle> bundles) {
-    return Flux.fromIterable(bundles)
-        .flatMap(
-            b ->
-                deidentify(b)
-                    .<DeidentificationResult>map(
-                        tb -> new DeidentificationResult.Success(b.consentedPatient(), tb))
-                    .onErrorResume(
-                        e ->
-                            Mono.just(
-                                new DeidentificationResult.Failure(b.consentedPatient(), e))));
-  }
+  Flux<DeidentificationResult> deidentify(List<ConsentedPatientBundle> bundles);
 
   /** Outcome of deidentifying a single patient bundle within a batch. */
   sealed interface DeidentificationResult {

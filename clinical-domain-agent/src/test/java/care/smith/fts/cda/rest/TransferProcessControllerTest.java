@@ -1,5 +1,6 @@
 package care.smith.fts.cda.rest;
 
+import static care.smith.fts.cda.test.Deidentificators.perBundle;
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -45,7 +46,7 @@ class TransferProcessControllerTest {
             new TransferProcessConfig(null, null, null, null),
             pids -> null,
             consentedPatient -> null,
-            patientBundle -> null,
+            perBundle(patientBundle -> null),
             transportBundle -> null);
     api = new TransferProcessController(mockRunner, List.of(process));
   }

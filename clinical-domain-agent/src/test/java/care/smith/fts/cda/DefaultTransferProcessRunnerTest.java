@@ -1,5 +1,6 @@
 package care.smith.fts.cda;
 
+import static care.smith.fts.cda.test.Deidentificators.perBundle;
 import static java.lang.Thread.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -68,7 +69,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -89,7 +90,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> Flux.error(new Throwable("Error fetching consented patients")),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "tIDMapName"))),
             b -> Mono.just(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -115,7 +116,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             throwingSelector,
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -147,7 +148,7 @@ class DefaultTransferProcessRunnerTest {
               rawConfig,
               pids -> Flux.error(new RuntimeException("Cohort fetch boom")),
               p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-              b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
+              perBundle(b -> just(new TransportBundle(new Bundle(), "tIDMapName"))),
               b -> Mono.just(new Result()));
 
       var processId = runner.start(process, List.of());
@@ -176,9 +177,10 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b ->
-                just(new TransportBundle(new Bundle(), "transferId"))
-                    .delayElement(Duration.ofMillis(100)),
+            perBundle(
+                b ->
+                    just(new TransportBundle(new Bundle(), "transferId"))
+                        .delayElement(Duration.ofMillis(100))),
             b -> just(new Result()));
 
     var processId1 = runner.start(process, List.of());
@@ -228,7 +230,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> just(new Result()));
     var runner = new DefaultTransferProcessRunner(new ObjectMapper(), config);
     runner.start(process, List.of());
@@ -249,7 +251,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
             errorOnSecond(new Bundle()),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -291,10 +293,11 @@ class DefaultTransferProcessRunnerTest {
 
   private static Deidentificator errorOnSecond(TransportBundle bundle) {
     var first = new AtomicBoolean(true);
-    return b ->
-        first.getAndSet(false)
-            ? just(bundle)
-            : Mono.error(new RuntimeException("Cannot deidentify bundle"));
+    return perBundle(
+        b ->
+            first.getAndSet(false)
+                ? just(bundle)
+                : Mono.error(new RuntimeException("Cannot deidentify bundle")));
   }
 
   @Test
@@ -305,7 +308,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             errorOnSecond(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -332,10 +335,11 @@ class DefaultTransferProcessRunnerTest {
 
   private static Deidentificator failOnSecondCall(TransportBundle bundle) {
     var counter = new AtomicInteger(0);
-    return p ->
-        counter.incrementAndGet() == 2
-            ? Mono.error(new RuntimeException("Cannot deidentify bundle"))
-            : just(bundle);
+    return perBundle(
+        p ->
+            counter.incrementAndGet() == 2
+                ? Mono.error(new RuntimeException("Cannot deidentify bundle"))
+                : just(bundle));
   }
 
   private static BundleSender failOnSecondCall(Result result) {
@@ -354,7 +358,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
             failOnSecondCall(new Bundle()),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -461,7 +465,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             failOnSecondCall(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -492,7 +496,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -522,9 +526,10 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(List.of(PATIENT)),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-            b ->
-                just(new TransportBundle(new Bundle(), "transferId"))
-                    .delayElement(Duration.ofMillis(100)),
+            perBundle(
+                b ->
+                    just(new TransportBundle(new Bundle(), "transferId"))
+                        .delayElement(Duration.ofMillis(100))),
             b -> just(new Result()));
 
     runner.start(process, List.of());
@@ -549,7 +554,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(patients),
             p -> Flux.error(new RuntimeException("Cannot select data")),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> just(new Result()));
 
     var processId = runner.start(process, List.of());
@@ -611,7 +616,7 @@ class DefaultTransferProcessRunnerTest {
         rawConfig,
         pids -> fromIterable(List.of(PATIENT)),
         p -> Flux.error(new RuntimeException("Cannot select data")),
-        b -> just(new TransportBundle(new Bundle(), "transferId")),
+        perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
         b -> just(new Result()));
   }
 
@@ -639,7 +644,7 @@ class DefaultTransferProcessRunnerTest {
             rawConfig,
             pids -> fromIterable(patients),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
-            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            perBundle(b -> just(new TransportBundle(new Bundle(), "transferId"))),
             b -> {
               int current = inFlight.incrementAndGet();
               peakInFlight.updateAndGet(peak -> Math.max(peak, current));

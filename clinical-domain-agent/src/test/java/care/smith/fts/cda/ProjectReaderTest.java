@@ -1,5 +1,6 @@
 package care.smith.fts.cda;
 
+import static care.smith.fts.cda.test.Deidentificators.perBundle;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.writeString;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,7 +54,7 @@ class ProjectReaderTest {
             new TransferProcessConfig(null, null, null, null),
             pids -> null,
             c -> null,
-            b -> null,
+            perBundle(b -> null),
             b -> null);
     when(processFactory.create(any(), eq("example"))).thenReturn(process);
 
