@@ -5,6 +5,7 @@ import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.util.stream.Collectors.joining;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
@@ -23,6 +24,7 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +35,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @SpringBootTest
@@ -54,15 +60,22 @@ class FhirCohortSelectorIT {
 
   private FhirCohortGenerator cohortGenerator;
   private HttpClientConfig config;
+  private FhirCohortSelectorConfig selectorConfig;
+  private WebClient fhirClient;
 
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMockRuntime, @Autowired WebClientFactory clientFactory) {
     var ignored = new HttpClientConfig("ignored");
-    var config = new FhirCohortSelectorConfig(ignored, PID_SYSTEM, POLICY_SYSTEM, POLICIES);
+    selectorConfig = new FhirCohortSelectorConfig(ignored, PID_SYSTEM, POLICY_SYSTEM, POLICIES);
     this.config = MockServerUtil.clientConfig(wireMockRuntime);
-    var fhirClient = clientFactory.create(this.config);
+    fhirClient = clientFactory.create(this.config);
     cohortSelector =
-        new FhirCohortSelector(config, fhirClient, new DefaultRetryStrategy(meterRegistry));
+        new FhirCohortSelector(
+            selectorConfig,
+            fhirClient,
+            new DefaultRetryStrategy(meterRegistry),
+            Schedulers.parallel(),
+            4);
     wireMock = wireMockRuntime.getWireMock();
     cohortGenerator = new FhirCohortGenerator(PID_SYSTEM, POLICY_SYSTEM, POLICIES);
   }
@@ -128,6 +141,34 @@ class FhirCohortSelectorIT {
     var bundle = cohortGenerator.generate();
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
     create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void groupingRunsOnInjectedScheduler() {
+    var used = new AtomicBoolean(false);
+    var delegate = Schedulers.parallel();
+    Scheduler spy =
+        new Scheduler() {
+          @Override
+          public Disposable schedule(Runnable task) {
+            return delegate.schedule(task);
+          }
+
+          @Override
+          public Worker createWorker() {
+            used.set(true);
+            return delegate.createWorker();
+          }
+        };
+    var selector =
+        new FhirCohortSelector(
+            selectorConfig, fhirClient, new DefaultRetryStrategy(meterRegistry), spy, 4);
+
+    var bundle = cohortGenerator.generate();
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    create(selector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
+    assertThat(used).isTrue();
   }
 
   @Test
