@@ -585,6 +585,42 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
         .verifyComplete();
   }
 
+  @Test
+  void largeSecureMappingExceedingDefaultBufferIsDecoded() {
+    var patient = new Patient();
+    patient.setId("Patient/tid1");
+    var testBundle = wrapInOuterBundle(patient);
+
+    wireMock.register(secureMappingRequest().willReturn(jsonResponse(largeSecureMappingJson())));
+
+    create(step.deidentify(new TransportBundle(testBundle, "transferId")))
+        .assertNext(
+            b -> {
+              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+              assertThat(inner.getEntryFirstRep().getResource().getIdPart()).isEqualTo("pid1");
+            })
+        .verifyComplete();
+  }
+
+  /**
+   * Builds a {@code SecureMappingResponse} JSON body that exceeds WebFlux's 256KB default in-memory
+   * codec limit. A client left at the default limit fails to decode this with {@code
+   * DataBufferLimitException}; the configured {@code spring.http.codecs.max-in-memory-size} lets it
+   * through.
+   */
+  private static String largeSecureMappingJson() {
+    var sb = new StringBuilder("{\"tidPidMap\":{\"tid1\":\"pid1\"");
+    for (int i = 0; i < 10000; i++) {
+      sb.append(",\"tid-")
+          .append(i)
+          .append("\":\"pid-abcdefghijklmnopqrstuvwxyz-")
+          .append(i)
+          .append('"');
+    }
+    sb.append("},\"dateShiftMap\":{}}");
+    return sb.toString();
+  }
+
   private static Bundle wrapInOuterBundle(Resource... resources) {
     var innerBundle = new Bundle();
     for (var resource : resources) {

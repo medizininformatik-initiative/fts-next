@@ -104,6 +104,7 @@ export default withMermaid({
                 {text: 'Consent', link: '/configuration/consent'},
                 {text: 'WebFlux', link: '/configuration/webflux'},
                 {text: 'HTTP Client', link: '/configuration/http-client'},
+                {text: 'HTTP Codecs', link: '/configuration/http-codecs'},
               ]
         },
         {

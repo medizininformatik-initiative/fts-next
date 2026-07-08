@@ -109,6 +109,54 @@ class DeIdentificationControllerIT extends BaseIT {
   }
 
   @Test
+  void acceptsRequestExceedingDefaultBufferLimit() throws IOException {
+    var fhirGenerator =
+        gpasGetOrCreateResponse(
+            fromList(List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")),
+            fromList(List.of("469680023", "123", "12345")));
+
+    List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
+        .forEach(
+            key ->
+                gpas()
+                    .register(
+                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                            .withRequestBody(
+                                equalToJson(
+                                    """
+                                    { "resourceType": "Parameters",
+                                      "parameter": [
+                                        {"name": "target", "valueString": "MII"},
+                                        {"name": "original", "valueString": "%s"}]}
+                                    """
+                                        .formatted(key),
+                                    true,
+                                    true))
+                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
+
+    // Inflate the request body past WebFlux's 256KB default in-memory limit via dateMappings,
+    // which are shifted deterministically without a per-entry gPAS call.
+    var dateMappings = new java.util.HashMap<String, String>();
+    for (int i = 0; i < 10000; i++) {
+      dateMappings.put("tId-date-" + i, "2024-03-15");
+    }
+
+    var response =
+        doPost(
+            ofEntries(
+                entry("tcaDomains", DEFAULT_DOMAINS),
+                entry("patientIdentifier", "id-144218"),
+                entry("patientIdentifierSystem", "http://fts.smith.care"),
+                entry("idMappings", Map.of("id-144218", "tid1")),
+                entry("dateMappings", dateMappings),
+                entry("maxDateShift", ofDays(14).getSeconds()),
+                entry("dateShiftPreserve", "NONE")));
+
+    create(response).assertNext(res -> assertThat(res.transferId()).isNotNull()).verifyComplete();
+  }
+
+  @Test
   void firstRequestToGpasFails() throws IOException {
     var map =
         Map.of("id-144218", "469680023", "Salt_id-144218", "123", "PT336H_id-144218", "12345");
