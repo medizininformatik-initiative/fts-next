@@ -26,6 +26,9 @@ security:
     role: rd-client
 
 spring:
+  http:
+    codecs:
+      max-in-memory-size: 10MB
   main:
     allow-bean-definition-overriding: true
   ssl:

@@ -1,6 +1,10 @@
 spring:
   jackson:
     time-zone: ${TZ:Europe/Berlin}
+  http:
+    codecs:
+      # Transport and secure mapping payloads can be large.
+      max-in-memory-size: 10MB
 
 management:
   endpoints:

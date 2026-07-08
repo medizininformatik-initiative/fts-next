@@ -2,6 +2,9 @@ projects:
   directory: "src/test/resources/projects"
 
 spring:
+  http:
+    codecs:
+      max-in-memory-size: 10MB
   ssl:
     bundle:
       pem:
