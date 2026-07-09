@@ -115,6 +115,18 @@
   customManagers: [
     {
       description: [
+        "Find `# renovate` annotated apk package pins in agent Dockerfiles"
+      ],
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)Dockerfile$/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: versioning=(?<versioning>[^\\s]+?))?\\n(?:ENV|ARG) [A-Za-z0-9_]+?_VERSION\\s*=\\s*"(?<currentValue>[^"]+?)"',
+      ],
+    },
+    {
+      description: [
         "Find `// renovate` annotated dependencies in Java source code"
       ],
       customType: 'regex',
