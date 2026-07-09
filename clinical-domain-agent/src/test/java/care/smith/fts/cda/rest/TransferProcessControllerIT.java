@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.codec.DecodingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -84,7 +83,7 @@ public class TransferProcessControllerIT {
                         c.bodyToMono(ProblemDetail.class)
                             .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))
                 .toBodilessEntity())
-        .expectError(DecodingException.class)
+        .expectError(IllegalStateException.class)
         .verifyThenAssertThat()
         .hasOperatorErrors();
   }

@@ -8,23 +8,22 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.ConsentedPatient;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import care.smith.fts.util.tca.DateShiftingRequest;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.netty.http.client.HttpClient;
+import tools.jackson.databind.json.JsonMapper;
 
 @WireMockTest
 class WebClientDefaultsTest {
 
-  private static final ObjectMapper objectMapper =
-      new ObjectMapper().registerModule(new JavaTimeModule());
+  private static final JsonMapper jsonMapper = JsonMapper.builder().build();
 
   @Test
   void customizeWebClientAndDecodeToMono(WireMockRuntimeInfo wireMockRuntime) {
@@ -36,29 +35,21 @@ class WebClientDefaultsTest {
                 jsonResponse(
                     """
                     {
-                      "identifier": "patient",
-                      "patientIdentifierSystem": "system",
-                      "consentedPolicies": {
-                        "policies":{
-                          "a":[
-                            {"start": -23220777600.000000000, "end": -23220604800.000000000}
-                          ]
-                        }
-                      }
+                      "id": "id1",
+                      "dateShift": 604800.000000000
                     }
                     """,
                     200)));
 
     WebClient.Builder webClientBuilder = WebClient.builder();
-    new WebClientDefaults(objectMapper).customize(webClientBuilder);
+    new WebClientDefaults(jsonMapper).customize(webClientBuilder);
     WebClient webClient = webClientBuilder.baseUrl(address).build();
 
-    create(webClient.post().retrieve().bodyToMono(ConsentedPatient.class))
+    create(webClient.post().retrieve().bodyToMono(DateShiftingRequest.class))
         .assertNext(
             b -> {
-              assertThat(b.identifier()).isEqualTo("patient");
-              assertThat(b.patientIdentifierSystem()).isEqualTo("system");
-              assertThat(b.consentedPolicies().policyNames()).isNotEmpty();
+              assertThat(b.id()).isEqualTo("id1");
+              assertThat(b.dateShift()).isEqualTo(Duration.ofDays(7));
             })
         .verifyComplete();
   }
@@ -77,7 +68,7 @@ class WebClientDefaultsTest {
     // response through the redirect-error filter untouched.
     var connector = new ReactorClientHttpConnector(HttpClient.create().followRedirect(true));
     WebClient.Builder webClientBuilder = WebClient.builder().clientConnector(connector);
-    new WebClientDefaults(objectMapper).customize(webClientBuilder);
+    new WebClientDefaults(jsonMapper).customize(webClientBuilder);
     WebClient webClient = webClientBuilder.baseUrl(address).build();
 
     create(webClient.get().uri("/source").retrieve().bodyToMono(String.class))
@@ -96,7 +87,7 @@ class WebClientDefaultsTest {
             .willReturn(aResponse().withStatus(307).withHeader("Location", "/target")));
 
     WebClient.Builder webClientBuilder = WebClient.builder();
-    new WebClientDefaults(objectMapper).customize(webClientBuilder);
+    new WebClientDefaults(jsonMapper).customize(webClientBuilder);
     WebClient webClient = webClientBuilder.baseUrl(address).build();
 
     create(webClient.get().uri("/source").retrieve().bodyToMono(String.class))
