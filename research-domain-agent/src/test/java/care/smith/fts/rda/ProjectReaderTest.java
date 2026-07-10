@@ -8,8 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.times;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import care.smith.fts.util.TransferProcessObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectReaderTest {
@@ -32,7 +32,7 @@ class ProjectReaderTest {
   private @TempDir Path tempDirectory;
 
   public ProjectReaderTest() {
-    objectMapper = new ObjectMapper(new YAMLFactory());
+    objectMapper = TransferProcessObjectMapper.create();
   }
 
   @Test

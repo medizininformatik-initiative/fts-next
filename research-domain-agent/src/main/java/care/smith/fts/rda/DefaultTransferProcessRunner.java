@@ -5,7 +5,6 @@ import static care.smith.fts.util.JsonLogFormatter.asJson;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.Deidentificator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import java.time.Instant;
@@ -17,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component

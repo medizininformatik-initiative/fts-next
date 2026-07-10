@@ -2,24 +2,23 @@ package care.smith.fts.api;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
-import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.chrono.ChronoZonedDateTime;
 import java.util.*;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.ValueSerializer;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 public record ConsentedPatient(
     String identifier, String patientIdentifierSystem, ConsentedPolicies consentedPolicies) {
@@ -95,20 +94,18 @@ public record ConsentedPatient(
     }
   }
 
-  static class MultimapSerializer extends JsonSerializer<Multimap<String, Period>> {
+  static class MultimapSerializer extends ValueSerializer<Multimap<String, Period>> {
     @Override
     public void serialize(
-        Multimap<String, Period> value, JsonGenerator gen, SerializerProvider serializers)
-        throws IOException {
+        Multimap<String, Period> value, JsonGenerator gen, SerializationContext ctxt) {
       Map<String, Collection<Period>> map = value.asMap();
-      gen.writeObject(map);
+      gen.writePOJO(map);
     }
   }
 
-  static class MultimapDeserializer extends JsonDeserializer<Multimap<String, Period>> {
+  static class MultimapDeserializer extends ValueDeserializer<Multimap<String, Period>> {
     @Override
-    public Multimap<String, Period> deserialize(JsonParser p, DeserializationContext ctxt)
-        throws IOException {
+    public Multimap<String, Period> deserialize(JsonParser p, DeserializationContext ctxt) {
       Map<String, Collection<Period>> map =
           p.readValueAs(new TypeReference<Map<String, Collection<Period>>>() {});
       SetMultimap<String, Period> multimap = HashMultimap.create();

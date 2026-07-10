@@ -4,12 +4,8 @@ import ca.uhn.fhir.context.FhirContext;
 import care.smith.fts.util.auth.HttpServerAuthConfig;
 import care.smith.fts.util.auth.OAuth2ConfigurationExistsCondition;
 import care.smith.fts.util.fhir.FhirCodecConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
-import java.util.TimeZone;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -100,16 +96,6 @@ public class AgentConfiguration {
     resourceFactory.setUseGlobalResources(false);
     resourceFactory.setConnectionProvider(connectionProvider);
     return resourceFactory;
-  }
-
-  @Bean
-  @Primary
-  public ObjectMapper defaultObjectMapper(
-      @Value("${spring.jackson.time-zone:UTC}") String timeZone) {
-    return new ObjectMapper()
-        .registerModule(new JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        .setTimeZone(TimeZone.getTimeZone(timeZone));
   }
 
   @Bean

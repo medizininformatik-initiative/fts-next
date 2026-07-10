@@ -9,7 +9,6 @@ import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.TransferProcessRunner.Phase;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import java.time.Duration;
@@ -18,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
 class DefaultTransferProcessRunnerTest {
 

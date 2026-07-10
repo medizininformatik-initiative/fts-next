@@ -5,7 +5,6 @@ import static java.util.Arrays.stream;
 import care.smith.fts.api.*;
 import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.Deidentificator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Streams;
 import jakarta.validation.constraints.NotNull;
 import java.lang.reflect.Field;
@@ -20,6 +19,8 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
@@ -132,7 +133,7 @@ public class TransferProcessFactory {
   private <C> C createConfig(Class<C> configClass, Object config) {
     try {
       return objectMapper.convertValue(config, configClass);
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException | JacksonException e) {
       throw new IllegalArgumentException(
           "Invalid %s config: '%s'".formatted(configClass.getName(), config), e);
     }

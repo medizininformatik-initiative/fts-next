@@ -5,7 +5,6 @@ import static java.util.Optional.empty;
 import static org.slf4j.event.Level.ERROR;
 import static org.slf4j.event.Level.WARN;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -20,6 +19,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
@@ -100,7 +101,7 @@ public class ProjectReader {
   private Optional<TransferProcessConfig> parseConfig(InputStream inStream, String name) {
     try {
       return Optional.of(objectMapper.readValue(inStream, TransferProcessConfig.class));
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       throwOrLog(ERROR, "Unable to parse '%s' project's configuration".formatted(name), e);
       return empty();
     }

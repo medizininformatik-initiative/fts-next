@@ -3,20 +3,18 @@ package care.smith.fts.util.tca;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.DateShiftPreserve;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 class TransportMappingRequestTest {
 
-  private static final ObjectMapper objectMapper =
-      new ObjectMapper().registerModule(new JavaTimeModule());
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
-  void serialize() throws JsonProcessingException {
+  void serialize() throws JacksonException {
     var request =
         new TransportMappingRequest(
             "patient123",
@@ -43,11 +41,11 @@ class TransportMappingRequestTest {
         .contains("pDomain")
         .contains("sDomain")
         .contains("dDomain")
-        .contains("2592000"); // 30 Days in seconds
+        .contains("PT720H"); // 30 days as ISO-8601 duration
   }
 
   @Test
-  void deserialize() throws JsonProcessingException {
+  void deserialize() throws JacksonException {
     String json =
         """
         {

@@ -2,25 +2,23 @@ package care.smith.fts.util.tca;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 class TransportMappingResponseTest {
 
-  private static final ObjectMapper objectMapper =
-      new ObjectMapper().registerModule(new JavaTimeModule());
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
-  void serialize() throws JsonProcessingException {
+  void serialize() throws JacksonException {
     var response = new TransportMappingResponse("transferId");
 
     assertThat(objectMapper.writeValueAsString(response)).contains("transferId");
   }
 
   @Test
-  void deserialize() throws JsonProcessingException {
+  void deserialize() throws JacksonException {
     var response =
         objectMapper.readValue(
             """

@@ -8,9 +8,7 @@ import care.smith.fts.api.rda.BundleSender;
 import care.smith.fts.api.rda.Deidentificator;
 import care.smith.fts.rda.test.MockBundleSender;
 import care.smith.fts.rda.test.MockDeidentificator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import care.smith.fts.util.TransferProcessObjectMapper;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,7 +31,7 @@ class TransferProcessFactoryTest {
 
   @BeforeEach
   void setUp() {
-    var mapper = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
+    var mapper = TransferProcessObjectMapper.create();
 
     lenient()
         .doReturn(deidentificatorFactory)

@@ -4,17 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import care.smith.fts.util.auth.HttpClientAuth.Config;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 public class HttpClientBasicAuthTest {
 
   @Test
-  public void deserialization() throws JsonProcessingException {
-    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+  public void deserialization() throws JacksonException {
+    ObjectMapper om = YAMLMapper.builder().build();
 
     var config =
         """

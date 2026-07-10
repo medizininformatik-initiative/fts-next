@@ -13,9 +13,7 @@ import care.smith.fts.cda.test.MockBundleSender;
 import care.smith.fts.cda.test.MockCohortSelector;
 import care.smith.fts.cda.test.MockDataSelector;
 import care.smith.fts.cda.test.MockDeidentificator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import care.smith.fts.util.TransferProcessObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,7 +39,7 @@ class TransferProcessFactoryTest {
 
   @BeforeEach
   void setUp() {
-    var mapper = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
+    var mapper = TransferProcessObjectMapper.create();
 
     lenient()
         .doReturn(cohortSelectorFactory)

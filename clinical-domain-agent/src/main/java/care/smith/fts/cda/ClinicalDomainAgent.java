@@ -1,15 +1,14 @@
 package care.smith.fts.cda;
 
 import care.smith.fts.util.AgentConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import care.smith.fts.util.TransferProcessObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @SpringBootApplication
@@ -23,6 +22,6 @@ public class ClinicalDomainAgent {
 
   @Bean
   public ObjectMapper transferProcessObjectMapper() {
-    return new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
+    return TransferProcessObjectMapper.create();
   }
 }

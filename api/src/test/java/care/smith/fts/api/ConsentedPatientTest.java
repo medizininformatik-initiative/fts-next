@@ -3,13 +3,12 @@ package care.smith.fts.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 class ConsentedPatientTest {
@@ -121,9 +120,9 @@ class ConsentedPatientTest {
   }
 
   @Test
-  void deAndSerializationUsingObjectMapper() throws JsonProcessingException {
+  void deAndSerializationUsingObjectMapper() throws JacksonException {
     ConsentedPatient.ConsentedPolicies consentedPolicies = new ConsentedPatient.ConsentedPolicies();
-    ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectMapper om = new ObjectMapper();
 
     Period period = Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00");
     consentedPolicies.put("a", period);

@@ -4,16 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import care.smith.fts.util.auth.HttpClientBasicAuth.Config;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 public class TestWebClientConfigTest {
 
   @Test
-  public void deserializationWithoutAuth() throws JsonProcessingException {
-    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+  public void deserializationWithoutAuth() throws JacksonException {
+    ObjectMapper om = YAMLMapper.builder().build();
 
     var config =
         """
@@ -28,8 +28,8 @@ public class TestWebClientConfigTest {
   }
 
   @Test
-  public void deserializationWithBasicAuth() throws JsonProcessingException {
-    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+  public void deserializationWithBasicAuth() throws JacksonException {
+    ObjectMapper om = YAMLMapper.builder().build();
 
     var config =
         """
