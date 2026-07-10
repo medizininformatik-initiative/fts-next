@@ -3,9 +3,9 @@ package care.smith.fts.util;
 import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 class JsonLogFormatterTest {
   private ObjectMapper objectMapper;
@@ -38,7 +38,12 @@ class JsonLogFormatterTest {
   private record SerializableObject(String name, int value) {}
 
   private static final class UnserializableObject {
-    private final Object circular = this; // Creates circular reference that can't be serialized
+    // Jackson invokes this getter during serialization; the thrown exception is wrapped as a
+    // JacksonException, exercising asJson's toString fallback. A property that actively throws is
+    // needed to force a serialization failure.
+    public String getValue() {
+      throw new IllegalStateException("cannot serialize");
+    }
 
     @Override
     public String toString() {

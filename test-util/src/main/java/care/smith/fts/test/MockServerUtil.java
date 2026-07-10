@@ -13,8 +13,6 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.OK;
 
 import care.smith.fts.util.HttpClientConfig;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
@@ -29,6 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 public interface MockServerUtil {
 
@@ -198,7 +198,7 @@ public interface MockServerUtil {
   private static ResponseDefinitionBuilder jsonResponse(Object body, int statusCode) {
     try {
       return WireMock.jsonResponse(objectMapper.writeValueAsString(body), statusCode);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Body cannot be converted to json.", e);
     }
   }

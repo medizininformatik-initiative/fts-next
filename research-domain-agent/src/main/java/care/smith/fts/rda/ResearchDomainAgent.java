@@ -1,9 +1,7 @@
 package care.smith.fts.rda;
 
 import care.smith.fts.util.AgentConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import care.smith.fts.util.TransferProcessObjectMapper;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import io.github.resilience4j.micrometer.tagged.TaggedBulkheadMetrics;
@@ -15,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @SpringBootApplication
@@ -28,7 +27,7 @@ public class ResearchDomainAgent {
 
   @Bean
   public ObjectMapper transferProcessObjectMapper() {
-    return new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
+    return TransferProcessObjectMapper.create();
   }
 
   @Bean

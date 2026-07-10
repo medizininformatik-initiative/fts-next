@@ -2,10 +2,10 @@ package care.smith.fts.util;
 
 import static org.assertj.core.api.Assertions.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 public class HttpClientConfigTest {
 
@@ -32,8 +32,8 @@ public class HttpClientConfigTest {
   }
 
   @Test
-  public void deserializationWithoutAuth() throws JsonProcessingException {
-    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+  public void deserializationWithoutAuth() throws JacksonException {
+    ObjectMapper om = YAMLMapper.builder().build();
 
     var config =
         """
@@ -44,8 +44,8 @@ public class HttpClientConfigTest {
   }
 
   @Test
-  public void deserializationWithEmptyAuth() throws JsonProcessingException {
-    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+  public void deserializationWithEmptyAuth() throws JacksonException {
+    ObjectMapper om = YAMLMapper.builder().build();
 
     var config =
         """
@@ -57,8 +57,8 @@ public class HttpClientConfigTest {
   }
 
   @Test
-  public void deserializationWithNoneAuth() throws JsonProcessingException {
-    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+  public void deserializationWithNoneAuth() throws JacksonException {
+    ObjectMapper om = YAMLMapper.builder().build();
 
     var config =
         """
@@ -71,8 +71,8 @@ public class HttpClientConfigTest {
   }
 
   @Test
-  public void deserializationWithAuth() throws JsonProcessingException {
-    ObjectMapper om = new ObjectMapper(new YAMLFactory());
+  public void deserializationWithAuth() throws JacksonException {
+    ObjectMapper om = YAMLMapper.builder().build();
 
     var config =
         """
