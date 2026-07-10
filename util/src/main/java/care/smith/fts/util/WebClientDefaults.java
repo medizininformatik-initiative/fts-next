@@ -2,17 +2,17 @@ package care.smith.fts.util;
 
 import static java.time.Duration.ofSeconds;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.json.JsonMapper;
 
 @Component
 public class WebClientDefaults implements WebClientCustomizer {
@@ -24,10 +24,10 @@ public class WebClientDefaults implements WebClientCustomizer {
         MediaType.APPLICATION_PROBLEM_JSON
       };
 
-  private final ObjectMapper objectMapper;
+  private final JsonMapper jsonMapper;
 
-  public WebClientDefaults(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+  public WebClientDefaults(JsonMapper jsonMapper) {
+    this.jsonMapper = jsonMapper;
   }
 
   /**
@@ -43,7 +43,7 @@ public class WebClientDefaults implements WebClientCustomizer {
                 next.exchange(request)
                     .timeout(ofSeconds(10))
                     .flatMap(WebClientDefaults::errorOnRedirect))
-        .codecs(this::configureObjectMapper);
+        .codecs(this::configureJacksonCodecs);
   }
 
   /**
@@ -58,10 +58,10 @@ public class WebClientDefaults implements WebClientCustomizer {
         : Mono.just(response);
   }
 
-  private void configureObjectMapper(ClientCodecConfigurer cs) {
-    var encoder = new Jackson2JsonEncoder(objectMapper, JACKSON_MIME_TYPES);
-    cs.defaultCodecs().jackson2JsonEncoder(encoder);
-    var decoder = new Jackson2JsonDecoder(objectMapper, JACKSON_MIME_TYPES);
-    cs.defaultCodecs().jackson2JsonDecoder(decoder);
+  private void configureJacksonCodecs(ClientCodecConfigurer cs) {
+    var encoder = new JacksonJsonEncoder(jsonMapper, JACKSON_MIME_TYPES);
+    cs.defaultCodecs().jacksonJsonEncoder(encoder);
+    var decoder = new JacksonJsonDecoder(jsonMapper, JACKSON_MIME_TYPES);
+    cs.defaultCodecs().jacksonJsonDecoder(decoder);
   }
 }
