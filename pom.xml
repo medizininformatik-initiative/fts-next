@@ -73,7 +73,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.21.5</version>
+        <version>2.22.1</version>
       </dependency>
 
       <!-- TODO: Temporary transitive update for CVE-2026-55471 and CVE-2026-45367 - Remove when hapi-fhir bundles org.hl7.fhir core >= 6.9.10! -->
