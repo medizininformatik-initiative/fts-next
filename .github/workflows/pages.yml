@@ -8,6 +8,11 @@ on:
     branches: [ "**" ]
   merge_group:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (v*.*.*) to link docs downloads against; empty = newest published release"
+        required: false
+        type: string
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -44,19 +49,51 @@ jobs:
     - name: Build Images
       run: make all
 
-    - name: Get Latest Release Tag using GitHub Script
+    - name: Determine Release Tag
       id: gh_latest_tag
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        # Passed via env instead of template interpolation to keep the input out of script code
+        RELEASE_TAG: ${{ inputs.release_tag }}
       with:
         script: |
-          const latestRelease = await github.rest.repos.getLatestRelease({
+          const semver = /^v\d+\.\d+\.\d+$/;
+
+          const explicit = (process.env.RELEASE_TAG ?? "").trim();
+          if (explicit) {
+            if (!semver.test(explicit)) {
+              core.setFailed(`release_tag input "${explicit}" is not a v*.*.* tag.`);
+              return;
+            }
+            console.log(`Building docs against dispatched release: ${explicit}`);
+            core.setOutput("latest_tag", explicit);
+            return;
+          }
+
+          const releases = await github.rest.repos.listReleases({
             owner: context.repo.owner,
             repo: context.repo.repo,
+            per_page: 100,
           });
 
-          const latestTag = latestRelease.data.tag_name || "v0.0.0"; // Default if no release
-          console.log(`Latest tag: ${latestTag}`);
-          core.setOutput("latest_tag", latestTag);
+          const published = releases.data.filter((release) =>
+            !release.draft
+            && !release.prerelease
+            && semver.test(release.tag_name ?? ""));
+          if (published.length === 0) {
+            core.setFailed("No published v*.*.* release found to link docs downloads against.");
+            return;
+          }
+
+          // listReleases orders by creation date, which ranks a hotfix for an
+          // older line above the actual newest version — compare semver instead
+          const version = (release) => release.tag_name.slice(1).split(".").map(Number);
+          const latest = published.reduce((a, b) => {
+            const [va, vb] = [version(a), version(b)];
+            return (va[0] - vb[0] || va[1] - vb[1] || va[2] - vb[2]) >= 0 ? a : b;
+          });
+          console.log(`Building docs against release: ${latest.tag_name}`);
+          core.setOutput("latest_tag", latest.tag_name);
 
     - name: Clear Application Yamls
       working-directory: .github/test

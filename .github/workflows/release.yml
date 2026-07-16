@@ -21,4 +21,6 @@ jobs:
     - name: Trigger Pages Build
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh workflow run Pages --ref main --repo ${{ github.repository }}
+        REPO: ${{ github.repository }}
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+      run: gh workflow run Pages --ref main --repo "$REPO" -f release_tag="$RELEASE_TAG"
