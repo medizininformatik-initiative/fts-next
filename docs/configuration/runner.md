@@ -21,6 +21,8 @@ runner:
 * **Description**: The maximum number of concurrent bundles that can be sent in parallel.
 * **Type**: Integer
 * **Default**: `32`
+* **Minimum**: `1` — set it to `1` to send bundles strictly one at a time, for example when the
+  target RDA is rate-limited or fragile.
 * **Example**:
   ```yaml
   runner:

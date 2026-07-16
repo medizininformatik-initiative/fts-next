@@ -607,6 +607,48 @@ class DefaultTransferProcessRunnerTest {
     assertThat(peakInFlight.get()).isLessThanOrEqualTo(maxSend);
   }
 
+  @Test
+  void serializedConcurrencyTransfersEveryPatient() {
+    int patientCount = 5;
+
+    var cfg = new TransferProcessRunnerConfig(1, 1, 1, 4, Duration.ofSeconds(10));
+    var serializedRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
+
+    var inFlight = new AtomicInteger(0);
+    var peakInFlight = new AtomicInteger(0);
+    var sent = new AtomicInteger(0);
+
+    var patients =
+        IntStream.range(0, patientCount)
+            .mapToObj(i -> new ConsentedPatient("patient-" + i, "system"))
+            .toList();
+
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(patients),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> {
+              int current = inFlight.incrementAndGet();
+              peakInFlight.updateAndGet(peak -> Math.max(peak, current));
+              return Mono.just(new Result())
+                  .delayElement(Duration.ofMillis(20))
+                  .doOnNext(
+                      r -> {
+                        sent.incrementAndGet();
+                        inFlight.decrementAndGet();
+                      });
+            });
+
+    var processId = serializedRunner.start(process, List.of());
+    waitForCompletion(serializedRunner, processId);
+
+    assertThat(sent.get()).isEqualTo(patientCount);
+    assertThat(peakInFlight.get()).isEqualTo(1);
+  }
+
   private void waitForCompletion(String processId) {
     waitForCompletion(runner, processId);
   }

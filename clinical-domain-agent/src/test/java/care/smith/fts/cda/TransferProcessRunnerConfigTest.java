@@ -25,21 +25,34 @@ class TransferProcessRunnerConfigTest {
   }
 
   @Test
-  void failsWhenMaxConcurrentPatientsIsZeroOrOne() {
-    assertThatThrownBy(() -> new TransferProcessRunnerConfig(1, 2, 4, 4, Duration.ofDays(1)))
+  void bindsWhenSendConcurrencyIsOne() {
+    var config = new TransferProcessRunnerConfig(8, 1, 4, 4, Duration.ofDays(1));
+    assertThat(config.maxSendConcurrency()).isEqualTo(1);
+  }
+
+  @Test
+  void bindsWhenPrefetchWindowIsOne() {
+    var config = new TransferProcessRunnerConfig(1, 1, 4, 4, Duration.ofDays(1));
+    assertThat(config.maxConcurrentPatients()).isEqualTo(1);
+    assertThat(config.maxSendConcurrency()).isEqualTo(1);
+  }
+
+  @Test
+  void failsWhenMaxConcurrentPatientsIsZeroOrNegative() {
+    assertThatThrownBy(() -> new TransferProcessRunnerConfig(0, 2, 4, 4, Duration.ofDays(1)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("maxConcurrentPatients must be greater than 0");
-    assertThatThrownBy(() -> new TransferProcessRunnerConfig(0, 2, 4, 4, Duration.ofDays(1)))
+    assertThatThrownBy(() -> new TransferProcessRunnerConfig(-1, 2, 4, 4, Duration.ofDays(1)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("maxConcurrentPatients must be greater than 0");
   }
 
   @Test
-  void failsWhenMaxSendConcurrencyIsZeroOrOne() {
-    assertThatThrownBy(() -> new TransferProcessRunnerConfig(8, 1, 4, 4, Duration.ofDays(1)))
+  void failsWhenMaxSendConcurrencyIsZeroOrNegative() {
+    assertThatThrownBy(() -> new TransferProcessRunnerConfig(8, 0, 4, 4, Duration.ofDays(1)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("maxSendConcurrency must be greater than 0");
-    assertThatThrownBy(() -> new TransferProcessRunnerConfig(8, 0, 4, 4, Duration.ofDays(1)))
+    assertThatThrownBy(() -> new TransferProcessRunnerConfig(8, -1, 4, 4, Duration.ofDays(1)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("maxSendConcurrency must be greater than 0");
   }
