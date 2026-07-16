@@ -36,8 +36,8 @@ public record TransferProcessRunnerConfig(
   public TransferProcessRunnerConfig {
     cohortSelectionConcurrency =
         requireNonNullElse(cohortSelectionConcurrency, DEFAULT_COHORT_SELECTION_CONCURRENCY);
-    checkArgument(maxConcurrentPatients > 1, "runner.maxConcurrentPatients must be greater than 0");
-    checkArgument(maxSendConcurrency > 1, "runner.maxSendConcurrency must be greater than 0");
+    checkArgument(maxConcurrentPatients > 0, "runner.maxConcurrentPatients must be greater than 0");
+    checkArgument(maxSendConcurrency > 0, "runner.maxSendConcurrency must be greater than 0");
     checkArgument(
         maxSendConcurrency <= maxConcurrentPatients,
         "runner.maxSendConcurrency must not exceed runner.maxConcurrentPatients");
