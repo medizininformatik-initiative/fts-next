@@ -8,7 +8,8 @@ lifecycle of processes managed by FTSnext
 
 ```yaml
 runner:
-  maxSendConcurrency: 32
+  maxConcurrentPatients: 8
+  maxSendConcurrency: 2
   maxConcurrentProcesses: 4
   cohortSelectionConcurrency: 4
   processTtl: P1D
@@ -16,17 +17,35 @@ runner:
 
 ## Fields
 
-### `maxSendConcurrency` <Badge type="warning" text="Since 5.0" />
+### `maxConcurrentPatients` <Badge type="warning" text="Since 5.7" />
 
-* **Description**: The maximum number of concurrent bundles that can be sent in parallel.
+* **Description**: The number of patients whose data is fetched and deidentified ahead of the send
+  stage. This bounds how far the pipeline may run ahead of the RDA, and is the upper bound on
+  [`maxSendConcurrency`](#maxsendconcurrency): the agent fails to start if `maxSendConcurrency`
+  exceeds it.
 * **Type**: Integer
-* **Default**: `32`
-* **Minimum**: `1` — set it to `1` to send bundles strictly one at a time, for example when the
-  target RDA is rate-limited or fragile.
+* **Default**: `8`
+* **Minimum**: `1`
 * **Example**:
   ```yaml
   runner:
-    maxSendConcurrency: 50
+    maxConcurrentPatients: 16
+  ```
+
+### `maxSendConcurrency` <Badge type="warning" text="Since 5.0" />
+
+* **Description**: The maximum number of concurrent bundles that can be sent in parallel. This is
+  usually the bottleneck of a transfer and should match the target Blaze's transaction capacity.
+  Must not exceed [`maxConcurrentPatients`](#maxconcurrentpatients); raise that value first when
+  increasing this one.
+* **Type**: Integer
+* **Default**: `2`
+* **Minimum**: `1`
+* **Example**:
+  ```yaml
+  runner:
+    maxConcurrentPatients: 16  # must be raised alongside maxSendConcurrency
+    maxSendConcurrency: 16
   ```
 
 ### `maxConcurrentProcesses` <Badge type="warning" text="Since 5.0" />
@@ -69,6 +88,11 @@ runner:
 
 ## Notes
 
+* **Concurrency Constraint**: `maxSendConcurrency` must not exceed `maxConcurrentPatients`. The
+  agent validates this at startup and fails with
+  `runner.maxSendConcurrency must not exceed runner.maxConcurrentPatients` if violated. Since
+  `maxConcurrentPatients` defaults to `8`, setting `maxSendConcurrency` above `8` without also
+  raising `maxConcurrentPatients` prevents the agent from starting.
 * **ISO-8601 Duration Format**: For more details on the duration format, refer
   to [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations).
 * Ensure that the `processTtl` value is reasonable to avoid resource exhaustion due to long-lived
