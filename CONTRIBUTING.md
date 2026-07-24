@@ -6,6 +6,7 @@ commit message conventions — lives in the documentation:
 
 <https://medizininformatik-initiative.github.io/fts-next/contributing/contributing.html>
 
+<!-- #region ai-contributions -->
 ## AI-Assisted Contributions
 
 AI tools are allowed. We don't ask you to disclose their use — but you own
@@ -20,3 +21,4 @@ tool add its own `Signed-off-by`; only a human can certify the DCO.
 
 You must understand your own changes. If you can't explain what your patch
 does and why, it will be closed.
+<!-- #endregion ai-contributions -->
