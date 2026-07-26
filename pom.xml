@@ -52,7 +52,7 @@
       <dependency>
         <groupId>ca.uhn.hapi.fhir</groupId>
         <artifactId>hapi-fhir-structures-r4</artifactId>
-        <version>8.10.0</version>
+        <version>8.10.1</version>
       </dependency>
 
       <!-- TODO: Temporary transitive update for CVE mitigation - Remove when the Spring Boot BOM manages nimbus-jose-jwt >= 10.9.1! -->
