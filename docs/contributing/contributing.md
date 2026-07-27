@@ -136,6 +136,8 @@ references in individual commits redundant.
 ³ [Linux Kernel Submitting Patches Guidelines][^3]  
 ⁴ [GitHub's Git Commit Message Guidelines][^4]
 
+<!--@include: ../../CONTRIBUTING.md#ai-contributions-->
+
 ## License
 
 By contributing to this project, you agree that your contributions will be licensed under
