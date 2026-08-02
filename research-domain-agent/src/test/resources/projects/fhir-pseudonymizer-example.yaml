@@ -1,0 +1,15 @@
+# Example project configuration using FHIR Pseudonymizer for transport ID resolution
+# This configuration demonstrates how to use the FhirPseudonymizerStep in RDA context
+# to resolve transport IDs (tIDs) to secure pseudonyms (sIDs) via TCA
+
+deidentificator:
+  fhir-pseudonymizer:
+    server:
+      baseUrl: "http://fhir-pseudonymizer:8080"
+    timeout: 60s
+    maxRetries: 3
+
+bundleSender:
+  fhirStore:
+    fhirServer:
+      baseUrl: "http://rd-hds:8080/fhir"
