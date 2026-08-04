@@ -46,7 +46,7 @@
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
         <!-- See https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot -->
-        <version>3.0.3</version>
+        <version>3.1.0</version>
       </dependency>
 
       <dependency>
