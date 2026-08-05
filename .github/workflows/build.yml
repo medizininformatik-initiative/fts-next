@@ -530,16 +530,6 @@ jobs:
       with:
         egress-policy: audit
 
-    - name: Install SLSA Verifier
-      uses: slsa-framework/slsa-verifier/actions/installer@ea584f4502babc6f60d9bc799dbbb13c1caa9ee6 # v2.7.1
-
-    - name: Install crane
-      uses: iarekylew00t/crane-installer@8efb0e525fa83ad39276d294d67dda1cc85733d9 # v4.0.15
-      with:
-        # Pinned because `latest` breaks when a release omits `multiple.intoto.jsonl`
-        # renovate: datasource=github-releases depName=google/go-containerregistry
-        crane-release: v0.21.7
-
     - name: Login to GHCR
       uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
       with:
@@ -561,10 +551,13 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Retag and Push Container Image
+      env:
+        TAGS: ${{ steps.meta.outputs.tags }}
       run: |
         while read -r tag; do
-          echo "${tag}" | cut -d: -f2 | xargs crane tag "${REGISTRY}/${{ matrix.agent }}@${DIGEST}"
-        done <<<"${{ steps.meta.outputs.tags }}"
+          [ -n "${tag}" ] || continue
+          docker buildx imagetools create --tag "${tag}" "${REGISTRY}/${{ matrix.agent }}@${DIGEST}"
+        done <<<"${TAGS}"
 
   sign-image:
     needs: [ build-image, combine-sboms ]
