@@ -534,7 +534,7 @@ jobs:
       uses: slsa-framework/slsa-verifier/actions/installer@ea584f4502babc6f60d9bc799dbbb13c1caa9ee6 # v2.7.1
 
     - name: Install crane
-      uses: iarekylew00t/crane-installer@f1daea28c11fff5fbc9a5f92700570e84d2d418c # v4.0.14
+      uses: iarekylew00t/crane-installer@8efb0e525fa83ad39276d294d67dda1cc85733d9 # v4.0.15
       with:
         # Pinned because `latest` breaks when a release omits `multiple.intoto.jsonl`
         # renovate: datasource=github-releases depName=google/go-containerregistry
