@@ -6,9 +6,9 @@ import static org.mockito.Mockito.when;
 
 import care.smith.fts.tca.services.TransportIdService;
 import java.util.Map;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +21,8 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class RdAgentFhirPseudonymizerControllerTest {
 
+  private static final String SYSTEM = "http://fts.smith.care";
+
   @Mock private TransportIdService transportIdService;
 
   private RdAgentFhirPseudonymizerController controller;
@@ -31,7 +33,7 @@ class RdAgentFhirPseudonymizerControllerTest {
   }
 
   @Test
-  void dePseudonymizeSuccessfullyReturnsOriginal() {
+  void dePseudonymizeSuccessfullyReturnsOriginalIdentifier() {
     var requestParams = createRequest("test-domain", "tId-123");
 
     when(transportIdService.fetchMappings(anySet()))
@@ -43,17 +45,27 @@ class RdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-              var params = response.getBody();
+              var params = (Parameters) response.getBody();
               assertThat(params).isNotNull();
 
               var originalValue = extractOriginalValue(params);
-              assertThat(originalValue).isEqualTo("sId-456");
+              assertThat(originalValue).isNotNull();
+              assertThat(originalValue.getValue()).isEqualTo("sId-456");
+
+              var context = extractOriginalPart(params, "context");
+              assertThat(context).isNotNull();
+              assertThat(context.getSystem()).isEqualTo(SYSTEM);
+              assertThat(context.getValue()).isEqualTo("test-domain");
+
+              var pseudonym = extractOriginalPart(params, "pseudonym");
+              assertThat(pseudonym).isNotNull();
+              assertThat(pseudonym.getValue()).isEqualTo("tId-123");
             })
         .verifyComplete();
   }
 
   @Test
-  void dePseudonymizeReturnsTidWhenNotFound() {
+  void dePseudonymizeReturnsNotFoundForUnknownTransportId() {
     var requestParams = createRequest("test-domain", "tId-missing");
 
     when(transportIdService.fetchMappings(anySet())).thenReturn(Mono.just(Map.of()));
@@ -63,20 +75,21 @@ class RdAgentFhirPseudonymizerControllerTest {
     StepVerifier.create(result)
         .assertNext(
             response -> {
-              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-
-              var originalValue = extractOriginalValue(params);
-              assertThat(originalValue).isEqualTo("tId-missing");
+              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+              var outcome = (OperationOutcome) response.getBody();
+              assertThat(outcome).isNotNull();
+              assertThat(outcome.getIssueFirstRep().getDiagnostics()).contains("not found");
             })
         .verifyComplete();
   }
 
   @Test
-  void dePseudonymizeReturnsBadRequestForMissingTarget() {
+  void dePseudonymizeReturnsBadRequestForMissingContext() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("pseudonym").setValue(new StringType("tId-123"));
+    requestParams
+        .addParameter()
+        .setName("pseudonym")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("tId-123"));
 
     var result = controller.dePseudonymize(requestParams);
 
@@ -84,20 +97,25 @@ class RdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
+              var outcome = (OperationOutcome) response.getBody();
+              assertThat(outcome).isNotNull();
               assertThat(outcome.getIssueFirstRep().getDiagnostics())
-                  .contains("Missing required parameter 'target'");
+                  .contains("Missing required parameter 'context'");
             })
         .verifyComplete();
   }
 
   @Test
-  void dePseudonymizeReturnsBadRequestForEmptyTarget() {
+  void dePseudonymizeReturnsBadRequestForEmptyContext() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("target").setValue(new StringType("   "));
-    requestParams.addParameter().setName("pseudonym").setValue(new StringType("tId-123"));
+    requestParams
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("   "));
+    requestParams
+        .addParameter()
+        .setName("pseudonym")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("tId-123"));
 
     var result = controller.dePseudonymize(requestParams);
 
@@ -105,9 +123,8 @@ class RdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
+              var outcome = (OperationOutcome) response.getBody();
+              assertThat(outcome).isNotNull();
               assertThat(outcome.getIssueFirstRep().getDiagnostics()).contains("must not be empty");
             })
         .verifyComplete();
@@ -116,7 +133,10 @@ class RdAgentFhirPseudonymizerControllerTest {
   @Test
   void dePseudonymizeReturnsBadRequestForMissingPseudonym() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("target").setValue(new StringType("test-domain"));
+    requestParams
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("test-domain"));
 
     var result = controller.dePseudonymize(requestParams);
 
@@ -124,9 +144,8 @@ class RdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
+              var outcome = (OperationOutcome) response.getBody();
+              assertThat(outcome).isNotNull();
               assertThat(outcome.getIssueFirstRep().getDiagnostics())
                   .contains("Missing required parameter 'pseudonym'");
             })
@@ -144,30 +163,39 @@ class RdAgentFhirPseudonymizerControllerTest {
 
     StepVerifier.create(result)
         .assertNext(
-            response -> {
-              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-            })
+            response ->
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR))
         .verifyComplete();
   }
 
-  private Parameters createRequest(String target, String pseudonym) {
+  private Parameters createRequest(String context, String pseudonym) {
     var params = new Parameters();
-    params.addParameter().setName("target").setValue(new StringType(target));
-    params.addParameter().setName("pseudonym").setValue(new StringType(pseudonym));
+    params
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue(context));
+    params
+        .addParameter()
+        .setName("pseudonym")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue(pseudonym));
     return params;
   }
 
-  /** Extracts the value from MII $de-pseudonymize response: original -> part[value] */
-  private String extractOriginalValue(Parameters params) {
+  /** Extracts the Identifier of part {@code value} of {@code original} (MII IG response shape). */
+  private Identifier extractOriginalValue(Parameters params) {
+    return extractOriginalPart(params, "value");
+  }
+
+  private Identifier extractOriginalPart(Parameters params, String partName) {
     return params.getParameter().stream()
         .filter(p -> "original".equals(p.getName()))
         .findFirst()
         .flatMap(
             p ->
                 p.getPart().stream()
-                    .filter(part -> "value".equals(part.getName()))
+                    .filter(part -> partName.equals(part.getName()))
                     .findFirst()
-                    .map(part -> part.getValue().primitiveValue()))
+                    .map(part -> (Identifier) part.getValue()))
         .orElse(null);
   }
 }

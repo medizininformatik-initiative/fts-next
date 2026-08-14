@@ -11,8 +11,8 @@ import care.smith.fts.tca.services.TransportIdService;
 import care.smith.fts.test.TestWebClientFactory;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,7 +83,7 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
   }
 
   @Test
-  void dePseudonymize_withUnknownTransportId_shouldReturnOriginal() {
+  void dePseudonymize_withUnknownTransportId_shouldReturn404() {
     var unknownTId = "unknown-transport-id";
 
     var requestParams = buildMiiRequest("test-domain", unknownTId);
@@ -96,22 +96,22 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
             .header("Accept", APPLICATION_FHIR_JSON)
             .bodyValue(requestParams)
             .retrieve()
-            .bodyToMono(Parameters.class);
+            .toBodilessEntity();
 
     create(response)
-        .assertNext(
-            params -> {
-              assertThat(params).isNotNull();
-              var originalValue = extractOriginalValue(params);
-              assertThat(originalValue).isEqualTo(unknownTId);
+        .expectErrorSatisfies(
+            e -> {
+              assertThat(e).isInstanceOf(WebClientResponseException.class);
+              assertThat(((WebClientResponseException) e).getStatusCode())
+                  .isEqualTo(HttpStatus.NOT_FOUND);
             })
-        .verifyComplete();
+        .verify();
   }
 
   @Test
-  void dePseudonymize_withMissingTarget_shouldReturn400() {
+  void dePseudonymize_withMissingContext_shouldReturn400() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("pseudonym").setValue(new StringType("some-tid"));
+    requestParams.addParameter().setName("pseudonym").setValue(identifier("some-tid"));
 
     var response =
         rdClient
@@ -133,11 +133,15 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .verify();
   }
 
-  private Parameters buildMiiRequest(String target, String pseudonym) {
+  private Parameters buildMiiRequest(String context, String pseudonym) {
     var params = new Parameters();
-    params.addParameter().setName("target").setValue(new StringType(target));
-    params.addParameter().setName("pseudonym").setValue(new StringType(pseudonym));
+    params.addParameter().setName("context").setValue(identifier(context));
+    params.addParameter().setName("pseudonym").setValue(identifier(pseudonym));
     return params;
+  }
+
+  private Identifier identifier(String value) {
+    return new Identifier().setSystem("http://fts.smith.care").setValue(value);
   }
 
   /** Extracts the value from MII $de-pseudonymize response: original -> part[value] */
@@ -150,7 +154,7 @@ class RdAgentFhirPseudonymizerControllerIT extends BaseIT {
                 p.getPart().stream()
                     .filter(part -> "value".equals(part.getName()))
                     .findFirst()
-                    .map(part -> part.getValue().primitiveValue()))
+                    .map(part -> ((Identifier) part.getValue()).getValue()))
         .orElse(null);
   }
 }

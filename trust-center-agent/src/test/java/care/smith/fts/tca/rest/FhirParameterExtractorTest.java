@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,60 @@ class FhirParameterExtractorTest {
     assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredString(params, "namespace"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Parameter 'namespace' must not be empty");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withValidParameter_returnsIdentifier() {
+    var params = new Parameters();
+    params
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem("http://fts.smith.care").setValue("domain"));
+
+    var result = FhirParameterExtractor.extractRequiredIdentifier(params, "context");
+
+    assertThat(result.getSystem()).isEqualTo("http://fts.smith.care");
+    assertThat(result.getValue()).isEqualTo("domain");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withMissingParameter_throwsException() {
+    var params = new Parameters();
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Missing required parameter 'context'");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withStringValue_throwsException() {
+    var params = new Parameters();
+    params.addParameter().setName("context").setValue(new StringType("domain"));
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'context' must be an Identifier");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withNullValue_throwsException() {
+    var params = new Parameters();
+    // Identifier with a system but no value at all — getValue() returns null
+    params.addParameter().setName("context").setValue(new Identifier().setSystem("http://x"));
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'context' must not be empty");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withBlankValue_throwsException() {
+    var params = new Parameters();
+    params.addParameter().setName("context").setValue(new Identifier().setValue("   "));
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'context' must not be empty");
   }
 
   @Test

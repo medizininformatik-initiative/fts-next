@@ -17,8 +17,8 @@ import care.smith.fts.test.TestWebClientFactory;
 import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,9 +85,8 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .assertNext(
             params -> {
               assertThat(params).isNotNull();
-              assertThat(params.getParameter()).hasSize(1);
 
-              var pseudonym = findParameterValue(params, "pseudonym");
+              var pseudonym = findIdentifierValue(params, "pseudonym");
               assertThat(pseudonym)
                   .isNotNull()
                   .isNotEqualTo("sID-real-pseudonym-abc")
@@ -120,7 +119,7 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
             .bodyValue(requestParams)
             .retrieve()
             .bodyToMono(Parameters.class)
-            .map(params -> findParameterValue(params, "pseudonym"))
+            .map(params -> findIdentifierValue(params, "pseudonym"))
             .block();
 
     var keys = redisClient.getKeys().getKeysByPattern("tid:*");
@@ -131,9 +130,9 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
   }
 
   @Test
-  void pseudonymize_withMissingTarget_shouldReturn400() {
+  void pseudonymize_withMissingContext_shouldReturn400() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("original").setValue(new StringType("patient-123"));
+    requestParams.addParameter().setName("original").setValue(identifier("patient-123"));
 
     var response =
         cdClient
@@ -158,7 +157,7 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
   @Test
   void pseudonymize_withMissingOriginal_shouldReturn400() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("target").setValue(new StringType("clinical-domain"));
+    requestParams.addParameter().setName("context").setValue(identifier("clinical-domain"));
 
     var response =
         cdClient
@@ -180,18 +179,22 @@ class CdAgentFhirPseudonymizerControllerIT extends BaseIT {
         .verify();
   }
 
-  private Parameters buildMiiRequest(String target, String original) {
+  private Parameters buildMiiRequest(String context, String original) {
     var params = new Parameters();
-    params.addParameter().setName("target").setValue(new StringType(target));
-    params.addParameter().setName("original").setValue(new StringType(original));
+    params.addParameter().setName("context").setValue(identifier(context));
+    params.addParameter().setName("original").setValue(identifier(original));
     return params;
   }
 
-  private String findParameterValue(Parameters params, String name) {
+  private Identifier identifier(String value) {
+    return new Identifier().setSystem("http://fts.smith.care").setValue(value);
+  }
+
+  private String findIdentifierValue(Parameters params, String name) {
     return params.getParameter().stream()
         .filter(p -> name.equals(p.getName()))
         .findFirst()
-        .map(p -> p.getValue().primitiveValue())
+        .map(p -> ((Identifier) p.getValue()).getValue())
         .orElse(null);
   }
 }

@@ -3,6 +3,7 @@ package care.smith.fts.tca.rest;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.r4.model.StringType;
@@ -40,6 +41,35 @@ public interface FhirParameterExtractor {
     }
 
     return value;
+  }
+
+  /**
+   * Extracts a required {@link Identifier} parameter from FHIR Parameters (MII IG wire format).
+   *
+   * @param params the FHIR Parameters resource
+   * @param name the parameter name to extract
+   * @return the Identifier with a non-blank value
+   * @throws IllegalArgumentException if the parameter is missing, not an Identifier, or its value
+   *     is empty
+   */
+  static Identifier extractRequiredIdentifier(Parameters params, String name) {
+    var value =
+        params.getParameter().stream()
+            .filter(p -> name.equals(p.getName()))
+            .findFirst()
+            .map(ParametersParameterComponent::getValue)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Missing required parameter '%s'".formatted(name)));
+
+    if (!(value instanceof Identifier identifier)) {
+      throw new IllegalArgumentException("Parameter '%s' must be an Identifier".formatted(name));
+    }
+    if (identifier.getValue() == null || identifier.getValue().isBlank()) {
+      throw new IllegalArgumentException("Parameter '%s' must not be empty".formatted(name));
+    }
+    return identifier;
   }
 
   /**

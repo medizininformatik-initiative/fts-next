@@ -9,9 +9,9 @@ import care.smith.fts.tca.deidentification.GpasClient;
 import care.smith.fts.tca.services.TransportIdService;
 import java.time.Duration;
 import java.util.Map;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +24,8 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class CdAgentFhirPseudonymizerControllerTest {
 
+  private static final String SYSTEM = "http://fts.smith.care";
+
   @Mock private TransportIdService transportIdService;
   @Mock private GpasClient gpasClient;
 
@@ -35,7 +37,7 @@ class CdAgentFhirPseudonymizerControllerTest {
   }
 
   @Test
-  void pseudonymizeSuccessfullyReturnsPseudonym() {
+  void pseudonymizeSuccessfullyReturnsPseudonymIdentifier() {
     var requestParams = createRequest("test-domain", "patient-123");
     var ttl = Duration.ofMinutes(10);
 
@@ -52,19 +54,32 @@ class CdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-              var params = response.getBody();
+              var params = (Parameters) response.getBody();
               assertThat(params).isNotNull();
 
-              var pseudonym = findParameterValue(params, "pseudonym");
-              assertThat(pseudonym).isEqualTo("tId-abc123");
+              var pseudonym = findIdentifier(params, "pseudonym");
+              assertThat(pseudonym).isNotNull();
+              assertThat(pseudonym.getValue()).isEqualTo("tId-abc123");
+
+              var context = findIdentifier(params, "context");
+              assertThat(context).isNotNull();
+              assertThat(context.getSystem()).isEqualTo(SYSTEM);
+              assertThat(context.getValue()).isEqualTo("test-domain");
+
+              var original = findIdentifier(params, "original");
+              assertThat(original).isNotNull();
+              assertThat(original.getValue()).isEqualTo("patient-123");
             })
         .verifyComplete();
   }
 
   @Test
-  void pseudonymizeReturnsBadRequestForMissingTarget() {
+  void pseudonymizeReturnsBadRequestForMissingContext() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("original").setValue(new StringType("patient-123"));
+    requestParams
+        .addParameter()
+        .setName("original")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("patient-123"));
 
     var result = controller.pseudonymize(requestParams);
 
@@ -72,20 +87,25 @@ class CdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
+              var outcome = (OperationOutcome) response.getBody();
+              assertThat(outcome).isNotNull();
               assertThat(outcome.getIssueFirstRep().getDiagnostics())
-                  .contains("Missing required parameter 'target'");
+                  .contains("Missing required parameter 'context'");
             })
         .verifyComplete();
   }
 
   @Test
-  void pseudonymizeReturnsBadRequestForEmptyTarget() {
+  void pseudonymizeReturnsBadRequestForEmptyContext() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("target").setValue(new StringType("   "));
-    requestParams.addParameter().setName("original").setValue(new StringType("patient-123"));
+    requestParams
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("   "));
+    requestParams
+        .addParameter()
+        .setName("original")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("patient-123"));
 
     var result = controller.pseudonymize(requestParams);
 
@@ -93,9 +113,8 @@ class CdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
+              var outcome = (OperationOutcome) response.getBody();
+              assertThat(outcome).isNotNull();
               assertThat(outcome.getIssueFirstRep().getDiagnostics()).contains("must not be empty");
             })
         .verifyComplete();
@@ -104,7 +123,10 @@ class CdAgentFhirPseudonymizerControllerTest {
   @Test
   void pseudonymizeReturnsBadRequestForMissingOriginal() {
     var requestParams = new Parameters();
-    requestParams.addParameter().setName("target").setValue(new StringType("test-domain"));
+    requestParams
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue("test-domain"));
 
     var result = controller.pseudonymize(requestParams);
 
@@ -112,9 +134,8 @@ class CdAgentFhirPseudonymizerControllerTest {
         .assertNext(
             response -> {
               assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-              var params = response.getBody();
-              assertThat(params).isNotNull();
-              var outcome = (OperationOutcome) params.getParameter().get(0).getResource();
+              var outcome = (OperationOutcome) response.getBody();
+              assertThat(outcome).isNotNull();
               assertThat(outcome.getIssueFirstRep().getDiagnostics())
                   .contains("Missing required parameter 'original'");
             })
@@ -132,24 +153,29 @@ class CdAgentFhirPseudonymizerControllerTest {
 
     StepVerifier.create(result)
         .assertNext(
-            response -> {
-              assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-            })
+            response ->
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR))
         .verifyComplete();
   }
 
-  private Parameters createRequest(String target, String original) {
+  private Parameters createRequest(String context, String original) {
     var params = new Parameters();
-    params.addParameter().setName("target").setValue(new StringType(target));
-    params.addParameter().setName("original").setValue(new StringType(original));
+    params
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue(context));
+    params
+        .addParameter()
+        .setName("original")
+        .setValue(new Identifier().setSystem(SYSTEM).setValue(original));
     return params;
   }
 
-  private String findParameterValue(Parameters params, String name) {
+  private Identifier findIdentifier(Parameters params, String name) {
     return params.getParameter().stream()
         .filter(p -> name.equals(p.getName()))
         .findFirst()
-        .map(p -> p.getValue().primitiveValue())
+        .map(p -> (Identifier) p.getValue())
         .orElse(null);
   }
 }

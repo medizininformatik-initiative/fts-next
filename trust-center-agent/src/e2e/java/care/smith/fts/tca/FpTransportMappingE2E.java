@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
-import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
@@ -33,9 +33,16 @@ public class FpTransportMappingE2E extends AbstractTcaE2E {
     var webClient = createTcaWebClient();
 
     // Step 1: Create tID->sID in Redis via MII $pseudonymize endpoint
+    var system = "http://fts.smith.care";
     var pseudonymizeRequest = new Parameters();
-    pseudonymizeRequest.addParameter().setName("target").setValue(new StringType("domain"));
-    pseudonymizeRequest.addParameter().setName("original").setValue(new StringType("patient-id-1"));
+    pseudonymizeRequest
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem(system).setValue("domain"));
+    pseudonymizeRequest
+        .addParameter()
+        .setName("original")
+        .setValue(new Identifier().setSystem(system).setValue("patient-id-1"));
 
     var pseudonymizeResponse =
         webClient
@@ -51,7 +58,7 @@ public class FpTransportMappingE2E extends AbstractTcaE2E {
     var tId =
         pseudonymizeResponse.getParameter().stream()
             .filter(p -> "pseudonym".equals(p.getName()))
-            .map(p -> p.getValue().primitiveValue())
+            .map(p -> ((Identifier) p.getValue()).getValue())
             .findFirst()
             .orElseThrow();
 

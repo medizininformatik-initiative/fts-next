@@ -1,14 +1,12 @@
 package care.smith.fts.tca.rest;
 
-import static care.smith.fts.tca.rest.FhirParameterExtractor.addParameter;
-import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredString;
+import static care.smith.fts.tca.rest.FhirParameterExtractor.extractRequiredIdentifier;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.validateIdentifier;
 import static care.smith.fts.tca.rest.FhirParameterExtractor.validateValue;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 
 import care.smith.fts.tca.deidentification.GpasClient;
 import care.smith.fts.tca.services.TransportIdService;
-import care.smith.fts.util.error.ErrorResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -17,10 +15,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Parameters;
+import org.hl7.fhir.r4.model.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,8 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 /**
- * REST controller providing MII-compatible FHIR {@code $pseudonymize} endpoint for CDA's FHIR
- * Pseudonymizer.
+ * REST controller providing the {@code $pseudonymize} operation of the MII Pseudonymization IG
+ * (2026.1.0) for CDA's FHIR Pseudonymizer.
  *
  * <p>This controller:
  *
@@ -63,10 +64,11 @@ public class CdAgentFhirPseudonymizerController {
       consumes = APPLICATION_FHIR_JSON_VALUE,
       produces = APPLICATION_FHIR_JSON_VALUE)
   @Operation(
-      summary = "Pseudonymize an identifier (MII protocol, returns transport ID)",
+      summary = "Pseudonymize an identifier (MII IG $pseudonymize, returns transport ID)",
       description =
-          "Accepts MII-format FHIR Parameters with target domain and original value, "
-              + "returns a transport ID (NOT the real pseudonym) for data isolation.\n\n"
+          "Accepts FHIR Parameters as defined by the MII Pseudonymization IG with `context` and "
+              + "`original` Identifiers, returns a transport ID (NOT the real pseudonym) as the "
+              + "`pseudonym` Identifier for data isolation.\n\n"
               + "The transport ID can be resolved to the real pseudonym via the RDA "
               + "$de-pseudonymize endpoint.",
       requestBody =
@@ -82,9 +84,10 @@ public class CdAgentFhirPseudonymizerController {
                                   {
                                     "resourceType": "Parameters",
                                     "parameter": [
-                                      {"name": "target", "valueString": "clinical-domain"},
-                                      {"name": "original", "valueString": "patient-123"},
-                                      {"name": "allowCreate", "valueBoolean": true}
+                                      {"name": "context", "valueIdentifier":
+                                        {"system": "http://fts.smith.care", "value": "domain"}},
+                                      {"name": "original", "valueIdentifier":
+                                        {"system": "http://fts.smith.care", "value": "patient-123"}}
                                     ]
                                   }
                                   """))),
@@ -103,61 +106,69 @@ public class CdAgentFhirPseudonymizerController {
                                 {
                                   "resourceType": "Parameters",
                                   "parameter": [
-                                    {"name": "pseudonym", "valueString": "tID-abc123xyz..."}
+                                    {"name": "pseudonym", "valueIdentifier":
+                                      {"value": "tID-abc123xyz..."}}
                                   ]
                                 }
                                 """))),
         @ApiResponse(
             responseCode = "400",
-            description = "Invalid request (missing target or original)",
+            description = "Invalid request (missing context or original)",
             content = @Content(mediaType = APPLICATION_FHIR_JSON_VALUE)),
         @ApiResponse(
-            responseCode = "502",
-            description = "Backend service unavailable",
+            responseCode = "500",
+            description = "Unexpected error during processing",
             content = @Content(mediaType = APPLICATION_FHIR_JSON_VALUE))
       })
-  public Mono<ResponseEntity<Parameters>> pseudonymize(
-      @Valid @RequestBody Parameters requestParams) {
+  public Mono<ResponseEntity<Resource>> pseudonymize(@Valid @RequestBody Parameters requestParams) {
 
     log.debug("Received MII $pseudonymize request from CDA");
 
     return Mono.fromCallable(() -> parseRequest(requestParams))
         .flatMap(this::processRequest)
-        .map(ResponseEntity::ok)
+        .map(ResponseEntity::<Resource>ok)
         .onErrorResume(this::handleError);
   }
 
-  private record PseudonymizeRequest(String target, String original) {}
+  private record PseudonymizeRequest(Identifier context, Identifier original) {}
 
   private PseudonymizeRequest parseRequest(Parameters params) {
-    String target = validateIdentifier(extractRequiredString(params, "target"), "target");
-    String original = validateValue(extractRequiredString(params, "original"), "original");
+    var context = extractRequiredIdentifier(params, "context");
+    var original = extractRequiredIdentifier(params, "original");
+    validateIdentifier(context.getValue(), "context");
+    validateValue(original.getValue(), "original");
 
-    log.debug("Parsed request: target={}, original={}", target, original);
+    log.debug("Parsed request: context={}, original={}", context.getValue(), original.getValue());
 
-    return new PseudonymizeRequest(target, original);
+    return new PseudonymizeRequest(context, original);
   }
 
-  private Mono<Parameters> processRequest(PseudonymizeRequest request) {
+  private Mono<Resource> processRequest(PseudonymizeRequest request) {
     var ttl = transportIdService.getDefaultTtl();
+    var domain = request.context().getValue();
+    var original = request.original().getValue();
 
     return gpasClient
-        .fetchOrCreatePseudonyms(request.target(), Set.of(request.original()))
+        .fetchOrCreatePseudonyms(domain, Set.of(original))
         .flatMap(
             sIdMap -> {
-              var sId = sIdMap.get(request.original());
+              var sId = sIdMap.get(original);
               var tId = transportIdService.generateId();
-              return transportIdService.storeMapping(tId, sId, ttl).thenReturn(buildResponse(tId));
+              return transportIdService
+                  .storeMapping(tId, sId, ttl)
+                  .thenReturn(buildResponse(request, tId));
             });
   }
 
-  private Parameters buildResponse(String tId) {
+  private Resource buildResponse(PseudonymizeRequest request, String tId) {
     var fhirParams = new Parameters();
-    addParameter(fhirParams, "pseudonym", tId);
+    fhirParams.addParameter().setName("context").setValue(request.context().copy());
+    fhirParams.addParameter().setName("original").setValue(request.original().copy());
+    fhirParams.addParameter().setName("pseudonym").setValue(new Identifier().setValue(tId));
     return fhirParams;
   }
 
-  private Mono<ResponseEntity<Parameters>> handleError(Throwable error) {
+  private Mono<ResponseEntity<Resource>> handleError(Throwable error) {
     log.warn("Error processing $pseudonymize request: {}", error.getMessage());
 
     if (error instanceof IllegalArgumentException) {
@@ -166,15 +177,15 @@ public class CdAgentFhirPseudonymizerController {
               .body(buildOperationOutcome(error.getMessage(), IssueType.INVALID)));
     }
 
-    return ErrorResponseUtil.internalServerError(error);
+    return Mono.just(
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(
+                buildOperationOutcome("Unexpected error during processing", IssueType.EXCEPTION)));
   }
 
-  private Parameters buildOperationOutcome(String message, IssueType issueType) {
+  private Resource buildOperationOutcome(String message, IssueType issueType) {
     var outcome = new OperationOutcome();
     outcome.addIssue().setSeverity(IssueSeverity.ERROR).setCode(issueType).setDiagnostics(message);
-
-    var params = new Parameters();
-    params.addParameter().setName("outcome").setResource(outcome);
-    return params;
+    return outcome;
   }
 }

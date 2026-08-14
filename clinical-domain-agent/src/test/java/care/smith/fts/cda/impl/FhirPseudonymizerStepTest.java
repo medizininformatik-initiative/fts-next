@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingResponse;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -17,6 +18,7 @@ import java.util.function.Consumer;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Encounter;
+import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Period;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +58,7 @@ class FhirPseudonymizerStepTest {
             Duration.ofDays(14),
             DateShiftPreserve.NONE,
             List.of(),
-            new SimpleMeterRegistry());
+            new DefaultRetryStrategy(new SimpleMeterRegistry()));
 
     // FP client mock chain (lenient: not all tests exercise FP)
     lenient().when(fpClient.post()).thenReturn(fpPostSpec);
@@ -168,12 +170,28 @@ class FhirPseudonymizerStepTest {
   }
 
   @Test
+  void extractTransportIdsSkipsEmptyIdPart() {
+    var bundle = new Bundle();
+    var patient = new Patient();
+    // Only a type prefix — hasId() is true, but getIdPart() returns ""
+    patient.getIdElement().setValue("Patient/");
+    bundle.addEntry().setResource(patient);
+
+    var tIds = FhirPseudonymizerStep.extractTransportIds(bundle);
+
+    assertThat(tIds).isEmpty();
+  }
+
+  @Test
   void extractTransportIdsSkipsNullIdPart() {
     var bundle = new Bundle();
     var patient = new Patient();
-    // setId with just a type prefix — getIdPart() returns null
-    patient.getIdElement().setValue("Patient/");
+    // Resource type without an ID part — hasId() is true, but getIdPart() returns null
+    patient.setIdElement(new IdType("Patient", (String) null));
     bundle.addEntry().setResource(patient);
+
+    assertThat(patient.hasId()).isTrue();
+    assertThat(patient.getIdElement().getIdPart()).isNull();
 
     var tIds = FhirPseudonymizerStep.extractTransportIds(bundle);
 
@@ -192,7 +210,7 @@ class FhirPseudonymizerStepTest {
             Duration.ofDays(14),
             DateShiftPreserve.NONE,
             List.of("Encounter.period.start"),
-            new SimpleMeterRegistry());
+            new DefaultRetryStrategy(new SimpleMeterRegistry()));
 
     // FP returns a bundle with no tIDs (no 32-char IDs)
     var pseudonymizedBundle = new Bundle();
