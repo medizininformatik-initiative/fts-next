@@ -1,0 +1,27 @@
+# Example project configuration using FHIR Pseudonymizer for deidentification
+# This configuration demonstrates how to use the FhirPseudonymizerStep as the deidentificator
+
+cohortSelector:
+  tca:
+    domain: "MII"
+    policySystem: "http://mii.de/fhir/sid/policy"
+    policies: ["IDAT_erheben", "IDAT_speichern_verarbeiten"]
+    patientIdSystem: "http://fts.smith.care"
+
+dataSelector:
+  everything:
+    fhirServer:
+      baseUrl: "http://cd-hds:8080/fhir"
+
+deidentificator:
+  fhir-pseudonymizer:
+    server:
+      baseUrl: "http://fhir-pseudonymizer:8080"
+    timeout: 60s
+    maxRetries: 3
+
+bundleSender:
+  rda:
+    server:
+      baseUrl: "http://rda:8080"
+    project: "example"
