@@ -1,9 +1,7 @@
 package care.smith.fts.tca.services;
 
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
-
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
-import io.micrometer.core.instrument.MeterRegistry;
+import care.smith.fts.util.RetryStrategy;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
@@ -41,17 +39,17 @@ public class TransportIdService {
   private final RandomGenerator randomGenerator;
   private final RedissonClient redisClient;
   private final Duration defaultTtl;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   public TransportIdService(
       RedissonClient redisClient,
       TransportMappingConfiguration config,
-      MeterRegistry meterRegistry,
+      RetryStrategy retryStrategy,
       RandomGenerator randomGenerator) {
     this.randomGenerator = randomGenerator;
     this.redisClient = redisClient;
     this.defaultTtl = config.getTtl();
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   /**
@@ -83,7 +81,7 @@ public class TransportIdService {
     return mapCache
         .expire(ttl)
         .then(mapCache.putAll(allData))
-        .retryWhen(defaultRetryStrategy(meterRegistry, "storeAllMappings"))
+        .retryWhen(retryStrategy.forRequest("storeAllMappings"))
         .doOnSuccess(
             v -> log.trace("Stored {} entries: transferId={}", allData.size(), transferId));
   }
@@ -97,7 +95,7 @@ public class TransportIdService {
   public Mono<Map<String, String>> fetchAllMappings(String transferId) {
     return getMapCache(transferId)
         .readAllMap()
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchAllMappings"))
+        .retryWhen(retryStrategy.forRequest("fetchAllMappings"))
         .doOnSuccess(m -> log.trace("Fetched {} entries: transferId={}", m.size(), transferId));
   }
 
@@ -119,7 +117,7 @@ public class TransportIdService {
         .reactive()
         .<String>getBucket(tidKey(tid))
         .set(sid, ttl)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "storeMapping"))
+        .retryWhen(retryStrategy.forRequest("storeMapping"))
         .doOnSuccess(v -> log.trace("Stored direct mapping: tid={}", tid));
   }
 
@@ -134,7 +132,7 @@ public class TransportIdService {
         .reactive()
         .<String>getBucket(tidKey(tid))
         .get()
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMapping"))
+        .retryWhen(retryStrategy.forRequest("fetchMapping"))
         .doOnSuccess(sid -> log.trace("Fetched mapping: tid={}, found={}", tid, sid != null));
   }
 
@@ -153,7 +151,7 @@ public class TransportIdService {
     tidToSid.forEach((tid, sid) -> batch.<String>getBucket(tidKey(tid)).set(sid, ttl));
     return batch
         .execute()
-        .retryWhen(defaultRetryStrategy(meterRegistry, "storeMappings"))
+        .retryWhen(retryStrategy.forRequest("storeMappings"))
         .doOnSuccess(v -> log.trace("Stored {} direct mappings", tidToSid.size()))
         .then();
   }
@@ -176,7 +174,7 @@ public class TransportIdService {
         .reactive()
         .getBuckets()
         .<String>get(keys)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "fetchMappings"))
+        .retryWhen(retryStrategy.forRequest("fetchMappings"))
         .map(
             result ->
                 result.entrySet().stream()
@@ -211,7 +209,7 @@ public class TransportIdService {
    * <p>This is the bridge between the FHIR Pseudonymizer's per-tID storage and the RDA's
    * transferId-based retrieval via /rd/secure-mapping.
    *
-   * @param identityTIds identity transport IDs from $create-pseudonym (stored as tid:tId→sId)
+   * @param identityTIds identity transport IDs from $pseudonymize (stored as tid:tId→sId)
    * @param dateShiftEntries already-prefixed ds:tId→shiftedDate entries
    * @param ttl time-to-live for the consolidated MapCache
    * @return Mono emitting the generated transferId
@@ -247,7 +245,7 @@ public class TransportIdService {
         .reactive()
         .getKeys()
         .delete(keys)
-        .retryWhen(defaultRetryStrategy(meterRegistry, "deleteIndividualTidKeys"))
+        .retryWhen(retryStrategy.forRequest("deleteIndividualTidKeys"))
         .doOnSuccess(count -> log.trace("Deleted {} individual tid keys", count))
         .then();
   }

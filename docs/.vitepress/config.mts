@@ -151,7 +151,10 @@ export default withMermaid({
           items: [
             {
               text: 'De-Identification', link: '/details/deidentification', collapsed: true,
-              items: [{text: 'Pseudonymization', link: '/details/pseudonymisierung'}]
+              items: [
+                {text: 'Pseudonymization', link: '/details/pseudonymisierung'},
+                {text: 'FHIR Pseudonymizer', link: '/details/fhir-pseudonymizer'},
+              ]
             }
           ]
         },

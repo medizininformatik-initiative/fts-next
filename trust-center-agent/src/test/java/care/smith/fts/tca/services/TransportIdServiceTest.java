@@ -8,7 +8,8 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
-import io.micrometer.core.instrument.MeterRegistry;
+import care.smith.fts.util.DefaultRetryStrategy;
+import care.smith.fts.util.RetryStrategy;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -43,13 +44,13 @@ class TransportIdServiceTest {
   @Mock private RKeysReactive keys;
 
   private TransportIdService service;
-  private MeterRegistry meterRegistry;
+  private RetryStrategy retryStrategy;
   private RandomGenerator randomGenerator;
   private Duration defaultTtl;
 
   @BeforeEach
   void setUp() {
-    meterRegistry = new SimpleMeterRegistry();
+    retryStrategy = new DefaultRetryStrategy(new SimpleMeterRegistry());
     randomGenerator = new SecureRandom();
     defaultTtl = Duration.ofMinutes(10);
 
@@ -63,7 +64,7 @@ class TransportIdServiceTest {
     lenient().when(reactiveClient.getBuckets()).thenReturn(buckets);
     lenient().when(reactiveClient.getKeys()).thenReturn(keys);
 
-    service = new TransportIdService(redisClient, config, meterRegistry, randomGenerator);
+    service = new TransportIdService(redisClient, config, retryStrategy, randomGenerator);
   }
 
   @Test

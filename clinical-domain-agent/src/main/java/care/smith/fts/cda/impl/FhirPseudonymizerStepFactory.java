@@ -3,9 +3,9 @@ package care.smith.fts.cda.impl;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.cda.Deidentificator;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.fhir.DateShiftAnonymizer;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -15,11 +15,11 @@ public class FhirPseudonymizerStepFactory
     implements Deidentificator.Factory<FhirPseudonymizerConfig> {
 
   private final WebClientFactory clientFactory;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
-  public FhirPseudonymizerStepFactory(WebClientFactory clientFactory, MeterRegistry meterRegistry) {
+  public FhirPseudonymizerStepFactory(WebClientFactory clientFactory, RetryStrategy retryStrategy) {
     this.clientFactory = clientFactory;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -48,6 +48,6 @@ public class FhirPseudonymizerStepFactory
         implConfig.maxDateShift(),
         implConfig.dateShiftPreserve(),
         dateShiftPaths,
-        meterRegistry);
+        retryStrategy);
   }
 }

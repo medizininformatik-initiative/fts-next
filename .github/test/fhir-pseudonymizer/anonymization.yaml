@@ -1,0 +1,7 @@
+fhirVersion: R4
+fhirPathRules:
+  - path: "nodesByType('Identifier').where(system='http://fts.smith.care').value"
+    method: pseudonymize
+    domain: MII
+  - path: "Patient.name"
+    method: redact

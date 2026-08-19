@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,60 @@ class FhirParameterExtractorTest {
     assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredString(params, "namespace"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Parameter 'namespace' must not be empty");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withValidParameter_returnsIdentifier() {
+    var params = new Parameters();
+    params
+        .addParameter()
+        .setName("context")
+        .setValue(new Identifier().setSystem("http://fts.smith.care").setValue("domain"));
+
+    var result = FhirParameterExtractor.extractRequiredIdentifier(params, "context");
+
+    assertThat(result.getSystem()).isEqualTo("http://fts.smith.care");
+    assertThat(result.getValue()).isEqualTo("domain");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withMissingParameter_throwsException() {
+    var params = new Parameters();
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Missing required parameter 'context'");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withStringValue_throwsException() {
+    var params = new Parameters();
+    params.addParameter().setName("context").setValue(new StringType("domain"));
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'context' must be an Identifier");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withNullValue_throwsException() {
+    var params = new Parameters();
+    // Identifier with a system but no value at all — getValue() returns null
+    params.addParameter().setName("context").setValue(new Identifier().setSystem("http://x"));
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'context' must not be empty");
+  }
+
+  @Test
+  void extractRequiredIdentifier_withBlankValue_throwsException() {
+    var params = new Parameters();
+    params.addParameter().setName("context").setValue(new Identifier().setValue("   "));
+
+    assertThatThrownBy(() -> FhirParameterExtractor.extractRequiredIdentifier(params, "context"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'context' must not be empty");
   }
 
   @Test
@@ -116,6 +171,31 @@ class FhirParameterExtractorTest {
     var part = param.getPart().get(0);
     assertThat(part.getName()).isEqualTo("originalValue");
     assertThat(part.getValue().primitiveValue()).isEqualTo("patient-123");
+  }
+
+  @Test
+  void validateValue_withValidValue_returnsValue() {
+    String result = FhirParameterExtractor.validateValue("any|chars:ok/here", "testParam");
+
+    assertThat(result).isEqualTo("any|chars:ok/here");
+  }
+
+  @Test
+  void validateValue_withTooLongValue_throwsException() {
+    String tooLong = "a".repeat(257);
+
+    assertThatThrownBy(() -> FhirParameterExtractor.validateValue(tooLong, "testParam"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Parameter 'testParam' exceeds maximum length of 256");
+  }
+
+  @Test
+  void validateValue_withMaxLengthValue_returnsValue() {
+    String maxLength = "a".repeat(256);
+
+    String result = FhirParameterExtractor.validateValue(maxLength, "testParam");
+
+    assertThat(result).isEqualTo(maxLength);
   }
 
   @Test

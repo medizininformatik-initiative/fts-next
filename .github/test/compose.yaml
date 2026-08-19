@@ -13,6 +13,7 @@ include:
 - rd-agent/compose.yaml
 - tc-agent/compose.yaml
 - oauth2/compose.yaml
+- fhir-pseudonymizer/compose.yaml
 
 services:
   # Clinical Domain

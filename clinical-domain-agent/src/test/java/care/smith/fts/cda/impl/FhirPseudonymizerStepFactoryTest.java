@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.cda.Deidentificator;
+import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TcaDomains;
@@ -34,7 +35,9 @@ class FhirPseudonymizerStepFactoryTest {
 
   @BeforeEach
   void setUp() {
-    factory = new FhirPseudonymizerStepFactory(clientFactory, new SimpleMeterRegistry());
+    factory =
+        new FhirPseudonymizerStepFactory(
+            clientFactory, new DefaultRetryStrategy(new SimpleMeterRegistry()));
   }
 
   @Test

@@ -3,6 +3,7 @@ package care.smith.fts.tca.rest;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.r4.model.StringType;
@@ -40,6 +41,35 @@ public interface FhirParameterExtractor {
     }
 
     return value;
+  }
+
+  /**
+   * Extracts a required {@link Identifier} parameter from FHIR Parameters (MII IG wire format).
+   *
+   * @param params the FHIR Parameters resource
+   * @param name the parameter name to extract
+   * @return the Identifier with a non-blank value
+   * @throws IllegalArgumentException if the parameter is missing, not an Identifier, or its value
+   *     is empty
+   */
+  static Identifier extractRequiredIdentifier(Parameters params, String name) {
+    var value =
+        params.getParameter().stream()
+            .filter(p -> name.equals(p.getName()))
+            .findFirst()
+            .map(ParametersParameterComponent::getValue)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Missing required parameter '%s'".formatted(name)));
+
+    if (!(value instanceof Identifier identifier)) {
+      throw new IllegalArgumentException("Parameter '%s' must be an Identifier".formatted(name));
+    }
+    if (identifier.getValue() == null || identifier.getValue().isBlank()) {
+      throw new IllegalArgumentException("Parameter '%s' must not be empty".formatted(name));
+    }
+    return identifier;
   }
 
   /**
@@ -93,6 +123,26 @@ public interface FhirParameterExtractor {
    */
   static void addPart(ParametersParameterComponent param, String name, String value) {
     param.addPart().setName(name).setValue(new StringType(value));
+  }
+
+  /**
+   * Validates that a string value meets length constraints without character restrictions.
+   *
+   * <p>Unlike {@link #validateIdentifier}, this allows any characters (e.g., FHIR identifiers
+   * containing {@code |}, {@code /}, {@code :}, {@code .}).
+   *
+   * @param value the value to validate
+   * @param paramName the parameter name for error messages
+   * @return the validated value
+   * @throws IllegalArgumentException if the value exceeds max length
+   */
+  static String validateValue(String value, String paramName) {
+    if (value.length() > MAX_IDENTIFIER_LENGTH) {
+      throw new IllegalArgumentException(
+          "Parameter '%s' exceeds maximum length of %d"
+              .formatted(paramName, MAX_IDENTIFIER_LENGTH));
+    }
+    return value;
   }
 
   /**

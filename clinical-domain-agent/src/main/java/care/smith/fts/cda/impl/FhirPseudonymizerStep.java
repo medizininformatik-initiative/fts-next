@@ -1,16 +1,15 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
-import static care.smith.fts.util.RetryStrategies.defaultRetryStrategy;
 
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
+import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.fhir.DateShiftAnonymizer;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingResponse;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,7 @@ class FhirPseudonymizerStep implements Deidentificator {
   private final Duration maxDateShift;
   private final DateShiftPreserve preserve;
   private final List<String> dateShiftPaths;
-  private final MeterRegistry meterRegistry;
+  private final RetryStrategy retryStrategy;
 
   FhirPseudonymizerStep(
       WebClient fpClient,
@@ -48,14 +47,14 @@ class FhirPseudonymizerStep implements Deidentificator {
       Duration maxDateShift,
       DateShiftPreserve preserve,
       List<String> dateShiftPaths,
-      MeterRegistry meterRegistry) {
+      RetryStrategy retryStrategy) {
     this.fpClient = fpClient;
     this.tcaClient = tcaClient;
     this.domains = domains;
     this.maxDateShift = maxDateShift;
     this.preserve = preserve;
     this.dateShiftPaths = dateShiftPaths;
-    this.meterRegistry = meterRegistry;
+    this.retryStrategy = retryStrategy;
   }
 
   @Override
@@ -91,7 +90,7 @@ class FhirPseudonymizerStep implements Deidentificator {
         .retrieve()
         .bodyToMono(Bundle.class)
         .timeout(Duration.ofSeconds(60))
-        .retryWhen(defaultRetryStrategy(meterRegistry, "sendToFhirPseudonymizer"))
+        .retryWhen(retryStrategy.forRequest("sendToFhirPseudonymizer"))
         .doOnError(e -> log.error("FHIR Pseudonymizer call failed: {}", e.getMessage()));
   }
 
@@ -133,7 +132,7 @@ class FhirPseudonymizerStep implements Deidentificator {
         .retrieve()
         .bodyToMono(TransportMappingResponse.class)
         .timeout(Duration.ofSeconds(30))
-        .retryWhen(defaultRetryStrategy(meterRegistry, "consolidateViaTca"))
+        .retryWhen(retryStrategy.forRequest("consolidateViaTca"))
         .doOnError(e -> log.error("TCA consolidation failed: {}", e.getMessage()))
         .map(TransportMappingResponse::transferId);
   }

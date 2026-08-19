@@ -1,0 +1,11 @@
+fhirPathRules:
+  - path: "Encounter.period.start"
+    method: "dateshift"
+  - path: "Encounter.period.end"
+    method: "dateshift"
+  - path: "Observation.effectiveDateTime"
+    method: "dateshift"
+  - path: "Condition.onsetDateTime"
+    method: "dateshift"
+  - path: "Condition.recordedDate"
+    method: "dateshift"
