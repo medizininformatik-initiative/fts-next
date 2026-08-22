@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25.0.3_9-jre-alpine@sha256:28db6fdf60e38945e43d840c0333aeaec66c15943070104f7586fd3c9d1665b0
+FROM eclipse-temurin:25.0.4_7-jre-alpine@sha256:3137541deb3cac6626b5d9a4a2187bc0d6a34312f858bd2c67dd01e732e6b682
 
 # Patch stale Alpine OS packages flagged by Trivy. Versions are pinned so
 # Renovate tracks updates (see renovate.json5). p11-kit and p11-kit-trust
