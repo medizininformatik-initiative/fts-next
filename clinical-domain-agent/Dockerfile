@@ -4,7 +4,7 @@ FROM eclipse-temurin:25.0.4_7-jre-alpine@sha256:3137541deb3cac6626b5d9a4a2187bc0
 # Renovate tracks updates (see renovate.json5). p11-kit and p11-kit-trust
 # share one version and must upgrade in lockstep.
 # renovate: datasource=repology depName=alpine_3_23/libexpat versioning=loose
-ARG LIBEXPAT_VERSION="2.8.3-r0"
+ARG LIBEXPAT_VERSION="2.8.4-r0"
 # renovate: datasource=repology depName=alpine_3_23/p11-kit versioning=loose
 ARG P11_KIT_VERSION="0.26.2-r0"
 
