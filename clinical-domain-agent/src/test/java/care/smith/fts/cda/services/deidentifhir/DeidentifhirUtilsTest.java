@@ -55,6 +55,31 @@ class DeidentifhirUtilsTest {
   }
 
   @Test
+  void deidentifyKeepsDateShiftExtensionOnBirthDate() throws IOException {
+    ConsentedPatient patient = new ConsentedPatient("id1", "system");
+    var registry = buildRegistry(provider);
+    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+
+    var bundle =
+        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
+    Bundle deidentifiedBundle =
+        deidentify(config, registry, bundle, patient.identifier(), meterRegistry);
+    Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
+
+    Patient p = (Patient) b.getEntryFirstRep().getResource();
+    var birthDate = p.getBirthDateElement();
+
+    // shiftDateHandler nulls the value and hangs the tID on the element as an extension
+    assertThat(birthDate.getValue()).isNull();
+
+    // without the extension the RDA cannot restore the shifted date, and the date is lost
+    var extension = birthDate.getExtensionByUrl(DATE_SHIFT_EXTENSION_URL);
+    assertThat(extension).isNotNull();
+    var tId = ((StringType) extension.getValue()).getValue();
+    assertThat(provider.getDateMappings()).containsKey(tId);
+  }
+
+  @Test
   void shiftDateReturnsNullWhenDateIsNull() {
     var result = shiftDate(null, provider);
 
