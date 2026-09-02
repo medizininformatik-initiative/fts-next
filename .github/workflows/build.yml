@@ -407,6 +407,7 @@ jobs:
         make check-status RESULTS_FILE=example.json
         check-resources.sh example.json "${LAST_UPDATED}"
         check-pseudonymization.sh
+        check-date-shift.sh gics-consent-example
 
     - name: Run e2e with failing mTLS
       if: matrix.id == 'mtls'
@@ -426,6 +427,7 @@ jobs:
         make check-status RESULTS_FILE=example-with-fhir-consent.json
         check-resources.sh example-with-fhir-consent.json "${LAST_UPDATED}"
         check-pseudonymization.sh
+        check-date-shift.sh mtls
 
     - name: Collect Agent Logs
       if: failure() || cancelled()

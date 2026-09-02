@@ -1,10 +1,11 @@
 .PHONY: all pull generate-certs check-certs start upload-consents check-consent upload-test-data \
 	transfer-all transfer-list transfer-with-fhir-consent-list wait  \
-	check-status check-resources check-pseudonymization show-status show-hds clean-dbs clean-rd-hds \
+	check-status check-resources check-pseudonymization check-date-shift show-status show-hds \
+	clean-dbs clean-rd-hds \
 	download-test-data download-test-data-checksums check-test-data \
 	openapi-specs list-projects show-project
 
-all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources check-pseudonymization show-hds clean-dbs
+all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources check-pseudonymization check-date-shift show-hds clean-dbs
 
 COMPOSE_FILES?=-f compose.yaml
 SERVICES?=
@@ -69,6 +70,9 @@ check-resources:
 
 check-pseudonymization:
 	$(SCRIPTS)/check-pseudonymization.sh
+
+check-date-shift:
+	$(SCRIPTS)/check-date-shift.sh ${PROJECT}
 
 show-status:
 	curl -sSf "$(shell cat process.url)"
