@@ -5,6 +5,7 @@ import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.deident
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.shiftDate;
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.typesafe.config.ConfigFactory.parseResources;
+import static com.typesafe.config.ConfigFactory.parseString;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.BeforeEach;
@@ -136,5 +138,78 @@ class DeidentifhirUtilsTest {
     // Only one mapping should exist for the same date value
     assertThat(provider.getDateMappings()).hasSize(1);
     assertThat(provider.getDateMappings()).containsValue("1950-01-01");
+  }
+
+  @Test
+  void deidentifyRemovesResourcesWithoutModule() throws IOException {
+    var registry = buildRegistry(provider);
+    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var bundle =
+        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
+    var innerBundle = (Bundle) bundle.getEntryFirstRep().getResource();
+    innerBundle.addEntry().setResource(new Observation().setId("obs1"));
+
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
+
+    Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
+    assertThat(b.getEntry()).hasSize(1);
+    assertThat(b.getEntryFirstRep().getResource()).isInstanceOf(Patient.class);
+  }
+
+  @Test
+  void deidentifyWithoutShiftDateHandlerKeepsDateValue() throws IOException {
+    var registry = buildRegistry(provider);
+    var config =
+        parseResources(
+            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+    var bundle =
+        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
+
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
+
+    Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
+    Patient p = (Patient) b.getEntryFirstRep().getResource();
+    assertThat(p.getBirthDateElement().getValue()).isNotNull();
+    assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+    assertThat(provider.getDateMappings()).isEmpty();
+  }
+
+  @Test
+  void deidentifyShiftsOnlyConfiguredDates() {
+    var registry = buildRegistry(provider);
+    var config =
+        parseString(
+            """
+            {
+              deidentiFHIR.profile.version=0.2
+              modules {
+                test_patient {
+                  base = ["Patient.id", "Patient.birthDate", "Patient.deceased[dateTime]", "Patient.meta.profile"]
+                  paths { "Patient.birthDate" { handler = shiftDateHandler } }
+                  pattern = "Patient.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient'"
+                }
+              }
+            }
+            """);
+    var patient = new Patient();
+    patient.setId("id1");
+    patient
+        .getMeta()
+        .addProfile(
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
+    patient.setBirthDateElement(new DateType("1990-01-01"));
+    patient.setDeceased(new DateTimeType("2020-05-05T00:00:00Z"));
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(patient);
+
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
+
+    Patient p = (Patient) deidentifiedBundle.getEntryFirstRep().getResource();
+    assertThat(p.getBirthDateElement().getValue()).isNull();
+    assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNotNull();
+    assertThat(p.getDeceasedDateTimeType().getValueAsString()).isEqualTo("2020-05-05T00:00:00Z");
+    assertThat(p.getDeceasedDateTimeType().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+    assertThat(provider.getDateMappings()).containsValues("1990-01-01");
+    assertThat(provider.getDateMappings()).hasSize(1);
   }
 }
