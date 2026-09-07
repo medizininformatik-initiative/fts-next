@@ -16,7 +16,7 @@ format:
 	find -type f -name '*.java' | xargs google-java-format -i
 
 build:
-	mvn ${MAVEN_ARGS} clean install -DskipTests
+	mvn ${MAVEN_ARGS} clean install -DskipTests -DskipITs
 
 coverage:
 	mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
