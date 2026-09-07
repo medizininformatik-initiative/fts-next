@@ -12,6 +12,10 @@
 
   <artifactId>test-util</artifactId>
 
+  <properties>
+    <pit.skip>true</pit.skip>
+  </properties>
+
   <dependencies>
 
     <dependency>

@@ -30,6 +30,8 @@
     <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
     <junit-platform.version>6.0.3</junit-platform.version>
     <skipUnitTests>false</skipUnitTests>
+    <pit.skip>false</pit.skip>
+    <pit.threads>4</pit.threads>
   </properties>
 
   <dependencyManagement>
@@ -128,6 +130,75 @@
             <configLocation>google_checks.xml</configLocation>
             <consoleOutput>false</consoleOutput>
             <failsOnError>true</failsOnError>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.pitest</groupId>
+          <artifactId>pitest-maven</artifactId>
+          <version>1.19.1</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.pitest</groupId>
+              <artifactId>pitest-junit5-plugin</artifactId>
+              <version>1.2.3</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <targetClasses>
+              <param>care.smith.fts.*</param>
+            </targetClasses>
+            <excludedClasses>
+              <!--
+                Spring calls @Bean and @Configuration methods once at context start, before any
+                test runs, so PIT finds no covering test and cannot kill these mutants. A test
+                for a null @Bean adds nothing, because a null bean already fails every IT.
+                Named one by one on purpose: a *Configuration glob misses MetricsConfig and
+                swallows every class added later whose name ends in Configuration.
+                MetricsConfig$1 and OAuth2ConfigurationExistsCondition stay in scope. They
+                rewrite data or select a backend at runtime.
+              -->
+              <param>care.smith.fts.util.AgentConfiguration</param>
+              <param>care.smith.fts.util.MetricsConfig</param>
+              <param>care.smith.fts.util.fhir.FhirCodecConfiguration</param>
+              <param>care.smith.fts.util.fhir.FhirCodecConfiguration$*</param>
+              <param>care.smith.fts.util.auth.HttpServer*</param>
+              <param>care.smith.fts.util.error.*ResponseUtil</param>
+              <param>care.smith.fts.cda.ClinicalDomainAgent</param>
+              <param>care.smith.fts.rda.ResearchDomainAgent</param>
+              <param>care.smith.fts.tca.consent.configuration.GicsConfiguration</param>
+              <param>care.smith.fts.tca.deidentification.configuration.DeIdentificationConfiguration</param>
+              <param>care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration</param>
+              <!-- Cosmetic. No test asserts on these. -->
+              <param>care.smith.fts.util.CustomErrorHandler</param>
+              <param>care.smith.fts.util.NanoIdUtils</param>
+            </excludedClasses>
+            <!-- Cosmetic. requestName returns a constant label for the retry strategy. -->
+            <excludedMethods>
+              <param>toString</param>
+              <param>requestName</param>
+            </excludedMethods>
+            <excludedTestClasses>
+              <param>care.smith.fts.*E2E</param>
+            </excludedTestClasses>
+            <!-- Removed log and meter calls. No test should assert on those. -->
+            <avoidCallsTo>
+              <avoidCallsTo>org.slf4j</avoidCallsTo>
+              <avoidCallsTo>io.micrometer</avoidCallsTo>
+            </avoidCallsTo>
+            <mutators>
+              <mutator>STRONGER</mutator>
+            </mutators>
+            <outputFormats>
+              <format>XML</format>
+              <format>HTML</format>
+            </outputFormats>
+            <timestampedReports>false</timestampedReports>
+            <threads>${pit.threads}</threads>
+            <timeoutConstant>8000</timeoutConstant>
+            <failWhenNoMutations>false</failWhenNoMutations>
+            <skipFailingTests>true</skipFailingTests>
+            <skip>${pit.skip}</skip>
           </configuration>
         </plugin>
 
@@ -287,4 +358,27 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>mutation</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <executions>
+              <execution>
+                <id>mutation</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>mutationCoverage</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
