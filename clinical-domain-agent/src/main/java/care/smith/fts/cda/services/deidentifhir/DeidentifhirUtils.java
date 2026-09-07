@@ -9,6 +9,8 @@ import de.ume.deidentifhir.util.Handlers;
 import de.ume.deidentifhir.util.JavaCompat;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.util.ArrayList;
+import java.util.List;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.BaseDateTimeType;
 import org.hl7.fhir.r4.model.Bundle;
@@ -19,6 +21,8 @@ import scala.collection.immutable.Map;
 import scala.collection.immutable.Seq;
 
 public interface DeidentifhirUtils {
+
+  String SHIFT_DATE_HANDLER = "shiftDateHandler";
 
   /**
    * Builds a registry with handlers that use the provided GeneratingReplacementProvider. During
@@ -51,11 +55,9 @@ public interface DeidentifhirUtils {
         JavaCompat.partiallyApply2(
             provider, provider, Handlers::conditionalReferencesReplacementHandler));
 
-    // Handler that generates tID for date, adds extension, and nulls the value
-    registry.addHander(
-        "shiftDateHandler",
-        (Function4<Seq<String>, BaseDateTimeType, Seq<Base>, Map<String, String>, BaseDateTimeType>)
-            (path, date, parents, context) -> shiftDate(date, provider));
+    // Keeps the date during the engine pass and collects the element. The date is shifted after the
+    // engine pass, see ShiftDateHandler.
+    registry.addHander(SHIFT_DATE_HANDLER, new ShiftDateHandler(provider));
 
     return registry;
   }
@@ -88,8 +90,43 @@ public interface DeidentifhirUtils {
     Map<String, String> staticContext =
         new Map.Map1<>(Handlers.patientIdentifierKey(), patientIdentifier);
     Deidentifhir deidentifhir = Deidentifhir.apply(config, registry);
+    var shiftDateHandler = (ShiftDateHandler) registry.getHandler(SHIFT_DATE_HANDLER).get();
     var deidentified = (Bundle) deidentifhir.deidentify(bundle, staticContext);
+    shiftDateHandler.shiftCollectedDates();
     sample.stop(meterRegistry.timer("deidentify"));
     return deidentified;
+  }
+
+  /**
+   * Handler for dates that are shifted by the TCA.
+   *
+   * <p>The engine replaces the extension list of a primitive element after the handler ran, so an
+   * extension that the handler adds is lost. The engine does keep the element instance that the
+   * handler returns and writes that instance into the output resource. So during the engine pass
+   * this handler keeps the date unchanged and only collects the element. After the engine pass,
+   * {@link #deidentify} applies {@link DeidentifhirUtils#shiftDate} to every collected element.
+   */
+  final class ShiftDateHandler
+      implements Function4<
+          Seq<String>, BaseDateTimeType, Seq<Base>, Map<String, String>, BaseDateTimeType> {
+
+    private final GeneratingReplacementProvider provider;
+    private final List<BaseDateTimeType> dates = new ArrayList<>();
+
+    ShiftDateHandler(GeneratingReplacementProvider provider) {
+      this.provider = provider;
+    }
+
+    @Override
+    public BaseDateTimeType apply(
+        Seq<String> path, BaseDateTimeType date, Seq<Base> parents, Map<String, String> context) {
+      dates.add(date);
+      return date;
+    }
+
+    void shiftCollectedDates() {
+      dates.forEach(date -> shiftDate(date, provider));
+      dates.clear();
+    }
   }
 }
