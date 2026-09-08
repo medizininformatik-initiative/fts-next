@@ -44,4 +44,4 @@ rd-agent:
 clean:
 	rm -Rf *-agent*
 
-.PHONY: cd-agent tc-agent rd-agent clean
+.PHONY: check-links cd-agent tc-agent rd-agent clean
