@@ -5,7 +5,8 @@ VERSION="${ACTIONLINT_VERSION#v}"
 CHECKSUM="${ACTIONLINT_CHECKSUM}"
 
 url="https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz"
-curl -sSfL "${url}" >actionlint.tar.gz
+curl -sSfL --retry 5 --retry-all-errors --retry-delay 1 --retry-max-time 30 \
+  "${url}" -o actionlint.tar.gz
 echo "${CHECKSUM} actionlint.tar.gz" | sha256sum -c
 
 tar -xzf actionlint.tar.gz

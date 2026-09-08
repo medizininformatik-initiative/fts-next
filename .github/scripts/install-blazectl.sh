@@ -5,7 +5,8 @@ VERSION="${BLAZECTL_VERSION#v}"
 CHECKSUM="${BLAZECTL_CHECKSUM}"
 
 url="https://github.com/samply/blazectl/releases/download/v${VERSION}/blazectl-${VERSION}-linux-amd64.tar.gz"
-curl -sSfL "${url}" >blazectl.tar.gz
+curl -sSfL --retry 5 --retry-all-errors --retry-delay 1 --retry-max-time 30 \
+  "${url}" -o blazectl.tar.gz
 echo "${CHECKSUM} blazectl.tar.gz" | sha256sum -c
 
 tar -xzf blazectl.tar.gz
