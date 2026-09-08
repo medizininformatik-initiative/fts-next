@@ -51,7 +51,10 @@ sed -i -e '/{ISSUES}/{e cat issues.json' -e ';d}' prompt.md
 } | jq -es >releases.json
 sed -i -e '/{RELEASES}/{e cat releases.json' -e ';d}' prompt.md
 
-# Post the prompt and echo "<body>\n<http_status>". Transient failures are
+# Post the prompt, writing the response body to $1 and echoing the HTTP status.
+# Writing to a file rather than stdout matters: curl emits the body of every
+# attempt, so a request that only succeeds on a retry would otherwise be
+# preceded by the bodies of the attempts that failed. Transient failures are
 # retried; a hard failure is reported as status 000 rather than aborting, so the
 # caller decides whether a release can proceed without generated notes.
 request_completion() {
@@ -60,7 +63,7 @@ request_completion() {
   | curl -sSL --connect-timeout 10 \
       --retry 5 --retry-all-errors \
       --retry-delay "${retry_delay}" --retry-max-time "${retry_max_time}" \
-      -w '\n%{http_code}' \
+      -o "$1" -w '%{http_code}' \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer ${MISTRAL_API_KEY}" \
       --data-binary @- \
@@ -70,22 +73,20 @@ request_completion() {
 # Echoes the generated notes body, or returns non-zero having explained why it
 # could not be produced.
 generate_notes_body() {
-  local response http_status body content
+  local http_status content
 
-  response="$(request_completion)"
-  http_status="${response##*$'\n'}"
-  body="${response%$'\n'*}"
+  http_status="$(request_completion response.json)"
 
   if [ "${http_status}" != "200" ]; then
     log "Release notes service returned HTTP ${http_status}."
-    log "Response: ${body}"
+    log "Response: $(cat response.json 2>/dev/null)"
     return 1
   fi
 
-  content="$(jq -r '.choices[0].message.content // empty' <<<"${body}" 2>/dev/null || true)"
+  content="$(jq -r '.choices[0].message.content // empty' <response.json 2>/dev/null || true)"
   if [ -z "${content}" ]; then
     log "Release notes service returned no usable content."
-    log "Response: ${body}"
+    log "Response: $(cat response.json 2>/dev/null)"
     return 1
   fi
 
