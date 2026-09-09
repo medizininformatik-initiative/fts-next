@@ -1,4 +1,4 @@
-.PHONY:	compile test build coverage clinical-domain-agent trust-center-agent research-domain-agent all
+.PHONY:	compile test build coverage mutation clinical-domain-agent trust-center-agent research-domain-agent all
 
 AGENTS := $(wildcard *-agent)
 all: build
@@ -20,6 +20,11 @@ build:
 
 coverage:
 	mvn ${MAVEN_ARGS} jacoco:report-aggregate@report
+
+# Reports land in <module>/target/pit-reports. List the survivors with
+# .github/scripts/mutation-survived.sh. To run one module: MAVEN_ARGS="-pl util" make mutation
+mutation:
+	.github/scripts/mutation.sh
 
 $(AGENTS):
 	mvn ${MAVEN_ARGS} clean package -DskipTests --projects $@ --also-make
