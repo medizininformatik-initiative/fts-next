@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [ "**" ]
   schedule:
+  # Every Sunday at 03:30 UTC
   - cron: '30 3 * * 0'
   workflow_dispatch:
 
@@ -38,6 +39,12 @@ jobs:
         distribution: 'temurin'
         java-version: 21
         cache: 'maven'
+
+    - name: Install xq
+      env:
+        # renovate: datasource=pypi depName=yq
+        YQ_VERSION: 4.1.2
+      run: pipx install "yq==${YQ_VERSION}"
 
     - name: Run Mutation Tests on Changed Classes
       run: .github/scripts/mutation-pr.sh "origin/${GITHUB_BASE_REF}" -Dpit.threads=4
@@ -90,6 +97,12 @@ jobs:
         mvn -B -U -T1C -DskipTests -Dcheckstyle.skip -Dcyclonedx.skip \
           -Dspring-boot.repackage.skip=true \
           --also-make --projects ${{ matrix.module }} install
+
+    - name: Install xq
+      env:
+        # renovate: datasource=pypi depName=yq
+        YQ_VERSION: 4.1.2
+      run: pipx install "yq==${YQ_VERSION}"
 
     - name: Run Mutation Tests
       env:
