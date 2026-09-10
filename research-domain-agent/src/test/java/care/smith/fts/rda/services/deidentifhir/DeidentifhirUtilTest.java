@@ -5,6 +5,7 @@ import static care.smith.fts.rda.services.deidentifhir.DeidentifhirUtil.restoreS
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.typesafe.config.ConfigFactory.parseResources;
+import static com.typesafe.config.ConfigFactory.parseString;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import de.ume.deidentifhir.Registry;
@@ -21,6 +22,7 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 
@@ -46,6 +48,41 @@ class DeidentifhirUtilTest {
     assertThat(b.getEntry()).hasSize(1);
     assertThat(p.getId()).isEqualTo("Patient/pid1");
     assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("pidentifier1");
+  }
+
+  @Test
+  void deidentifyReplacesIdentifierOfConditionalReference() {
+    Registry registry = generateRegistry(Map.of("tidentifier1", "pidentifier1"));
+    var config =
+        parseString(
+            """
+            {
+              deidentiFHIR.profile.version=0.2
+              modules {
+                test_encounter {
+                  base = ["Encounter.id", "Encounter.subject.reference", "Encounter.meta.profile"]
+                  paths { "Encounter.subject.reference" { handler = conditionalReferencesReplacementHandler } }
+                  pattern = "Encounter.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung'"
+                }
+              }
+            }
+            """);
+    var encounter = new Encounter();
+    encounter.setId("enc1");
+    encounter
+        .getMeta()
+        .addProfile(
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung");
+    encounter.setSubject(new Reference("Patient?identifier=identifierSystem1|tidentifier1"));
+    var transportBundle = new Bundle();
+    transportBundle.addEntry().setResource(encounter);
+
+    var pseudomizedBundle =
+        DeidentifhirUtil.deidentify(config, registry, transportBundle, meterRegistry);
+
+    Encounter e = (Encounter) pseudomizedBundle.getEntryFirstRep().getResource();
+    assertThat(e.getSubject().getReference())
+        .isEqualTo("Patient?identifier=identifierSystem1|pidentifier1");
   }
 
   @Test

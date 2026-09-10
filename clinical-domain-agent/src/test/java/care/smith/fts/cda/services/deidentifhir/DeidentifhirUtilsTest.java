@@ -17,8 +17,10 @@ import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -191,12 +193,7 @@ class DeidentifhirUtilsTest {
               }
             }
             """);
-    var patient = new Patient();
-    patient.setId("id1");
-    patient
-        .getMeta()
-        .addProfile(
-            "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
+    var patient = patientWithProfile();
     patient.setBirthDateElement(new DateType("1990-01-01"));
     patient.setDeceased(new DateTimeType("2020-05-05T00:00:00Z"));
     var bundle = new Bundle();
@@ -211,5 +208,86 @@ class DeidentifhirUtilsTest {
     assertThat(p.getDeceasedDateTimeType().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
     assertThat(provider.getDateMappings()).containsValues("1990-01-01");
     assertThat(provider.getDateMappings()).hasSize(1);
+  }
+
+  @Test
+  void deidentifyGeneralizesBirthDateToMidMonth() {
+    var registry = buildRegistry(provider);
+    var config =
+        parseResources(
+            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+    var bundle = new Bundle();
+    bundle
+        .addEntry()
+        .setResource(patientWithProfile().setBirthDateElement(new DateType("1980-05-17")));
+
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
+
+    Patient p = (Patient) deidentifiedBundle.getEntryFirstRep().getResource();
+    assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("1980-05-15");
+  }
+
+  @Test
+  void deidentifyGeneralizesPostalCodeToThreeDigits() {
+    var registry = buildRegistry(provider);
+    var config =
+        parseResources(
+            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+    var patient = patientWithProfile();
+    patient.addAddress().setPostalCode("12345");
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(patient);
+
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
+
+    Patient p = (Patient) deidentifiedBundle.getEntryFirstRep().getResource();
+    assertThat(p.getAddressFirstRep().getPostalCode()).isEqualTo("123");
+  }
+
+  @Test
+  void deidentifyReplacesIdentifierOfConditionalReference() {
+    var registry = buildRegistry(provider);
+    var config =
+        parseString(
+            """
+            {
+              deidentiFHIR.profile.version=0.2
+              modules {
+                test_encounter {
+                  base = ["Encounter.id", "Encounter.subject.reference", "Encounter.meta.profile"]
+                  paths { "Encounter.subject.reference" { handler = conditionalReferencesReplacementHandler } }
+                  pattern = "Encounter.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung'"
+                }
+              }
+            }
+            """);
+    var encounter = new Encounter();
+    encounter.setId("enc1");
+    encounter
+        .getMeta()
+        .addProfile(
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung");
+    encounter.setSubject(new Reference("Patient?identifier=identifierSystem1|identifier1"));
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(encounter);
+
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
+
+    Encounter e = (Encounter) deidentifiedBundle.getEntryFirstRep().getResource();
+    var reference = e.getSubject().getReference();
+    assertThat(reference).startsWith("Patient?identifier=identifierSystem1|");
+    var tId = reference.substring(reference.indexOf('|') + 1);
+    assertThat(tId).hasSize(21); // NanoId length
+    assertThat(provider.getIdMappings()).containsValue(tId);
+  }
+
+  private static Patient patientWithProfile() {
+    var patient = new Patient();
+    patient.setId("id1");
+    patient
+        .getMeta()
+        .addProfile(
+            "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
+    return patient;
   }
 }
