@@ -126,7 +126,6 @@ public interface DeidentifhirUtils {
 
     void shiftCollectedDates() {
       dates.forEach(date -> shiftDate(date, provider));
-      dates.clear();
     }
   }
 }
