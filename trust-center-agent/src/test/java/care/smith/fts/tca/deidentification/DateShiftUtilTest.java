@@ -1,12 +1,14 @@
 package care.smith.fts.tca.deidentification;
 
 import static java.time.Duration.ofDays;
+import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.*;
 
 import care.smith.fts.api.DateShiftPreserve;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,6 +21,9 @@ class DateShiftUtilTest {
 
   private static final long WEEK_IN_MS = ofDays(7).toMillis();
   private static final long DAY_IN_MS = ofDays(1).toMillis();
+
+  private static final String GOLDEN_SEED = "patient123";
+  private static final Duration GOLDEN_MAX_SHIFT = ofDays(14);
 
   @Test
   void testDeterministicShiftForSameSeed() {
@@ -121,6 +126,37 @@ class DateShiftUtilTest {
     }
 
     assertThat(shifts).hasSizeGreaterThan((int) (sampleSize * 0.9));
+  }
+
+  /**
+   * Golden values of the date shift. Every stored pseudonym keeps the shift that belongs to its
+   * seed. A change of one of these values makes the agent produce a different shift for the same
+   * seed, and breaks the compatibility with all pseudonyms that exist. Do not adjust a value to
+   * make the test pass.
+   */
+  static Stream<Arguments> goldenShiftCases() {
+    return Stream.of(
+        Arguments.of(DateShiftPreserve.NONE, Duration.ofMillis(350377995L)),
+        Arguments.of(DateShiftPreserve.DAYTIME, ofDays(1)),
+        Arguments.of(DateShiftPreserve.WEEKDAY, ofDays(-14)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("goldenShiftCases")
+  void generatesGoldenShiftForFixedSeed(DateShiftPreserve preserve, Duration expected) {
+    assertThat(DateShiftUtil.generate(GOLDEN_SEED, GOLDEN_MAX_SHIFT, preserve)).isEqualTo(expected);
+  }
+
+  /** The upper limit of the number of periods is inclusive, so a full +7 days shift can occur. */
+  @Test
+  void weekdayShiftUsesInclusivePeriodBounds() {
+    var shifts =
+        IntStream.range(0, 1000)
+            .mapToObj(
+                i -> DateShiftUtil.generate("patient" + i, ofDays(7), DateShiftPreserve.WEEKDAY))
+            .collect(toSet());
+
+    assertThat(shifts).containsExactlyInAnyOrder(ofDays(-7), Duration.ZERO, ofDays(7));
   }
 
   static Stream<Arguments> dateShiftCases() {
