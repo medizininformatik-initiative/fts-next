@@ -6,6 +6,7 @@ import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -52,6 +53,8 @@ class TcaCohortSelectorIT {
   private static final String PID_SYSTEM = "https://fts.smith.care";
   private static final String POLICY_SYSTEM =
       "https://ths-greifswald.de/fhir/CodeSystem/gics/Policy";
+  private static final String GICS_IDENTIFIER_SYSTEM =
+      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
 
   private static TcaCohortSelector cohortSelector;
 
@@ -144,13 +147,43 @@ class TcaCohortSelectorIT {
 
   @Test
   void consentBundleSucceeds() {
-    allCohortSelector.consentForOnePatient("patient");
+    var consent = allCohortSelector.generateConsents("patient", 1).getFirst();
+    wireMock.register(
+        fetchAllRequest()
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {"policies": ["MDAT_erheben"],
+                     "policySystem": "%s",
+                     "domain": "MII"}
+                    """
+                        .formatted(POLICY_SYSTEM),
+                    true,
+                    false))
+            .willReturn(fhirResponse(Stream.of(consent).collect(toBundle()))));
+
     create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
   }
 
   @Test
   void consentBundleForIdsSucceeds() {
-    listCohortSelector.consentForOnePatient("patient");
+    var consent = listCohortSelector.generateConsents("patient", 1).getFirst();
+    wireMock.register(
+        fetchListRequest()
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {"policies": ["MDAT_erheben"],
+                     "policySystem": "%s",
+                     "domain": "MII",
+                     "patientIdentifierSystem": "%s",
+                     "identifiers": ["patient0"]}
+                    """
+                        .formatted(POLICY_SYSTEM, GICS_IDENTIFIER_SYSTEM),
+                    true,
+                    false))
+            .willReturn(fhirResponse(Stream.of(consent).collect(toBundle()))));
+
     create(cohortSelector.selectCohort(List.of("patient0"))).expectNextCount(1).verifyComplete();
   }
 

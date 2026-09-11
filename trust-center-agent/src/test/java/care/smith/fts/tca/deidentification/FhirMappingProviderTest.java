@@ -1,5 +1,7 @@
 package care.smith.fts.tca.deidentification;
 
+import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
+import static care.smith.fts.tca.deidentification.DateShiftUtil.shiftDate;
 import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
@@ -17,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
@@ -35,8 +38,10 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ContentTypes;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +55,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RMapCacheReactive;
@@ -69,6 +75,10 @@ import reactor.core.publisher.Mono;
 @ExtendWith(MockitoExtension.class)
 @Import(TestWebClientFactory.class)
 class FhirMappingProviderTest {
+
+  private static final String PSEUDONYM = "469680023";
+  private static final String SALT = "123";
+  private static final String DATE_SHIFT_SEED = "12345";
 
   private static final TcaDomains DEFAULT_DOMAINS = new TcaDomains("domain", "domain", "domain");
   private static final TransportMappingRequest DEFAULT_REQUEST =
@@ -116,51 +126,94 @@ class FhirMappingProviderTest {
 
   @Test
   void generateTransportMapping() throws IOException {
-    var fhirGenerator =
-        FhirGenerators.gpasGetOrCreateResponse(
-            fromList(List.of("id1", "Salt_id1", "PT336H_id1")),
-            fromList(List.of("469680023", "123", "12345")));
+    registerGpasStubs();
+    givenRedisAcceptsMapping();
 
-    List.of("id1", "Salt_id1", "PT336H_id1")
-        .forEach(
-            key ->
-                wireMock.register(
-                    post(urlEqualTo("/$pseudonymizeAllowCreate"))
-                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                        .withRequestBody(
-                            equalToJson(
-                                """
-                                { "resourceType": "Parameters",
-                                  "parameter": [
-                                    {"name": "target", "valueString": "domain"},
-                                    {"name": "original", "valueString": "%s"}]}
-                                """
-                                    .formatted(key),
-                                true,
-                                true))
-                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
+    var mapName = "wSUYQUR3Y";
+    create(mappingProvider.generateTransportMapping(transportMappingRequest(Map.of())))
+        .assertNext(r -> assertThat(r.transferId()).isEqualTo(mapName))
+        .verifyComplete();
+  }
 
+  @Test
+  void generateTransportMappingStoresPatientIdentifierPseudonym() throws IOException {
+    var storedMapping = captureStoredMapping(transportMappingRequest(Map.of()));
+
+    assertThat(storedMapping).containsEntry("tid2", PSEUDONYM);
+  }
+
+  @Test
+  void generateTransportMappingStoresSecureIdHashedWithSalt() throws IOException {
+    var storedMapping = captureStoredMapping(transportMappingRequest(Map.of()));
+
+    var expectedSecureId =
+        Hashing.sha256().hashString(SALT + "id1.Patient:id1", StandardCharsets.UTF_8).toString();
+    assertThat(storedMapping).containsEntry("tid1", expectedSecureId);
+  }
+
+  @Test
+  void generateTransportMappingStoresShiftedDate() throws IOException {
+    var storedMapping = captureStoredMapping(transportMappingRequest(Map.of("tid3", "2024-03-15")));
+
+    var dateShift = generate(DATE_SHIFT_SEED, Duration.ofDays(14), DateShiftPreserve.NONE);
+    assertThat(storedMapping).containsEntry("ds:tid3", shiftDate("2024-03-15", dateShift));
+  }
+
+  private Map<Object, Object> captureStoredMapping(TransportMappingRequest request)
+      throws IOException {
+    registerGpasStubs();
+    givenRedisAcceptsMapping();
+
+    create(mappingProvider.generateTransportMapping(request)).expectNextCount(1).verifyComplete();
+
+    ArgumentCaptor<Map<Object, Object>> storedMapping = ArgumentCaptor.captor();
+    verify(mapCache).putAll(storedMapping.capture());
+    return storedMapping.getValue();
+  }
+
+  private void givenRedisAcceptsMapping() {
     given(redis.getMapCache(anyString())).willReturn(mapCache);
     given(mapCache.expire(Duration.ofMinutes(10))).willReturn(Mono.just(false));
     given(mapCache.putAll(anyMap())).willReturn(Mono.empty());
+  }
 
-    var idMappings =
+  /** Answers the pseudonym, the salt, and the date shift seed domain with distinct values. */
+  private void registerGpasStubs() throws IOException {
+    var keys = List.of("id1", "Salt_id1", "PT336H_id1");
+    var fhirGenerator =
+        FhirGenerators.gpasGetOrCreateResponse(
+            fromList(keys), fromList(List.of(PSEUDONYM, SALT, DATE_SHIFT_SEED)));
+
+    keys.forEach(
+        key ->
+            wireMock.register(
+                post(urlEqualTo("/$pseudonymizeAllowCreate"))
+                    .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                    .withRequestBody(
+                        equalToJson(
+                            """
+                            { "resourceType": "Parameters",
+                              "parameter": [
+                                {"name": "target", "valueString": "domain"},
+                                {"name": "original", "valueString": "%s"}]}
+                            """
+                                .formatted(key),
+                            true,
+                            true))
+                    .willReturn(fhirResponse(fhirGenerator.generateString()))));
+  }
+
+  private static TransportMappingRequest transportMappingRequest(Map<String, String> dateMappings) {
+    return new TransportMappingRequest(
+        "id1",
+        "patientIdentifierSystem",
         Map.of(
             "id1.Patient:id1", "tid1",
-            "id1.identifier.patientIdentifierSystem:id1", "tid2");
-    var mapName = "wSUYQUR3Y";
-    var request =
-        new TransportMappingRequest(
-            "id1",
-            "patientIdentifierSystem",
-            idMappings,
-            Map.of(),
-            DEFAULT_DOMAINS,
-            Duration.ofDays(14),
-            DateShiftPreserve.NONE);
-    create(mappingProvider.generateTransportMapping(request))
-        .assertNext(r -> assertThat(r.transferId()).isEqualTo(mapName))
-        .verifyComplete();
+            "id1.identifier.patientIdentifierSystem:id1", "tid2"),
+        dateMappings,
+        DEFAULT_DOMAINS,
+        Duration.ofDays(14),
+        DateShiftPreserve.NONE);
   }
 
   @Test
