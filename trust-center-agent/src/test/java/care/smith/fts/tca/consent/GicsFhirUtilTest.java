@@ -1,5 +1,6 @@
 package care.smith.fts.tca.consent;
 
+import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
@@ -46,8 +47,7 @@ class GicsFhirUtilTest {
             .collect(toBundle());
 
     var filtered =
-        GicsFhirUtil.filterOuterBundle(
-            POLICY_SYSTEM, POLICIES, Stream.of(innerBundle).collect(toBundle()));
+        filterOuterBundle(POLICY_SYSTEM, POLICIES, Stream.of(innerBundle).collect(toBundle()));
 
     var resources =
         typedResourceStream(filtered, Bundle.class).flatMap(b -> resourceStream(b)).toList();

@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static care.smith.fts.test.MockServerUtil.onRandomPort;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.util.stream.Collectors.joining;
@@ -329,10 +330,7 @@ class FhirCohortSelectorIT {
             .addProvision(
                 new Consent.ProvisionComponent()
                     .setType(Consent.ConsentProvisionType.PERMIT)
-                    .setPeriod(
-                        new org.hl7.fhir.r4.model.Period()
-                            .setStart(new Date(0))
-                            .setEnd(new Date(1)))
+                    .setPeriod(new Period().setStart(new Date(0)).setEnd(new Date(1)))
                     .addCode(
                         new CodeableConcept()
                             .addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode(policy))));
@@ -353,7 +351,7 @@ class FhirCohortSelectorIT {
    */
   @Test
   void absoluteNextLinkIsFetchedFromItsOwnHost() {
-    var otherServer = MockServerUtil.onRandomPort();
+    var otherServer = onRandomPort();
     try {
       var bundles = cohortGenerator.generate(2, 1, 1).toList();
       bundles.forEach(b -> b.getLink().forEach(l -> l.setUrl(otherServer.baseUrl() + l.getUrl())));

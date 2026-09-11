@@ -1,5 +1,6 @@
 package care.smith.fts.util;
 
+import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Date;
@@ -204,7 +205,7 @@ class ConsentedPatientExtractorTest {
     var policies =
         ConsentedPatientExtractor.extractPolicyFromCodeableConcept(
                 POLICY_SYSTEM, POLICIES_TO_CHECK, concept)
-            .collect(Collectors.toSet());
+            .collect(toSet());
 
     assertThat(policies).isEmpty();
   }
