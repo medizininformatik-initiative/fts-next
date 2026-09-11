@@ -111,7 +111,7 @@ For integration tests, extend `AbstractAuthIT` to ensure proper authentication h
 ## Code Style Guidelines
 - Follow Google Java Style Guide (enforced by checkstyle with google_checks.xml)
 - Use standard Java imports ordering (no wildcards)
-- Prefer static imports for utility methods (e.g., `import static java.util.Objects.requireNonNull;`)
+- Static import the static methods of other classes and call them unqualified: `requireNonNull(id)` and `filterOuterBundle(...)`, not `Objects.requireNonNull(id)` and `GicsFhirUtil.filterOuterBundle(...)`
 - Fail fast on null: use `@NotNull` annotations + `requireNonNull()` at boundaries, don't defensively check null throughout
 - Avoid unnecessary comments: code should be self-explanatory; only comment non-obvious "why", not "what"
 - Use lombok annotations for boilerplate reduction (e.g., @Slf4j, @ToString), but avoid `@UtilityClass` — use interfaces with static methods instead
