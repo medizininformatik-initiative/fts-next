@@ -196,6 +196,20 @@ class ConsentedPatientExtractorTest {
   }
 
   @Test
+  void policyOfAnotherSystemIsNotExtracted() {
+    var concept =
+        new CodeableConcept()
+            .addCoding(new Coding().setSystem("http://other.system").setCode("POLICY_A"));
+
+    var policies =
+        ConsentedPatientExtractor.extractPolicyFromCodeableConcept(
+                POLICY_SYSTEM, POLICIES_TO_CHECK, concept)
+            .collect(Collectors.toSet());
+
+    assertThat(policies).isEmpty();
+  }
+
+  @Test
   void extractPolicyFromCodeableConcept() {
     var concept =
         new CodeableConcept()

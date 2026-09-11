@@ -36,6 +36,14 @@ class ConsentedPatientTest {
   }
 
   @Test
+  void hasPolicyIsFalseForAbsentPolicy() {
+    ConsentedPatient.ConsentedPolicies consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies.put(
+        "a", Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00"));
+    assertThat(consentedPolicies.hasPolicy("absent")).isFalse();
+  }
+
+  @Test
   void hasAll() {
     ConsentedPatient.ConsentedPolicies consentedPolicies = new ConsentedPatient.ConsentedPolicies();
     Period period = Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00");
@@ -117,6 +125,47 @@ class ConsentedPatientTest {
     assertThat(consentedPolicies.maxConsentedPeriod())
         .isEqualTo(
             Optional.of(Period.parse("1234-03-02T00:00:00+00:00", "1234-03-06T00:00:00+00:00")));
+  }
+
+  /**
+   * A zero-length intersection of the policy periods is no consent, because {@code
+   * EverythingDataSelector.withConsent} then has no period to select data for.
+   */
+  @Test
+  void getMaxPermittedPeriodWithTwoPoliciesThatOnlyTouch() {
+    ConsentedPatient.ConsentedPolicies consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies.put(
+        "a", Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00"));
+    consentedPolicies.put(
+        "b", Period.parse("1234-03-03T00:00:00+00:00", "1234-03-05T00:00:00+00:00"));
+    assertThat(consentedPolicies.maxConsentedPeriod()).isEmpty();
+  }
+
+  @Test
+  void mergeKeepsThePoliciesOfBothSets() {
+    ConsentedPatient.ConsentedPolicies consentedPolicies1 =
+        new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies1.put(
+        "a", Period.parse("1234-03-01T00:00:00+00:00", "1234-03-02T00:00:00+00:00"));
+    ConsentedPatient.ConsentedPolicies consentedPolicies2 =
+        new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies2.put(
+        "b", Period.parse("1234-04-01T00:00:00+00:00", "1234-04-02T00:00:00+00:00"));
+
+    consentedPolicies1.merge(consentedPolicies2);
+
+    assertThat(consentedPolicies1.policyNames()).containsExactlyInAnyOrder("a", "b");
+  }
+
+  @Test
+  void patientMaxConsentedPeriodIsThePeriodOfItsPolicy() {
+    ConsentedPatient.ConsentedPolicies consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    Period period = Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00");
+    consentedPolicies.put("a", period);
+    ConsentedPatient patient =
+        new ConsentedPatient("patient-122522", "http://fts.smith.care", consentedPolicies);
+
+    assertThat(patient.maxConsentedPeriod()).contains(period);
   }
 
   @Test
