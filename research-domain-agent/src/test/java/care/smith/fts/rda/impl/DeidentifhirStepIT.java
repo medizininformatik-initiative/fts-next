@@ -4,6 +4,7 @@ import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -26,7 +27,10 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +41,9 @@ import reactor.core.publisher.Mono;
 @SpringBootTest
 @WireMockTest
 class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
+
+  private static final String MII_PATIENT_PROFILE =
+      "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient";
 
   @Autowired MeterRegistry meterRegistry;
   private WireMock wireMock;
@@ -104,6 +111,36 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   }
 
   @Test
+  void deidentifyRestoresShiftedDates() {
+    var patient = new Patient();
+    patient.getMeta().addProfile(MII_PATIENT_PROFILE);
+    // The CDA nulls the date value and puts the tID in the extension, see DeidentifhirUtils.
+    var birthDate = new DateType();
+    birthDate.addExtension(DATE_SHIFT_EXTENSION_URL, new StringType("tId-birthDate"));
+    patient.setBirthDateElement(birthDate);
+
+    wireMock.register(
+        WireMock.post(urlPathEqualTo("/api/v2/rd/secure-mapping"))
+            .willReturn(
+                jsonResponse(
+                    """
+                    {
+                      "tidPidMap": {},
+                      "dateShiftMap": {"tId-birthDate": "2000-01-15"}
+                    }
+                    """)));
+
+    create(step.deidentify(new TransportBundle(wrapInOuterBundle(patient), "transferId")))
+        .assertNext(
+            b -> {
+              var inner = (Bundle) b.getEntryFirstRep().getResource();
+              var p = (Patient) inner.getEntryFirstRep().getResource();
+              assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-15");
+            })
+        .verifyComplete();
+  }
+
+  @Test
   void deidentifySucceeds() {
     wireMock.register(
         WireMock.post(urlPathEqualTo("/api/v2/rd/secure-mapping"))
@@ -128,5 +165,15 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
               assertThat(resource.getIdPart()).isEqualTo("pid1");
             })
         .verifyComplete();
+  }
+
+  private static Bundle wrapInOuterBundle(Resource... resources) {
+    var innerBundle = new Bundle();
+    for (var resource : resources) {
+      innerBundle.addEntry().setResource(resource);
+    }
+    var outerBundle = new Bundle();
+    outerBundle.addEntry().setResource(innerBundle);
+    return outerBundle;
   }
 }

@@ -38,16 +38,13 @@ class DeidentifhirStep implements Deidentificator {
     return fetchSecureMapping(bundle.transferId())
         .map(
             response -> {
+              // Restore shifted dates from TCA using tID extensions
+              DeidentifhirUtil.restoreShiftedDates(bundle.bundle(), response.dateShiftMap());
+
               // Apply ID replacement via deidentifhir
               var registry = generateRegistry(response.tidPidMap());
-              var deidentified =
-                  DeidentifhirUtil.deidentify(
-                      deidentifhirConfig, registry, bundle.bundle(), meterRegistry);
-
-              // Restore shifted dates from TCA using tID extensions
-              DeidentifhirUtil.restoreShiftedDates(deidentified, response.dateShiftMap());
-
-              return deidentified;
+              return DeidentifhirUtil.deidentify(
+                  deidentifhirConfig, registry, bundle.bundle(), meterRegistry);
             })
         .doOnNext(b -> log.trace("Total bundle entries: {}", b.getEntry().size()));
   }
