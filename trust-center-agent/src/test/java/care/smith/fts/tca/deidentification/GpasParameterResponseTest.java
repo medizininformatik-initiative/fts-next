@@ -1,11 +1,13 @@
 package care.smith.fts.tca.deidentification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import care.smith.fts.tca.deidentification.GpasParameterResponse.Parameter;
 import care.smith.fts.tca.deidentification.GpasParameterResponse.Parameter.Part.ValueIdentifier;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,5 +35,47 @@ class GpasParameterResponseTest {
 
     Map<String, String> mappedID = gpasParameterResponse.getMappedID();
     assertThat(expectedMap).isEqualTo(mappedID);
+  }
+
+  @Test
+  void parameterWithoutOriginalPartIsEmpty() {
+    var parameter =
+        new Parameter(
+            "param1", List.of(new Parameter.Part("pseudonym", new ValueIdentifier("456"))));
+
+    assertThat(parameter.getOriginalAndPseudonym()).isEmpty();
+  }
+
+  @Test
+  void parameterWithoutPseudonymPartIsEmpty() {
+    var parameter =
+        new Parameter(
+            "param1", List.of(new Parameter.Part("original", new ValueIdentifier("123"))));
+
+    assertThat(parameter.getOriginalAndPseudonym()).isEmpty();
+  }
+
+  @Test
+  void getMappedIdThrowsOnIncompleteParameter() {
+    var parameter =
+        new Parameter(
+            "param1", List.of(new Parameter.Part("pseudonym", new ValueIdentifier("456"))));
+    var response = new GpasParameterResponse("resourceType", List.of(parameter));
+
+    assertThatThrownBy(response::getMappedID).isInstanceOf(NoSuchElementException.class);
+  }
+
+  @Test
+  void getMappedIdSkipsPartsWithOtherNames() {
+    var parameter =
+        new Parameter(
+            "param1",
+            List.of(
+                new Parameter.Part("target", new ValueIdentifier("domain")),
+                new Parameter.Part("original", new ValueIdentifier("123")),
+                new Parameter.Part("pseudonym", new ValueIdentifier("456"))));
+    var response = new GpasParameterResponse("resourceType", List.of(parameter));
+
+    assertThat(response.getMappedID()).containsExactlyEntriesOf(Map.of("123", "456"));
   }
 }
