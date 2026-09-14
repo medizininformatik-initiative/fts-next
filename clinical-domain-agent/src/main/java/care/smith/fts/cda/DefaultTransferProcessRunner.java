@@ -71,13 +71,14 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
         instances.values().stream()
             .filter(inst -> inst.status().mayBeRemoved(removeBefore))
             .toList();
-    if (!forRemoval.isEmpty()) {
-      log.trace(
-          "[Process Runner] Removing {} old processes older than {}",
-          forRemoval.size(),
-          removeBefore);
-    }
-    forRemoval.forEach(p -> instances.remove(p.processId()));
+    forRemoval.forEach(
+        p -> {
+          log.trace(
+              "[Process Runner] Removing process {} finished before {}",
+              p.processId(),
+              removeBefore);
+          instances.remove(p.processId());
+        });
   }
 
   @Override
@@ -277,7 +278,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     }
 
     private void onComplete() {
-      var status = this.status.updateAndGet(s -> s.phase() != Phase.FATAL ? checkCompletion(s) : s);
+      // No FATAL guard needed: setPhase never leaves an already completed phase.
+      var status = this.status.updateAndGet(this::checkCompletion);
       log.info("[Process {}] Finished with: {}", processId(), status.phase());
       log.trace(
           "[Process {}] Summary: totalPatients={}, totalBundles={}, deidentifiedBundles={}, "
