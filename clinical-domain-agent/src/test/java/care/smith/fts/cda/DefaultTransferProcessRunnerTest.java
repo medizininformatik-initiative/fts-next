@@ -20,6 +20,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
@@ -131,39 +132,21 @@ class DefaultTransferProcessRunnerTest {
 
   @Test
   void cohortSelectorErrorIsLoggedWithStacktrace() {
-    var logger = (Logger) LoggerFactory.getLogger(DefaultTransferProcessRunner.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    var originalLevel = logger.getLevel();
-    logger.setLevel(Level.ERROR);
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.error(new RuntimeException("Cohort fetch boom")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
+            b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
+            b -> Mono.just(new Result()));
 
-    try {
-      var process =
-          new TransferProcessDefinition(
-              "test",
-              rawConfig,
-              pids -> Flux.error(new RuntimeException("Cohort fetch boom")),
-              p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
-              b -> just(new TransportBundle(new Bundle(), "tIDMapName")),
-              b -> Mono.just(new Result()));
+    var events =
+        recordRunnerLog(Level.ERROR, () -> waitForCompletion(runner.start(process, List.of())));
 
-      var processId = runner.start(process, List.of());
-      waitForCompletion(processId);
-
-      var errorEvents =
-          appender.list.stream()
-              .filter(e -> e.getLevel() == Level.ERROR)
-              .filter(e -> e.getFormattedMessage().contains("Cohort selection failed"))
-              .toList();
-      assertThat(errorEvents).isNotEmpty();
-      var event = errorEvents.getFirst();
-      assertThat(event.getThrowableProxy()).isNotNull();
-      assertThat(event.getThrowableProxy().getMessage()).isEqualTo("Cohort fetch boom");
-    } finally {
-      logger.detachAppender(appender);
-      logger.setLevel(originalLevel);
-    }
+    var event = firstErrorContaining(events, "Cohort selection failed");
+    assertThat(event.getThrowableProxy()).isNotNull();
+    assertThat(event.getThrowableProxy().getMessage()).isEqualTo("Cohort fetch boom");
   }
 
   @Test
@@ -532,29 +515,20 @@ class DefaultTransferProcessRunnerTest {
   }
 
   private ILoggingEvent runWithLogLevel(Level level) {
-    var logger = (Logger) LoggerFactory.getLogger(DefaultTransferProcessRunner.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    var originalLevel = logger.getLevel();
-    logger.setLevel(level);
+    var events =
+        recordRunnerLog(
+            level, () -> waitForCompletion(runner.start(failingDataSelectorProcess(), List.of())));
+    return firstErrorContaining(events, "Failed to");
+  }
 
-    try {
-      var process = failingDataSelectorProcess();
-      var processId = runner.start(process, List.of());
-      waitForCompletion(processId);
-
-      var errorEvents =
-          appender.list.stream()
-              .filter(e -> e.getLevel() == Level.ERROR)
-              .filter(e -> e.getFormattedMessage().contains("Failed to"))
-              .toList();
-      assertThat(errorEvents).isNotEmpty();
-      return errorEvents.getFirst();
-    } finally {
-      logger.detachAppender(appender);
-      logger.setLevel(originalLevel);
-    }
+  private static ILoggingEvent firstErrorContaining(List<ILoggingEvent> events, String needle) {
+    var errorEvents =
+        events.stream()
+            .filter(e -> e.getLevel() == Level.ERROR)
+            .filter(e -> e.getFormattedMessage().contains(needle))
+            .toList();
+    assertThat(errorEvents).isNotEmpty();
+    return errorEvents.getFirst();
   }
 
   private TransferProcessDefinition failingDataSelectorProcess() {
@@ -647,6 +621,149 @@ class DefaultTransferProcessRunnerTest {
 
     assertThat(sent.get()).isEqualTo(patientCount);
     assertThat(peakInFlight.get()).isEqualTo(1);
+  }
+
+  @Test
+  void completedProcessFreesItsSlot() {
+    var cfg = new TransferProcessRunnerConfig(64, 64, 1, 4, Duration.ofSeconds(10));
+    var singleSlotRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
+
+    var firstId = singleSlotRunner.start(fastProcess(), List.of());
+    waitForCompletion(singleSlotRunner, firstId);
+
+    var secondId = singleSlotRunner.start(fastProcess(), List.of());
+    waitForCompletion(singleSlotRunner, secondId);
+
+    create(singleSlotRunner.status(secondId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED))
+        .verifyComplete();
+  }
+
+  @Test
+  void fatalProcessDequeuesTheNextProcess() {
+    var cfg = new TransferProcessRunnerConfig(64, 64, 1, 4, Duration.ofSeconds(10));
+    var singleSlotRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
+
+    var gate = new CompletableFuture<Void>();
+    var fatalProcess =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> fromIterable(List.of(PATIENT)),
+            p -> gatedBy(gate, new ConsentedPatientBundle(new Bundle(), p)),
+            b -> {
+              throw new RuntimeException("Deidentificator boom");
+            },
+            b -> just(new Result()));
+
+    var fatalId = singleSlotRunner.start(fatalProcess, List.of());
+    var queuedId = singleSlotRunner.start(fastProcess(), List.of());
+
+    create(singleSlotRunner.status(queuedId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.QUEUED))
+        .verifyComplete();
+
+    gate.complete(null);
+
+    waitForCompletion(singleSlotRunner, fatalId);
+    waitForCompletion(singleSlotRunner, queuedId);
+
+    create(singleSlotRunner.status(fatalId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.FATAL))
+        .verifyComplete();
+    create(singleSlotRunner.status(queuedId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED))
+        .verifyComplete();
+  }
+
+  @Test
+  void statusOfQueuedProcessIdentifiesThatProcess() {
+    var cfg = new TransferProcessRunnerConfig(64, 64, 1, 4, Duration.ofSeconds(10));
+    var singleSlotRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
+
+    var gate = new CompletableFuture<Void>();
+    var runningId = singleSlotRunner.start(gatedProcess(gate), List.of());
+    var firstQueuedId = singleSlotRunner.start(fastProcess(), List.of());
+    var secondQueuedId = singleSlotRunner.start(fastProcess(), List.of());
+
+    create(singleSlotRunner.status(secondQueuedId))
+        .assertNext(r -> assertThat(r.processId()).isEqualTo(secondQueuedId))
+        .verifyComplete();
+    create(singleSlotRunner.status(firstQueuedId))
+        .assertNext(r -> assertThat(r.processId()).isEqualTo(firstQueuedId))
+        .verifyComplete();
+
+    gate.complete(null);
+    waitForCompletion(singleSlotRunner, runningId);
+    waitForCompletion(singleSlotRunner, secondQueuedId);
+  }
+
+  @Test
+  void startingAProcessRemovesProcessesOlderThanTheTtl() {
+    var cfg = new TransferProcessRunnerConfig(64, 64, 2, 4, Duration.ZERO);
+    var shortTtlRunner = new DefaultTransferProcessRunner(new ObjectMapper(), cfg);
+
+    var expiredId = shortTtlRunner.start(fastProcess(), List.of());
+    waitForCompletion(shortTtlRunner, expiredId);
+
+    shortTtlRunner.start(fastProcess(), List.of());
+
+    create(shortTtlRunner.status(expiredId))
+        .expectErrorMatches(
+            e ->
+                e instanceof IllegalStateException
+                    && e.getMessage().contains("No transfer process with processId"))
+        .verify();
+  }
+
+  @Test
+  void completingAProcessWithAnEmptyQueueReportsNoError() {
+    var events =
+        recordRunnerLog(
+            Level.ERROR, () -> waitForCompletion(runner.start(fastProcess(), List.of())));
+
+    assertThat(events).isEmpty();
+  }
+
+  private List<ILoggingEvent> recordRunnerLog(Level level, Runnable action) {
+    var logger = (Logger) LoggerFactory.getLogger(DefaultTransferProcessRunner.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    var originalLevel = logger.getLevel();
+    logger.setLevel(level);
+    try {
+      action.run();
+      return List.copyOf(appender.list);
+    } finally {
+      logger.detachAppender(appender);
+      logger.setLevel(originalLevel);
+    }
+  }
+
+  private TransferProcessDefinition fastProcess() {
+    return new TransferProcessDefinition(
+        "test",
+        rawConfig,
+        pids -> fromIterable(List.of(PATIENT)),
+        p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+        b -> just(new TransportBundle(new Bundle(), "transferId")),
+        b -> just(new Result()));
+  }
+
+  /** A process that stays RUNNING until the test opens the gate, so no assertion races a timer. */
+  private TransferProcessDefinition gatedProcess(CompletableFuture<Void> gate) {
+    return new TransferProcessDefinition(
+        "test",
+        rawConfig,
+        pids -> fromIterable(List.of(PATIENT)),
+        p -> gatedBy(gate, new ConsentedPatientBundle(new Bundle(), p)),
+        b -> just(new TransportBundle(new Bundle(), "transferId")),
+        b -> just(new Result()));
+  }
+
+  private static <T> Flux<T> gatedBy(CompletableFuture<Void> gate, T value) {
+    return Flux.just(value).delayUntil(v -> Mono.fromFuture(gate));
   }
 
   private void waitForCompletion(String processId) {

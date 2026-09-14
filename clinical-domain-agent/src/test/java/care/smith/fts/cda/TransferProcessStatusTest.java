@@ -6,6 +6,8 @@ import care.smith.fts.cda.TransferProcessRunner.Phase;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class TransferProcessStatusTest {
 
@@ -79,19 +81,45 @@ class TransferProcessStatusTest {
     assertThat(status.mayBeRemoved(pastDate)).isTrue();
   }
 
+  @ParameterizedTest
+  @EnumSource(
+      value = Phase.class,
+      names = {"COMPLETED", "COMPLETED_WITH_ERROR", "FATAL"})
+  void isCompletedIsTrueForEveryCompletedPhase(Phase phase) {
+    assertThat(TransferProcessStatus.isCompleted(phase)).isTrue();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = Phase.class,
+      names = {"QUEUED", "RUNNING"})
+  void isCompletedIsFalseForEveryUnfinishedPhase(Phase phase) {
+    assertThat(TransferProcessStatus.isCompleted(phase)).isFalse();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = Phase.class,
+      names = {"COMPLETED", "COMPLETED_WITH_ERROR", "FATAL"})
+  void setPhaseSetsFinishedAtForEveryCompletedPhase(Phase phase) {
+    var status = TransferProcessStatus.create("process123").setPhase(phase);
+
+    assertThat(status.phase()).isEqualTo(phase);
+    assertThat(status.finishedAt()).isNotNull();
+  }
+
   @Test
-  void testIsCompleted() {
-    var status = TransferProcessStatus.create("process123");
+  void setPhaseLeavesFinishedAtUnsetWhileRunning() {
+    var status = TransferProcessStatus.create("process123").setPhase(Phase.RUNNING);
 
-    assertThat(TransferProcessStatus.isCompleted(status.phase())).isFalse();
+    assertThat(status.phase()).isEqualTo(Phase.RUNNING);
+    assertThat(status.finishedAt()).isNull();
+  }
 
-    status = status.setPhase(Phase.COMPLETED);
-    assertThat(TransferProcessStatus.isCompleted(status.phase())).isTrue();
+  @Test
+  void testIncDeidentifiedBundles() {
+    var status = TransferProcessStatus.create("process123").incDeidentifiedBundles();
 
-    status = status.setPhase(Phase.COMPLETED_WITH_ERROR);
-    assertThat(TransferProcessStatus.isCompleted(status.phase())).isTrue();
-
-    status = status.setPhase(Phase.FATAL);
-    assertThat(TransferProcessStatus.isCompleted(status.phase())).isTrue();
+    assertThat(status.deidentifiedBundles()).isEqualTo(1);
   }
 }
