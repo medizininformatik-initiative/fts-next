@@ -46,7 +46,7 @@ services:
 
   # Trust Center
   gics:
-    image: mosaicgreifswald/gics:2026.1.1@sha256:9ebb43bbb4a9984fa8e5e75d2342b47951bc4ca580b8be1f445073fbb7c6fd21
+    image: mosaicgreifswald/gics:2026.1.1@sha256:b734a0a0340152c20d030f304852080806dcd4f60e6e078866658ae5e2c8f226
     ports: [ ":8080" ]
     networks: [ "gics", "trust-center" ]
     restart: on-failure:3
