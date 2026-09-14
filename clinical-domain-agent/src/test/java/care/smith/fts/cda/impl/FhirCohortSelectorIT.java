@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static care.smith.fts.test.MockServerUtil.onRandomPort;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.util.stream.Collectors.joining;
@@ -16,12 +17,14 @@ import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
+import care.smith.fts.util.error.TransferProcessException;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -137,10 +140,49 @@ class FhirCohortSelectorIT {
   }
 
   @Test
+  void fhirServerErrorBecomesTransferProcessException() {
+    wireMock.register(fetchAllRequest().willReturn(notFound()));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .expectErrorSatisfies(
+            e ->
+                assertThat(e)
+                    .isInstanceOf(TransferProcessException.class)
+                    .hasMessageContaining("FHIR server"))
+        .verify();
+  }
+
+  @Test
   void consentBundleSucceeds() {
     var bundle = cohortGenerator.generate();
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
     create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void emptyIdentifierListOmitsIdentifierQueryParam() {
+    wireMock.register(
+        fetchAllRequest()
+            .withQueryParam("patient.identifier", absent())
+            .willReturn(fhirResponse(cohortGenerator.generate())));
+
+    create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void consentsAreGroupedWithTheirOwnPatient() {
+    var bundle =
+        Stream.of(
+                patient("a"),
+                consentFor("a", "MDAT_erheben"),
+                patient("b"),
+                consentFor("b", "MDAT_speichern"))
+            .collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+        .verifyComplete();
   }
 
   @Test
@@ -274,7 +316,56 @@ class FhirCohortSelectorIT {
     create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
   }
 
+  private static Patient patient(String id) {
+    return (Patient)
+        new Patient()
+            .addIdentifier(
+                new Identifier().setSystem(PID_SYSTEM).setValue("patient-identifier-" + id))
+            .setId("patient-" + id);
+  }
+
+  private static Consent consentFor(String patientId, String policy) {
+    var provision =
+        new Consent.ProvisionComponent()
+            .addProvision(
+                new Consent.ProvisionComponent()
+                    .setType(Consent.ConsentProvisionType.PERMIT)
+                    .setPeriod(new Period().setStart(new Date(0)).setEnd(new Date(1)))
+                    .addCode(
+                        new CodeableConcept()
+                            .addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode(policy))));
+    return (Consent)
+        new Consent()
+            .setProvision(provision)
+            .setPatient(new Reference("Patient/patient-" + patientId))
+            .setId("consent-" + patientId);
+  }
+
   private Consumer<BundleLinkComponent> injectBaseUrl() {
     return l -> l.setUrl(config.baseUrl() + l.getUrl());
+  }
+
+  /**
+   * An absolute next link must be fetched as it is, and not be resolved against the base URL. The
+   * second page lives on another server, so only a request to that server finds it.
+   */
+  @Test
+  void absoluteNextLinkIsFetchedFromItsOwnHost() {
+    var otherServer = onRandomPort();
+    try {
+      var bundles = cohortGenerator.generate(2, 1, 1).toList();
+      bundles.forEach(b -> b.getLink().forEach(l -> l.setUrl(otherServer.baseUrl() + l.getUrl())));
+
+      wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundles.getFirst())));
+      new WireMock(otherServer.port())
+          .register(
+              get(urlPathEqualTo("/Consent"))
+                  .withQueryParam("_page", equalTo("1"))
+                  .willReturn(fhirResponse(bundles.get(1))));
+
+      create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
+    } finally {
+      otherServer.stop();
+    }
   }
 }
