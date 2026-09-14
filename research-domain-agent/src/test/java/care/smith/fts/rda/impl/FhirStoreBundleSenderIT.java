@@ -6,6 +6,7 @@ import static care.smith.fts.util.DestinationId.fromBaseUrl;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
@@ -86,10 +87,22 @@ class FhirStoreBundleSenderIT extends AbstractConnectionScenarioIT {
   }
 
   @Test
-  void transactionResponseSucceeds() {
+  void bundleSentAsPutTransaction() {
+    var patient = new Patient();
+    patient.setId("patient-123");
     var bundle = new Bundle();
-    bundle.addEntry().setResource(new Patient());
-    wireMock.register(fhirStoreRequest().willReturn(fhirResponse(transactionResponse("200 OK"))));
+    bundle.addEntry().setResource(patient);
+    wireMock.register(
+        fhirStoreRequest()
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {"resourceType": "Bundle",
+                     "type": "transaction",
+                     "entry": [{"resource": {"resourceType": "Patient", "id": "patient-123"},
+                                "request": {"method": "PUT", "url": "Patient/patient-123"}}]}
+                    """))
+            .willReturn(fhirResponse(transactionResponse("200 OK"))));
     create(bundleSender.send(bundle)).expectNext(new Result()).verifyComplete();
   }
 
