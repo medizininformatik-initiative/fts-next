@@ -7,6 +7,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.rda.BundleSender.Result;
 import care.smith.fts.util.error.TransferProcessException;
+import java.util.function.Consumer;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ class FhirStoreBundleSenderTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"200 OK", "201 Created", "204 No Content"})
+  @ValueSource(strings = {"200", "200 OK", "201 Created", "204 No Content"})
   void hasHttpSuccessForTwoXxCodes(String status) {
     assertThat(hasHttpSuccess(entryWithStatus(status))).isTrue();
   }
@@ -66,14 +67,14 @@ class FhirStoreBundleSenderTest {
   @Test
   void validateNonSuccessEntryErrors() {
     create(validateTransactionResponse(transactionResponse("400 Bad Request")))
-        .expectError(TransferProcessException.class)
+        .expectErrorSatisfies(failureNaming("400 Bad Request"))
         .verify();
   }
 
   @Test
   void validateMixedEntriesErrors() {
     create(validateTransactionResponse(transactionResponse("200 OK", "422 Unprocessable Entity")))
-        .expectError(TransferProcessException.class)
+        .expectErrorSatisfies(failureNaming("422 Unprocessable Entity"))
         .verify();
   }
 
@@ -82,7 +83,7 @@ class FhirStoreBundleSenderTest {
     var bundle = new Bundle();
     bundle.addEntry();
     create(validateTransactionResponse(bundle))
-        .expectError(TransferProcessException.class)
+        .expectErrorSatisfies(failureNaming("<no response>"))
         .verify();
   }
 
@@ -93,8 +94,16 @@ class FhirStoreBundleSenderTest {
     var bundle = new Bundle();
     bundle.addEntry().setResponse(response);
     create(validateTransactionResponse(bundle))
-        .expectError(TransferProcessException.class)
+        .expectErrorSatisfies(failureNaming("<no status>"))
         .verify();
+  }
+
+  /** The message must name the failing entry, so an operator can tell the branches apart. */
+  private static Consumer<Throwable> failureNaming(String failure) {
+    return error ->
+        assertThat(error)
+            .isInstanceOf(TransferProcessException.class)
+            .hasMessageContaining(failure);
   }
 
   private static BundleEntryComponent entryWithStatus(String status) {
