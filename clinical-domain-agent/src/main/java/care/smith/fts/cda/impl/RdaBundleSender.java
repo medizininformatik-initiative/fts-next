@@ -18,6 +18,7 @@ import care.smith.fts.util.error.TransferProcessException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
@@ -134,27 +135,30 @@ final class RdaBundleSender implements BundleSender {
     return Mono.just(URI.create(uri.getFirst()));
   }
 
+  private static final long DEFAULT_RETRY_AFTER_SECONDS = 1L;
+
   /**
-   * @return the duration in seconds after which a retry may be performed
+   * @return the duration in seconds after which a retry may be performed. An absent, unparsable or
+   *     negative header falls back to {@value #DEFAULT_RETRY_AFTER_SECONDS} second, so that a
+   *     malformed hint can never poll the RDA harder than the default.
    */
   private static Long getRetryAfter(ResponseEntity<Void> response) {
-    var retryAfter = response.getHeaders().get(RETRY_AFTER);
-    if (retryAfter == null) {
-      log.trace("No Retry-After header, defaulting to 1s");
-      return 1L;
-    } else {
-      var parsed = retryAfter.stream().findFirst().map(RdaBundleSender::parseRetryAfter).orElse(1L);
-      log.trace("Retry-After: {}s", parsed);
-      return parsed;
-    }
+    var retryAfter =
+        Optional.ofNullable(response.getHeaders().get(RETRY_AFTER))
+            .flatMap(values -> values.stream().findFirst())
+            .flatMap(RdaBundleSender::parseRetryAfter)
+            .filter(seconds -> seconds >= 0)
+            .orElse(DEFAULT_RETRY_AFTER_SECONDS);
+    log.trace("Retry-After: {}s", retryAfter);
+    return retryAfter;
   }
 
-  private static long parseRetryAfter(String s) {
+  private static Optional<Long> parseRetryAfter(String s) {
     try {
-      return Long.parseLong(s);
+      return Optional.of(Long.parseLong(s));
     } catch (NumberFormatException e) {
       log.warn("Failed to parse Retry-After header: {}", s);
-      return 1L;
+      return Optional.empty();
     }
   }
 }
