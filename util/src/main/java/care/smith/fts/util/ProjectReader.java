@@ -118,13 +118,8 @@ public class ProjectReader<C, D> {
   private void throwOrLog(Level level, String msg, Throwable cause) {
     if (strictValidation) {
       throw new ProjectConfigurationException(msg, cause);
-    } else {
-      if (cause == null) {
-        log.atLevel(level).log(msg);
-      } else {
-        log.atLevel(level).setCause(cause).log(msg);
-      }
     }
+    log.atLevel(level).setCause(cause).log(msg);
   }
 
   private boolean matchesFilePattern(Path p) {

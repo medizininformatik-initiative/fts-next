@@ -165,7 +165,9 @@
               <param>care.smith.fts.util.auth.HttpServer*</param>
               <param>care.smith.fts.util.error.*ResponseUtil</param>
               <param>care.smith.fts.cda.ClinicalDomainAgent</param>
+              <param>care.smith.fts.cda.ProjectReaderConfig</param>
               <param>care.smith.fts.rda.ResearchDomainAgent</param>
+              <param>care.smith.fts.rda.ProjectReaderConfig</param>
               <param>care.smith.fts.tca.consent.configuration.GicsConfiguration</param>
               <param>care.smith.fts.tca.deidentification.configuration.DeIdentificationConfiguration</param>
               <param>care.smith.fts.tca.deidentification.configuration.GpasDeIdentificationConfiguration</param>
