@@ -59,16 +59,18 @@ public class BackpressureRetryStrategy implements RetryStrategy {
   }
 
   private static Optional<Duration> extractRetryAfter(WebClientResponseException wcre) {
-    var retryAfter = wcre.getHeaders().getFirst("Retry-After");
-    if (retryAfter != null) {
-      try {
-        return Optional.of(Long.parseLong(retryAfter))
-            .filter(seconds -> seconds >= 0)
-            .map(Duration::ofSeconds);
-      } catch (NumberFormatException ex) {
-        log.warn("Failed to parse Retry-After header: {}", retryAfter);
-      }
+    return Optional.ofNullable(wcre.getHeaders().getFirst("Retry-After"))
+        .flatMap(BackpressureRetryStrategy::parseSeconds)
+        .filter(seconds -> seconds >= 0)
+        .map(Duration::ofSeconds);
+  }
+
+  private static Optional<Long> parseSeconds(String retryAfter) {
+    try {
+      return Optional.of(Long.parseLong(retryAfter));
+    } catch (NumberFormatException ex) {
+      log.warn("Failed to parse Retry-After header: {}", retryAfter);
+      return Optional.empty();
     }
-    return Optional.empty();
   }
 }
