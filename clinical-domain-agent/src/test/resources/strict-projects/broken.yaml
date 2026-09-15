@@ -1,0 +1,10 @@
+cohortSelector:
+  mock: {}
+dataSelector:
+  mock: {}
+deidentificator:
+  mock: {}
+bundleSender:
+  mock: {}
+unknownSection:
+  foo: bar

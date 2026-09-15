@@ -1,4 +1,4 @@
-package care.smith.fts.cda;
+package care.smith.fts.util;
 
 public class ProjectConfigurationException extends RuntimeException {
 
