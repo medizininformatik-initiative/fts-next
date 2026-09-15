@@ -12,6 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -31,6 +32,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Duration;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
@@ -161,60 +163,63 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
 
   @Test
   void withRetryAfterOnFirstAttempt() {
-    wireMock.register(
-        rdaRequest()
-            .willReturn(
-                accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
+    assertThat(timeSendWithDeferredStatus("RetryAfterAtFirst", "1"))
+        .isGreaterThanOrEqualTo(Duration.ofSeconds(1));
+  }
 
+  @Test
+  void withNumberFormatExceptionInGetRetryAfterWithParsingException() {
+    // An unparsable header falls back to 1s, so the send cannot finish sooner than that.
+    assertThat(timeSendWithDeferredStatus("BadRetryAfterAtFirst", "try to parse this!"))
+        .isGreaterThanOrEqualTo(Duration.ofSeconds(1));
+  }
+
+  /**
+   * Registers a status endpoint that answers ACCEPTED once, carrying {@code retryAfter} as its
+   * Retry-After header, and OK on every later poll.
+   */
+  private void registerStatusAcceptedThenOk(String scenario, String retryAfter) {
     wireMock.register(
         get("/api/v2/process/status/processId")
-            .inScenario("BadRetryAfterAtFirst")
+            .inScenario(scenario)
             .whenScenarioStateIs(FIRST)
             .willReturn(
                 accepted()
-                    .withHeader(RETRY_AFTER, "1")
-                    .withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId"))
+                    .withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")
+                    .withHeader(RETRY_AFTER, retryAfter))
             .willSetStateTo(REST));
 
     wireMock.register(
         get("/api/v2/process/status/processId")
-            .inScenario("BadRetryAfterAtFirst")
+            .inScenario(scenario)
             .whenScenarioStateIs(REST)
             .willReturn(ok()));
+  }
+
+  /**
+   * Sends a bundle against a status endpoint that defers once, and returns how long the send took.
+   * The sender delays the poll result by the Retry-After the RDA asked for, so the elapsed time of
+   * the whole send is the observable proof that the backpressure was honoured.
+   */
+  private Duration timeSendWithDeferredStatus(String scenario, String retryAfter) {
+    wireMock.register(
+        rdaRequest()
+            .willReturn(
+                accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
+    registerStatusAcceptedThenOk(scenario, retryAfter);
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
+    return create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectNext(new BundleSender.Result())
         .verifyComplete();
   }
 
   @Test
-  void withNumberFormatExceptionInGetRetryAfterWithParsingException() {
-    wireMock.register(
-        rdaRequest()
-            .willReturn(
-                accepted().withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId")));
-
-    wireMock.register(
-        get("/api/v2/process/status/processId")
-            .inScenario("BadRetryAfterAtFirst")
-            .whenScenarioStateIs(FIRST)
-            .willReturn(
-                accepted()
-                    .withHeader(RETRY_AFTER, "try to parse this!")
-                    .withHeader(CONTENT_LOCATION, "/api/v2/process/status/processId"))
-            .willSetStateTo(REST));
-
-    wireMock.register(
-        get("/api/v2/process/status/processId")
-            .inScenario("BadRetryAfterAtFirst")
-            .whenScenarioStateIs(REST)
-            .willReturn(ok()));
-
-    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
-    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
-        .expectNext(new BundleSender.Result())
-        .verifyComplete();
+  void waitsTheRetryAfterTheRdaAsksFor() {
+    // The RDA asks for 2s, which is longer than the 1s fallback. A sender that ignores the header
+    // finishes in well under 2s and fails here.
+    assertThat(timeSendWithDeferredStatus("RetryAfterTwoSeconds", "2"))
+        .isGreaterThanOrEqualTo(Duration.ofSeconds(2));
   }
 
   @Test

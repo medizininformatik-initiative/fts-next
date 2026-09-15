@@ -149,11 +149,29 @@ class BackpressureRetryStrategyTest {
 
   @Test
   void honorsRetryAfterHeader() {
+    // The header says 10s, the default backoff is 5s. Asserting that nothing emits before 10s is
+    // what distinguishes "the header is read" from "the default is used": a strategy that ignores
+    // the header retries at 5s and fails here.
     var calls = new AtomicInteger();
     StepVerifier.withVirtualTime(
             () ->
                 withRetry(calls, 1, responseExceptionWithRetryAfter(429, "10"), "retryAfterHeader"))
-        .thenAwait(Duration.ofSeconds(10))
+        .expectSubscription()
+        .expectNoEvent(Duration.ofSeconds(10).minusMillis(1))
+        .thenAwait(Duration.ofMillis(1))
+        .expectNext("ok")
+        .verifyComplete();
+    assertThat(calls.get()).isEqualTo(2);
+  }
+
+  @Test
+  void retryAfterZeroRetriesWithoutDelay() {
+    // Zero is a valid backpressure hint and must be honoured as zero. The await is shorter than
+    // the 5s default backoff, so a strategy that rejects zero and falls back fails here.
+    var calls = new AtomicInteger();
+    StepVerifier.withVirtualTime(
+            () -> withRetry(calls, 1, responseExceptionWithRetryAfter(429, "0"), "zeroRetryAfter"))
+        .thenAwait(Duration.ofSeconds(4))
         .expectNext("ok")
         .verifyComplete();
     assertThat(calls.get()).isEqualTo(2);
@@ -179,7 +197,9 @@ class BackpressureRetryStrategyTest {
                     1,
                     responseExceptionWithRetryAfter(429, "not-a-number"),
                     "badRetryAfter"))
-        .thenAwait(Duration.ofSeconds(5))
+        .expectSubscription()
+        .expectNoEvent(Duration.ofSeconds(5).minusMillis(1))
+        .thenAwait(Duration.ofMillis(1))
         .expectNext("ok")
         .verifyComplete();
     assertThat(calls.get()).isEqualTo(2);
@@ -187,12 +207,15 @@ class BackpressureRetryStrategyTest {
 
   @Test
   void usesDefaultBackoffWhenRetryAfterNegative() {
+    // A negative hint must be rejected, not turned into a negative delay that retries at once.
     var calls = new AtomicInteger();
     StepVerifier.withVirtualTime(
             () ->
                 withRetry(
                     calls, 1, responseExceptionWithRetryAfter(429, "-1"), "negativeRetryAfter"))
-        .thenAwait(Duration.ofSeconds(5))
+        .expectSubscription()
+        .expectNoEvent(Duration.ofSeconds(5).minusMillis(1))
+        .thenAwait(Duration.ofMillis(1))
         .expectNext("ok")
         .verifyComplete();
     assertThat(calls.get()).isEqualTo(2);
