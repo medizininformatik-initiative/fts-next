@@ -1,6 +1,6 @@
-package care.smith.fts.cda;
+package care.smith.fts.util;
 
-import static java.nio.file.Files.*;
+import static java.nio.file.Files.newInputStream;
 import static java.util.Optional.empty;
 import static org.slf4j.event.Level.ERROR;
 import static org.slf4j.event.Level.WARN;
@@ -11,41 +11,45 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * Reads the project files of an agent and turns each into a transfer process definition.
+ *
+ * @param <C> the agent's transfer process configuration type
+ * @param <D> the agent's transfer process definition type
+ */
 @Slf4j
-@Component
-public class ProjectReader {
+public class ProjectReader<C, D> {
 
   private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(?<name>.+)[.](?:ya?ml|json)$");
 
-  private final TransferProcessFactory processFactory;
+  private final BiFunction<C, String, D> processFactory;
   private final ObjectMapper objectMapper;
+  private final Class<C> configType;
   private final Path projectsDir;
   private final boolean strictValidation;
 
   public ProjectReader(
-      TransferProcessFactory processFactory,
-      @Qualifier("transferProcessObjectMapper") ObjectMapper objectMapper,
-      @Value("${projects.directory:projects}") Path projectsDir,
-      @Value("${projects.strict-validation:false}") boolean strictValidation) {
+      BiFunction<C, String, D> processFactory,
+      ObjectMapper objectMapper,
+      Class<C> configType,
+      Path projectsDir,
+      boolean strictValidation) {
     this.processFactory = processFactory;
     this.objectMapper = objectMapper;
+    this.configType = configType;
     this.projectsDir = projectsDir;
     this.strictValidation = strictValidation;
   }
 
-  @Bean
-  public List<TransferProcessDefinition> createTransferProcesses() throws IOException {
+  public List<D> createTransferProcesses() throws IOException {
     log.trace("Reading project files from {}", projectsDir);
     try (var files = Files.list(projectsDir)) {
       return files
@@ -69,7 +73,7 @@ public class ProjectReader {
     };
   }
 
-  private Optional<TransferProcessDefinition> createConfigAndProcess(Path projectFile) {
+  private Optional<D> createConfigAndProcess(Path projectFile) {
     var matcher = FILE_NAME_PATTERN.matcher(projectFile.getFileName().toString());
     if (matcher.find()) {
       return openConfigAndParse(projectFile, matcher.group("name"));
@@ -79,7 +83,7 @@ public class ProjectReader {
     }
   }
 
-  protected Optional<TransferProcessDefinition> openConfigAndParse(Path projectFile, String name) {
+  protected Optional<D> openConfigAndParse(Path projectFile, String name) {
     try (var inStream = newInputStream(projectFile)) {
       return parseConfig(inStream, name).flatMap(config -> createProcess(config, name));
     } catch (IOException e) {
@@ -88,20 +92,19 @@ public class ProjectReader {
     }
   }
 
-  private Optional<TransferProcessDefinition> createProcess(
-      TransferProcessConfig config, String name) {
+  private Optional<D> createProcess(C config, String name) {
     try {
       log.info("Project '{}' created: {}", name, config);
-      return Optional.of(processFactory.create(config, name));
+      return Optional.of(processFactory.apply(config, name));
     } catch (Exception e) {
       throwOrLog(ERROR, "Could not create project '%s'".formatted(name), e);
       return empty();
     }
   }
 
-  private Optional<TransferProcessConfig> parseConfig(InputStream inStream, String name) {
+  private Optional<C> parseConfig(InputStream inStream, String name) {
     try {
-      return Optional.of(objectMapper.readValue(inStream, TransferProcessConfig.class));
+      return Optional.of(objectMapper.readValue(inStream, configType));
     } catch (JacksonException e) {
       throwOrLog(ERROR, "Unable to parse '%s' project's configuration".formatted(name), e);
       return empty();
@@ -115,13 +118,8 @@ public class ProjectReader {
   private void throwOrLog(Level level, String msg, Throwable cause) {
     if (strictValidation) {
       throw new ProjectConfigurationException(msg, cause);
-    } else {
-      if (cause == null) {
-        log.atLevel(level).log(msg);
-      } else {
-        log.atLevel(level).setCause(cause).log(msg);
-      }
     }
+    log.atLevel(level).setCause(cause).log(msg);
   }
 
   private boolean matchesFilePattern(Path p) {

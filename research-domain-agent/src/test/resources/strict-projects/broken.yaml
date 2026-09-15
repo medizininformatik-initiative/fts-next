@@ -1,0 +1,6 @@
+deidentificator:
+  mock: {}
+bundleSender:
+  mock: {}
+unknownSection:
+  foo: bar
