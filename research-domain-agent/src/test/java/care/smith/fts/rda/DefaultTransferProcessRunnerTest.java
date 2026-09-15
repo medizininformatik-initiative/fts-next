@@ -77,6 +77,27 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
+  void failingBundleSenderEndsInErrorPhase() {
+    TransferProcessDefinition process =
+        new TransferProcessDefinition(
+            "test",
+            new TransferProcessConfig(null, null),
+            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            (b) -> Mono.error(new IllegalStateException("send failed")));
+
+    TransferProcessRunner.StartResult startResult =
+        runner.start(
+            process,
+            Mono.just(
+                new TransportBundle(
+                    new Bundle().addEntry(new Bundle().getEntryFirstRep()), "transferId")));
+    assertThat(startResult).isInstanceOf(TransferProcessRunner.StartResult.Accepted.class);
+    String processId = ((TransferProcessRunner.StartResult.Accepted) startResult).processId();
+
+    assertThat(awaitCompletion(runner, processId).phase()).isEqualTo(Phase.ERROR);
+  }
+
+  @Test
   void rejectsWhenSaturated() {
     var registry = bulkheadRegistry(1);
     var saturatedRunner = new DefaultTransferProcessRunner(new ObjectMapper(), registry, config());
