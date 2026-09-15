@@ -1,5 +1,7 @@
 package care.smith.fts.cda.impl;
 
+import static org.junit.jupiter.api.Named.named;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static reactor.test.StepVerifier.create;
@@ -13,10 +15,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientRequest;
@@ -64,11 +71,26 @@ class RdaBundleSenderTest {
   }
 
   /**
-   * Asserts that a send against {@link #clientDeferringOnce} emits nothing until {@code expected}
-   * has passed, and completes then. The stubbed exchange answers instantly, so the elapsed time is
-   * the delay the sender applied, and nothing else.
+   * A Retry-After header the RDA may send, and the delay the sender must apply for it. Only a
+   * usable hint is followed; an absent, unparsable or negative one falls back to 1s, so that a
+   * malformed hint can never poll the RDA harder than the default.
    */
-  private void assertPollDeferredBy(String retryAfter, Duration expected) {
+  static Stream<Arguments> retryAfterHeadersAndDelays() {
+    return Stream.of(
+        arguments(named("2s is honoured", "2"), Duration.ofSeconds(2)),
+        arguments(named("absent falls back", null), Duration.ofSeconds(1)),
+        arguments(named("unparsable falls back", "try to parse this!"), Duration.ofSeconds(1)),
+        arguments(named("negative falls back", "-1"), Duration.ofSeconds(1)));
+  }
+
+  /**
+   * Asserts that the send emits nothing until {@code expected} has passed, and completes then. The
+   * stubbed exchange answers instantly, so the elapsed time is the delay the sender applied, and
+   * nothing else. A sender that drops the header finishes early and fails here.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("retryAfterHeadersAndDelays")
+  void defersNextPollByRetryAfter(String retryAfter, Duration expected) {
     var sender = new RdaBundleSender(CONFIG, clientDeferringOnce(retryAfter), buildRetryStrategy());
 
     StepVerifier.withVirtualTime(() -> sender.send(new TransportBundle(new Bundle(), "tid")))
@@ -79,69 +101,25 @@ class RdaBundleSenderTest {
         .verifyComplete();
   }
 
-  @Test
-  void waitsTheRetryAfterTheRdaAsksFor() {
-    // 2s is longer than the 1s fallback, so a sender that drops the header fails this.
-    assertPollDeferredBy("2", Duration.ofSeconds(2));
+  /** Every shape of Content-Location that names no usable status URI, so polling cannot start. */
+  static Stream<Arguments> unusableContentLocations() {
+    return Stream.of(
+        arguments(named("header absent", null)),
+        arguments(named("value is blank", List.of("   "))),
+        arguments(named("value list is empty", List.of())));
   }
 
-  @Test
-  void waitsOneSecondWhenRetryAfterIsMissing() {
-    assertPollDeferredBy(null, Duration.ofSeconds(1));
-  }
-
-  @Test
-  void waitsOneSecondWhenRetryAfterIsUnparsable() {
-    assertPollDeferredBy("try to parse this!", Duration.ofSeconds(1));
-  }
-
-  @Test
-  void waitsOneSecondWhenRetryAfterIsNegative() {
-    // A negative hint must not shorten the poll interval below the fallback, otherwise an RDA
-    // under load can be polled back to back.
-    assertPollDeferredBy("-1", Duration.ofSeconds(1));
-  }
-
-  /** POST is ACCEPTED but names no usable status URI, so polling can never start. */
-  private void assertMissingContentLocation(String contentLocation) {
-    var client =
-        buildClient(
-            request -> {
-              var accepted = ClientResponse.create(HttpStatus.ACCEPTED);
-              return contentLocation == null
-                  ? accepted.build()
-                  : accepted.header(CONTENT_LOCATION, contentLocation).build();
-            });
-    var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
-
-    create(sender.send(new TransportBundle(new Bundle(), "tid")))
-        .expectErrorMatches(
-            e ->
-                e instanceof TransferProcessException
-                    && e.getMessage().equals("Missing Content-Location"))
-        .verify();
-  }
-
-  @Test
-  void absentContentLocationRaisesTransferProcessException() {
-    assertMissingContentLocation(null);
-  }
-
-  @Test
-  void blankContentLocationRaisesTransferProcessException() {
-    // A header that is present but all whitespace is as unusable as an absent one.
-    assertMissingContentLocation("   ");
-  }
-
-  @Test
-  void emptyContentLocationListRaisesTransferProcessException() {
-    // The header name is present but carries no value at all. Reading the first element of that
-    // list would throw, so the sender must reject it as missing instead.
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("unusableContentLocations")
+  void unusableContentLocationRaisesTransferProcessException(List<String> contentLocation) {
     var client =
         buildClient(
             request ->
                 ClientResponse.create(HttpStatus.ACCEPTED)
-                    .headers(h -> h.put(CONTENT_LOCATION, List.of()))
+                    .headers(
+                        h ->
+                            Optional.ofNullable(contentLocation)
+                                .ifPresent(v -> h.put(CONTENT_LOCATION, v)))
                     .build());
     var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
