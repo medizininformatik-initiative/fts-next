@@ -61,6 +61,20 @@ class ProjectReaderTest {
   }
 
   @Test
+  void backupOfProjectFileIgnored() throws Exception {
+    writeString(tempDirectory.resolve("foo.yaml.bak"), "greeting: moin");
+
+    assertThat(reader(TestProcess::new, false).createTransferProcesses()).isEmpty();
+  }
+
+  @Test
+  void backupOfProjectFileIgnoredWhenStrict() throws Exception {
+    writeString(tempDirectory.resolve("foo.yaml.bak"), "greeting: moin");
+
+    assertThat(reader(TestProcess::new, true).createTransferProcesses()).isEmpty();
+  }
+
+  @Test
   void directoryNamedLikeProjectFileIgnored() throws Exception {
     createDirectory(tempDirectory.resolve("directory.json"));
 
