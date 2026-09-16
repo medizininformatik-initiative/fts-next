@@ -6,8 +6,6 @@ import reactor.core.publisher.Mono;
 public interface TransferProcessRunner {
   StartResult start(TransferProcessDefinition process, Mono<TransportBundle> data);
 
-  record Result(long receivedResources, long sentResources) {}
-
   Mono<Status> status(String processId);
 
   record Status(String processId, Phase phase, long receivedResources, long sentResources) {}
