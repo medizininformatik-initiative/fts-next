@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25.0.4_7-jre-alpine@sha256:3137541deb3cac6626b5d9a4a2187bc0d6a34312f858bd2c67dd01e732e6b682
+FROM eclipse-temurin:25.0.4_7-jre-alpine@sha256:2ca9adf44f5c29d28ecd26cf92d75cc0c66b7f32bfd839a4439e363a8b428af8
 
 # Patch stale Alpine OS packages flagged by Trivy. Versions are pinned so
 # Renovate tracks updates (see renovate.json5). openssl, libssl3 and
