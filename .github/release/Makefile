@@ -9,8 +9,6 @@ cd-agent:
 	chmod +x ./cd-agent/verify.sh
 	mkdir -p ./cd-agent/projects/example
 	cp -r ../test/deidentifhir ./cd-agent/projects/example
-	find ./cd-agent/projects/example/deidentifhir \
-		-type f \( -name "TransportToRD.profile" -o -name "TransportToRD.conf" \) -delete
 	cp ../../clinical-domain-agent/application.yaml ./cd-agent/
 	tar -czf cd-agent.tar.gz ./cd-agent/
 	sha256sum cd-agent.tar.gz >cd-agent.tar.gz.sha256

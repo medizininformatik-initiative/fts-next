@@ -53,31 +53,14 @@ secure mapping endpoint.
         ssl: [ ... ]
   ```
 
-### `deidentifhir` <Badge type="danger" text="Deprecated" />
+### `deidentifhir` <Badge type="danger" text="Removed" />
 
-::: warning Deprecated
-The `deidentifhir` implementation is deprecated and will be removed in a future release. Migrate to
-`idMapper` (see above). The `deidentifhirConfig` and `dateShift` fields will be removed.
-:::
-
-The old configuration format is still accepted for backward compatibility:
+The `deidentifhir` implementation of the RDA has been removed. A project that still uses it
+fails at startup. Switch the implementation name to `idMapper` and remove the library-specific
+fields `deidentifhirConfig` and `dateShift`:
 
 ```yaml
-deidentificator:
-  deidentifhir:
-    trustCenterAgent:
-      server:
-        baseUrl: http://tc-agent:8080
-        auth: [ ... ]
-        ssl: [ ... ]
-    deidentifhirConfig: /path/to/TransportToRD.profile
-    dateShift: P0D
-```
-
-To migrate, switch the implementation name and remove the library-specific fields:
-
-```yaml
-# Before (deprecated)
+# Before (removed)
 deidentificator:
   deidentifhir:
     trustCenterAgent:
