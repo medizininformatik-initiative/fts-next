@@ -135,6 +135,31 @@ class DefaultRetryStrategyTest {
   }
 
   @Test
+  void doesNotRetryOnMovedPermanently() {
+    // 301 is the other 3xx the transport can surface. Like 307 it is deterministic: re-issuing the
+    // identical request yields the same redirect, never the resource.
+    var calls = new AtomicInteger();
+    StepVerifier.withVirtualTime(() -> withRetry(calls, 1, responseException(301), "movedPerm"))
+        .thenAwait(Duration.ofSeconds(60))
+        .expectError(WebClientResponseException.class)
+        .verify();
+    assertThat(calls.get()).isEqualTo(1);
+    assertThat(retryCount("movedPerm")).isZero();
+  }
+
+  @Test
+  void retriesOnInternalServerError() {
+    // The counterpart to the 3xx cases: 500 is transient, so it must be retried.
+    var calls = new AtomicInteger();
+    StepVerifier.withVirtualTime(() -> withRetry(calls, 1, responseException(500), "serverError"))
+        .thenAwait(Duration.ofSeconds(60))
+        .expectNext("ok")
+        .verifyComplete();
+    assertThat(calls.get()).isEqualTo(2);
+    assertThat(retryCount("serverError")).isEqualTo(1.0);
+  }
+
+  @Test
   void exhaustsAfterThreeRetries() {
     var calls = new AtomicInteger();
     StepVerifier.withVirtualTime(

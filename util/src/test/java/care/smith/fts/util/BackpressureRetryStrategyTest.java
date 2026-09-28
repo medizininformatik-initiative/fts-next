@@ -1,6 +1,8 @@
 package care.smith.fts.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Named.named;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;
@@ -8,7 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -18,6 +24,9 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class BackpressureRetryStrategyTest {
+
+  /** Mirrors the default backoff the strategy applies when a Retry-After hint is unusable. */
+  private static final Duration DEFAULT_BACKOFF = Duration.ofSeconds(5);
 
   private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
   private final RetryStrategy retryStrategy =
@@ -147,54 +156,42 @@ class BackpressureRetryStrategyTest {
     assertThat(retryCount("exhaust")).isEqualTo(3.0);
   }
 
-  @Test
-  void honorsRetryAfterHeader() {
-    var calls = new AtomicInteger();
-    StepVerifier.withVirtualTime(
-            () ->
-                withRetry(calls, 1, responseExceptionWithRetryAfter(429, "10"), "retryAfterHeader"))
-        .thenAwait(Duration.ofSeconds(10))
-        .expectNext("ok")
-        .verifyComplete();
-    assertThat(calls.get()).isEqualTo(2);
+  /**
+   * A Retry-After header a 429 may carry, and the backoff the strategy must apply for it. Only a
+   * non-negative hint is followed; an absent, unparsable or negative one falls back to the default
+   * backoff.
+   */
+  static Stream<Arguments> retryAfterHeadersAndBackoffs() {
+    return Stream.of(
+        arguments(named("10s is honoured", "10"), Duration.ofSeconds(10)),
+        arguments(named("zero is honoured", "0"), Duration.ZERO),
+        arguments(named("absent falls back", null), DEFAULT_BACKOFF),
+        arguments(named("unparsable falls back", "not-a-number"), DEFAULT_BACKOFF),
+        arguments(named("negative falls back", "-1"), DEFAULT_BACKOFF));
   }
 
-  @Test
-  void usesDefaultBackoffWhenRetryAfterMissing() {
+  /**
+   * Asserts that the retry happens exactly at {@code expected}. Pinning the instant, rather than
+   * only the outcome, is what separates "the header is read" from "the default is used": for the
+   * 10s case a strategy that ignores the header retries at 5s and fails here.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("retryAfterHeadersAndBackoffs")
+  void retriesAfterTheBackoffTheHeaderImplies(String retryAfter, Duration expected) {
     var calls = new AtomicInteger();
-    StepVerifier.withVirtualTime(() -> withRetry(calls, 1, responseException(429), "noRetryAfter"))
-        .thenAwait(Duration.ofSeconds(5))
-        .expectNext("ok")
-        .verifyComplete();
-    assertThat(calls.get()).isEqualTo(2);
-  }
+    var error =
+        retryAfter == null
+            ? responseException(429)
+            : responseExceptionWithRetryAfter(429, retryAfter);
 
-  @Test
-  void usesDefaultBackoffWhenRetryAfterUnparseable() {
-    var calls = new AtomicInteger();
-    StepVerifier.withVirtualTime(
-            () ->
-                withRetry(
-                    calls,
-                    1,
-                    responseExceptionWithRetryAfter(429, "not-a-number"),
-                    "badRetryAfter"))
-        .thenAwait(Duration.ofSeconds(5))
-        .expectNext("ok")
-        .verifyComplete();
-    assertThat(calls.get()).isEqualTo(2);
-  }
+    var step =
+        StepVerifier.withVirtualTime(() -> withRetry(calls, 1, error, "retryAfter"))
+            .expectSubscription();
+    if (!expected.isZero()) {
+      step = step.expectNoEvent(expected.minusMillis(1));
+    }
+    step.thenAwait(Duration.ofMillis(1)).expectNext("ok").verifyComplete();
 
-  @Test
-  void usesDefaultBackoffWhenRetryAfterNegative() {
-    var calls = new AtomicInteger();
-    StepVerifier.withVirtualTime(
-            () ->
-                withRetry(
-                    calls, 1, responseExceptionWithRetryAfter(429, "-1"), "negativeRetryAfter"))
-        .thenAwait(Duration.ofSeconds(5))
-        .expectNext("ok")
-        .verifyComplete();
     assertThat(calls.get()).isEqualTo(2);
   }
 }
