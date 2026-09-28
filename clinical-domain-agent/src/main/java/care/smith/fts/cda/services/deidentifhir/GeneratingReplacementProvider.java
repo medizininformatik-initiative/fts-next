@@ -4,9 +4,9 @@ import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static care.smith.fts.util.deidentifhir.NamespacingReplacementProvider.withNamespacing;
 import static java.util.Objects.requireNonNull;
 
+import care.smith.fts.deidentifhir.handlers.IDReplacementProvider;
+import care.smith.fts.deidentifhir.handlers.IdentifierValueReplacementProvider;
 import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider.KeyCreator;
-import de.ume.deidentifhir.util.IDReplacementProvider;
-import de.ume.deidentifhir.util.IdentifierValueReplacementProvider;
 import java.util.HashMap;
 import java.util.Map;
 

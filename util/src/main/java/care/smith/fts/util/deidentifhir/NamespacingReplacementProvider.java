@@ -1,7 +1,7 @@
 package care.smith.fts.util.deidentifhir;
 
-import de.ume.deidentifhir.util.IDReplacementProvider;
-import de.ume.deidentifhir.util.IdentifierValueReplacementProvider;
+import care.smith.fts.deidentifhir.handlers.IDReplacementProvider;
+import care.smith.fts.deidentifhir.handlers.IdentifierValueReplacementProvider;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;

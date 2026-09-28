@@ -2,27 +2,20 @@ package care.smith.fts.cda.services.deidentifhir;
 
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 
+import care.smith.fts.deidentifhir.Deidentifhir;
+import care.smith.fts.deidentifhir.DeidentifhirHandler;
+import care.smith.fts.deidentifhir.Registry;
+import care.smith.fts.deidentifhir.handlers.Handlers;
 import com.typesafe.config.Config;
-import de.ume.deidentifhir.Deidentifhir;
-import de.ume.deidentifhir.Registry;
-import de.ume.deidentifhir.util.Handlers;
-import de.ume.deidentifhir.util.JavaCompat;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.util.ArrayList;
-import java.util.List;
-import org.hl7.fhir.r4.model.Base;
+import java.util.Optional;
 import org.hl7.fhir.r4.model.BaseDateTimeType;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.StringType;
-import scala.Function4;
-import scala.collection.immutable.Map;
-import scala.collection.immutable.Seq;
 
 public interface DeidentifhirUtils {
-
-  String SHIFT_DATE_HANDLER = "shiftDateHandler";
 
   /**
    * Builds a registry with handlers that use the provided GeneratingReplacementProvider. During
@@ -33,32 +26,24 @@ public interface DeidentifhirUtils {
    */
   static Registry buildRegistry(GeneratingReplacementProvider provider) {
     Registry registry = new Registry();
-    registry.addHander("postalCodeHandler", Handlers.generalizePostalCodeHandler().get());
-    registry.addHander(
-        "generalizeDateHandler",
-        (Function4<Seq<String>, DateType, Seq<Base>, Map<String, String>, DateType>)
-            Handlers::generalizeDateHandler);
-    registry.addHander(
-        "PSEUDONYMISIERTstringReplacementHandler",
-        JavaCompat.partiallyApply("PSEUDONYMISIERT", Handlers::stringReplacementHandler));
-    registry.addHander(
-        "idReplacementHandler",
-        JavaCompat.partiallyApply(provider, Handlers::idReplacementHandler));
-    registry.addHander(
-        "referenceReplacementHandler",
-        JavaCompat.partiallyApply(provider, Handlers::referenceReplacementHandler));
-    registry.addHander(
+    registry.addHandler("idReplacementHandler", Handlers.idReplacementHandler(provider));
+    registry.addHandler(
+        "referenceReplacementHandler", Handlers.referenceReplacementHandler(provider, provider));
+    registry.addAlias("conditionalReferencesReplacementHandler", "referenceReplacementHandler");
+    registry.addHandler(
         "identifierValueReplacementHandler",
-        JavaCompat.partiallyApply2(provider, true, Handlers::identifierValueReplacementHandler));
-    registry.addHander(
-        "conditionalReferencesReplacementHandler",
-        JavaCompat.partiallyApply2(
-            provider, provider, Handlers::conditionalReferencesReplacementHandler));
-
-    // Keeps the date during the engine pass and collects the element. The date is shifted after the
-    // engine pass, see ShiftDateHandler.
-    registry.addHander(SHIFT_DATE_HANDLER, new ShiftDateHandler(provider));
-
+        Handlers.identifierValueReplacementHandler(provider, true));
+    registry.addHandler(
+        "generalizeDateHandler", (DeidentifhirHandler<DateType>) Handlers::generalizeDateHandler);
+    registry.addHandler(
+        "postalCodeHandler", (DeidentifhirHandler<StringType>) Handlers::generalizePostalCode);
+    registry.addHandler(
+        "PSEUDONYMISIERTstringReplacementHandler",
+        Handlers.stringReplacementHandler("PSEUDONYMISIERT"));
+    registry.addHandler(
+        "shiftDateHandler",
+        (DeidentifhirHandler<BaseDateTimeType>)
+            (path, date, context) -> Optional.of(shiftDate(date, provider)));
     return registry;
   }
 
@@ -86,46 +71,9 @@ public interface DeidentifhirUtils {
       String patientIdentifier,
       MeterRegistry meterRegistry) {
     var sample = Timer.start(meterRegistry);
-
-    Map<String, String> staticContext =
-        new Map.Map1<>(Handlers.patientIdentifierKey(), patientIdentifier);
-    Deidentifhir deidentifhir = Deidentifhir.apply(config, registry);
-    var shiftDateHandler = (ShiftDateHandler) registry.getHandler(SHIFT_DATE_HANDLER).get();
-    var deidentified = (Bundle) deidentifhir.deidentify(bundle, staticContext);
-    shiftDateHandler.shiftCollectedDates();
+    var deidentified =
+        Deidentifhir.fromConfig(config, registry).deidentifyBundle(bundle, patientIdentifier);
     sample.stop(meterRegistry.timer("deidentify"));
     return deidentified;
-  }
-
-  /**
-   * Handler for dates that are shifted by the TCA.
-   *
-   * <p>The engine replaces the extension list of a primitive element after the handler ran, so an
-   * extension that the handler adds is lost. The engine does keep the element instance that the
-   * handler returns and writes that instance into the output resource. So during the engine pass
-   * this handler keeps the date unchanged and only collects the element. After the engine pass,
-   * {@link #deidentify} applies {@link DeidentifhirUtils#shiftDate} to every collected element.
-   */
-  final class ShiftDateHandler
-      implements Function4<
-          Seq<String>, BaseDateTimeType, Seq<Base>, Map<String, String>, BaseDateTimeType> {
-
-    private final GeneratingReplacementProvider provider;
-    private final List<BaseDateTimeType> dates = new ArrayList<>();
-
-    ShiftDateHandler(GeneratingReplacementProvider provider) {
-      this.provider = provider;
-    }
-
-    @Override
-    public BaseDateTimeType apply(
-        Seq<String> path, BaseDateTimeType date, Seq<Base> parents, Map<String, String> context) {
-      dates.add(date);
-      return date;
-    }
-
-    void shiftCollectedDates() {
-      dates.forEach(date -> shiftDate(date, provider));
-    }
   }
 }

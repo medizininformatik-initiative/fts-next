@@ -245,6 +245,21 @@ class DeidentifhirUtilsTest {
   }
 
   @Test
+  void deidentifyKeepsBundleType() {
+    var registry = buildRegistry(provider);
+    var config =
+        parseResources(
+            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+    var bundle = new Bundle().setType(Bundle.BundleType.SEARCHSET);
+    bundle.addEntry().setResource(patientWithProfile());
+
+    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
+
+    // Bundle.type is 1..1 in R4
+    assertThat(deidentifiedBundle.getType()).isEqualTo(Bundle.BundleType.SEARCHSET);
+  }
+
+  @Test
   void deidentifyReplacesIdentifierOfConditionalReference() {
     var registry = buildRegistry(provider);
     var config =
