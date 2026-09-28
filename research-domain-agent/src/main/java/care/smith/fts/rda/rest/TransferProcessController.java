@@ -224,7 +224,7 @@ public class TransferProcessController {
                           name = "Example configuration",
                           value =
 """
-{"deidentificator":{"deidentifhir":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"}},"dateShift":"P0D","deidentifhirConfig":"/app/projects/example/deidentifhir/TransportToRD.profile"}},
+{"deidentificator":{"idMapper":{"trustCenterAgent":{"server":{"baseUrl":"http://tc-agent:8080"}}}},
  "bundleSender":{"fhirStore":{"server":{"baseUrl":"http://rd-hds:8080/fhir"}}}}
 """)
                     })),
