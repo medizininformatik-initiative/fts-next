@@ -87,15 +87,21 @@ public interface Handlers {
   }
 
   /**
-   * Replaces the given string with a predefined static string. A string element without a value
-   * carries only extensions; it passes through unchanged.
+   * Replaces the given string with a predefined static string. The result keeps the class of the
+   * element, so it also fits a field of a subtype such as MarkdownType. A string element without a
+   * value carries only extensions; it passes through unchanged.
    */
   static DeidentifhirHandler<StringType> stringReplacementHandler(String staticString) {
     requireNonNull(staticString);
     return (path, string, context) ->
         Optional.of(
             Optional.ofNullable(string.getValue())
-                .<StringType>map(value -> new StringType(staticString))
+                .map(
+                    value -> {
+                      StringType replaced = string.copy();
+                      replaced.setValue(staticString);
+                      return replaced;
+                    })
                 .orElse(string));
   }
 

@@ -10,6 +10,7 @@ import java.util.Map;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Identifier;
+import org.hl7.fhir.r4.model.MarkdownType;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,21 @@ class HandlersTest {
     StringType result =
         handler.apply(NO_PATH, new StringType("Doe"), HandlerContext.empty()).orElseThrow();
 
+    assertThat(result.getValue()).isEqualTo("PSEUDONYMISIERT");
+  }
+
+  /**
+   * Annotation.text is a MarkdownType, a subtype of StringType. The result is written back into
+   * that field, so it has to keep the class of the element it replaces.
+   */
+  @Test
+  void stringReplacementHandlerKeepsTheClassOfTheElement() {
+    DeidentifhirHandler<StringType> handler = Handlers.stringReplacementHandler("PSEUDONYMISIERT");
+
+    StringType result =
+        handler.apply(NO_PATH, new MarkdownType("free text"), HandlerContext.empty()).orElseThrow();
+
+    assertThat(result).isInstanceOf(MarkdownType.class);
     assertThat(result.getValue()).isEqualTo("PSEUDONYMISIERT");
   }
 
