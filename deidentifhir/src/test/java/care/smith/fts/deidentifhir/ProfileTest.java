@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 
 class ProfileTest {
@@ -184,6 +185,51 @@ class ProfileTest {
                     """))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("NoSuchType");
+  }
+
+  /**
+   * Coding.system holds a UriType, which is no StringType. A string handler there would fail on the
+   * first resource that reaches it; the profile is rejected when it is parsed instead.
+   */
+  @Test
+  void aPathHandlerForAnotherTypeThanTheElementIsRejected() {
+    Registry registry = new Registry();
+    registry.addHandler(
+        "forStrings", StringType.class, (path, value, context) -> Optional.of(value));
+
+    assertThatThrownBy(
+            () ->
+                Profile.parse(
+                    ConfigFactory.parseString(
+                        """
+                        modules.test {
+                          pattern = "Observation.exists()"
+                          base = ["Observation.code.coding.system"]
+                          paths { "Observation.code.coding.system" { handler = forStrings } }
+                        }
+                        """),
+                    registry))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("forStrings")
+        .hasMessageContaining("Observation.code.coding.system")
+        .hasMessageContaining("UriType");
+  }
+
+  /** A handler on a path that names no element can never run; that is a typo in the profile. */
+  @Test
+  void aPathHandlerOnAPathThatNamesNoElementIsRejected() {
+    assertThatThrownBy(
+            () ->
+                profile(
+                    """
+                    modules.test {
+                      pattern = "Patient.exists()"
+                      base = ["Patient.birthdate"]
+                      paths { "Patient.birthdate" { handler = noop } }
+                    }
+                    """))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Patient.birthdate");
   }
 
   /** The stars of a glob may also match nothing, so they cover the named element itself. */

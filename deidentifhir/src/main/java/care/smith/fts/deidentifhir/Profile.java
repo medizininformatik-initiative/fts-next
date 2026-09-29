@@ -7,6 +7,7 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
+import care.smith.fts.deidentifhir.internal.FhirPaths;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import java.util.Arrays;
@@ -48,7 +49,16 @@ public final class Profile {
       Map<Class<?>, List<DeidentifhirHandler<Object>>> typeHandlers) {}
 
   /** One {@code key { handler = name }} entry of a {@code paths} or {@code types} section. */
-  private record Registration(String key, DeidentifhirHandler<Object> handler) {}
+  private record Registration(String key, String name, Registry.Registration registration) {
+
+    DeidentifhirHandler<Object> handler() {
+      return registration.handler();
+    }
+
+    Registration withKey(String otherKey) {
+      return new Registration(otherKey, name, registration);
+    }
+  }
 
   private final List<Module> modules;
 
@@ -122,6 +132,7 @@ public final class Profile {
     List<Registration> pathRegistrations =
         registrations(config, "paths", registry)
             .flatMap(registration -> expandGlob(registration, basePaths))
+            .map(Profile::requireFittingPathType)
             .toList();
     Map<String, List<DeidentifhirHandler<Object>>> pathHandlers =
         basePaths.stream()
@@ -142,12 +153,35 @@ public final class Profile {
     return Optional.of(section).filter(config::hasPath).stream()
         .flatMap(present -> config.getConfig(present).root().entrySet().stream())
         .map(
-            entry ->
-                new Registration(
-                    entry.getKey(),
-                    registry
-                        .resolve(((ConfigObject) entry.getValue()).toConfig().getString("handler"))
-                        .handler()));
+            entry -> {
+              String name = ((ConfigObject) entry.getValue()).toConfig().getString("handler");
+              return new Registration(entry.getKey(), name, registry.resolve(name));
+            });
+  }
+
+  /**
+   * The handler of a path has to accept the element the path names, and the path has to name one:
+   * a handler on a path that names no element can never run.
+   */
+  private static Registration requireFittingPathType(Registration registration) {
+    Class<?> valueType = registration.registration().valueType();
+    Class<?> elementType =
+        FhirPaths.elementType(registration.key())
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Handler '%s' is registered on %s, which names no FHIR element!"
+                            .formatted(registration.name(), registration.key())));
+    if (!valueType.isAssignableFrom(elementType)) {
+      throw new IllegalStateException(
+          "Handler '%s' works on %s, but %s holds %s!"
+              .formatted(
+                  registration.name(),
+                  valueType.getSimpleName(),
+                  registration.key(),
+                  elementType.getSimpleName()));
+    }
+    return registration;
   }
 
   private static List<DeidentifhirHandler<Object>> handlersFor(
@@ -181,7 +215,7 @@ public final class Profile {
     Pattern pattern = Pattern.compile(globToRegex(path));
     return basePaths.stream()
         .filter(basePath -> pattern.matcher(basePath).matches())
-        .map(basePath -> new Registration(basePath, registration.handler()));
+        .map(registration::withKey);
   }
 
   private static String globToRegex(String path) {
