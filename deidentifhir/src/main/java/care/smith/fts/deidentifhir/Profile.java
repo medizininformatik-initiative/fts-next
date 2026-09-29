@@ -81,8 +81,9 @@ public final class Profile {
 
     /**
      * The merged decision for one element: the type handlers of all matched modules run before the
-     * path handlers of all matched modules. An element that no matched module mentions is removed;
-     * one that a module lists without a handler is kept unchanged.
+     * path handlers of all matched modules. An element that no matched module lists in its base is
+     * removed, whatever type handlers exist for it; one that a module lists without a handler is
+     * kept unchanged.
      */
     public Rule ruleFor(List<String> path, Class<?> valueType) {
       String pathKey = String.join(".", path);
@@ -90,7 +91,8 @@ public final class Profile {
           chains(module -> module.typeHandlers().get(valueType));
       List<List<DeidentifhirHandler<Object>>> pathChains =
           chains(module -> module.pathHandlers().get(pathKey));
-      if (typeChains.isEmpty() && pathChains.isEmpty()) {
+      // the base list decides what is kept; a type handler only transforms a kept element
+      if (pathChains.isEmpty()) {
         return Rule.REMOVE;
       }
       return new Rule.Apply(

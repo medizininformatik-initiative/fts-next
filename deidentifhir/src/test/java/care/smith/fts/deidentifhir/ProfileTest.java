@@ -236,9 +236,9 @@ class ProfileTest {
         .isEqualTo(new Rule.Apply(List.of()));
   }
 
-  /** A type handler alone keeps an element, even one that no base path lists. */
+  /** The base list alone decides what is kept; a type handler only transforms what it keeps. */
   @Test
-  void aTypeHandlerKeepsAnElementThatNoBasePathLists() {
+  void aTypeHandlerDoesNotKeepAnElementThatNoBasePathLists() {
     Profile profile =
         profile(
             """
@@ -251,7 +251,7 @@ class ProfileTest {
 
     Rule rule = profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), DateType.class);
 
-    assertThat(rule).isEqualTo(new Rule.Apply(List.of(NOOP)));
+    assertThat(rule).isEqualTo(Rule.REMOVE);
   }
 
   /** A lone star names every base path; a lone element with a star stays within one element. */
