@@ -104,6 +104,38 @@ class DeidentifhirTest {
         .hasMessageContaining("doesNotExist");
   }
 
+  /**
+   * A handler may accept a subtype and still return its base type: a StringType handler that makes
+   * a new StringType for Annotation.text, a MarkdownType field. The parse check cannot see this, so
+   * the error at write time has to name the path.
+   */
+  @Test
+  void namesThePathWhenAHandlerResultDoesNotFitTheField() {
+    Config config =
+        ConfigFactory.parseString(
+            """
+            modules.observation {
+              pattern = "Observation.exists()"
+              base = ["Observation.note.text"]
+              paths { "Observation.note.text" { handler = newString } }
+            }
+            """);
+    Registry registry = new Registry();
+    registry.addHandler(
+        "newString",
+        org.hl7.fhir.r4.model.StringType.class,
+        (path, value, context) -> Optional.of(new org.hl7.fhir.r4.model.StringType("x")));
+    Deidentifhir deidentifhir = Deidentifhir.fromConfig(config, registry);
+    org.hl7.fhir.r4.model.Observation observation = new org.hl7.fhir.r4.model.Observation();
+    observation.addNote().setText("free text");
+
+    assertThatThrownBy(() -> deidentifhir.deidentify(observation))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Observation.note.text")
+        .hasMessageContaining("StringType")
+        .hasMessageContaining("MarkdownType");
+  }
+
   @Test
   void rejectsPathHandlerOnPathMissingFromBase() {
     Config config =

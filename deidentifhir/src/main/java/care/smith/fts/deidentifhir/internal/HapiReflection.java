@@ -80,12 +80,24 @@ public interface HapiReflection {
       return value;
     }
 
-    /** Writes {@code newValue} into the slot of this child on {@code target}. */
+    /**
+     * Writes {@code newValue} into the slot of this child on {@code target}.
+     *
+     * @throws IllegalArgumentException when the slot does not accept the class of {@code newValue}
+     */
     public void copyInto(Base target, Object newValue) {
       try {
         field.set(target, newValue);
       } catch (IllegalAccessException e) {
         throw new IllegalStateException(e);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException(
+            "%s holds %s, not %s"
+                .formatted(
+                    property.getName(),
+                    field.getType().getSimpleName(),
+                    newValue.getClass().getSimpleName()),
+            e);
       }
     }
   }

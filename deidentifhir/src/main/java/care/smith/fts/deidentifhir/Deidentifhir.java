@@ -156,8 +156,27 @@ public class Deidentifhir {
     return Optional.of(rebuilt).filter(not(BundleEntryComponent::isEmpty));
   }
 
-  /** A child that survived de-identification, with the value to write into the fresh element. */
-  private record Kept(FhirChild child, Object value) {}
+  /**
+   * A child that survived de-identification, with its path and the value to write into the fresh
+   * element.
+   */
+  private record Kept(FhirChild child, List<String> path, Object value) {
+
+    /**
+     * The parse check lets a handler take a subtype of its value type, so it can still return a
+     * value the field does not accept; the error then names the path.
+     */
+    void writeInto(Base target) {
+      try {
+        child.copyInto(target, value);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalStateException(
+            "The handlers of %s returned a value that does not fit: %s"
+                .formatted(String.join(".", path), e.getMessage()),
+            e);
+      }
+    }
+  }
 
   private Optional<Base> deidentifyElement(
       List<String> path, Base base, HandlerContext context, Profile.Rules rules) {
@@ -165,20 +184,19 @@ public class Deidentifhir {
     List<Kept> kept =
         HapiReflection.childrenWithValue(base).stream()
             .flatMap(
-                child ->
-                    deidentifyValue(
-                        append(path, HapiReflection.toPathElement(child.property(), child.value())),
-                        child.value(),
-                        childContext,
-                        rules)
-                        .map(value -> new Kept(child, value))
-                        .stream())
+                child -> {
+                  List<String> childPath =
+                      append(path, HapiReflection.toPathElement(child.property(), child.value()));
+                  return deidentifyValue(childPath, child.value(), childContext, rules)
+                      .map(value -> new Kept(child, childPath, value))
+                      .stream();
+                })
             .toList();
     if (kept.isEmpty()) {
       return Optional.empty();
     }
     Base empty = HapiReflection.newEmptyInstance(base.getClass());
-    kept.forEach(k -> k.child().copyInto(empty, k.value()));
+    kept.forEach(k -> k.writeInto(empty));
     return Optional.of(empty);
   }
 
