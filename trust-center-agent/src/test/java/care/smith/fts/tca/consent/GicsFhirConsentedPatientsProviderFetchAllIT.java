@@ -1,6 +1,7 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -9,6 +10,7 @@ import static java.lang.String.valueOf;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
@@ -69,6 +71,7 @@ class GicsFhirConsentedPatientsProviderFetchAllIT
   @Override
   protected MappingBuilder getRequestMappingBuilder() {
     return post(urlPathEqualTo("/$allConsentsForDomain"))
+        .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON_VALUE))
         .withRequestBody(equalToJson(REQUEST_BODY));
   }
 

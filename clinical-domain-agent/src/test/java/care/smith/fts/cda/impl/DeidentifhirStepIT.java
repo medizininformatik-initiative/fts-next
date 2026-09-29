@@ -49,6 +49,9 @@ import reactor.core.publisher.Mono;
 @WireMockTest
 class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
 
+  private static final String PATIENT_PROFILE =
+      "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient";
+
   private DeidentifhirStep step;
   private WireMock wireMock;
   private ConsentedPatientBundle consentedPatientBundle;
@@ -166,40 +169,81 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       WireMockRuntimeInfo wireMockRuntime,
       @Autowired WebClientFactory clientFactory,
       @Autowired MeterRegistry meterRegistry) {
-    var dateOnlyConfig =
-        parseString(
-"""
-{
-  deidentiFHIR.profile.version=0.2
-  modules {
-    test_patient {
-      base = ["Patient.id", "Patient.birthDate", "Patient.meta.profile"]
-      paths { "Patient.birthDate" { handler = shiftDateHandler } }
-      pattern = "Patient.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient'"
-    }
-  }
-}
-""");
-
-    var client = clientFactory.create(clientConfig(wireMockRuntime));
     var dateOnlyStep =
-        new DeidentifhirStep(
-            client,
-            new TcaDomains("domain", "domain", "domain"),
-            ofDays(14),
-            NONE,
-            dateOnlyConfig,
+        singlePatientModuleStep(
+            wireMockRuntime,
+            clientFactory,
             meterRegistry,
-            new DefaultRetryStrategy(meterRegistry));
+            """
+            base = ["Patient.id", "Patient.birthDate", "Patient.meta.profile"]
+            paths { "Patient.birthDate" { handler = shiftDateHandler } }
+            """);
+    var patient = profiledPatient().setBirthDateElement(new DateType("1990-01-01"));
+    registerTransferId("date-only-transfer");
 
+    create(dateOnlyStep.deidentify(consentedPatientBundle(patient)))
+        .assertNext(tb -> assertThat(tb.transferId()).isEqualTo("date-only-transfer"))
+        .verifyComplete();
+  }
+
+  @Test
+  void onlyIdMappingsSendsMappingsToTca(
+      WireMockRuntimeInfo wireMockRuntime,
+      @Autowired WebClientFactory clientFactory,
+      @Autowired MeterRegistry meterRegistry) {
+    var idOnlyStep =
+        singlePatientModuleStep(
+            wireMockRuntime,
+            clientFactory,
+            meterRegistry,
+            """
+            base = ["Patient.id", "Patient.meta.profile"]
+            paths { "Patient.id" { handler = idReplacementHandler } }
+            """);
+    registerTransferId("id-only-transfer");
+
+    create(idOnlyStep.deidentify(consentedPatientBundle(profiledPatient())))
+        .assertNext(tb -> assertThat(tb.transferId()).isEqualTo("id-only-transfer"))
+        .verifyComplete();
+  }
+
+  private static DeidentifhirStep singlePatientModuleStep(
+      WireMockRuntimeInfo wireMockRuntime,
+      WebClientFactory clientFactory,
+      MeterRegistry meterRegistry,
+      String module) {
+    var config =
+        parseString(
+            """
+            {
+              deidentiFHIR.profile.version=0.2
+              modules {
+                test_patient {
+                  %s
+                  pattern = "Patient.meta.profile contains '%s'"
+                }
+              }
+            }
+            """
+                .formatted(module, PATIENT_PROFILE));
+    return new DeidentifhirStep(
+        clientFactory.create(clientConfig(wireMockRuntime)),
+        new TcaDomains("domain", "domain", "domain"),
+        ofDays(14),
+        NONE,
+        config,
+        meterRegistry,
+        new DefaultRetryStrategy(meterRegistry));
+  }
+
+  private static Patient profiledPatient() {
     var patient = new Patient();
     patient.setId("test-patient");
-    patient
-        .getMeta()
-        .addProfile(
-            "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient");
-    patient.setBirthDateElement(new DateType("1990-01-01"));
+    patient.getMeta().addProfile(PATIENT_PROFILE);
+    return patient;
+  }
 
+  private static ConsentedPatientBundle consentedPatientBundle(Patient patient) {
     var innerBundle = new Bundle();
     innerBundle.addEntry().setResource(patient);
 
@@ -207,20 +251,13 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     outerBundle.addEntry().setResource(innerBundle);
     outerBundle.setTotal(1);
 
-    var cpb =
-        new ConsentedPatientBundle(outerBundle, new ConsentedPatient("test-patient", "system"));
+    return new ConsentedPatientBundle(outerBundle, new ConsentedPatient("test-patient", "system"));
+  }
 
+  private void registerTransferId(String transferId) {
     wireMock.register(
         transportMappingRequest()
-            .willReturn(
-                jsonResponse(
-                    """
-                    {"transferId": "date-only-transfer"}
-                    """)));
-
-    create(dateOnlyStep.deidentify(cpb))
-        .assertNext(tb -> assertThat(tb.transferId()).isEqualTo("date-only-transfer"))
-        .verifyComplete();
+            .willReturn(jsonResponse("{\"transferId\": \"%s\"}".formatted(transferId))));
   }
 
   @Test

@@ -1,8 +1,11 @@
 package care.smith.fts.util;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,12 +21,19 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.netty.http.client.HttpClient;
+import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.json.JsonMapper;
 
 @WireMockTest
 class WebClientDefaultsTest {
 
   private static final JsonMapper jsonMapper = JsonMapper.builder().build();
+
+  // Differs from Spring's default mapper, so a missing codec registration becomes visible.
+  private static final JsonMapper upperCamelCaseMapper =
+      JsonMapper.builder()
+          .propertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE)
+          .build();
 
   @Test
   void customizeWebClientAndDecodeToMono(WireMockRuntimeInfo wireMockRuntime) {
@@ -51,6 +61,40 @@ class WebClientDefaultsTest {
               assertThat(b.id()).isEqualTo("id1");
               assertThat(b.dateShift()).isEqualTo(Duration.ofDays(7));
             })
+        .verifyComplete();
+  }
+
+  @Test
+  void decodesWithGivenMapper(WireMockRuntimeInfo wireMockRuntime) {
+    wireMockRuntime
+        .getWireMock()
+        .register(get(urlEqualTo("/")).willReturn(jsonResponse("{\"Id\": \"id1\"}", 200)));
+
+    WebClient.Builder webClientBuilder = WebClient.builder();
+    new WebClientDefaults(upperCamelCaseMapper).customize(webClientBuilder);
+    WebClient webClient = webClientBuilder.baseUrl(wireMockRuntime.getHttpBaseUrl()).build();
+
+    create(webClient.get().retrieve().bodyToMono(DateShiftingRequest.class))
+        .assertNext(b -> assertThat(b.id()).isEqualTo("id1"))
+        .verifyComplete();
+  }
+
+  @Test
+  void encodesWithGivenMapper(WireMockRuntimeInfo wireMockRuntime) {
+    wireMockRuntime
+        .getWireMock()
+        .register(
+            post(urlEqualTo("/"))
+                .withRequestBody(matchingJsonPath("$.Id", equalTo("id1")))
+                .willReturn(ok()));
+
+    WebClient.Builder webClientBuilder = WebClient.builder();
+    new WebClientDefaults(upperCamelCaseMapper).customize(webClientBuilder);
+    WebClient webClient = webClientBuilder.baseUrl(wireMockRuntime.getHttpBaseUrl()).build();
+
+    var body = new DateShiftingRequest("id1", Duration.ofDays(7));
+    create(webClient.post().bodyValue(body).retrieve().toBodilessEntity())
+        .assertNext(r -> assertThat(r.getStatusCode().value()).isEqualTo(200))
         .verifyComplete();
   }
 

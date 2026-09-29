@@ -105,4 +105,11 @@ class FhirDecoderTest {
 
     assertThat(decoder.canDecode(resolvableType, MediaType.APPLICATION_JSON)).isFalse();
   }
+
+  @Test
+  void cannotDecodeIncompatibleMimeType() {
+    ResolvableType resolvableType = ResolvableType.forClass(Patient.class);
+
+    assertThat(decoder.canDecode(resolvableType, MediaType.APPLICATION_PDF)).isFalse();
+  }
 }
