@@ -3,7 +3,9 @@ package care.smith.fts.deidentifhir;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import care.smith.fts.deidentifhir.handlers.Handlers;
+import care.smith.fts.deidentifhir.internal.PseudonymUuid;
 import java.util.List;
+import java.util.Map;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
@@ -20,21 +22,26 @@ class PseudonymIdentityTest {
     return HandlerContext.of(List.of(new Bundle()));
   }
 
-  /** The two ends of one link: an entry's fullUrl and a reference to it get the same value. */
+  /**
+   * The two ends of one link: an entry's fullUrl and a reference to it carry the same pseudonym,
+   * the fullUrl as a UUID in urn form because it has to stay an absolute URI.
+   */
   @Test
-  void aFullUrlAndAReferenceToTheSameResourceAgree() {
-    HandlerContext context = bundleContext();
+  void aFullUrlAndAReferenceToTheSameResourceCarryTheSamePseudonym() {
+    HandlerContext context =
+        bundleContext().withEntryTypes(Map.of("urn:uuid:8d1f-42", "Condition"));
 
     String fullUrl = identity.fullUrl("urn:uuid:8d1f-42", context).orElseThrow();
     StringType reference =
         REFERENCE_HANDLER
             .apply(
-                List.of("Condition", "subject", "reference"),
+                List.of("Encounter", "diagnosis", "condition", "reference"),
                 new StringType("urn:uuid:8d1f-42"),
                 context)
             .orElseThrow();
 
-    assertThat(fullUrl).isEqualTo(reference.getValue()).startsWith("urn:uuid:");
+    assertThat(reference.getValue()).isEqualTo("Condition/pseudonym-of-8d1f-42");
+    assertThat(fullUrl).isEqualTo("urn:uuid:" + PseudonymUuid.uuidFrom("pseudonym-of-8d1f-42"));
   }
 
   @Test

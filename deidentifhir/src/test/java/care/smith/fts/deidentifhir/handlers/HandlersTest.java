@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import care.smith.fts.deidentifhir.DeidentifhirHandler;
 import care.smith.fts.deidentifhir.HandlerContext;
 import java.util.List;
+import java.util.Map;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Identifier;
@@ -105,62 +106,44 @@ class HandlersTest {
   }
 
   /**
-   * The provider is asked for the bare uuid under the {@code urn:uuid} key, and its answer is
-   * shaped into a UUID, because {@code urn:uuid:<anything>} is not a valid URI for the HL7
-   * validator. The expected value is the shaping of the pseudonym {@code SYNTH-1}, see {@link
-   * #urnPseudonymIsTheShapedProviderAnswer()}.
+   * A urn reference names no resource type; the handler takes it from the bundle entry whose
+   * fullUrl the urn is, and asks for the bare uuid under that type.
    */
   @Test
-  void referenceReplacementHandlerShapesTheProviderAnswerOfAUrnReferenceIntoAUuid() {
+  void referenceReplacementHandlerResolvesAUrnReferenceThroughTheEntryItNames() {
     DeidentifhirHandler<StringType> handler =
         Handlers.referenceReplacementHandler(
             (resourceType, id) ->
-                resourceType.equals("urn:uuid") && id.equals("8d1f-42") ? "SYNTH-1" : "wrong-key",
+                resourceType.equals("Patient") && id.equals("8d1f-42") ? "SYNTH-1" : "wrong-key",
             (system, value) -> "value-pseudonym");
+    HandlerContext context =
+        HandlerContext.empty().withEntryTypes(Map.of("urn:uuid:8d1f-42", "Patient"));
 
     StringType result =
-        handler
-            .apply(NO_PATH, new StringType("urn:uuid:8d1f-42"), HandlerContext.empty())
-            .orElseThrow();
+        handler.apply(NO_PATH, new StringType("urn:uuid:8d1f-42"), context).orElseThrow();
 
-    assertThat(result.getValue()).isEqualTo("urn:uuid:79224f4a-b34f-478d-be55-50c9cf9d4f37");
+    assertThat(result.getValue()).isEqualTo("Patient/SYNTH-1");
   }
 
-  /**
-   * Pins the shaping itself: the UUID is the 128-bit FNV-1a hash of the pseudonym with the version
-   * nibble stamped to {@code 4} and the variant nibble taken from the two lowest hash bits. The
-   * expected values were produced by an independent implementation of that algorithm, run on {@code
-   * SYNTH-1} and {@code other}.
-   */
+  /** A urn that no entry of the bundle carries points at nothing, so the reference is removed. */
   @Test
-  void urnPseudonymIsTheShapedProviderAnswer() {
+  void referenceReplacementHandlerRemovesAUrnReferenceThatNoEntryCarries() {
     DeidentifhirHandler<StringType> handler =
         Handlers.referenceReplacementHandler(
-            (resourceType, id) -> id.equals("a") ? "SYNTH-1" : "id-pseudonym",
-            (system, value) -> "value-pseudonym");
+            (resourceType, id) -> "pseudonym", (system, value) -> "value-pseudonym");
 
-    assertThat(
-            handler
-                .apply(NO_PATH, new StringType("urn:uuid:a"), HandlerContext.empty())
-                .orElseThrow()
-                .getValue())
-        .isEqualTo("urn:uuid:79224f4a-b34f-478d-be55-50c9cf9d4f37");
-    assertThat(
-            handler
-                .apply(NO_PATH, new StringType("urn:uuid:b"), HandlerContext.empty())
-                .orElseThrow()
-                .getValue())
-        .isEqualTo("urn:uuid:52a47402-9e1f-438b-b31c-fad31f14ca93");
+    assertThat(handler.apply(NO_PATH, new StringType("urn:uuid:8d1f-42"), HandlerContext.empty()))
+        .isEmpty();
   }
 
   /**
-   * The link a transaction bundle resolves: a {@code urn:uuid:} reference and the {@code fullUrl}
-   * of the entry it points at both derive from the pseudonym of the same id, so both sides of the
-   * link carry the same value while the resource keeps the plain pseudonym as its id.
+   * Both ends of a urn link are keyed alike: the id of the entry, read by HAPI from its urn
+   * fullUrl, and a reference to it take the pseudonym of the same type and uuid.
    */
   @Test
-  void referenceReplacementHandlerDerivesAUrnReferenceFromTheSamePseudonymAsTheEntryId() {
-    IDReplacementProvider provider = (resourceType, id) -> "pseudonym-of-" + id;
+  void referenceReplacementHandlerGivesAUrnReferenceThePseudonymOfTheEntryId() {
+    IDReplacementProvider provider =
+        (resourceType, id) -> "pseudonym-of-" + resourceType + "-" + id;
     Patient entry = new Patient();
     entry.setId("urn:uuid:8d1f-42");
 
@@ -170,11 +153,13 @@ class HandlersTest {
             .orElseThrow();
     StringType reference =
         Handlers.referenceReplacementHandler(provider, (system, value) -> "value-pseudonym")
-            .apply(NO_PATH, new StringType("urn:uuid:8d1f-42"), HandlerContext.empty())
+            .apply(
+                NO_PATH,
+                new StringType("urn:uuid:8d1f-42"),
+                HandlerContext.empty().withEntryTypes(Map.of("urn:uuid:8d1f-42", "Patient")))
             .orElseThrow();
 
-    assertThat(id.getIdPart()).isEqualTo("pseudonym-of-8d1f-42");
-    assertThat(reference.getValue()).isEqualTo("urn:uuid:a9fb0f8c-30e2-43ed-8372-6e689ea717d8");
+    assertThat(reference.getValue()).isEqualTo("Patient/" + id.getIdPart());
   }
 
   /** The exact reference shape of the MII corpus: the system of the search URI carries slashes. */
@@ -264,20 +249,6 @@ class HandlersTest {
                     .apply(NO_PATH, new StringType("/123"), HandlerContext.empty())
                     .orElseThrow())
         .hasMessageContaining("only relative references are supported");
-  }
-
-  @Test
-  void referenceReplacementHandlerRewritesUrnReferences() {
-    DeidentifhirHandler<StringType> handler =
-        Handlers.referenceReplacementHandler(
-            (resourceType, id) -> "id-pseudonym", (system, value) -> "value-pseudonym");
-
-    StringType result =
-        handler
-            .apply(NO_PATH, new StringType("urn:uuid:8d1f-42"), HandlerContext.empty())
-            .orElseThrow();
-
-    assertThat(result.getValue()).isEqualTo("urn:uuid:52a47402-9e1f-438b-b31c-fad31f14ca93");
   }
 
   @Test

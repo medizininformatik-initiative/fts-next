@@ -3,12 +3,14 @@ package care.smith.fts.deidentifhir;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.deidentifhir.internal.HapiReflection;
 import care.smith.fts.deidentifhir.internal.HapiReflection.FhirChild;
 import com.typesafe.config.Config;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -88,11 +90,27 @@ public class Deidentifhir {
     if (bundle.hasType()) {
       deidentifiedBundle.setType(bundle.getType());
     }
-    HandlerContext entryContext = context.child(bundle);
+    HandlerContext bundleContext = context.withEntryTypes(entryTypes(bundle));
+    HandlerContext entryContext = bundleContext.child(bundle);
     bundle.getEntry().stream()
-        .flatMap(entry -> deidentifyEntry(entry, context, entryContext).stream())
+        .flatMap(entry -> deidentifyEntry(entry, bundleContext, entryContext).stream())
         .forEach(deidentifiedBundle::addEntry);
     return deidentifiedBundle;
+  }
+
+  /**
+   * The resource type of every entry that has a fullUrl and a resource. A urn reference names an
+   * entry only by its fullUrl, so the reference rule looks the type up here. Of two entries with the
+   * same fullUrl, the first wins.
+   */
+  private static Map<String, String> entryTypes(Bundle bundle) {
+    return bundle.getEntry().stream()
+        .filter(entry -> entry.getFullUrl() != null && entry.hasResource())
+        .collect(
+            toMap(
+                BundleEntryComponent::getFullUrl,
+                entry -> entry.getResource().fhirType(),
+                (first, second) -> first));
   }
 
   /**

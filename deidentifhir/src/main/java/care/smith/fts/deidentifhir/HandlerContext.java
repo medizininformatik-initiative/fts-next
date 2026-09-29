@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Predicate.not;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
@@ -11,20 +12,27 @@ import org.hl7.fhir.r4.model.Resource;
 
 /**
  * What a handler may ask about the element it transforms: the resource it belongs to, the parent
- * element, the full ancestor chain, and the patient identifier of the call.
+ * element, the full ancestor chain, the patient identifier of the call, and the resource type of
+ * each entry of the enclosing bundle.
  */
 public final class HandlerContext {
 
-  private static final HandlerContext EMPTY = new HandlerContext(List.of(), Optional.empty());
+  private static final HandlerContext EMPTY =
+      new HandlerContext(List.of(), Optional.empty(), Map.of());
 
   /** All ancestors from the resource root to the parent of the current element, root first. */
   private final List<Base> ancestors;
 
   private final Optional<String> patientIdentifier;
 
-  private HandlerContext(List<Base> ancestors, Optional<String> patientIdentifier) {
+  /** The resource type of each entry of the enclosing bundle, by the entry's fullUrl. */
+  private final Map<String, String> entryTypes;
+
+  private HandlerContext(
+      List<Base> ancestors, Optional<String> patientIdentifier, Map<String, String> entryTypes) {
     this.ancestors = ancestors;
     this.patientIdentifier = patientIdentifier;
+    this.entryTypes = entryTypes;
   }
 
   public static HandlerContext empty() {
@@ -32,18 +40,25 @@ public final class HandlerContext {
   }
 
   public static HandlerContext of(List<Base> ancestors) {
-    return new HandlerContext(List.copyOf(ancestors), Optional.empty());
+    return new HandlerContext(List.copyOf(ancestors), Optional.empty(), Map.of());
   }
 
   public static HandlerContext of(List<Base> ancestors, String patientIdentifier) {
-    return new HandlerContext(List.copyOf(ancestors), Optional.of(patientIdentifier));
+    return new HandlerContext(List.copyOf(ancestors), Optional.of(patientIdentifier), Map.of());
+  }
+
+  /** The same call inside a bundle whose entries have the given resource types by fullUrl. */
+  public HandlerContext withEntryTypes(Map<String, String> entryTypes) {
+    return new HandlerContext(ancestors, patientIdentifier, Map.copyOf(entryTypes));
   }
 
   /** The same call, one level deeper: {@code ancestor} appended to the chain. */
   public HandlerContext child(Base ancestor) {
     requireNonNull(ancestor);
     return new HandlerContext(
-        Stream.concat(ancestors.stream(), Stream.of(ancestor)).toList(), patientIdentifier);
+        Stream.concat(ancestors.stream(), Stream.of(ancestor)).toList(),
+        patientIdentifier,
+        entryTypes);
   }
 
   /**
@@ -78,6 +93,14 @@ public final class HandlerContext {
 
   public List<Base> ancestors() {
     return ancestors;
+  }
+
+  /**
+   * The resource type of the bundle entry whose fullUrl is {@code fullUrl}; empty outside a bundle
+   * or when no entry has that fullUrl.
+   */
+  public Optional<String> entryType(String fullUrl) {
+    return Optional.ofNullable(entryTypes.get(fullUrl));
   }
 
   /** The patient identifier of the call, when the caller named one. */

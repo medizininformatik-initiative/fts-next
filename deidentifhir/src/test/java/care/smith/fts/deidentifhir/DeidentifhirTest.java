@@ -344,12 +344,12 @@ class DeidentifhirTest {
   }
 
   /**
-   * The link a transaction bundle resolves on: a reference to an entry and that entry's {@code
-   * fullUrl} both carry the pseudonym of its id, shaped into a UUID, so they meet. The expected
-   * value is the shaping of {@code pseudonym-of-8d1f-42}.
+   * The link a transaction bundle resolves on: a reference to an entry, that entry's id and its
+   * {@code fullUrl} all carry the pseudonym of the entry's id; the fullUrl shaped into a UUID. The
+   * expected fullUrl is the shaping of {@code pseudonym-of-8d1f-42}.
    */
   @Test
-  void replacesTheFullUrlWithTheSameValueAsAReferenceToTheEntry() {
+  void givesTheFullUrlTheSamePseudonymAsAReferenceToTheEntry() {
     Bundle bundle = transactionBundle();
     Patient referring = new Patient();
     referring.setId("urn:uuid:other");
@@ -360,9 +360,11 @@ class DeidentifhirTest {
 
     assertThat(result.getEntryFirstRep().getFullUrl())
         .isEqualTo("urn:uuid:a9fb0f8c-30e2-43ed-8372-6e689ea717d8");
+    assertThat(result.getEntryFirstRep().getResource().getIdPart())
+        .isEqualTo("pseudonym-of-8d1f-42");
     Patient deidentifiedReferring = (Patient) result.getEntry().get(1).getResource();
     assertThat(deidentifiedReferring.getManagingOrganization().getReference())
-        .isEqualTo(result.getEntryFirstRep().getFullUrl());
+        .isEqualTo("Patient/pseudonym-of-8d1f-42");
   }
 
   @Test
@@ -514,37 +516,54 @@ class DeidentifhirTest {
         .isEqualTo("Organization?identifier=https://github.com/synthetichealth/synthea|value");
   }
 
+  /**
+   * A urn reference names no resource type. The engine takes it from the entry whose fullUrl it
+   * names, so the reference and that entry's id are pseudonymized under the same key and the link
+   * survives as a relative reference.
+   */
   @Test
-  void deidentifiesTheUrnReferencesOfATransactionBundle() {
+  void resolvesAUrnReferenceToTheTypeOfTheEntryItNames() {
+    Bundle bundle = new Bundle();
+    bundle.setType(Bundle.BundleType.TRANSACTION);
+    Patient patient = new Patient();
+    patient.setId("urn:uuid:9e2a-7");
+    bundle.addEntry().setFullUrl("urn:uuid:9e2a-7").setResource(patient);
+    Encounter encounter = new Encounter();
+    encounter.setId("urn:uuid:8d1f-42");
+    encounter.setSubject(new Reference("urn:uuid:9e2a-7"));
+    bundle.addEntry().setFullUrl("urn:uuid:8d1f-42").setResource(encounter);
+
+    Bundle result = (Bundle) urnEngine().deidentify(bundle).orElseThrow();
+
+    Patient deidentifiedPatient = (Patient) result.getEntry().get(0).getResource();
+    Encounter deidentifiedEncounter = (Encounter) result.getEntry().get(1).getResource();
+    assertThat(deidentifiedPatient.getIdPart()).isEqualTo("pseudonym-of-Patient-9e2a-7");
+    assertThat(deidentifiedEncounter.getSubject().getReference())
+        .isEqualTo("Patient/pseudonym-of-Patient-9e2a-7");
+  }
+
+  /** An engine that pseudonymizes Patient and Encounter ids and Encounter.subject by type and id. */
+  private static Deidentifhir urnEngine() {
     Config config =
         ConfigFactory.parseString(
             """
+            modules.patient {
+              pattern = "Patient.exists()"
+              base = ["Patient.id"]
+              paths = { "Patient.id": {handler = idReplacementHandler} }
+            }
             modules.encounter {
               pattern = "Encounter.exists()"
-              base = [
-                "Encounter.id",
-                "Encounter.subject.reference"
-              ]
+              base = ["Encounter.id", "Encounter.subject.reference"]
               paths = {
                 "Encounter.id": {handler = idReplacementHandler}
                 "Encounter.subject.reference": {handler = referenceReplacementHandler}
               }
             }
             """);
-    Deidentifhir deidentifhir =
-        Deidentifhir.fromConfig(
-            config, referenceRegistry((resourceType, id) -> "pseudonym-of-" + id));
-
-    Encounter encounter = new Encounter();
-    encounter.setId("urn:uuid:8d1f-42");
-    encounter.setSubject(new Reference("urn:uuid:9e2a-7"));
-
-    Encounter result = (Encounter) deidentifhir.deidentify(encounter).orElseThrow();
-
-    assertThat(result.getIdPart()).isEqualTo("pseudonym-of-8d1f-42");
-    // urn:uuid: must hold a real UUID, so the reference carries the shaped pseudonym of 9e2a-7
-    assertThat(result.getSubject().getReference())
-        .isEqualTo("urn:uuid:3ad85e8b-300c-48a5-bbb6-66368b8345bf");
+    return Deidentifhir.fromConfig(
+        config,
+        referenceRegistry((resourceType, id) -> "pseudonym-of-" + resourceType + "-" + id));
   }
 
   /** An engine that keeps the id of every Patient and registers no handler at all. */

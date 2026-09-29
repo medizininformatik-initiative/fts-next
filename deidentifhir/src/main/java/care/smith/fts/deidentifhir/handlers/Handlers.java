@@ -44,13 +44,6 @@ public interface Handlers {
   Pattern ABSOLUTE_REFERENCE = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]*://");
 
   /**
-   * The resource type key under which {@code urn:uuid:} references are pseudonymized. A reference
-   * in literal urn form does not name a resource type, so this constant takes its place in every
-   * {@link IDReplacementProvider#getIDReplacement} call made for such a reference.
-   */
-  String URN_UUID_RESOURCE_TYPE = "urn:uuid";
-
-  /**
    * Truncates the postal code to its first three digits if it is five digits long. Any other postal
    * code is removed altogether.
    */
@@ -111,20 +104,13 @@ public interface Handlers {
    * identifier value of a conditional reference {@code Type?identifier=system|value}.
    *
    * <p>A reference in the literal urn form {@code urn:uuid:<uuid>}, the form transaction bundles
-   * use to point at an entry that has no server id yet, is pseudonymized as well. Such references
-   * occur throughout the MII transport bundles, and rejecting them would leave the plain UUID of
-   * the source system in the output. Two details of that replacement:
-   *
-   * <ul>
-   *   <li>The provider is called with {@link #URN_UUID_RESOURCE_TYPE} as the resource type, because
-   *       the reference itself does not name one, and with the bare uuid as the id, the same string
-   *       {@link #idReplacementHandler} passes for the referenced entry. A provider that keys on
-   *       the id alone therefore gives the reference and the id of the entry it points at the same
-   *       pseudonym.
-   *   <li>The {@code urn:uuid:} prefix stays on the result, so the value remains a reference in
-   *       literal urn form rather than turning into a relative reference to a resource type that
-   *       does not exist.
-   * </ul>
+   * use to point at an entry that has no server id yet, names no resource type. The type comes from
+   * the bundle entry whose {@code fullUrl} is that urn ({@link HandlerContext#entryType}), and the
+   * provider is asked for the bare uuid under it: the same key {@link #idReplacementHandler} uses
+   * for that entry. The result is the relative reference {@code Type/<pseudonym>}, so the link
+   * still resolves once the {@code fullUrl} is gone, as it is in the research domain. A urn that no
+   * entry of the bundle carries cannot be resolved; the reference is removed rather than left
+   * pointing at nothing.
    *
    * <p>Any other reference format is rejected — an absolute URL loudly, rather than being split at
    * the {@code /} of its scheme and turned into nonsense.
@@ -148,19 +134,18 @@ public interface Handlers {
       IdentifierValueReplacementProvider identifierValueReplacementProvider) {
     requireNonNull(idReplacementProvider);
     requireNonNull(identifierValueReplacementProvider);
-    return (path, reference, context) ->
-        Optional.of(
-            Optional.ofNullable(reference.getValue())
-                .map(
-                    value -> {
-                      Matcher conditional = CONDITIONAL_REFERENCE.matcher(value);
-                      return new StringType(
-                          conditional.matches()
-                              ? replaceConditionalReference(
-                                  conditional, identifierValueReplacementProvider)
-                              : replaceReference(value, idReplacementProvider));
-                    })
-                .orElse(reference));
+    return (path, reference, context) -> {
+      String value = reference.getValue();
+      if (value == null) {
+        return Optional.of(reference);
+      }
+      Matcher conditional = CONDITIONAL_REFERENCE.matcher(value);
+      return (conditional.matches()
+              ? Optional.of(
+                  replaceConditionalReference(conditional, identifierValueReplacementProvider))
+              : replaceReference(value, idReplacementProvider, context))
+          .map(StringType::new);
+    };
   }
 
   /**
@@ -236,17 +221,21 @@ public interface Handlers {
         .orElseGet(() -> "%s?identifier=%s".formatted(resourceType, replacement));
   }
 
-  private static String replaceReference(
-      String reference, IDReplacementProvider idReplacementProvider) {
+  private static Optional<String> replaceReference(
+      String reference, IDReplacementProvider idReplacementProvider, HandlerContext context) {
     if (reference.startsWith("#")) {
       // a contained reference points inside its own resource and names no source id
-      return reference;
+      return Optional.of(reference);
     }
     if (PseudonymUuid.isUrnUuid(reference)) {
-      String pseudonym =
-          idReplacementProvider.getIDReplacement(
-              URN_UUID_RESOURCE_TYPE, PseudonymUuid.stripUrnUuid(reference));
-      return PseudonymUuid.URN_UUID_PREFIX + PseudonymUuid.uuidFrom(pseudonym);
+      return context
+          .entryType(reference)
+          .map(
+              resourceType ->
+                  pseudonymizedReference(
+                      resourceType,
+                      PseudonymUuid.stripUrnUuid(reference),
+                      idReplacementProvider));
     }
     if (ABSOLUTE_REFERENCE.matcher(reference).find()) {
       // splitting this at the slash of its scheme would silently produce nonsense
@@ -260,9 +249,12 @@ public interface Handlers {
           "unexpected reference format. only relative references are supported right now!");
     }
     // a version names the same resource; it belongs to the source system and is dropped
-    String resourceType = relative.group(1);
-    return resourceType
-        + "/"
-        + idReplacementProvider.getIDReplacement(resourceType, relative.group(2));
+    return Optional.of(
+        pseudonymizedReference(relative.group(1), relative.group(2), idReplacementProvider));
+  }
+
+  private static String pseudonymizedReference(
+      String resourceType, String id, IDReplacementProvider idReplacementProvider) {
+    return resourceType + "/" + idReplacementProvider.getIDReplacement(resourceType, id);
   }
 }

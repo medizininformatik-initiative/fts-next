@@ -51,12 +51,18 @@ public final class PseudonymIdentity {
    * and has to be dropped. Only a {@code fullUrl} in literal urn form can be replaced; one that
    * names a server ({@code https://server.example/fhir/Patient/123}) identifies both the resource
    * and where it came from.
+   *
+   * <p>The reference rule turns the urn into {@code Type/<pseudonym>}, the pseudonym the entry's id
+   * gets as well. A {@code fullUrl} has to stay an absolute URI, so the pseudonym is carried as a
+   * UUID in urn form.
    */
   public Optional<String> fullUrl(String fullUrl, HandlerContext context) {
     requireNonNull(fullUrl);
     return Optional.of(fullUrl)
         .filter(PseudonymUuid::isUrnUuid)
-        .flatMap(urn -> replace(FULL_URL_PATH, urn, context));
+        .flatMap(urn -> replace(FULL_URL_PATH, urn, context))
+        .map(reference -> reference.substring(reference.indexOf('/') + 1))
+        .map(pseudonym -> PseudonymUuid.URN_UUID_PREFIX + PseudonymUuid.uuidFrom(pseudonym));
   }
 
   /**
