@@ -2,9 +2,9 @@ package care.smith.fts.cda.services.deidentifhir;
 
 import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 
-import care.smith.fts.deidentifhir.Deidentifhir;
-import care.smith.fts.deidentifhir.Registry;
-import care.smith.fts.deidentifhir.handlers.Handlers;
+import care.smith.fts.deidentifier.Deidentifier;
+import care.smith.fts.deidentifier.Registry;
+import care.smith.fts.deidentifier.handlers.Handlers;
 import com.typesafe.config.Config;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -76,7 +76,7 @@ public interface DeidentifhirUtils {
       MeterRegistry meterRegistry) {
     var sample = Timer.start(meterRegistry);
     var deidentified =
-        Deidentifhir.fromConfig(config, registry).deidentifyBundle(bundle, patientIdentifier);
+        Deidentifier.fromConfig(config, registry).deidentifyBundle(bundle, patientIdentifier);
     sample.stop(meterRegistry.timer("deidentify"));
     return deidentified;
   }

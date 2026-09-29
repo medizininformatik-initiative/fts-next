@@ -14,7 +14,7 @@
 
   <modules>
     <module>api</module>
-    <module>deidentifhir</module>
+    <module>deidentifier</module>
     <module>util</module>
     <module>test-util</module>
     <module>clinical-domain-agent</module>

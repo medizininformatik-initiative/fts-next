@@ -38,7 +38,7 @@ deidentificator:
 
 ### `deidentifhir` <Badge type="warning" text="Since 5.0" />
 
-This implementation deidentifies FHIR bundles with the deidentifhir engine of FTS. The engine reads
+This implementation deidentifies FHIR bundles with the Deidentifier engine of FTS. The engine reads
 profiles in the configuration format of [DeidentiFHIR](https://github.com/UMEssen/DeidentiFHIR).
 
 #### `trustCenterAgent.server` <Badge type="warning" text="Since 5.0" />

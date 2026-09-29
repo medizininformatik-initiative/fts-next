@@ -48,7 +48,7 @@ jobs:
         cache: 'maven'
         cache-dependency-path: |
           pom.xml
-          {api,deidentifhir,util,test-util}/pom.xml
+          {api,deidentifier,util,test-util}/pom.xml
           ${{ matrix.agent }}/pom.xml
 
     - name: Setup Keycloak
@@ -97,7 +97,7 @@ jobs:
         cache: 'maven'
         cache-dependency-path: |
           pom.xml
-          {api,deidentifhir,util}/pom.xml
+          {api,deidentifier,util}/pom.xml
           ${{ matrix.agent }}/pom.xml
 
     - name: Build Agent
@@ -268,7 +268,7 @@ jobs:
         cache: 'maven'
         cache-dependency-path: |
           pom.xml
-          {api,deidentifhir,util,test-util}/pom.xml
+          {api,deidentifier,util,test-util}/pom.xml
           ${{ matrix.agent }}/pom.xml
 
     - name: Run Agent e2e Tests

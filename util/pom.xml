@@ -151,7 +151,7 @@
 
     <dependency>
       <groupId>care.smith.fts</groupId>
-      <artifactId>deidentifhir</artifactId>
+      <artifactId>deidentifier</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>
