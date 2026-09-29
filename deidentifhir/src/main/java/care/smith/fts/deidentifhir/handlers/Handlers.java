@@ -34,6 +34,12 @@ public interface Handlers {
   /** Placeholder system used for identifiers without a system, when those are accepted. */
   String NO_SYSTEM = "<no_system>";
 
+  /**
+   * A relative reference {@code Type/id}, optionally versioned as {@code Type/id/_history/n}. Group
+   * 1 is the resource type and group 2 the id; the version is not captured.
+   */
+  Pattern RELATIVE_REFERENCE = Pattern.compile("([^/?#]+)/([^/?#]+)(?:/_history/[^/?#]+)?");
+
   /** A reference that names a server, {@code https://server.example/fhir/Patient/123}. */
   Pattern ABSOLUTE_REFERENCE = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]*://");
 
@@ -122,6 +128,10 @@ public interface Handlers {
    *
    * <p>Any other reference format is rejected — an absolute URL loudly, rather than being split at
    * the {@code /} of its scheme and turned into nonsense.
+   *
+   * <p>A versioned reference {@code Type/id/_history/n} is pseudonymized under its id and loses its
+   * version, which belongs to the source system. A contained reference {@code #id} points inside
+   * its own resource and is kept as it is.
    *
    * <p>A reference element without a value carries only extensions, e.g. a data-absent-reason; it
    * passes through unchanged.
@@ -228,6 +238,10 @@ public interface Handlers {
 
   private static String replaceReference(
       String reference, IDReplacementProvider idReplacementProvider) {
+    if (reference.startsWith("#")) {
+      // a contained reference points inside its own resource and names no source id
+      return reference;
+    }
     if (PseudonymUuid.isUrnUuid(reference)) {
       String pseudonym =
           idReplacementProvider.getIDReplacement(
@@ -240,13 +254,15 @@ public interface Handlers {
           "absolute reference '%s' is not supported, only relative and urn references are!"
               .formatted(reference));
     }
-    int separator = reference.indexOf('/');
-    if (separator <= 0) {
+    Matcher relative = RELATIVE_REFERENCE.matcher(reference);
+    if (!relative.matches()) {
       throw new IllegalArgumentException(
           "unexpected reference format. only relative references are supported right now!");
     }
-    String resourceType = reference.substring(0, separator);
-    String idPart = reference.substring(separator + 1);
-    return resourceType + "/" + idReplacementProvider.getIDReplacement(resourceType, idPart);
+    // a version names the same resource; it belongs to the source system and is dropped
+    String resourceType = relative.group(1);
+    return resourceType
+        + "/"
+        + idReplacementProvider.getIDReplacement(resourceType, relative.group(2));
   }
 }

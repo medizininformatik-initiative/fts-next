@@ -311,6 +311,38 @@ class HandlersTest {
     assertThat(result.getValue()).isEqualTo("Patient/id-pseudonym");
   }
 
+  /**
+   * A versioned reference names the same resource as its unversioned form, so it takes the same
+   * pseudonym. The version belongs to the source system and does not exist in the target.
+   */
+  @Test
+  void referenceReplacementHandlerPseudonymizesAVersionedReferenceUnderItsIdAndDropsTheVersion() {
+    DeidentifhirHandler<StringType> handler =
+        Handlers.referenceReplacementHandler(
+            (resourceType, id) -> "pseudonym-of-" + resourceType + "-" + id,
+            (system, value) -> "value-pseudonym");
+
+    StringType result =
+        handler
+            .apply(NO_PATH, new StringType("Condition/c1/_history/2"), HandlerContext.empty())
+            .orElseThrow();
+
+    assertThat(result.getValue()).isEqualTo("Condition/pseudonym-of-Condition-c1");
+  }
+
+  /** A contained reference points inside its own resource and carries no id of the source. */
+  @Test
+  void referenceReplacementHandlerKeepsAContainedReference() {
+    DeidentifhirHandler<StringType> handler =
+        Handlers.referenceReplacementHandler(
+            (resourceType, id) -> "pseudonym", (system, value) -> "value-pseudonym");
+
+    StringType result =
+        handler.apply(NO_PATH, new StringType("#med1"), HandlerContext.empty()).orElseThrow();
+
+    assertThat(result.getValue()).isEqualTo("#med1");
+  }
+
   @Test
   void idReplacementHandlerTakesTheResourceTypeFromTheContextRoot() {
     DeidentifhirHandler<IdType> handler =
