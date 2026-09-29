@@ -1,4 +1,4 @@
-package care.smith.fts.deidentifier;
+package care.smith.fts.deidentifier.allowlist;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

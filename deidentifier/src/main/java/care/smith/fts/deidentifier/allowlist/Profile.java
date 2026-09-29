@@ -1,10 +1,14 @@
-package care.smith.fts.deidentifier;
+package care.smith.fts.deidentifier.allowlist;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
+import care.smith.fts.deidentifier.DeidentifierHandler;
+import care.smith.fts.deidentifier.Registry;
+import care.smith.fts.deidentifier.Rule;
+import care.smith.fts.deidentifier.RuleSet;
 import care.smith.fts.deidentifier.internal.FhirPaths;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
@@ -15,30 +19,17 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Resource;
 
 /**
- * A parsed de-identification profile: the whole HOCON configuration, resolved against a {@link
- * Registry} once. The engine asks it one question: which rule applies to an element.
+ * A parsed allow-list profile: the whole HOCON configuration, resolved against a {@link Registry}
+ * once. An element that no matched module lists in its {@code base} is removed.
  */
-public final class Profile {
+public final class Profile implements RuleSet {
 
   /** The package the {@code types} sections name their classes in, without their package. */
   private static final String MODEL_PACKAGE = "org.hl7.fhir.r4.model.";
-
-  /**
-   * The decision for one element. {@link #REMOVE} means no module keeps it. {@link Apply} carries
-   * the merged handler chain of every applicable module, type handlers before path handlers; an
-   * empty chain means keep unchanged.
-   */
-  public sealed interface Rule {
-
-    Rule REMOVE = new Remove();
-
-    record Remove() implements Rule {}
-
-    record Apply(List<DeidentifierHandler<Object>> handlers) implements Rule {}
-  }
 
   /**
    * One module of the profile: a pattern that selects resources, plus its handlers. Every base path
@@ -142,7 +133,7 @@ public final class Profile {
    * patterns are constant per resource, so the engine asks once and queries the result for every
    * element instead of re-matching per primitive.
    */
-  public static final class Rules {
+  public static final class Rules implements ResourceRules {
 
     private final List<Module> matched;
 
@@ -154,9 +145,11 @@ public final class Profile {
      * The merged decision for one element: the type handlers of all matched modules run before the
      * path handlers of all matched modules. An element that no matched module lists in its base is
      * removed, whatever type handlers exist for it; one that a module lists without a handler is
-     * kept unchanged.
+     * kept unchanged. The type handlers are looked up by the class of the element.
      */
-    public Rule ruleFor(List<String> path, Class<?> valueType) {
+    @Override
+    public Rule ruleFor(List<String> path, Base element) {
+      Class<?> valueType = element.getClass();
       String pathKey = String.join(".", path);
       List<List<DeidentifierHandler<Object>>> typeChains =
           chains(module -> module.typeHandlers().get(valueType));
@@ -179,13 +172,14 @@ public final class Profile {
     }
   }
 
+  @Override
   public Rules rulesFor(Resource resource) {
     return new Rules(modules.stream().filter(m -> m.pattern().matches(resource)).toList());
   }
 
   /** The merged decision of every module whose pattern matches {@code resource}. */
-  public Rule ruleFor(Resource resource, List<String> path, Class<?> valueType) {
-    return rulesFor(resource).ruleFor(path, valueType);
+  public Rule ruleFor(Resource resource, List<String> path, Base element) {
+    return rulesFor(resource).ruleFor(path, element);
   }
 
   private static Module parseModule(Config config, Registry registry) {

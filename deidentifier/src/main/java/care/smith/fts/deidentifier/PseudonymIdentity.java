@@ -86,7 +86,7 @@ public final class PseudonymIdentity {
 
   /**
    * The {@code request.url} of an entry that carries {@code resource}, its de-identified resource.
-   * A url {@code Type/id} names that very resource, so it takes the id the profile gave the
+   * A url {@code Type/id} names that very resource, so it takes the id the rule set gave the
    * resource, pseudonymized or kept, and never disagrees with the body. Without a surviving id the
    * url cannot name the resource and the request goes. Every other url follows {@link
    * #requestUrl(String, HandlerContext)}.

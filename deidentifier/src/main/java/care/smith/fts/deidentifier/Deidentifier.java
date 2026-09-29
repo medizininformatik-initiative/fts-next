@@ -5,9 +5,9 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toMap;
 
+import care.smith.fts.deidentifier.RuleSet.ResourceRules;
 import care.smith.fts.deidentifier.internal.HapiReflection;
 import care.smith.fts.deidentifier.internal.HapiReflection.FhirChild;
-import com.typesafe.config.Config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,28 +23,19 @@ import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.utilities.xhtml.XhtmlNode;
 
 /**
- * Whitelist-based de-identification engine on the HAPI FHIR R4 typed model. Fields that no module
- * keeps are removed. The input resource is not modified; a fresh resource is built.
+ * De-identification engine on the HAPI FHIR R4 typed model. It walks each resource and asks a
+ * {@link RuleSet} what to do with every element; what an element that no rule names becomes is the
+ * rule set's decision. The input resource is not modified; a fresh resource is built.
  */
 public class Deidentifier {
 
-  private final Profile profile;
+  private final RuleSet ruleSet;
 
   private final PseudonymIdentity identity;
 
-  Deidentifier(Profile profile, PseudonymIdentity identity) {
-    this.profile = profile;
-    this.identity = identity;
-  }
-
-  public static Deidentifier fromConfig(Config config) {
-    return fromConfig(config, new Registry());
-  }
-
-  public static Deidentifier fromConfig(Config config, Registry registry) {
-    PseudonymIdentity identity =
-        registry.referenceHandler().map(PseudonymIdentity::of).orElse(PseudonymIdentity.none());
-    return new Deidentifier(Profile.parse(config, registry), identity);
+  public Deidentifier(RuleSet ruleSet, PseudonymIdentity identity) {
+    this.ruleSet = requireNonNull(ruleSet);
+    this.identity = requireNonNull(identity);
   }
 
   /**
@@ -69,8 +60,8 @@ public class Deidentifier {
     if (resource instanceof Bundle bundle) {
       return Optional.of(deidentifyBundle(bundle, context));
     }
-    // the patterns are constant per resource, so they are matched once here
-    Profile.Rules rules = profile.rulesFor(resource);
+    // the rules are constant per resource, so they are resolved once here
+    ResourceRules rules = ruleSet.rulesFor(resource);
     return deidentifyElement(List.of(resource.fhirType()), resource, context, rules)
         .map(Resource.class::cast);
   }
@@ -82,8 +73,8 @@ public class Deidentifier {
    * resources: {@code Bundle.type} is kept, and so are the {@code method} and {@code url} of a
    * surviving {@code entry.request}, while {@code entry.fullUrl} and the {@code url} are
    * pseudonymized, because they carry what the source system called the resource. Everything else
-   * has to be kept by a module. An entry whose resource no module keeps is dropped, and so is one
-   * left with nothing at all.
+   * has to be kept by the rule set. An entry whose resource the rule set removes entirely is
+   * dropped, and so is one left with nothing at all.
    */
   private Bundle deidentifyBundle(Bundle bundle, HandlerContext context) {
     Bundle deidentifiedBundle = new Bundle();
@@ -116,7 +107,8 @@ public class Deidentifier {
   /**
    * Rebuilds one entry around its de-identified resource. A DELETE entry carries a request and no
    * resource (rule bdl-5); there is nothing to de-identify in it, and dropping it would change what
-   * the bundle asks the server to do. An entry whose resource no module keeps is dropped.
+   * the bundle asks the server to do. An entry whose resource the rule set removes entirely is
+   * dropped.
    */
   private Optional<BundleEntryComponent> deidentifyEntry(
       BundleEntryComponent entry, HandlerContext context, HandlerContext entryContext) {
@@ -179,7 +171,7 @@ public class Deidentifier {
   }
 
   private Optional<Base> deidentifyElement(
-      List<String> path, Base base, HandlerContext context, Profile.Rules rules) {
+      List<String> path, Base base, HandlerContext context, ResourceRules rules) {
     HandlerContext childContext = context.child(base);
     List<Kept> kept =
         HapiReflection.childrenWithValue(base).stream()
@@ -201,7 +193,7 @@ public class Deidentifier {
   }
 
   private Optional<?> deidentifyValue(
-      List<String> path, Object value, HandlerContext context, Profile.Rules rules) {
+      List<String> path, Object value, HandlerContext context, ResourceRules rules) {
     return switch (value) {
       case PrimitiveType<?> primitive -> deidentifyPrimitive(path, primitive, context, rules);
       case Base base -> deidentifyElement(path, base, context, rules);
@@ -217,7 +209,7 @@ public class Deidentifier {
    * field, and HAPI appends to that list later.
    */
   private Optional<List<Object>> deidentifyList(
-      List<String> path, List<?> list, HandlerContext context, Profile.Rules rules) {
+      List<String> path, List<?> list, HandlerContext context, ResourceRules rules) {
     List<Object> kept =
         list.stream()
             .flatMap(element -> deidentifyValue(path, element, context, rules).stream())
@@ -226,11 +218,11 @@ public class Deidentifier {
   }
 
   /**
-   * Extensions on a primitive are whitelisted on their own, because the value does not carry them
+   * Extensions on a primitive are decided on their own, because the value does not carry them
    * along. Two sources feed the result:
    *
    * <ul>
-   *   <li>An extension of the input goes through the profile filter, like any other element.
+   *   <li>An extension of the input goes through the rule set, like any other element.
    *   <li>An extension the handler chain added passes unfiltered. A handler is registry code the
    *       caller wired up, not resource data, so what it puts on the element is meant to survive.
    *       The date shift of fts-next depends on this: it drops the value and hangs a transport id
@@ -238,21 +230,21 @@ public class Deidentifier {
    * </ul>
    *
    * <p>An extension counts as added when no input extension is {@code equalsDeep} to it. A handler
-   * that removes or rewrites an input extension therefore does not change what the filter keeps.
-   * Making the handler output the only source would drop whitelisted extensions on every field
+   * that removes or rewrites an input extension therefore does not change what the rule set keeps.
+   * Making the handler output the only source would drop kept input extensions on every field
    * whose handler returns a fresh element instead of its argument.
    */
   private Optional<PrimitiveType<?>> deidentifyPrimitive(
-      List<String> path, PrimitiveType<?> primitive, HandlerContext context, Profile.Rules rules) {
+      List<String> path, PrimitiveType<?> primitive, HandlerContext context, ResourceRules rules) {
     PrimitiveType<?> copy = (PrimitiveType<?>) primitive.copy();
-    // the copy carries the element id of the input, which no rule whitelisted
+    // the copy carries the element id of the input, which the rule set is never asked about
     copy.setId(null);
     Optional<PrimitiveType<?>> deidentified =
-        applyHandlers(path, copy, context, rules).map(value -> (PrimitiveType<?>) value);
+        applyHandlers(path, primitive, copy, context, rules).map(value -> (PrimitiveType<?>) value);
 
     List<Extension> keptExtensions =
         Stream.concat(
-                whitelistedExtensions(path, primitive, context, rules),
+                inputExtensions(path, primitive, context, rules),
                 addedExtensions(deidentified, primitive))
             .toList();
 
@@ -265,8 +257,8 @@ public class Deidentifier {
     return Optional.of(result);
   }
 
-  private Stream<Extension> whitelistedExtensions(
-      List<String> path, PrimitiveType<?> primitive, HandlerContext context, Profile.Rules rules) {
+  private Stream<Extension> inputExtensions(
+      List<String> path, PrimitiveType<?> primitive, HandlerContext context, ResourceRules rules) {
     List<String> extensionPath = append(path, "extension");
     return primitive.getExtension().stream()
         .flatMap(
@@ -288,11 +280,16 @@ public class Deidentifier {
     return primitive.getExtension().stream().anyMatch(extension::equalsDeep);
   }
 
+  /** The rule set sees the element of the input resource, the handlers work on its copy. */
   private Optional<Object> applyHandlers(
-      List<String> path, PrimitiveType<?> value, HandlerContext context, Profile.Rules rules) {
-    return switch (rules.ruleFor(path, value.getClass())) {
-      case Profile.Rule.Remove ignored -> Optional.empty();
-      case Profile.Rule.Apply apply -> applyChain(apply.handlers(), path, value, context);
+      List<String> path,
+      PrimitiveType<?> input,
+      PrimitiveType<?> copy,
+      HandlerContext context,
+      ResourceRules rules) {
+    return switch (rules.ruleFor(path, input)) {
+      case Rule.Remove ignored -> Optional.empty();
+      case Rule.Apply apply -> applyChain(apply.handlers(), path, copy, context);
     };
   }
 

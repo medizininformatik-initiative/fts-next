@@ -3,6 +3,7 @@ package care.smith.fts.deidentifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import care.smith.fts.deidentifier.allowlist.AllowList;
 import care.smith.fts.deidentifier.handlers.Handlers;
 import care.smith.fts.deidentifier.handlers.IDReplacementProvider;
 import com.typesafe.config.Config;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.CodeType;
@@ -27,6 +29,31 @@ import org.junit.jupiter.api.Test;
 
 class DeidentifierTest {
 
+  /**
+   * The traversal does not know whether a rule set is an allow list or a deny list. A rule set that
+   * keeps what it is not told to remove keeps an element that no profile lists, and it is asked
+   * with the element of the input resource, so it can match elements by identity.
+   */
+  @Test
+  void keepsWhatTheRuleSetKeepsAndAsksWithTheInputElement() {
+    Patient patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    List<Base> asked = new ArrayList<>();
+    RuleSet keepAll =
+        resource ->
+            (path, element) -> {
+              asked.add(element);
+              return new Rule.Apply(List.of());
+            };
+
+    Patient result =
+        (Patient)
+            new Deidentifier(keepAll, PseudonymIdentity.none()).deidentify(patient).orElseThrow();
+
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
+    assertThat(asked).singleElement().isSameAs(patient.getBirthDateElement());
+  }
+
   @Test
   void keepsOnlyFieldsListedInBase() {
     Config config =
@@ -40,7 +67,7 @@ class DeidentifierTest {
               }
             }
             """);
-    Deidentifier deidentifier = Deidentifier.fromConfig(config);
+    Deidentifier deidentifier = AllowList.fromConfig(config);
 
     Patient patient = new Patient();
     patient.setId("123");
@@ -77,7 +104,7 @@ class DeidentifierTest {
         org.hl7.fhir.r4.model.StringType.class,
         (path, value, context) ->
             Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
-    Deidentifier deidentifier = Deidentifier.fromConfig(config, registry);
+    Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
     patient.addName(new HumanName().setFamily("Doe"));
@@ -99,7 +126,7 @@ class DeidentifierTest {
             }
             """);
 
-    assertThatThrownBy(() -> Deidentifier.fromConfig(config, new Registry()))
+    assertThatThrownBy(() -> AllowList.fromConfig(config, new Registry()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("doesNotExist");
   }
@@ -125,7 +152,7 @@ class DeidentifierTest {
         "newString",
         org.hl7.fhir.r4.model.StringType.class,
         (path, value, context) -> Optional.of(new org.hl7.fhir.r4.model.StringType("x")));
-    Deidentifier deidentifier = Deidentifier.fromConfig(config, registry);
+    Deidentifier deidentifier = AllowList.fromConfig(config, registry);
     org.hl7.fhir.r4.model.Observation observation = new org.hl7.fhir.r4.model.Observation();
     observation.addNote().setText("free text");
 
@@ -153,7 +180,7 @@ class DeidentifierTest {
         org.hl7.fhir.r4.model.StringType.class,
         (path, value, context) -> Optional.of(value));
 
-    assertThatThrownBy(() -> Deidentifier.fromConfig(config, registry))
+    assertThatThrownBy(() -> AllowList.fromConfig(config, registry))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Patient.birthDate");
   }
@@ -168,7 +195,7 @@ class DeidentifierTest {
               base = ["Observation.id"]
             }
             """);
-    Deidentifier deidentifier = Deidentifier.fromConfig(config);
+    Deidentifier deidentifier = AllowList.fromConfig(config);
 
     Patient patient = new Patient();
     patient.setId("123");
@@ -186,7 +213,7 @@ class DeidentifierTest {
               base = ["Patient.id"]
             }
             """);
-    Deidentifier deidentifier = Deidentifier.fromConfig(config);
+    Deidentifier deidentifier = AllowList.fromConfig(config);
 
     org.hl7.fhir.r4.model.Bundle bundle = new org.hl7.fhir.r4.model.Bundle();
     Patient patient = new Patient();
@@ -219,7 +246,7 @@ class DeidentifierTest {
     patient.getText().setStatus(Narrative.NarrativeStatus.GENERATED);
     patient.getText().setDivAsString("<div xmlns=\"http://www.w3.org/1999/xhtml\">Jane Doe</div>");
 
-    Patient result = (Patient) Deidentifier.fromConfig(config).deidentify(patient).orElseThrow();
+    Patient result = (Patient) AllowList.fromConfig(config).deidentify(patient).orElseThrow();
 
     assertThat(result.getIdPart()).isEqualTo("123");
     assertThat(result.hasText()).isFalse();
@@ -239,7 +266,7 @@ class DeidentifierTest {
     patient.setBirthDateElement(new DateType("1970-05-12"));
     patient.getBirthDateElement().setId("the-element-id");
 
-    Patient result = (Patient) Deidentifier.fromConfig(config).deidentify(patient).orElseThrow();
+    Patient result = (Patient) AllowList.fromConfig(config).deidentify(patient).orElseThrow();
 
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
     assertThat(result.getBirthDateElement().getId()).isNull();
@@ -308,7 +335,7 @@ class DeidentifierTest {
     Patient patient = new Patient();
     patient.addName(new HumanName().setFamily("Doe"));
 
-    assertThat(Deidentifier.fromConfig(config, registry).deidentify(patient)).isEmpty();
+    assertThat(AllowList.fromConfig(config, registry).deidentify(patient)).isEmpty();
   }
 
   @Test
@@ -336,7 +363,7 @@ class DeidentifierTest {
         .addEntry()
         .setResource(new Patient().setGender(Enumerations.AdministrativeGender.FEMALE));
 
-    Deidentifier.fromConfig(config, registry).deidentifyBundle(bundle, "patient-1");
+    AllowList.fromConfig(config, registry).deidentifyBundle(bundle, "patient-1");
 
     assertThat(seen).containsExactly("patient-1");
   }
@@ -350,7 +377,7 @@ class DeidentifierTest {
         .setResource(new Patient().setGender(Enumerations.AdministrativeGender.FEMALE));
 
     Bundle result =
-        Deidentifier.fromConfig(
+        AllowList.fromConfig(
                 ConfigFactory.parseString(
                     """
                     modules.none {
@@ -457,7 +484,7 @@ class DeidentifierTest {
   @Test
   void dropsTheRequestOfAnUpdateWhoseResourceLostItsId() {
     Deidentifier deidentifier =
-        Deidentifier.fromConfig(
+        AllowList.fromConfig(
             ConfigFactory.parseString(
                 """
                 modules.patient {
@@ -483,7 +510,7 @@ class DeidentifierTest {
   @Test
   void givesAnUpdateUrlTheIdTheProfileGaveTheResource() {
     Deidentifier deidentifier =
-        Deidentifier.fromConfig(
+        AllowList.fromConfig(
             ConfigFactory.parseString(
                 """
                 modules.patient {
@@ -592,7 +619,7 @@ class DeidentifierTest {
             }
             """);
     Deidentifier deidentifier =
-        Deidentifier.fromConfig(config, referenceRegistry((resourceType, id) -> "id-pseudonym"));
+        AllowList.fromConfig(config, referenceRegistry((resourceType, id) -> "id-pseudonym"));
 
     Encounter encounter = new Encounter();
     encounter.setServiceProvider(
@@ -649,14 +676,14 @@ class DeidentifierTest {
               }
             }
             """);
-    return Deidentifier.fromConfig(
+    return AllowList.fromConfig(
         config,
         referenceRegistry((resourceType, id) -> "pseudonym-of-" + resourceType + "-" + id));
   }
 
   /** An engine that keeps the id of every Patient and registers no handler at all. */
   private static Deidentifier bundleEngine() {
-    return Deidentifier.fromConfig(
+    return AllowList.fromConfig(
         ConfigFactory.parseString(
             """
             modules.patient {
@@ -668,7 +695,7 @@ class DeidentifierTest {
 
   /** The same engine with the handlers that pseudonymize ids, references and full urls. */
   private static Deidentifier referringEngine() {
-    return Deidentifier.fromConfig(
+    return AllowList.fromConfig(
         bundleConfig(), referenceRegistry((resourceType, id) -> "pseudonym-of-" + id));
   }
 
@@ -736,7 +763,7 @@ class DeidentifierTest {
         org.hl7.fhir.r4.model.StringType.class,
         (path, value, context) ->
             Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
-    Deidentifier deidentifier = Deidentifier.fromConfig(config, registry);
+    Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
     patient.addName(new HumanName().setFamily("Doe").addGiven("Jane"));
@@ -765,7 +792,7 @@ class DeidentifierTest {
         "generalizeDate",
         DateType.class,
         (path, value, context) -> Optional.of(new DateType("1970-01-01")));
-    Deidentifier deidentifier = Deidentifier.fromConfig(config, registry);
+    Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
     patient.setId("123");
@@ -787,7 +814,7 @@ class DeidentifierTest {
               base = ["Observation.value[Quantity].value", "Observation.value[Quantity].unit"]
             }
             """);
-    Deidentifier deidentifier = Deidentifier.fromConfig(config);
+    Deidentifier deidentifier = AllowList.fromConfig(config);
 
     org.hl7.fhir.r4.model.Observation observation = new org.hl7.fhir.r4.model.Observation();
     observation.setStatus(org.hl7.fhir.r4.model.Observation.ObservationStatus.FINAL);
@@ -816,7 +843,7 @@ class DeidentifierTest {
               base = ["Observation.id"]
             }
             """);
-    Deidentifier deidentifier = Deidentifier.fromConfig(config);
+    Deidentifier deidentifier = AllowList.fromConfig(config);
 
     org.hl7.fhir.r4.model.Observation lab = new org.hl7.fhir.r4.model.Observation();
     lab.setId("lab-1");
@@ -838,7 +865,7 @@ class DeidentifierTest {
               base = ["Patient.birthDate"]
             }
             """);
-    Deidentifier deidentifier = Deidentifier.fromConfig(config);
+    Deidentifier deidentifier = AllowList.fromConfig(config);
 
     Patient patient = new Patient();
     DateType birthDate = new DateType("1970-05-12");
@@ -867,7 +894,7 @@ class DeidentifierTest {
               ]
             }
             """);
-    Deidentifier deidentifier = Deidentifier.fromConfig(config);
+    Deidentifier deidentifier = AllowList.fromConfig(config);
 
     Patient patient = new Patient();
     DateType birthDate = new DateType("1970-05-12");
@@ -904,7 +931,7 @@ class DeidentifierTest {
             """);
     Registry registry = new Registry();
     registry.addHandler("removeValue", DateType.class, (path, value, context) -> Optional.empty());
-    Deidentifier deidentifier = Deidentifier.fromConfig(config, registry);
+    Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
     DateType birthDate = new DateType("1970-05-12");
@@ -945,7 +972,7 @@ class DeidentifierTest {
           date.setValue(null);
           return Optional.of(date);
         });
-    Deidentifier deidentifier = Deidentifier.fromConfig(config, registry);
+    Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
     patient.setBirthDateElement(new DateType("1970-05-12"));
@@ -981,7 +1008,7 @@ class DeidentifierTest {
         org.hl7.fhir.r4.model.StringType.class,
         (path, value, context) ->
             Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
-    Deidentifier deidentifier = Deidentifier.fromConfig(config, registry);
+    Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
     org.hl7.fhir.r4.model.StringType family = new org.hl7.fhir.r4.model.StringType("Doe");

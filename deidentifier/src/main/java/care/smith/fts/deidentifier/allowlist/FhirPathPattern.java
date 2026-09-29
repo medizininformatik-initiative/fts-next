@@ -1,4 +1,4 @@
-package care.smith.fts.deidentifier;
+package care.smith.fts.deidentifier.allowlist;
 
 import ca.uhn.fhir.context.FhirContext;
 import java.util.Objects;

@@ -1,9 +1,11 @@
-package care.smith.fts.deidentifier;
+package care.smith.fts.deidentifier.allowlist;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import care.smith.fts.deidentifier.Profile.Rule;
+import care.smith.fts.deidentifier.DeidentifierHandler;
+import care.smith.fts.deidentifier.Registry;
+import care.smith.fts.deidentifier.Rule;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.util.List;
@@ -39,9 +41,9 @@ class ProfileTest {
             """);
     Patient patient = new Patient();
 
-    Rule kept = profile.ruleFor(patient, List.of("Patient", "gender"), DateType.class);
-    Rule transformed = profile.ruleFor(patient, List.of("Patient", "birthDate"), DateType.class);
-    Rule removed = profile.ruleFor(patient, List.of("Patient", "id"), DateType.class);
+    Rule kept = profile.ruleFor(patient, List.of("Patient", "gender"), new DateType());
+    Rule transformed = profile.ruleFor(patient, List.of("Patient", "birthDate"), new DateType());
+    Rule removed = profile.ruleFor(patient, List.of("Patient", "id"), new DateType());
 
     assertThat(kept).isEqualTo(new Rule.Apply(List.of()));
     assertThat(transformed).isEqualTo(new Rule.Apply(List.of(NOOP)));
@@ -62,11 +64,11 @@ class ProfileTest {
             """);
     Patient patient = new Patient();
 
-    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
-    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "given"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "given"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
-    assertThat(profile.ruleFor(patient, List.of("Patient", "address", "city"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "address", "city"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of()));
   }
 
@@ -83,9 +85,9 @@ class ProfileTest {
             """);
     Patient patient = new Patient();
 
-    assertThat(profile.ruleFor(patient, List.of("Patient", "address", "city"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "address", "city"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
-    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of()));
   }
 
@@ -102,11 +104,11 @@ class ProfileTest {
             """);
     Patient patient = new Patient();
 
-    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
     assertThat(
             profile.ruleFor(
-                patient, List.of("Patient", "contact", "name", "family"), DateType.class))
+                patient, List.of("Patient", "contact", "name", "family"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of()));
   }
 
@@ -124,7 +126,7 @@ class ProfileTest {
             """);
 
     Rule rule =
-        profile.ruleFor(new Patient(), List.of("Patient", "deceased[dateTime]"), DateType.class);
+        profile.ruleFor(new Patient(), List.of("Patient", "deceased[dateTime]"), new DateType());
 
     assertThat(rule).isEqualTo(new Rule.Apply(List.of(NOOP)));
   }
@@ -150,7 +152,7 @@ class ProfileTest {
                 """),
             registry);
 
-    Rule rule = profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), DateType.class);
+    Rule rule = profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), new DateType());
 
     assertThat(rule).isEqualTo(new Rule.Apply(List.of(forType, forPath)));
   }
@@ -166,7 +168,7 @@ class ProfileTest {
             }
             """);
 
-    Rule rule = profile.ruleFor(new Observation(), List.of("Patient", "gender"), DateType.class);
+    Rule rule = profile.ruleFor(new Observation(), List.of("Patient", "gender"), new DateType());
 
     assertThat(rule).isEqualTo(Rule.REMOVE);
   }
@@ -309,7 +311,7 @@ class ProfileTest {
                 """),
             registry);
 
-    assertThat(profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), DateType.class))
+    assertThat(profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(generalize, shift)));
   }
 
@@ -410,9 +412,9 @@ class ProfileTest {
             """);
     Patient patient = new Patient();
 
-    assertThat(profile.ruleFor(patient, List.of("Patient", "name"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "name"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
-    assertThat(profile.ruleFor(patient, List.of("Patient", "gender"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "gender"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
   }
 
@@ -433,13 +435,13 @@ class ProfileTest {
             """);
     Patient patient = new Patient();
 
-    assertThat(profile.ruleFor(patient, List.of("Patient", "name"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "name"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
-    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), DateType.class))
+    assertThat(profile.ruleFor(patient, List.of("Patient", "name", "family"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of()));
     assertThat(
             profile.ruleFor(
-                patient, List.of("Patient", "contact", "name", "given"), DateType.class))
+                patient, List.of("Patient", "contact", "name", "given"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of()));
   }
 
@@ -456,7 +458,7 @@ class ProfileTest {
             }
             """);
 
-    Rule rule = profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), DateType.class);
+    Rule rule = profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), new DateType());
 
     assertThat(rule).isEqualTo(Rule.REMOVE);
   }
@@ -484,11 +486,11 @@ class ProfileTest {
             """);
     Patient patient = new Patient();
 
-    assertThat(everything.ruleFor(patient, List.of("Patient", "gender"), DateType.class))
+    assertThat(everything.ruleFor(patient, List.of("Patient", "gender"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
-    assertThat(everything.ruleFor(patient, List.of("Patient", "birthDate"), DateType.class))
+    assertThat(everything.ruleFor(patient, List.of("Patient", "birthDate"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of(NOOP)));
-    assertThat(noneWithoutADot.ruleFor(patient, List.of("Patient", "gender"), DateType.class))
+    assertThat(noneWithoutADot.ruleFor(patient, List.of("Patient", "gender"), new DateType()))
         .isEqualTo(new Rule.Apply(List.of()));
   }
 }
