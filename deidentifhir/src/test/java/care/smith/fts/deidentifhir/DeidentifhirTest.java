@@ -733,7 +733,7 @@ class DeidentifhirTest {
               base = [
                 "Patient.birthDate",
                 "Patient.birthDate.extension.url",
-                "Patient.birthDate.extension.value[String]"
+                "Patient.birthDate.extension.value[string]"
               ]
             }
             """);
@@ -752,6 +752,8 @@ class DeidentifhirTest {
     assertThat(result.getBirthDateElement().getExtension()).hasSize(1);
     assertThat(result.getBirthDateElement().getExtensionFirstRep().getUrl())
         .isEqualTo("http://example.org/kept");
+    assertThat(result.getBirthDateElement().getExtensionFirstRep().getValue().primitiveValue())
+        .isEqualTo("kept");
   }
 
   /** A handler may remove the value; a whitelisted extension then keeps the element alive. */
@@ -765,7 +767,7 @@ class DeidentifhirTest {
               base = [
                 "Patient.birthDate",
                 "Patient.birthDate.extension.url",
-                "Patient.birthDate.extension.value[String]"
+                "Patient.birthDate.extension.value[string]"
               ]
               paths { "Patient.birthDate" { handler = removeValue } }
             }
@@ -786,6 +788,8 @@ class DeidentifhirTest {
     assertThat(result.getBirthDateElement().getValue()).isNull();
     assertThat(result.getBirthDateElement().getExtensionFirstRep().getUrl())
         .isEqualTo("http://example.org/kept");
+    assertThat(result.getBirthDateElement().getExtensionFirstRep().getValue().primitiveValue())
+        .isEqualTo("kept");
   }
 
   @Test
@@ -834,7 +838,7 @@ class DeidentifhirTest {
               base = [
                 "Patient.name.family",
                 "Patient.name.family.extension.url",
-                "Patient.name.family.extension.value[String]"
+                "Patient.name.family.extension.value[string]"
               ]
               paths = {
                 "Patient.name.family": {handler = testReplace}
@@ -862,5 +866,13 @@ class DeidentifhirTest {
     assertThat(result.getNameFirstRep().getFamilyElement().getExtension()).hasSize(1);
     assertThat(result.getNameFirstRep().getFamilyElement().getExtensionFirstRep().getUrl())
         .isEqualTo("http://example.org/kept");
+    assertThat(
+            result
+                .getNameFirstRep()
+                .getFamilyElement()
+                .getExtensionFirstRep()
+                .getValue()
+                .primitiveValue())
+        .isEqualTo("kept");
   }
 }
