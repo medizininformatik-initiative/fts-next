@@ -136,6 +136,59 @@ profiles in the configuration format of [DeidentiFHIR](https://github.com/UMEsse
   replaced by single-pass deidentification, which generates transport IDs on-the-fly.
   The `deidentifhirConfig` is now the only configuration file needed.
 
+## Profile Rules
+
+The profile in `deidentifhirConfig` uses the module format of DeidentiFHIR. The engine applies it as
+follows.
+
+### What is kept
+
+* Only the paths in the `base` list of a matched module are kept. Everything else is removed.
+* A `paths` or `types` handler only transforms an element that `base` keeps. A `types` handler does
+  not keep an element on its own.
+
+### Handler order
+
+* On one element, the `types` handlers run before the `paths` handlers.
+* A module has at most one handler per path.
+* If two modules for the same resource type put a handler on the same path, the order of those two
+  handlers is not defined. Avoid this.
+
+### Checks at startup
+
+The agent rejects the profile at startup, before any data moves, when:
+
+* a handler does not accept the FHIR type of its path or of its `types` entry, e.g. a string handler
+  on `Coding.system`, which is a `uri`;
+* a handler is registered on a path that names no FHIR element;
+* an `identifier.system` pattern names a resource type without an `identifier`;
+* a handler would run after `shiftDateHandler` on the same element. `shiftDateHandler` removes the
+  date value, so a later handler, e.g. `generalizeDateHandler`, has nothing to work on. To generalize
+  and shift a date, put `generalizeDateHandler` in `types` and `shiftDateHandler` in `paths`.
+
+### Module patterns
+
+* A `meta.profile contains '<canonical>'` pattern without a version also matches a resource that
+  claims a versioned profile, `<canonical>|<version>`. A pattern with a version matches that version
+  only.
+
+### References
+
+`referenceReplacementHandler` handles these reference forms:
+
+* `Type/id`: the id is pseudonymized.
+* `Type/id/_history/n`: the id is pseudonymized and the version is removed.
+* `Type?identifier=system|value`: the identifier value is pseudonymized.
+* `urn:uuid:<uuid>`: the resource type comes from the bundle entry with that `fullUrl`. The result is
+  `Type/<pseudonym>`. A urn that no entry of the bundle has is removed.
+* `#id` (contained resource): kept as it is.
+* A reference element without a value, e.g. one with only a data-absent-reason extension, is kept as
+  it is.
+
+An absolute reference, e.g. `https://fhir.example/fhir/Condition/c9`, is rejected, even when it
+points to the own FHIR server. The transfer of the page that contains it fails. Store references in
+relative form in the clinical FHIR server.
+
 ## Notes
 
 * Ensure all domains (`pseudonym`, `salt`, and `dateShift`) are correctly configured in the TCA.

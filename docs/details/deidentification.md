@@ -23,8 +23,8 @@ nulled before transmission.
 
 The transfer process works as follows:
 
-1. **CDA deidentifies in a single pass**: The CDA runs DeidentiFHIR on the patient bundle,
-   generating transport IDs (tIDs) on-the-fly for each unique resource ID and date value.
+1. **CDA deidentifies in a single pass**: The CDA runs its Deidentifhir engine on the patient
+   bundle, generating transport IDs (tIDs) on-the-fly for each unique resource ID and date value.
    Date values are replaced with tID extensions (using the URL
    `https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id`) and nulled
    during this same pass.
