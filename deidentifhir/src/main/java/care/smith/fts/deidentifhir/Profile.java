@@ -143,7 +143,7 @@ public final class Profile {
         registrations(config, "types", registry)
             .collect(
                 groupingBy(
-                    registration -> typeFor(registration.key()),
+                    registration -> requireFittingType(registration, typeFor(registration.key())),
                     mapping(Registration::handler, toList())));
     return new Module(pattern, pathHandlers, Map.copyOf(typeHandlers));
   }
@@ -159,12 +159,17 @@ public final class Profile {
             });
   }
 
+  /** The handler of a {@code types} entry has to accept the type it is registered for. */
+  private static Class<?> requireFittingType(Registration registration, Class<?> type) {
+    requireAccepts(registration, type, "types section");
+    return type;
+  }
+
   /**
    * The handler of a path has to accept the element the path names, and the path has to name one:
    * a handler on a path that names no element can never run.
    */
   private static Registration requireFittingPathType(Registration registration) {
-    Class<?> valueType = registration.registration().valueType();
     Class<?> elementType =
         FhirPaths.elementType(registration.key())
             .orElseThrow(
@@ -172,16 +177,18 @@ public final class Profile {
                     new IllegalStateException(
                         "Handler '%s' is registered on %s, which names no FHIR element!"
                             .formatted(registration.name(), registration.key())));
-    if (!valueType.isAssignableFrom(elementType)) {
-      throw new IllegalStateException(
-          "Handler '%s' works on %s, but %s holds %s!"
-              .formatted(
-                  registration.name(),
-                  valueType.getSimpleName(),
-                  registration.key(),
-                  elementType.getSimpleName()));
-    }
+    requireAccepts(registration, elementType, registration.key());
     return registration;
+  }
+
+  private static void requireAccepts(Registration registration, Class<?> type, String where) {
+    Class<?> valueType = registration.registration().valueType();
+    if (!valueType.isAssignableFrom(type)) {
+      throw new IllegalStateException(
+          "Handler '%s' works on %s, not on %s (%s)!"
+              .formatted(
+                  registration.name(), valueType.getSimpleName(), type.getSimpleName(), where));
+    }
   }
 
   private static List<DeidentifhirHandler<Object>> handlersFor(

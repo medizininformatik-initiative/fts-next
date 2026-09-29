@@ -232,6 +232,29 @@ class ProfileTest {
         .hasMessageContaining("Patient.birthdate");
   }
 
+  /** A DateType handler cannot take a DateTimeType; registering it for that type is an error. */
+  @Test
+  void aTypeHandlerForAnotherTypeThanTheRegisteredOneIsRejected() {
+    Registry registry = new Registry();
+    registry.addHandler("forDates", DateType.class, (path, value, context) -> Optional.of(value));
+
+    assertThatThrownBy(
+            () ->
+                Profile.parse(
+                    ConfigFactory.parseString(
+                        """
+                        modules.test {
+                          pattern = "Patient.exists()"
+                          base = ["Patient.deceased[dateTime]"]
+                          types { DateTimeType { handler = forDates } }
+                        }
+                        """),
+                    registry))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("forDates")
+        .hasMessageContaining("DateTimeType");
+  }
+
   /** The stars of a glob may also match nothing, so they cover the named element itself. */
   @Test
   void aGlobStarAtEitherEndAlsoMatchesNoElementAtAll() {
