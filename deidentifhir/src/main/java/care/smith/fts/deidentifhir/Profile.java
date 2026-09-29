@@ -3,8 +3,6 @@ package care.smith.fts.deidentifhir;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import care.smith.fts.deidentifhir.internal.FhirPaths;
@@ -42,17 +40,24 @@ public final class Profile {
     record Apply(List<DeidentifhirHandler<Object>> handlers) implements Rule {}
   }
 
-  /** One module of the profile: a pattern that selects resources, plus its handlers. */
+  /**
+   * One module of the profile: a pattern that selects resources, plus its handlers. Every base path
+   * is a key of {@code pathHandlers}, with an empty list when it has no handler.
+   */
   private record Module(
       FhirPathPattern pattern,
-      Map<String, List<DeidentifhirHandler<Object>>> pathHandlers,
-      Map<Class<?>, List<DeidentifhirHandler<Object>>> typeHandlers) {}
+      Map<String, List<Registration>> pathHandlers,
+      Map<Class<?>, List<Registration>> typeHandlers) {}
 
   /** One {@code key { handler = name }} entry of a {@code paths} or {@code types} section. */
   private record Registration(String key, String name, Registry.Registration registration) {
 
     DeidentifhirHandler<Object> handler() {
       return registration.handler();
+    }
+
+    boolean terminal() {
+      return registration.terminal();
     }
 
     Registration withKey(String otherKey) {
@@ -70,10 +75,66 @@ public final class Profile {
     requireNonNull(config);
     requireNonNull(registry);
     ConfigObject modules = config.getObject("modules");
-    return new Profile(
+    List<Module> parsed =
         modules.keySet().stream()
             .map(key -> parseModule(modules.toConfig().getConfig(key), registry))
-            .toList());
+            .toList();
+    requireTerminalHandlersLast(parsed);
+    return new Profile(parsed);
+  }
+
+  /**
+   * A terminal handler has to be the last one on every element it reaches. All modules for one
+   * resource type can match the same resource, and the order among them is not defined, so the
+   * chain of an element is checked over all of them: the type handlers first, then the path
+   * handlers. A terminal handler is last only when it is the one path handler of that element, or
+   * the one handler of any kind.
+   *
+   * <p>A base path that names no element is skipped: the engine never visits it.
+   */
+  private static void requireTerminalHandlersLast(List<Module> modules) {
+    modules.stream()
+        .collect(groupingBy(module -> module.pattern().resourceType()))
+        .values()
+        .forEach(
+            sameType ->
+                sameType.stream()
+                    .flatMap(module -> module.pathHandlers().keySet().stream())
+                    .distinct()
+                    .forEach(path -> requireTerminalLast(path, sameType)));
+  }
+
+  private static void requireTerminalLast(String path, List<Module> sameType) {
+    List<Registration> typeChain =
+        FhirPaths.elementType(path).stream()
+            .flatMap(
+                elementType ->
+                    sameType.stream()
+                        .flatMap(
+                            module ->
+                                module.typeHandlers().getOrDefault(elementType, List.of()).stream()))
+            .toList();
+    List<Registration> pathChain =
+        sameType.stream()
+            .flatMap(module -> module.pathHandlers().getOrDefault(path, List.of()).stream())
+            .toList();
+    List<Registration> chain = Stream.concat(typeChain.stream(), pathChain.stream()).toList();
+    List<Registration> terminals = chain.stream().filter(Registration::terminal).toList();
+    if (terminals.isEmpty()) {
+      return;
+    }
+    Registration terminal = terminals.getFirst();
+    boolean last =
+        terminals.size() == 1
+            && (pathChain.equals(List.of(terminal)) || chain.equals(List.of(terminal)));
+    if (!last) {
+      throw new IllegalStateException(
+          "Handler '%s' has to run last on %s, but the handlers there are %s!"
+              .formatted(
+                  terminal.name(),
+                  path,
+                  chain.stream().map(Registration::name).collect(joining(", "))));
+    }
   }
 
   /**
@@ -110,9 +171,10 @@ public final class Profile {
     }
 
     private List<List<DeidentifhirHandler<Object>>> chains(
-        Function<Module, List<DeidentifhirHandler<Object>>> lookup) {
+        Function<Module, List<Registration>> lookup) {
       return matched.stream()
           .flatMap(module -> Optional.ofNullable(lookup.apply(module)).stream())
+          .map(registrations -> registrations.stream().map(Registration::handler).toList())
           .toList();
     }
   }
@@ -134,17 +196,16 @@ public final class Profile {
             .flatMap(registration -> expandGlob(registration, basePaths))
             .map(Profile::requireFittingPathType)
             .toList();
-    Map<String, List<DeidentifhirHandler<Object>>> pathHandlers =
+    Map<String, List<Registration>> pathHandlers =
         basePaths.stream()
             .collect(
                 toUnmodifiableMap(
                     Function.identity(), path -> handlersFor(path, pathRegistrations)));
-    Map<Class<?>, List<DeidentifhirHandler<Object>>> typeHandlers =
+    Map<Class<?>, List<Registration>> typeHandlers =
         registrations(config, "types", registry)
             .collect(
                 groupingBy(
-                    registration -> requireFittingType(registration, typeFor(registration.key())),
-                    mapping(Registration::handler, toList())));
+                    registration -> requireFittingType(registration, typeFor(registration.key()))));
     return new Module(pattern, pathHandlers, Map.copyOf(typeHandlers));
   }
 
@@ -191,12 +252,8 @@ public final class Profile {
     }
   }
 
-  private static List<DeidentifhirHandler<Object>> handlersFor(
-      String path, List<Registration> registrations) {
-    return registrations.stream()
-        .filter(registration -> registration.key().equals(path))
-        .map(Registration::handler)
-        .toList();
+  private static List<Registration> handlersFor(String path, List<Registration> registrations) {
+    return registrations.stream().filter(registration -> registration.key().equals(path)).toList();
   }
 
   private static Class<?> typeFor(String typeName) {

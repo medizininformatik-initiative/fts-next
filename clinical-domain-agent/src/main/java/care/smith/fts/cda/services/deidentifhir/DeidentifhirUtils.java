@@ -43,7 +43,8 @@ public interface DeidentifhirUtils {
         "PSEUDONYMISIERTstringReplacementHandler",
         StringType.class,
         Handlers.stringReplacementHandler("PSEUDONYMISIERT"));
-    registry.addHandler(
+    // the shift removes the value, so no handler may run after it
+    registry.addTerminalHandler(
         "shiftDateHandler",
         BaseDateTimeType.class,
         (path, date, context) -> Optional.of(shiftDate(date, provider)));

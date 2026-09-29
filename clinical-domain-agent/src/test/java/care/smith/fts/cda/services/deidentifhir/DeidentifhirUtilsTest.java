@@ -7,6 +7,7 @@ import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXT
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static com.typesafe.config.ConfigFactory.parseString;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.test.TestPatientGenerator;
@@ -56,6 +57,30 @@ class DeidentifhirUtilsTest {
     // Verify the identifier value was replaced with a generated tID
     assertThat(p.getIdentifierFirstRep().getValue()).isNotEqualTo("identifier1");
     assertThat(p.getIdentifierFirstRep().getValue()).hasSize(21); // NanoId length
+  }
+
+  /**
+   * The date shift removes the value, so a generalization after it does nothing and the exact date
+   * is shifted. Type handlers run before path handlers, so this profile is rejected at startup.
+   */
+  @Test
+  void rejectsAProfileThatGeneralizesADateAfterShiftingIt() {
+    var config =
+        parseString(
+            """
+            modules.patient {
+              pattern = "Patient.exists()"
+              base = ["Patient.birthDate"]
+              paths { "Patient.birthDate" { handler = generalizeDateHandler } }
+              types { DateType { handler = shiftDateHandler } }
+            }
+            """);
+    var registry = buildRegistry(provider);
+
+    assertThatThrownBy(() -> deidentify(config, registry, new Bundle(), "id1", meterRegistry))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("shiftDateHandler")
+        .hasMessageContaining("Patient.birthDate");
   }
 
   @Test

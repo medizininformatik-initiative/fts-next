@@ -14,6 +14,9 @@ public sealed interface FhirPathPattern {
 
   boolean matches(Resource resource);
 
+  /** The resource type the pattern selects from; resources of any other type never match. */
+  String resourceType();
+
   Pattern PROFILE = Pattern.compile("(.*)\\.meta\\.profile contains '(.*)'");
   Pattern RESOURCE_EXISTS = Pattern.compile("(.*)\\.exists\\(\\)");
   Pattern IDENTIFIER_SYSTEM = Pattern.compile("(.*)\\.identifier\\.system contains '(.*)'");

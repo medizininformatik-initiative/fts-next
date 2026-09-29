@@ -26,13 +26,25 @@ public class Registry {
    *
    * @param valueType the handler accepts elements of this type and its subtypes
    * @param handler the handler, typed for the engine
+   * @param terminal whether no other handler may run after this one on the same element
    */
-  public record Registration(Class<?> valueType, DeidentifhirHandler<Object> handler) {}
+  public record Registration(
+      Class<?> valueType, DeidentifhirHandler<Object> handler, boolean terminal) {}
 
   private final Map<String, Registration> registrations = new HashMap<>();
 
   public <T> void addHandler(String name, Class<T> valueType, DeidentifhirHandler<T> handler) {
-    register(name, registration(valueType, handler));
+    register(name, registration(valueType, handler, false));
+  }
+
+  /**
+   * Registers a handler that has to run last on its element, e.g. one that removes the value and
+   * leaves nothing for a handler after it. A profile that lets another handler run after it on the
+   * same element is rejected when it is parsed.
+   */
+  public <T> void addTerminalHandler(
+      String name, Class<T> valueType, DeidentifhirHandler<T> handler) {
+    register(name, registration(valueType, handler, true));
   }
 
   private void register(String name, Registration registration) {
@@ -45,10 +57,10 @@ public class Registry {
 
   @SuppressWarnings("unchecked")
   private static <T> Registration registration(
-      Class<T> valueType, DeidentifhirHandler<T> handler) {
+      Class<T> valueType, DeidentifhirHandler<T> handler, boolean terminal) {
     requireNonNull(valueType);
     requireNonNull(handler);
-    return new Registration(valueType, (DeidentifhirHandler<Object>) handler);
+    return new Registration(valueType, (DeidentifhirHandler<Object>) handler, terminal);
   }
 
   /** The handler registered under {@link #REFERENCE_HANDLER_NAME}, typed for the engine. */

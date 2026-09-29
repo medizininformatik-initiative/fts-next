@@ -255,6 +255,144 @@ class ProfileTest {
         .hasMessageContaining("DateTimeType");
   }
 
+  /**
+   * A terminal handler must run last on its element: the date shift removes the value, so a handler
+   * after it has nothing to work on. Type handlers run before path handlers, so a terminal type
+   * handler and a path handler on an element of that type are rejected.
+   */
+  @Test
+  void aTerminalTypeHandlerFollowedByAPathHandlerIsRejected() {
+    Registry registry = new Registry();
+    registry.addTerminalHandler(
+        "shift", DateType.class, (path, value, context) -> Optional.of(value));
+    registry.addHandler(
+        "generalize", DateType.class, (path, value, context) -> Optional.of(value));
+
+    assertThatThrownBy(
+            () ->
+                Profile.parse(
+                    ConfigFactory.parseString(
+                        """
+                        modules.test {
+                          pattern = "Patient.exists()"
+                          base = ["Patient.birthDate"]
+                          paths { "Patient.birthDate" { handler = generalize } }
+                          types { DateType { handler = shift } }
+                        }
+                        """),
+                    registry))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("shift")
+        .hasMessageContaining("generalize")
+        .hasMessageContaining("Patient.birthDate");
+  }
+
+  /** A terminal path handler runs after the type handlers, so generalize-then-shift is allowed. */
+  @Test
+  void aTerminalPathHandlerAfterATypeHandlerIsAccepted() {
+    DeidentifhirHandler<Object> shift = (path, value, context) -> Optional.of(value);
+    DeidentifhirHandler<Object> generalize = (path, value, context) -> Optional.of(value);
+    Registry registry = new Registry();
+    registry.addTerminalHandler("shift", Object.class, shift);
+    registry.addHandler("generalize", Object.class, generalize);
+
+    Profile profile =
+        Profile.parse(
+            ConfigFactory.parseString(
+                """
+                modules.test {
+                  pattern = "Patient.exists()"
+                  base = ["Patient.birthDate"]
+                  paths { "Patient.birthDate" { handler = shift } }
+                  types { DateType { handler = generalize } }
+                }
+                """),
+            registry);
+
+    assertThat(profile.ruleFor(new Patient(), List.of("Patient", "birthDate"), DateType.class))
+        .isEqualTo(new Rule.Apply(List.of(generalize, shift)));
+  }
+
+  /**
+   * Two modules for the same resource type can both match one resource. A terminal type handler in
+   * one and a path handler in the other still meet on the same element.
+   */
+  @Test
+  void aTerminalTypeHandlerIsCheckedAgainstThePathHandlersOfOtherModules() {
+    assertThatThrownBy(
+            () ->
+                Profile.parse(
+                    ConfigFactory.parseString(
+                        """
+                        modules.shifting {
+                          pattern = "Patient.exists()"
+                          base = []
+                          types { DateType { handler = shift } }
+                        }
+                        modules.generalizing {
+                          pattern = "Patient.meta.profile contains 'https://example.org/p'"
+                          base = ["Patient.birthDate"]
+                          paths { "Patient.birthDate" { handler = generalize } }
+                        }
+                        """),
+                    shiftAndGeneralize()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Patient.birthDate");
+  }
+
+  /** The order of the path handlers of two modules is not defined; a terminal one may come first. */
+  @Test
+  void aTerminalPathHandlerNextToAPathHandlerOfAnotherModuleIsRejected() {
+    assertThatThrownBy(
+            () ->
+                Profile.parse(
+                    ConfigFactory.parseString(
+                        """
+                        modules.shifting {
+                          pattern = "Patient.exists()"
+                          base = ["Patient.birthDate"]
+                          paths { "Patient.birthDate" { handler = shift } }
+                        }
+                        modules.generalizing {
+                          pattern = "Patient.exists()"
+                          base = ["Patient.birthDate"]
+                          paths { "Patient.birthDate" { handler = generalize } }
+                        }
+                        """),
+                    shiftAndGeneralize()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Patient.birthDate");
+  }
+
+  /** Modules for different resource types never meet on one element. */
+  @Test
+  void aTerminalTypeHandlerDoesNotReachModulesOfOtherResourceTypes() {
+    Profile.parse(
+        ConfigFactory.parseString(
+            """
+            modules.shifting {
+              pattern = "Encounter.exists()"
+              base = []
+              types { DateType { handler = shift } }
+            }
+            modules.generalizing {
+              pattern = "Patient.exists()"
+              base = ["Patient.birthDate"]
+              paths { "Patient.birthDate" { handler = generalize } }
+            }
+            """),
+        shiftAndGeneralize());
+  }
+
+  private static Registry shiftAndGeneralize() {
+    Registry registry = new Registry();
+    registry.addTerminalHandler(
+        "shift", DateType.class, (path, value, context) -> Optional.of(value));
+    registry.addHandler(
+        "generalize", DateType.class, (path, value, context) -> Optional.of(value));
+    return registry;
+  }
+
   /** The stars of a glob may also match nothing, so they cover the named element itself. */
   @Test
   void aGlobStarAtEitherEndAlsoMatchesNoElementAtAll() {
