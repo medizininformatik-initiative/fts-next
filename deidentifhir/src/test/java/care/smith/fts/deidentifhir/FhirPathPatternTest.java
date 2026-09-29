@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.hl7.fhir.r4.model.CanonicalType;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.QuestionnaireResponse;
 import org.junit.jupiter.api.Test;
 
 class FhirPathPatternTest {
@@ -31,6 +33,19 @@ class FhirPathPatternTest {
 
     assertThat(patientIdentifierSystem().matches(withOtherSystem)).isFalse();
     assertThat(patientIdentifierSystem().matches(new Patient())).isFalse();
+  }
+
+  /** Some resource types carry at most one identifier, as a single element and not a list. */
+  @Test
+  void identifierSystemPatternMatchesAResourceWithASingleIdentifier() {
+    QuestionnaireResponse response = new QuestionnaireResponse();
+    response.setIdentifier(new Identifier().setSystem("https://example.org/fhir/sid"));
+
+    assertThat(
+            FhirPathPattern.parse(
+                    "QuestionnaireResponse.identifier.system contains 'https://example.org/fhir/sid'")
+                .matches(response))
+        .isTrue();
   }
 
   /**

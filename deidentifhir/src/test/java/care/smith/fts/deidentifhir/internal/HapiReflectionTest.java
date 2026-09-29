@@ -40,17 +40,6 @@ class HapiReflectionTest {
     assertThat(names).containsExactly("active");
   }
 
-  @Test
-  void getChildReadsAValueAndReportsAbsenceAsEmpty() {
-    Patient patient = new Patient();
-    patient.addIdentifier().setSystem("sys").setValue("42");
-
-    assertThat(HapiReflection.getChild(patient, "identifier").orElseThrow())
-        .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
-        .hasSize(1);
-    assertThat(HapiReflection.getChild(patient, "name")).isEmpty();
-  }
-
   /** HAPI stores the {@code Encounter.class} element in a field named {@code class_}. */
   @Test
   void resolvesElementsWhoseFhirNameIsAJavaKeyword() {
@@ -63,14 +52,6 @@ class HapiReflectionTest {
     }
 
     assertThat(copy.getClass_().getCode()).isEqualTo("AMB");
-  }
-
-  @Test
-  void getChildNamesTheClassInTheErrorForAnUnknownElement() {
-    assertThatThrownBy(() -> HapiReflection.getChild(new Patient(), "nonsense"))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("nonsense")
-        .hasMessageContaining("Patient");
   }
 
   @Test

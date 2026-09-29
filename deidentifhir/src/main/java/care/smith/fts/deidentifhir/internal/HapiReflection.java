@@ -125,15 +125,6 @@ public interface HapiReflection {
     return name;
   }
 
-  /**
-   * Reads the value of one child element by its FHIR name. Empty when the element is absent; throws
-   * when no element of that name exists on the class.
-   */
-  static Optional<Object> getChild(Base base, String elementName) {
-    Class<?> clazz = base.getClass();
-    return get(lookup(FIELDS.get(clazz), clazz, nameToField(elementName)), base);
-  }
-
   static <T> T newEmptyInstance(Class<T> clazz) {
     try {
       return clazz.cast(CONSTRUCTORS.get(clazz).newInstance());

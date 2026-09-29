@@ -1,8 +1,7 @@
 package care.smith.fts.deidentifhir;
 
-import care.smith.fts.deidentifhir.internal.HapiReflection;
-import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.hl7.fhir.r4.model.CanonicalType;
@@ -69,17 +68,18 @@ public sealed interface FhirPathPattern {
   record IdentifierSystemFhirPath(String resourceType, String identifierSystem)
       implements FhirPathPattern {
     /**
-     * There is no common base class declaring {@code getIdentifier()}, so the identifier list is
-     * read via reflection.
+     * There is no common base class declaring {@code getIdentifier()}, and the element is a list on
+     * most resource types but a single element on some, e.g. QuestionnaireResponse. The named
+     * property answers both as a list of values without creating the element.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public boolean matches(Resource resource) {
       if (!resource.getResourceType().toString().equals(resourceType)) {
         return false;
       }
-      return HapiReflection.getChild(resource, "identifier").stream()
-          .flatMap(identifiers -> ((List<Identifier>) identifiers).stream())
+      return Optional.ofNullable(resource.getNamedProperty("identifier")).stream()
+          .flatMap(identifiers -> identifiers.getValues().stream())
+          .map(Identifier.class::cast)
           .anyMatch(identifier -> identifierSystem.equals(identifier.getSystem()));
     }
   }
