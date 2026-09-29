@@ -4,19 +4,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
+import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 
 class RegistryTest {
 
-  private static final DeidentifhirHandler<Object> NOOP =
+  private static final DeidentifhirHandler<StringType> NOOP =
       (path, value, context) -> Optional.of(value);
 
   @Test
-  void resolveReturnsTheRegisteredHandler() {
+  void resolveReturnsTheRegisteredHandlerWithTheTypeItWorksOn() {
     Registry registry = new Registry();
-    registry.addHandler("noop", NOOP);
+    registry.addHandler("noop", StringType.class, NOOP);
 
-    assertThat(registry.resolve("noop")).isSameAs(NOOP);
+    Registry.Registration registration = registry.resolve("noop");
+
+    assertThat(registration.handler()).isSameAs(NOOP);
+    assertThat(registration.valueType()).isEqualTo(StringType.class);
   }
 
   @Test
@@ -29,7 +33,7 @@ class RegistryTest {
   @Test
   void anAliasResolvesToTheSameHandler() {
     Registry registry = new Registry();
-    registry.addHandler("canonical", NOOP);
+    registry.addHandler("canonical", StringType.class, NOOP);
     registry.addAlias("older-name", "canonical");
 
     assertThat(registry.resolve("older-name")).isSameAs(registry.resolve("canonical"));
@@ -45,9 +49,9 @@ class RegistryTest {
   @Test
   void aSecondHandlerUnderTheSameNameIsRejected() {
     Registry registry = new Registry();
-    registry.addHandler("noop", NOOP);
+    registry.addHandler("noop", StringType.class, NOOP);
 
-    assertThatThrownBy(() -> registry.addHandler("noop", NOOP))
+    assertThatThrownBy(() -> registry.addHandler("noop", StringType.class, NOOP))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("noop");
   }

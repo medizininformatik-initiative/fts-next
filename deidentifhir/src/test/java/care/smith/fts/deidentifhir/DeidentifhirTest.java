@@ -18,6 +18,7 @@ import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.HumanName;
+import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
@@ -73,9 +74,9 @@ class DeidentifhirTest {
     Registry registry = new Registry();
     registry.addHandler(
         "testReplace",
-        (DeidentifhirHandler<org.hl7.fhir.r4.model.StringType>)
-            (path, value, context) ->
-                Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
+        org.hl7.fhir.r4.model.StringType.class,
+        (path, value, context) ->
+            Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
     Deidentifhir deidentifhir = Deidentifhir.fromConfig(config, registry);
 
     Patient patient = new Patient();
@@ -115,7 +116,10 @@ class DeidentifhirTest {
             }
             """);
     Registry registry = new Registry();
-    registry.addHandler("testReplace", (path, value, context) -> Optional.of(value));
+    registry.addHandler(
+        "testReplace",
+        org.hl7.fhir.r4.model.StringType.class,
+        (path, value, context) -> Optional.of(value));
 
     assertThatThrownBy(() -> Deidentifhir.fromConfig(config, registry))
         .isInstanceOf(IllegalStateException.class)
@@ -260,15 +264,15 @@ class DeidentifhirTest {
     Registry registry = new Registry();
     registry.addHandler(
         "removes",
-        (DeidentifhirHandler<org.hl7.fhir.r4.model.StringType>)
-            (path, value, context) -> Optional.empty());
+        org.hl7.fhir.r4.model.StringType.class,
+        (path, value, context) -> Optional.empty());
     registry.addHandler(
         "replaces",
-        (DeidentifhirHandler<org.hl7.fhir.r4.model.StringType>)
-            (path, value, context) ->
-                Optional.of(
-                    new org.hl7.fhir.r4.model.StringType(
-                        value.getValue().toUpperCase(Locale.ROOT))));
+        org.hl7.fhir.r4.model.StringType.class,
+        (path, value, context) ->
+            Optional.of(
+                new org.hl7.fhir.r4.model.StringType(
+                    value.getValue().toUpperCase(Locale.ROOT))));
     Patient patient = new Patient();
     patient.addName(new HumanName().setFamily("Doe"));
 
@@ -290,6 +294,7 @@ class DeidentifhirTest {
     Registry registry = new Registry();
     registry.addHandler(
         "recordPatient",
+        Object.class,
         (path, value, context) -> {
           context.patientIdentifier().ifPresent(seen::add);
           return Optional.of(value);
@@ -642,9 +647,12 @@ class DeidentifhirTest {
   private static Registry referenceRegistry(IDReplacementProvider idReplacementProvider) {
     Registry registry = new Registry();
     registry.addHandler(
-        "idReplacementHandler", Handlers.idReplacementHandler(idReplacementProvider));
+        "idReplacementHandler",
+        IdType.class,
+        Handlers.idReplacementHandler(idReplacementProvider));
     registry.addHandler(
         "referenceReplacementHandler",
+        org.hl7.fhir.r4.model.StringType.class,
         Handlers.referenceReplacementHandler(idReplacementProvider, (system, value) -> "value"));
     return registry;
   }
@@ -693,9 +701,9 @@ class DeidentifhirTest {
     Registry registry = new Registry();
     registry.addHandler(
         "testReplace",
-        (DeidentifhirHandler<org.hl7.fhir.r4.model.StringType>)
-            (path, value, context) ->
-                Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
+        org.hl7.fhir.r4.model.StringType.class,
+        (path, value, context) ->
+            Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
     Deidentifhir deidentifhir = Deidentifhir.fromConfig(config, registry);
 
     Patient patient = new Patient();
@@ -723,8 +731,8 @@ class DeidentifhirTest {
     Registry registry = new Registry();
     registry.addHandler(
         "generalizeDate",
-        (DeidentifhirHandler<DateType>)
-            (path, value, context) -> Optional.of(new DateType("1970-01-01")));
+        DateType.class,
+        (path, value, context) -> Optional.of(new DateType("1970-01-01")));
     Deidentifhir deidentifhir = Deidentifhir.fromConfig(config, registry);
 
     Patient patient = new Patient();
@@ -863,7 +871,7 @@ class DeidentifhirTest {
             }
             """);
     Registry registry = new Registry();
-    registry.addHandler("removeValue", (path, value, context) -> Optional.empty());
+    registry.addHandler("removeValue", DateType.class, (path, value, context) -> Optional.empty());
     Deidentifhir deidentifhir = Deidentifhir.fromConfig(config, registry);
 
     Patient patient = new Patient();
@@ -898,13 +906,13 @@ class DeidentifhirTest {
     Registry registry = new Registry();
     registry.addHandler(
         "shiftDate",
-        (DeidentifhirHandler<DateType>)
-            (path, date, context) -> {
-              date.addExtension(
-                  "http://example.org/transport-id", new org.hl7.fhir.r4.model.StringType("tid-1"));
-              date.setValue(null);
-              return Optional.of(date);
-            });
+        DateType.class,
+        (path, date, context) -> {
+          date.addExtension(
+              "http://example.org/transport-id", new org.hl7.fhir.r4.model.StringType("tid-1"));
+          date.setValue(null);
+          return Optional.of(date);
+        });
     Deidentifhir deidentifhir = Deidentifhir.fromConfig(config, registry);
 
     Patient patient = new Patient();
@@ -938,9 +946,9 @@ class DeidentifhirTest {
     Registry registry = new Registry();
     registry.addHandler(
         "testReplace",
-        (DeidentifhirHandler<org.hl7.fhir.r4.model.StringType>)
-            (path, value, context) ->
-                Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
+        org.hl7.fhir.r4.model.StringType.class,
+        (path, value, context) ->
+            Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
     Deidentifhir deidentifhir = Deidentifhir.fromConfig(config, registry);
 
     Patient patient = new Patient();

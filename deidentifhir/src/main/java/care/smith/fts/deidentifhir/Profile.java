@@ -137,7 +137,6 @@ public final class Profile {
     return new Module(pattern, pathHandlers, Map.copyOf(typeHandlers));
   }
 
-  @SuppressWarnings("unchecked")
   private static Stream<Registration> registrations(
       Config config, String section, Registry registry) {
     return Optional.of(section).filter(config::hasPath).stream()
@@ -146,9 +145,9 @@ public final class Profile {
             entry ->
                 new Registration(
                     entry.getKey(),
-                    (DeidentifhirHandler<Object>)
-                        registry.resolve(
-                            ((ConfigObject) entry.getValue()).toConfig().getString("handler"))));
+                    registry
+                        .resolve(((ConfigObject) entry.getValue()).toConfig().getString("handler"))
+                        .handler()));
   }
 
   private static List<DeidentifhirHandler<Object>> handlersFor(

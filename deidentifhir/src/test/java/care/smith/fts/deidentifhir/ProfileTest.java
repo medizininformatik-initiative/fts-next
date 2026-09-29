@@ -20,7 +20,7 @@ class ProfileTest {
 
   private static Profile profile(String hocon) {
     Registry registry = new Registry();
-    registry.addHandler("noop", NOOP);
+    registry.addHandler("noop", Object.class, NOOP);
     Config config = ConfigFactory.parseString(hocon);
     return Profile.parse(config, registry);
   }
@@ -134,8 +134,8 @@ class ProfileTest {
     DeidentifhirHandler<Object> forType = (path, value, context) -> Optional.of(value);
     DeidentifhirHandler<Object> forPath = (path, value, context) -> Optional.of(value);
     Registry registry = new Registry();
-    registry.addHandler("forType", forType);
-    registry.addHandler("forPath", forPath);
+    registry.addHandler("forType", Object.class, forType);
+    registry.addHandler("forPath", Object.class, forPath);
     Profile profile =
         Profile.parse(
             ConfigFactory.parseString(
