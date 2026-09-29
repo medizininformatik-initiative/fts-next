@@ -1,5 +1,6 @@
 package care.smith.fts.deidentifhir;
 
+import ca.uhn.fhir.context.FhirContext;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -28,9 +29,23 @@ public sealed interface FhirPathPattern {
     }
     Matcher identifierSystem = IDENTIFIER_SYSTEM.matcher(fhirPath);
     if (identifierSystem.matches()) {
-      return new IdentifierSystemFhirPath(identifierSystem.group(1), identifierSystem.group(2));
+      return new IdentifierSystemFhirPath(
+          requireIdentifier(identifierSystem.group(1)), identifierSystem.group(2));
     }
     throw new IllegalArgumentException("Pattern '%s' cannot be parsed.".formatted(fhirPath));
+  }
+
+  /** A pattern on a type without an identifier element can never match. */
+  private static String requireIdentifier(String resourceType) {
+    if (FhirContext.forR4Cached()
+            .getResourceDefinition(resourceType)
+            .getChildByName("identifier")
+        == null) {
+      throw new IllegalArgumentException(
+          "Resource type %s has no identifier element to match a system on."
+              .formatted(resourceType));
+    }
+    return resourceType;
   }
 
   record ProfileFhirPath(String resourceType, String canonicalProfile) implements FhirPathPattern {

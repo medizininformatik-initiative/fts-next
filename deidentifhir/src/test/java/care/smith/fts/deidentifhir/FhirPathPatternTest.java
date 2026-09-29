@@ -48,6 +48,16 @@ class FhirPathPatternTest {
         .isTrue();
   }
 
+  /** Provenance has no identifier; such a pattern can never match and is a configuration error. */
+  @Test
+  void parseRejectsAnIdentifierPatternOnATypeWithoutIdentifier() {
+    assertThatThrownBy(
+            () -> FhirPathPattern.parse("Provenance.identifier.system contains 'https://sys'"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Provenance")
+        .hasMessageContaining("identifier");
+  }
+
   /**
    * A resource may pin the version of the profile it claims, {@code …/Diagnose|1.0.4}. The module
    * that governs it names the profile without a version, and both have to meet.
