@@ -118,9 +118,9 @@ public class Deidentifhir {
       BundleEntryComponent entry, Optional<Resource> resource, HandlerContext context) {
     BundleEntryComponent rebuilt = new BundleEntryComponent();
     resource.ifPresent(rebuilt::setResource);
-    Optional.of(entry)
-        .filter(BundleEntryComponent::hasFullUrl)
-        .flatMap(e -> identity.fullUrl(e.getFullUrl(), context))
+    // hasFullUrl() is also true for an element that carries only an extension
+    Optional.ofNullable(entry.getFullUrl())
+        .flatMap(fullUrl -> identity.fullUrl(fullUrl, context))
         .ifPresent(rebuilt::setFullUrl);
     Optional.of(entry)
         .filter(BundleEntryComponent::hasRequest)

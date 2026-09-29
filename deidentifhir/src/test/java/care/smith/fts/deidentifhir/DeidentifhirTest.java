@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.CodeType;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Enumerations;
@@ -440,6 +442,24 @@ class DeidentifhirTest {
 
     Bundle result = (Bundle) bundleEngine().deidentify(bundle).orElseThrow();
 
+    assertThat(result.getEntryFirstRep().hasFullUrl()).isFalse();
+  }
+
+  /** A fullUrl element with only an extension has no value to pseudonymize; the entry stays. */
+  @Test
+  void keepsAnEntryWhoseFullUrlHasNoValue() {
+    Bundle bundle = new Bundle();
+    Patient patient = new Patient();
+    patient.setId("123");
+    BundleEntryComponent entry = bundle.addEntry().setResource(patient);
+    entry
+        .getFullUrlElement()
+        .addExtension(
+            "http://hl7.org/fhir/StructureDefinition/data-absent-reason", new CodeType("masked"));
+
+    Bundle result = (Bundle) referringEngine().deidentify(bundle).orElseThrow();
+
+    assertThat(result.getEntryFirstRep().hasResource()).isTrue();
     assertThat(result.getEntryFirstRep().hasFullUrl()).isFalse();
   }
 
