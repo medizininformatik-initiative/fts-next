@@ -146,7 +146,11 @@ public class Deidentifhir {
         .ifPresent(
             request ->
                 Optional.ofNullable(request.getUrl())
-                    .flatMap(url -> identity.requestUrl(url, context))
+                    .flatMap(
+                        url ->
+                            resource
+                                .map(r -> identity.requestUrl(url, r, context))
+                                .orElseGet(() -> identity.requestUrl(url, context)))
                     .ifPresent(
                         url -> rebuilt.getRequest().setMethod(request.getMethod()).setUrl(url)));
     return Optional.of(rebuilt).filter(not(BundleEntryComponent::isEmpty));

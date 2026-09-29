@@ -402,8 +402,7 @@ class DeidentifhirTest {
 
   @Test
   void pseudonymizesTheIdOfARequestUrlThatNamesOneResource() {
-    Bundle result =
-        (Bundle) referringEngine().deidentify(bundleWithRequestUrl("Patient/123")).orElseThrow();
+    Bundle result = (Bundle) referringEngine().deidentify(updateBundle("123")).orElseThrow();
 
     assertThat(result.getEntryFirstRep().getRequest().getUrl())
         .isEqualTo("Patient/pseudonym-of-123");
@@ -417,13 +416,65 @@ class DeidentifhirTest {
     assertThat(result.getEntryFirstRep().getRequest().getUrl()).isEqualTo("Patient");
   }
 
+  /** Without a surviving id the url cannot name the resource, and must not leak the source id. */
   @Test
-  void dropsARequestThatCannotBePseudonymizedInsteadOfLeakingItsUrl() {
-    Bundle result =
-        (Bundle) bundleEngine().deidentify(bundleWithRequestUrl("Patient/123")).orElseThrow();
+  void dropsTheRequestOfAnUpdateWhoseResourceLostItsId() {
+    Deidentifhir deidentifhir =
+        Deidentifhir.fromConfig(
+            ConfigFactory.parseString(
+                """
+                modules.patient {
+                  pattern = "Patient.exists()"
+                  base = ["Patient.gender"]
+                }
+                """),
+            referenceRegistry((resourceType, id) -> "pseudonym-of-" + id));
+    Bundle bundle = updateBundle("123");
+    ((Patient) bundle.getEntryFirstRep().getResource())
+        .setGender(Enumerations.AdministrativeGender.FEMALE);
+
+    Bundle result = (Bundle) deidentifhir.deidentify(bundle).orElseThrow();
 
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
+  }
+
+  /**
+   * The url of an update names the resource in its body, so it has to carry the id the body
+   * carries. A profile that keeps the id unchanged keeps it in the url as well.
+   */
+  @Test
+  void givesAnUpdateUrlTheIdTheProfileGaveTheResource() {
+    Deidentifhir deidentifhir =
+        Deidentifhir.fromConfig(
+            ConfigFactory.parseString(
+                """
+                modules.patient {
+                  pattern = "Patient.exists()"
+                  base = ["Patient.id"]
+                }
+                """),
+            referenceRegistry((resourceType, id) -> "pseudonym-of-" + id));
+
+    Bundle result = (Bundle) deidentifhir.deidentify(updateBundle("123")).orElseThrow();
+
+    assertThat(result.getEntryFirstRep().getResource().getIdPart()).isEqualTo("123");
+    assertThat(result.getEntryFirstRep().getRequest().getUrl()).isEqualTo("Patient/123");
+  }
+
+  /** A transaction bundle with one update of the Patient with the given id. */
+  private static Bundle updateBundle(String id) {
+    Bundle bundle = new Bundle();
+    bundle.setType(Bundle.BundleType.TRANSACTION);
+    Patient patient = new Patient();
+    patient.setId(id);
+    bundle
+        .addEntry()
+        .setResource(patient)
+        .getRequest()
+        .setMethod(Bundle.HTTPVerb.PUT)
+        .setUrl("Patient/" + id);
+    return bundle;
   }
 
   private static Bundle bundleWithRequestUrl(String url) {

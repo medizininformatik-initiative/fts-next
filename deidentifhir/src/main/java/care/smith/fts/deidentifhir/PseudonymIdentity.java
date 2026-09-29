@@ -6,6 +6,7 @@ import care.smith.fts.deidentifhir.internal.PseudonymUuid;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.StringType;
 
 /**
@@ -81,6 +82,23 @@ public final class PseudonymIdentity {
     return Optional.of(url)
         .filter(PseudonymIdentity::isPseudonymizableRequestUrl)
         .flatMap(pseudonymizable -> replace(REQUEST_URL_PATH, pseudonymizable, context));
+  }
+
+  /**
+   * The {@code request.url} of an entry that carries {@code resource}, its de-identified resource.
+   * A url {@code Type/id} names that very resource, so it takes the id the profile gave the
+   * resource, pseudonymized or kept, and never disagrees with the body. Without a surviving id the
+   * url cannot name the resource and the request goes. Every other url follows {@link
+   * #requestUrl(String, HandlerContext)}.
+   */
+  public Optional<String> requestUrl(String url, Resource resource, HandlerContext context) {
+    requireNonNull(url);
+    requireNonNull(resource);
+    if (!RELATIVE_REQUEST.matcher(url).matches()) {
+      return requestUrl(url, context);
+    }
+    return Optional.ofNullable(resource.getIdElement().getIdPart())
+        .map(id -> resource.fhirType() + "/" + id);
   }
 
   private Optional<String> replace(List<String> path, String value, HandlerContext context) {
