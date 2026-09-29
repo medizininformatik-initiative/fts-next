@@ -68,6 +68,15 @@ class HandlersTest {
     assertThat(result.getValue()).isEqualTo("PSEUDONYMISIERT");
   }
 
+  /** A name part without a value has nothing to replace; replacing it would invent one. */
+  @Test
+  void stringReplacementHandlerPassesAValuelessStringThrough() {
+    DeidentifhirHandler<StringType> handler = Handlers.stringReplacementHandler("PSEUDONYMISIERT");
+    StringType valueless = new StringType();
+
+    assertThat(handler.apply(NO_PATH, valueless, HandlerContext.empty())).containsSame(valueless);
+  }
+
   /**
    * A date element can carry only extensions, e.g. a data-absent-reason, and no value. The handler
    * returns it unchanged, so the engine's extension whitelisting still runs.
@@ -333,15 +342,15 @@ class HandlersTest {
     assertThat(result.getIdPart()).isEqualTo("pseudonym-of-8d1f-42");
   }
 
+  /** A reference can carry only a data-absent-reason; there is no id part to pseudonymize. */
   @Test
-  void referenceReplacementHandlerRejectsAReferenceWithoutAValue() {
+  void referenceReplacementHandlerPassesAValuelessReferenceThrough() {
     DeidentifhirHandler<StringType> handler =
         Handlers.referenceReplacementHandler(
             (resourceType, id) -> "pseudonym", (system, value) -> "value-pseudonym");
+    StringType valueless = new StringType();
 
-    assertThatThrownBy(() -> handler.apply(NO_PATH, new StringType(), HandlerContext.empty()))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("without a value");
+    assertThat(handler.apply(NO_PATH, valueless, HandlerContext.empty())).containsSame(valueless);
   }
 
   /** An id element can carry only extensions; there is no id part to pseudonymize. */
@@ -371,6 +380,21 @@ class HandlersTest {
             .orElseThrow();
 
     assertThat(result.getValue()).isEqualTo("pseudonym-of-mySystem-12345");
+  }
+
+  /**
+   * A masked identifier carries only a data-absent-reason. Pseudonymizing its missing value would
+   * invent an identifier and map every masked identifier of one system to the same pseudonym.
+   */
+  @Test
+  void identifierValueReplacementHandlerPassesAValuelessValueThrough() {
+    DeidentifhirHandler<StringType> handler =
+        Handlers.identifierValueReplacementHandler((system, value) -> "pseudonym", true);
+    Identifier identifier = new Identifier().setSystem("mySystem");
+    StringType valueless = identifier.getValueElement();
+
+    assertThat(handler.apply(NO_PATH, valueless, HandlerContext.of(List.of(identifier))))
+        .containsSame(valueless);
   }
 
   @Test

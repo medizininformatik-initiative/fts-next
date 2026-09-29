@@ -87,10 +87,17 @@ public interface Handlers {
     return date;
   }
 
-  /** Replaces the given string with a predefined static string. */
+  /**
+   * Replaces the given string with a predefined static string. A string element without a value
+   * carries only extensions; it passes through unchanged.
+   */
   static DeidentifhirHandler<StringType> stringReplacementHandler(String staticString) {
     requireNonNull(staticString);
-    return (path, string, context) -> Optional.of(new StringType(staticString));
+    return (path, string, context) ->
+        Optional.of(
+            Optional.ofNullable(string.getValue())
+                .<StringType>map(value -> new StringType(staticString))
+                .orElse(string));
   }
 
   /**
@@ -116,6 +123,9 @@ public interface Handlers {
    * <p>Any other reference format is rejected — an absolute URL loudly, rather than being split at
    * the {@code /} of its scheme and turned into nonsense.
    *
+   * <p>A reference element without a value carries only extensions, e.g. a data-absent-reason; it
+   * passes through unchanged.
+   *
    * <p>Conditional references are allowed in transaction bundles
    * (https://www.hl7.org/fhir/http.html#trules) and occur throughout the MII transport bundles. A
    * search URI keeps its type and system and has its identifier value replaced, exactly like {@link
@@ -128,19 +138,19 @@ public interface Handlers {
       IdentifierValueReplacementProvider identifierValueReplacementProvider) {
     requireNonNull(idReplacementProvider);
     requireNonNull(identifierValueReplacementProvider);
-    return (path, reference, context) -> {
-      String value =
-          Optional.ofNullable(reference.getValue())
-              .orElseThrow(
-                  () ->
-                      new IllegalArgumentException("a reference without a value is unsupported!"));
-      Matcher conditional = CONDITIONAL_REFERENCE.matcher(value);
-      String replaced =
-          conditional.matches()
-              ? replaceConditionalReference(conditional, identifierValueReplacementProvider)
-              : replaceReference(value, idReplacementProvider);
-      return Optional.of(new StringType(replaced));
-    };
+    return (path, reference, context) ->
+        Optional.of(
+            Optional.ofNullable(reference.getValue())
+                .map(
+                    value -> {
+                      Matcher conditional = CONDITIONAL_REFERENCE.matcher(value);
+                      return new StringType(
+                          conditional.matches()
+                              ? replaceConditionalReference(
+                                  conditional, identifierValueReplacementProvider)
+                              : replaceReference(value, idReplacementProvider));
+                    })
+                .orElse(reference));
   }
 
   /**
@@ -175,6 +185,9 @@ public interface Handlers {
    * Replaces an identifier value with its pseudonym. Because the value is not unique on its own,
    * the system of the enclosing identifier is used as a prefix.
    *
+   * <p>A value element without a value carries only extensions, e.g. a data-absent-reason; it
+   * passes through unchanged rather than being given an invented pseudonym.
+   *
    * @param acceptNoSystem whether identifiers without a system are replaced under the placeholder
    *     system {@code <no_system>} instead of being rejected
    */
@@ -183,6 +196,9 @@ public interface Handlers {
       boolean acceptNoSystem) {
     requireNonNull(identifierValueReplacementProvider);
     return (path, value, context) -> {
+      if (value.getValue() == null) {
+        return Optional.of(value);
+      }
       Identifier identifier = (Identifier) context.parent();
       String system =
           Optional.ofNullable(identifier.getSystem())
