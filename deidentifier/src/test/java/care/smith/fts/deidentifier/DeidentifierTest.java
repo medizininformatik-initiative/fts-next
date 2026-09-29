@@ -102,8 +102,7 @@ class DeidentifierTest {
     registry.addHandler(
         "testReplace",
         org.hl7.fhir.r4.model.StringType.class,
-        (path, value, context) ->
-            Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
+        (path, value, context) -> Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
     Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
@@ -330,8 +329,7 @@ class DeidentifierTest {
         org.hl7.fhir.r4.model.StringType.class,
         (path, value, context) ->
             Optional.of(
-                new org.hl7.fhir.r4.model.StringType(
-                    value.getValue().toUpperCase(Locale.ROOT))));
+                new org.hl7.fhir.r4.model.StringType(value.getValue().toUpperCase(Locale.ROOT))));
     Patient patient = new Patient();
     patient.addName(new HumanName().setFamily("Doe"));
 
@@ -657,7 +655,9 @@ class DeidentifierTest {
         .isEqualTo("Patient/pseudonym-of-Patient-9e2a-7");
   }
 
-  /** An engine that pseudonymizes Patient and Encounter ids and Encounter.subject by type and id. */
+  /**
+   * An engine that pseudonymizes Patient and Encounter ids and Encounter.subject by type and id.
+   */
   private static Deidentifier urnEngine() {
     Config config =
         ConfigFactory.parseString(
@@ -677,8 +677,7 @@ class DeidentifierTest {
             }
             """);
     return AllowList.fromConfig(
-        config,
-        referenceRegistry((resourceType, id) -> "pseudonym-of-" + resourceType + "-" + id));
+        config, referenceRegistry((resourceType, id) -> "pseudonym-of-" + resourceType + "-" + id));
   }
 
   /** An engine that keeps the id of every Patient and registers no handler at all. */
@@ -706,9 +705,7 @@ class DeidentifierTest {
   private static Registry referenceRegistry(IDReplacementProvider idReplacementProvider) {
     Registry registry = new Registry();
     registry.addHandler(
-        "idReplacementHandler",
-        IdType.class,
-        Handlers.idReplacementHandler(idReplacementProvider));
+        "idReplacementHandler", IdType.class, Handlers.idReplacementHandler(idReplacementProvider));
     registry.addHandler(
         "referenceReplacementHandler",
         org.hl7.fhir.r4.model.StringType.class,
@@ -761,8 +758,7 @@ class DeidentifierTest {
     registry.addHandler(
         "testReplace",
         org.hl7.fhir.r4.model.StringType.class,
-        (path, value, context) ->
-            Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
+        (path, value, context) -> Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
     Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();
@@ -1006,8 +1002,7 @@ class DeidentifierTest {
     registry.addHandler(
         "testReplace",
         org.hl7.fhir.r4.model.StringType.class,
-        (path, value, context) ->
-            Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
+        (path, value, context) -> Optional.of(new org.hl7.fhir.r4.model.StringType("REDACTED")));
     Deidentifier deidentifier = AllowList.fromConfig(config, registry);
 
     Patient patient = new Patient();

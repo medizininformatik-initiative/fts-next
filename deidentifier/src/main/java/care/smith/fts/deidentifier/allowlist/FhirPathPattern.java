@@ -40,9 +40,7 @@ public sealed interface FhirPathPattern {
 
   /** A pattern on a type without an identifier element can never match. */
   private static String requireIdentifier(String resourceType) {
-    if (FhirContext.forR4Cached()
-            .getResourceDefinition(resourceType)
-            .getChildByName("identifier")
+    if (FhirContext.forR4Cached().getResourceDefinition(resourceType).getChildByName("identifier")
         == null) {
       throw new IllegalArgumentException(
           "Resource type %s has no identifier element to match a system on."

@@ -91,8 +91,8 @@ public class Deidentifier {
 
   /**
    * The resource type of every entry that has a fullUrl and a resource. A urn reference names an
-   * entry only by its fullUrl, so the reference rule looks the type up here. Of two entries with the
-   * same fullUrl, the first wins.
+   * entry only by its fullUrl, so the reference rule looks the type up here. Of two entries with
+   * the same fullUrl, the first wins.
    */
   private static Map<String, String> entryTypes(Bundle bundle) {
     return bundle.getEntry().stream()
@@ -231,8 +231,8 @@ public class Deidentifier {
    *
    * <p>An extension counts as added when no input extension is {@code equalsDeep} to it. A handler
    * that removes or rewrites an input extension therefore does not change what the rule set keeps.
-   * Making the handler output the only source would drop kept input extensions on every field
-   * whose handler returns a fresh element instead of its argument.
+   * Making the handler output the only source would drop kept input extensions on every field whose
+   * handler returns a fresh element instead of its argument.
    */
   private Optional<PrimitiveType<?>> deidentifyPrimitive(
       List<String> path, PrimitiveType<?> primitive, HandlerContext context, ResourceRules rules) {

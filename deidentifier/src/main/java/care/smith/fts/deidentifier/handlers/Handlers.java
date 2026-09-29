@@ -239,9 +239,7 @@ public interface Handlers {
           .map(
               resourceType ->
                   pseudonymizedReference(
-                      resourceType,
-                      PseudonymUuid.stripUrnUuid(reference),
-                      idReplacementProvider));
+                      resourceType, PseudonymUuid.stripUrnUuid(reference), idReplacementProvider));
     }
     if (ABSOLUTE_REFERENCE.matcher(reference).find()) {
       // splitting this at the slash of its scheme would silently produce nonsense

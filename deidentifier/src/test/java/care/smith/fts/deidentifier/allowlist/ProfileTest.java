@@ -267,8 +267,7 @@ class ProfileTest {
     Registry registry = new Registry();
     registry.addTerminalHandler(
         "shift", DateType.class, (path, value, context) -> Optional.of(value));
-    registry.addHandler(
-        "generalize", DateType.class, (path, value, context) -> Optional.of(value));
+    registry.addHandler("generalize", DateType.class, (path, value, context) -> Optional.of(value));
 
     assertThatThrownBy(
             () ->
@@ -342,7 +341,9 @@ class ProfileTest {
         .hasMessageContaining("Patient.birthDate");
   }
 
-  /** The order of the path handlers of two modules is not defined; a terminal one may come first. */
+  /**
+   * The order of the path handlers of two modules is not defined; a terminal one may come first.
+   */
   @Test
   void aTerminalPathHandlerNextToAPathHandlerOfAnotherModuleIsRejected() {
     assertThatThrownBy(
@@ -390,8 +391,7 @@ class ProfileTest {
     Registry registry = new Registry();
     registry.addTerminalHandler(
         "shift", DateType.class, (path, value, context) -> Optional.of(value));
-    registry.addHandler(
-        "generalize", DateType.class, (path, value, context) -> Optional.of(value));
+    registry.addHandler("generalize", DateType.class, (path, value, context) -> Optional.of(value));
     return registry;
   }
 

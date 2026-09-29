@@ -43,7 +43,8 @@ class FhirPathPatternTest {
 
     assertThat(
             FhirPathPattern.parse(
-                    "QuestionnaireResponse.identifier.system contains 'https://example.org/fhir/sid'")
+                    "QuestionnaireResponse.identifier.system contains"
+                        + " 'https://example.org/fhir/sid'")
                 .matches(response))
         .isTrue();
   }

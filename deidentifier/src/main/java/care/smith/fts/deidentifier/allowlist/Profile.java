@@ -103,7 +103,10 @@ public final class Profile implements RuleSet {
                     sameType.stream()
                         .flatMap(
                             module ->
-                                module.typeHandlers().getOrDefault(elementType, List.of()).stream()))
+                                module
+                                    .typeHandlers()
+                                    .getOrDefault(elementType, List.of())
+                                    .stream()))
             .toList();
     List<Registration> pathChain =
         sameType.stream()
@@ -221,8 +224,8 @@ public final class Profile implements RuleSet {
   }
 
   /**
-   * The handler of a path has to accept the element the path names, and the path has to name one:
-   * a handler on a path that names no element can never run.
+   * The handler of a path has to accept the element the path names, and the path has to name one: a
+   * handler on a path that names no element can never run.
    */
   private static Registration requireFittingPathType(Registration registration) {
     Class<?> elementType =
