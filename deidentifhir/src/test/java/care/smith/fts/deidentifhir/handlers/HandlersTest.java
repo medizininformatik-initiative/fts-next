@@ -231,7 +231,10 @@ class HandlersTest {
                         new StringType("https://server.example/fhir/Patient/123"),
                         HandlerContext.empty())
                     .orElseThrow())
-        .hasMessageContaining("absolute");
+        .hasMessageContaining("absolute")
+        // the message reaches the logs and the failed-patients API; it must not carry source data
+        .hasMessageNotContaining("server.example")
+        .hasMessageNotContaining("123");
   }
 
   @Test

@@ -245,9 +245,9 @@ public interface Handlers {
     }
     if (ABSOLUTE_REFERENCE.matcher(reference).find()) {
       // splitting this at the slash of its scheme would silently produce nonsense
+      // the url is source data and must not reach the logs through this message
       throw new IllegalArgumentException(
-          "absolute reference '%s' is not supported, only relative and urn references are!"
-              .formatted(reference));
+          "absolute references are not supported, only relative and urn references are!");
     }
     Matcher relative = RELATIVE_REFERENCE.matcher(reference);
     if (!relative.matches()) {
