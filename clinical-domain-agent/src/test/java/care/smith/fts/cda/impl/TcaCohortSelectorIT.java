@@ -3,12 +3,14 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
@@ -79,12 +81,14 @@ class TcaCohortSelectorIT {
 
   private static MappingBuilder fetchAllRequest() {
     return post("/api/v2/cd/consented-patients/fetch-all")
-        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
+        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
+        .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON_VALUE));
   }
 
   private static MappingBuilder fetchListRequest() {
     return post("/api/v2/cd/consented-patients/fetch")
-        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE));
+        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
+        .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON_VALUE));
   }
 
   @Nested
@@ -131,7 +135,9 @@ class TcaCohortSelectorIT {
   @Test
   void responseInvalidErrors() {
     wireMock.register(fetchAllRequest().willReturn(ok().withBody("invalid")));
-    create(cohortSelector.selectCohort(List.of())).expectError().verify();
+    create(cohortSelector.selectCohort(List.of()))
+        .expectError(TransferProcessException.class)
+        .verify();
   }
 
   @Test

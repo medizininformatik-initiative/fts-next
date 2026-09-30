@@ -1,10 +1,13 @@
 package care.smith.fts.tca.deidentification;
 
+import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Set.of;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.tca.AbstractFhirClientIT;
@@ -62,6 +65,7 @@ public class GpasClientIT extends AbstractFhirClientIT<GpasClient, String, Map<S
   @Override
   protected MappingBuilder getRequestMappingBuilder() {
     return post(urlPathEqualTo("/$pseudonymizeAllowCreate"))
+        .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON_VALUE))
         .withRequestBody(equalToJson(REQUEST_BODY));
   }
 

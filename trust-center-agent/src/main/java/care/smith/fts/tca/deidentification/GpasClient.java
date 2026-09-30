@@ -49,10 +49,6 @@ public class GpasClient {
    * @return Mono of a map from original ID to pseudonym
    */
   public Mono<Map<String, String>> fetchOrCreatePseudonyms(String domain, Set<String> ids) {
-    if (ids.isEmpty()) {
-      return Mono.just(Map.of());
-    }
-
     List<List<String>> batches = Lists.partition(new ArrayList<>(ids), batchSize);
     log.trace(
         "fetchOrCreatePseudonyms for domain: {} with {} IDs in {} batches",

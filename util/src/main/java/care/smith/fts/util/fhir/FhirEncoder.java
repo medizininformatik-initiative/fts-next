@@ -61,8 +61,7 @@ public class FhirEncoder extends AbstractEncoder<IBaseResource> {
   @Override
   public boolean canEncode(ResolvableType elementType, MimeType mimeType) {
     var can =
-        elementType.getRawClass() != null
-            && isBaseResource(elementType.getRawClass())
+        isBaseResource(elementType.getRawClass())
             && getEncodableMimeTypes().stream().anyMatch(m -> m.isCompatibleWith(mimeType));
     log.trace("canEncode {} to {}? {}", elementType, mimeType, can);
     return can;

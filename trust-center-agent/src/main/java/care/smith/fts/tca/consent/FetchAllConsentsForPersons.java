@@ -55,9 +55,7 @@ class FetchAllConsentsForPersons implements GicsFhirRequestHelper<ConsentFetchRe
   private static List<String> getIdentifiers(
       ConsentFetchRequest consentRequest, PagingParams pagingParams) {
     var end = min(consentRequest.identifiers().size(), pagingParams.sum());
-    return pagingParams.from() < end
-        ? consentRequest.identifiers().subList(pagingParams.from(), end)
-        : List.of();
+    return consentRequest.identifiers().subList(min(pagingParams.from(), end), end);
   }
 
   @Override
