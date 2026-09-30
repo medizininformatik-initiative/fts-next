@@ -37,7 +37,7 @@ jobs:
         if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
           modules=$(.github/scripts/mutation-modules.sh "origin/${GITHUB_BASE_REF}")
         else
-          modules=$(printf '%s\n' api util clinical-domain-agent trust-center-agent research-domain-agent)
+          modules=$(printf '%s\n' api deidentifier util clinical-domain-agent trust-center-agent research-domain-agent)
         fi
         echo "modules=$(jq -Rnc '[inputs | select(test("^[a-z][a-z-]*$"))]' <<< "${modules}")" >> "${GITHUB_OUTPUT}"
 
@@ -70,7 +70,7 @@ jobs:
         cache: 'maven'
         cache-dependency-path: |
           pom.xml
-          {api,util,test-util}/pom.xml
+          {api,deidentifier,util,test-util}/pom.xml
           ${{ matrix.module }}/pom.xml
 
     - name: Install Upstream Modules
