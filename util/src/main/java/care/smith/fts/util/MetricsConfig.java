@@ -27,7 +27,7 @@ public class MetricsConfig {
       public Meter.Id map(Meter.Id id) {
         if (id.getName().equals("http.client.requests")) {
           var uriTag = id.getTag("uri");
-          if (uriTag != null && !uriTag.isBlank()) {
+          if (uriTag != null) {
             var uri = Arrays.stream(uriTag.split("\\?")).findFirst().get();
             uri =
                 uri.replaceAll(
