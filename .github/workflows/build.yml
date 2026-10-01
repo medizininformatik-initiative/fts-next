@@ -29,7 +29,8 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
+        # no agent depends on deidentifier until the CDA switches to it, so it runs on its own
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent, deidentifier ]
 
     steps:
     - name: Harden Runner
@@ -48,7 +49,7 @@ jobs:
         cache: 'maven'
         cache-dependency-path: |
           pom.xml
-          {api,util,test-util}/pom.xml
+          {api,deidentifier,util,test-util}/pom.xml
           ${{ matrix.agent }}/pom.xml
 
     - name: Setup Keycloak
@@ -97,7 +98,7 @@ jobs:
         cache: 'maven'
         cache-dependency-path: |
           pom.xml
-          {api,util}/pom.xml
+          {api,deidentifier,util}/pom.xml
           ${{ matrix.agent }}/pom.xml
 
     - name: Build Agent
@@ -268,7 +269,7 @@ jobs:
         cache: 'maven'
         cache-dependency-path: |
           pom.xml
-          {api,util,test-util}/pom.xml
+          {api,deidentifier,util,test-util}/pom.xml
           ${{ matrix.agent }}/pom.xml
 
     - name: Run Agent e2e Tests
