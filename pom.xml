@@ -66,6 +66,12 @@
         <version>8.12.1</version>
       </dependency>
 
+      <dependency>
+        <groupId>com.typesafe</groupId>
+        <artifactId>config</artifactId>
+        <version>1.4.3</version>
+      </dependency>
+
       <!-- TODO: Temporary transitive update for CVE mitigation - Remove when the Spring Boot BOM manages nimbus-jose-jwt >= 10.9.1! -->
       <dependency>
         <groupId>com.nimbusds</groupId>
