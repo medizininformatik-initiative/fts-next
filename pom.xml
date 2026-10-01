@@ -32,6 +32,8 @@
     <skipUnitTests>false</skipUnitTests>
     <pit.skip>false</pit.skip>
     <pit.threads>4</pit.threads>
+    <!-- Each mutated module sets its own threshold, two points below its baseline. -->
+    <pit.mutationThreshold>0</pit.mutationThreshold>
   </properties>
 
   <dependencyManagement>
@@ -197,6 +199,7 @@
             </outputFormats>
             <timestampedReports>false</timestampedReports>
             <threads>${pit.threads}</threads>
+            <mutationThreshold>${pit.mutationThreshold}</mutationThreshold>
             <timeoutConstant>8000</timeoutConstant>
             <failWhenNoMutations>false</failWhenNoMutations>
             <skipFailingTests>true</skipFailingTests>
