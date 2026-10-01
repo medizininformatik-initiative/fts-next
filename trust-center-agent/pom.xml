@@ -13,6 +13,10 @@
 
   <artifactId>trust-center-agent</artifactId>
 
+  <properties>
+    <pit.mutationThreshold>95</pit.mutationThreshold>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>care.smith.fts</groupId>

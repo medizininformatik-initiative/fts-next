@@ -12,6 +12,10 @@
 
   <artifactId>api</artifactId>
 
+  <properties>
+    <pit.mutationThreshold>96</pit.mutationThreshold>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>ca.uhn.hapi.fhir</groupId>

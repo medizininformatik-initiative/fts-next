@@ -12,6 +12,10 @@
 
   <artifactId>clinical-domain-agent</artifactId>
 
+  <properties>
+    <pit.mutationThreshold>96</pit.mutationThreshold>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>care.smith.fts</groupId>

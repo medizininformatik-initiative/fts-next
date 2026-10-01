@@ -13,6 +13,10 @@
 
   <artifactId>research-domain-agent</artifactId>
 
+  <properties>
+    <pit.mutationThreshold>93</pit.mutationThreshold>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>care.smith.fts</groupId>

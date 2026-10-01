@@ -12,6 +12,10 @@
 
   <artifactId>util</artifactId>
 
+  <properties>
+    <pit.mutationThreshold>95</pit.mutationThreshold>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>care.smith.fts</groupId>
