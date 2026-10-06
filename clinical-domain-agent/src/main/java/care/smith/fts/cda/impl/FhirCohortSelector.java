@@ -4,6 +4,7 @@ import static care.smith.fts.util.ConsentedPatientExtractor.*;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
 import static org.springframework.web.util.UriComponentsBuilder.*;
 
 import care.smith.fts.api.ConsentedPatient;
@@ -13,6 +14,7 @@ import care.smith.fts.util.error.TransferProcessException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -20,6 +22,7 @@ import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
 import org.hl7.fhir.r4.model.Consent;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Reference;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
 import org.springframework.web.util.UriBuilder;
@@ -125,6 +128,7 @@ class FhirCohortSelector implements CohortSelector {
    */
   private Flux<Bundle> groupPatientsAndConsents(Bundle bundle) {
     var patients = typedResourceStream(bundle, Patient.class).toList();
+    warnAboutUnassignedConsents(bundle, patients);
     return Flux.fromIterable(patients)
         .parallel(cohortSelectionConcurrency)
         .runOn(scheduler)
@@ -140,9 +144,29 @@ class FhirCohortSelector implements CohortSelector {
     return inner;
   }
 
+  private static void warnAboutUnassignedConsents(Bundle bundle, List<Patient> patients) {
+    var patientIds = patients.stream().map(Patient::getIdPart).collect(toSet());
+    var unassigned =
+        typedResourceStream(bundle, Consent.class)
+            .filter(c -> referencedPatientId(c).filter(patientIds::contains).isEmpty())
+            .count();
+    if (unassigned > 0) {
+      log.warn("Ignoring {} consents that reference no patient of the bundle", unassigned);
+    }
+  }
+
   private static boolean isConsentOfPatient(Patient patient, Consent c) {
-    var patientRefId = c.getPatient().getReferenceElement().getIdPart();
-    return patientRefId.equals(patient.getIdPart());
+    return referencedPatientId(c).filter(id -> id.equals(patient.getIdPart())).isPresent();
+  }
+
+  /**
+   * The id of the patient a consent literally references. Consents referencing their patient by
+   * identifier only (logical reference) have none and are not assigned to any patient yet.
+   */
+  private static Optional<String> referencedPatientId(Consent c) {
+    return Optional.of(c.getPatient())
+        .filter(Reference::hasReference)
+        .map(r -> r.getReferenceElement().getIdPart());
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {
