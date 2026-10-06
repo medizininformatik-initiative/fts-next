@@ -336,6 +336,7 @@ class FhirCohortSelectorIT {
                             .addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode(policy))));
     return (Consent)
         new Consent()
+            .setStatus(Consent.ConsentState.ACTIVE)
             .setProvision(provision)
             .setPatient(new Reference("Patient/patient-" + patientId))
             .setId("consent-" + patientId);
