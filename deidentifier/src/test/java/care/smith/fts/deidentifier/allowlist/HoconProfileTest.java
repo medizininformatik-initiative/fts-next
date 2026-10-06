@@ -14,9 +14,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.PrimitiveType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class HoconProfileTest {
 
@@ -26,6 +29,8 @@ class HoconProfileTest {
 
   static {
     REGISTRY.addHandler("noop", Object.class, NOOP);
+    REGISTRY.addHandler("primitive", PrimitiveType.class, (value, context) -> Optional.of(value));
+    REGISTRY.addHandler("dateOnly", DateType.class, (value, context) -> Optional.of(value));
   }
 
   private static Profile parse(String hocon) {
@@ -153,6 +158,30 @@ class HoconProfileTest {
   }
 
   @ParameterizedTest(name = "{0}")
+  @ValueSource(
+      strings = {
+        "Patient.birthdate",
+        "Foo.bar",
+        "Patient.deceased",
+        "Patient.gender.extension.value"
+      })
+  void rejectsABasePathThatNamesNoFhirElementNamingThePath(String path) {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.gender", "%s"]
+        }
+        """
+            .formatted(path);
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("names no FHIR element")
+        .hasMessageContaining(path);
+  }
+
+  @ParameterizedTest(name = "{0}")
   @CsvSource(
       delimiter = ';',
       value = {
@@ -162,16 +191,16 @@ class HoconProfileTest {
         "Patient.*.family; Patient.name.family,Patient.contact.name.family; Patient.name.family",
         "Patient.name.*; Patient.name,Patient.name.family,Patient.gender;"
             + " Patient.name,Patient.name.family",
-        "*.Patient.gender; Patient.gender,Patient.gender.extension,X.Patient.gender;"
-            + " Patient.gender,X.Patient.gender",
+        "*.Patient.gender; Patient.gender,Patient.gender.extension; Patient.gender",
+        "*.gender; Patient.gender,Patient.gender.extension,Patient.contact.gender;"
+            + " Patient.gender,Patient.contact.gender",
         "*.name; Patient.name.family,Patient.contact.name; Patient.contact.name",
-        "name.*; Patient.contact.name.given,name.given; name.given",
         "*; Patient.gender,Patient.name.family; Patient.gender,Patient.name.family",
         "Patient.birth*; Patient.birthDate,Patient.birthDate.extension,Patient.name;"
             + " Patient.birthDate",
-        "*.deceased[dateTime]; Patient.deceased[dateTime],Patient.deceasedd;"
+        "*.deceased[dateTime]; Patient.deceased[dateTime],Patient.deceased[boolean];"
             + " Patient.deceased[dateTime]",
-        "Patient.gender*; Patient.gender,PatientXgender; Patient.gender",
+        "Patient.gender*; Patient.gender,Patient.name; Patient.gender",
         "Patient.*; Patient.gender,Patient.gender; Patient.gender"
       })
   void expandsAGlobAgainstTheBasePaths(String glob, String base, String expectedMatches) {
@@ -179,7 +208,7 @@ class HoconProfileTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"Patient.address.*", ".", "*.*"})
+  @CsvSource({"Patient.address.*", ".", "*.*", "name.*", "Patient.na[m]e.*", "Patient.na.e.family"})
   void rejectsAGlobThatMatchesNoBasePathNamingTheGlob(String glob) {
     assertThatThrownBy(() -> handledPaths(glob, "Patient.name.family"))
         .isInstanceOf(IllegalStateException.class)
@@ -214,6 +243,66 @@ class HoconProfileTest {
         .hasMessageContaining(expectedInMessage)
         .hasMessageContaining(first)
         .hasMessageContaining(second);
+  }
+
+  @Test
+  void rejectsAHandlerThatDoesNotWorkOnTheTypeOfItsPathNamingHandlerTypesAndPath() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.gender"]
+          paths { "Patient.gender" { handler = dateOnly } }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("dateOnly")
+        .hasMessageContaining("DateType")
+        .hasMessageContaining("Enumeration")
+        .hasMessageContaining("Patient.gender");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(
+      delimiter = ';',
+      value = {
+        "same type; dateOnly; Patient.birthDate",
+        "supertype; primitive; Patient.birthDate",
+        "Object; noop; Patient.gender"
+      })
+  void acceptsAHandlerThatWorksOnTheTypeOfItsPath(String reason, String handler, String path) {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["%2$s"]
+          paths { "%2$s" { handler = %1$s } }
+        }
+        """
+            .formatted(handler, path);
+
+    assertThat(parse(hocon).modules().getFirst().pathHandlers())
+        .containsOnlyKeys(path)
+        .containsEntry(path, List.of(REGISTRY.resolve(handler)));
+  }
+
+  @Test
+  void checksTheHandlerTypeAgainstEveryPathAGlobReachesNamingTheNonFittingPath() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate", "Patient.gender"]
+          paths { "Patient.*" { handler = dateOnly } }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("dateOnly")
+        .hasMessageContaining("(Patient.gender)");
   }
 
   /** The paths that the handler of one {@code paths} key ends up on, given a comma-list base. */
