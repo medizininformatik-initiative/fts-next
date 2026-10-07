@@ -10,7 +10,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.Consent.ConsentState;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class ConsentedPatientExtractorTest {
 
@@ -88,6 +91,52 @@ class ConsentedPatientExtractorTest {
             b -> Optional.empty()); // Patient extractor returns empty
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void deniedProvisionsDoNotGrantConsent() {
+    var bundle =
+        bundleWithProvisions(
+            "12345", deniedProvisionComponent("POLICY_A"), deniedProvisionComponent("POLICY_B"));
+
+    var result = ConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle, POLICIES_TO_CHECK);
+
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void deniedProvisionDoesNotCompletePermittedPolicies() {
+    var bundle =
+        bundleWithProvisions(
+            "12345", permittedProvisionComponent("POLICY_A"), deniedProvisionComponent("POLICY_B"));
+
+    var result =
+        ConsentedPatientExtractor.processConsentedPatient(
+            PATIENT_IDENTIFIER_SYSTEM,
+            POLICY_SYSTEM,
+            bundle,
+            POLICIES_TO_CHECK,
+            ConsentedPatientExtractorTest::getPatientIdentifier);
+
+    assertThat(result).isEmpty();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = ConsentState.class,
+      names = {"ACTIVE"},
+      mode = EnumSource.Mode.EXCLUDE)
+  void nonActiveConsentsDoNotGrantConsent(ConsentState status) {
+    var bundle =
+        bundleWithProvisions(
+            "12345",
+            status,
+            permittedProvisionComponent("POLICY_A"),
+            permittedProvisionComponent("POLICY_B"));
+
+    var result = ConsentedPatientExtractor.hasAllPolicies(POLICY_SYSTEM, bundle, POLICIES_TO_CHECK);
+
+    assertThat(result).isFalse();
   }
 
   @Test
@@ -229,16 +278,27 @@ class ConsentedPatientExtractorTest {
   }
 
   private static Bundle generateBundleWithConsent(String patientIdentifier, String... policies) {
+    return bundleWithProvisions(
+        patientIdentifier,
+        Stream.of(policies)
+            .map(ConsentedPatientExtractorTest::permittedProvisionComponent)
+            .toArray(Consent.ProvisionComponent[]::new));
+  }
+
+  private static Bundle bundleWithProvisions(
+      String patientIdentifier, Consent.ProvisionComponent... provisions) {
+    return bundleWithProvisions(patientIdentifier, ConsentState.ACTIVE, provisions);
+  }
+
+  private static Bundle bundleWithProvisions(
+      String patientIdentifier, ConsentState status, Consent.ProvisionComponent... provisions) {
     var patient = new Patient();
     patient.addIdentifier(
         new Identifier().setSystem(PATIENT_IDENTIFIER_SYSTEM).setValue(patientIdentifier));
 
-    var consent = new Consent();
+    var consent = new Consent().setStatus(status);
     var mainProvision = new Consent.ProvisionComponent().setType(Consent.ConsentProvisionType.DENY);
-
-    for (String policy : policies) {
-      mainProvision.addProvision(permittedProvisionComponent(policy));
-    }
+    Stream.of(provisions).forEach(mainProvision::addProvision);
     consent.setProvision(mainProvision);
 
     var bundle = new Bundle();
@@ -248,8 +308,17 @@ class ConsentedPatientExtractorTest {
   }
 
   private static Consent.ProvisionComponent permittedProvisionComponent(String policy) {
+    return provisionComponent(Consent.ConsentProvisionType.PERMIT, policy);
+  }
+
+  private static Consent.ProvisionComponent deniedProvisionComponent(String policy) {
+    return provisionComponent(Consent.ConsentProvisionType.DENY, policy);
+  }
+
+  private static Consent.ProvisionComponent provisionComponent(
+      Consent.ConsentProvisionType type, String policy) {
     return new Consent.ProvisionComponent()
-        .setType(Consent.ConsentProvisionType.PERMIT)
+        .setType(type)
         .setCode(
             List.of(
                 new CodeableConcept()
@@ -314,7 +383,7 @@ class ConsentedPatientExtractorTest {
     var identifier = new Identifier().setSystem(HOSPITAL_PATIENT_SYSTEM).setValue(id);
     patient.addIdentifier(identifier);
 
-    var consent = new Consent();
+    var consent = new Consent().setStatus(ConsentState.ACTIVE);
     consent.setProvision(
         new Consent.ProvisionComponent()
             .setType(Consent.ConsentProvisionType.DENY)
@@ -333,7 +402,7 @@ class ConsentedPatientExtractorTest {
     patient.addIdentifier(
         new Identifier().setSystem(ANOTHER_PATIENT_SYSTEM).setValue("OTHER_" + hospitalId));
 
-    var consent = new Consent();
+    var consent = new Consent().setStatus(ConsentState.ACTIVE);
     consent.setProvision(
         new Consent.ProvisionComponent()
             .setType(Consent.ConsentProvisionType.DENY)

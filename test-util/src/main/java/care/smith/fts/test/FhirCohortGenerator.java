@@ -78,7 +78,7 @@ public class FhirCohortGenerator {
   }
 
   private Consent generateConsent(String patientId) {
-    var consent = new Consent();
+    var consent = new Consent().setStatus(Consent.ConsentState.ACTIVE);
     consent.setId("consent-" + patientId);
     consent.setProvision(generateProvision(policySystem, policies));
     consent.setPatient(generatePatientRef(patientId));

@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.Consent.ConsentProvisionType;
+import org.hl7.fhir.r4.model.Consent.ConsentState;
 
 /**
  * Interface for extracting consented patients from FHIR bundles. This interface contains all the
@@ -130,14 +132,24 @@ public interface ConsentedPatientExtractor {
   }
 
   /**
-   * Retrieves a stream of provision components with permit provisions from the given bundle.
+   * Retrieves the nested permit provisions of all active consents in the given bundle.
    *
    * @param bundle the bundle containing the consent resources
    * @return a stream of permit provision components
    */
   static Stream<Consent.ProvisionComponent> getPermitProvisionsStream(Bundle bundle) {
     return typedResourceStream(bundle, Consent.class)
-        .flatMap(c -> c.getProvision().getProvision().stream());
+        .filter(ConsentedPatientExtractor::isActive)
+        .flatMap(c -> c.getProvision().getProvision().stream())
+        .filter(ConsentedPatientExtractor::isPermit);
+  }
+
+  private static boolean isActive(Consent consent) {
+    return consent.getStatus() == ConsentState.ACTIVE;
+  }
+
+  private static boolean isPermit(Consent.ProvisionComponent provision) {
+    return provision.getType() == ConsentProvisionType.PERMIT;
   }
 
   /**

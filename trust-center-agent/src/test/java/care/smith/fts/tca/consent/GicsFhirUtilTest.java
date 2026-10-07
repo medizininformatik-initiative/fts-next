@@ -66,7 +66,12 @@ class GicsFhirUtilTest {
   private static Bundle innerBundle(String patientId, String... policies) {
     var mainProvision = new Consent.ProvisionComponent();
     Stream.of(policies).forEach(p -> mainProvision.addProvision(permitProvision(p)));
-    var consent = (Consent) new Consent().setProvision(mainProvision).setId("consent-" + patientId);
+    var consent =
+        (Consent)
+            new Consent()
+                .setStatus(Consent.ConsentState.ACTIVE)
+                .setProvision(mainProvision)
+                .setId("consent-" + patientId);
 
     return Stream.of(new Patient().setId(patientId), consent).collect(toBundle());
   }
