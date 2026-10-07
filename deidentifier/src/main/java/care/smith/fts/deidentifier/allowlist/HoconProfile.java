@@ -10,6 +10,7 @@ import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import care.smith.fts.deidentifier.Registry;
 import care.smith.fts.deidentifier.Registry.Registration;
+import care.smith.fts.deidentifier.internal.FhirPaths;
 import com.typesafe.config.Config;
 import java.util.Arrays;
 import java.util.List;
@@ -41,15 +42,30 @@ public interface HoconProfile {
   }
 
   private static Module parseModule(Config config, Registry registry) {
-    Set<String> base = Set.copyOf(config.getStringList("base"));
+    Map<String, Class<?>> base = baseTypes(config.getStringList("base"));
     return new Module(
         FhirPathPattern.parse(config.getString("pattern")),
-        base,
+        base.keySet(),
         pathHandlers(config, base, registry));
   }
 
+  /** The HAPI class of the element that each base path names. */
+  private static Map<String, Class<?>> baseTypes(List<String> base) {
+    return base.stream()
+        .distinct()
+        .collect(toUnmodifiableMap(path -> path, HoconProfile::elementType));
+  }
+
+  private static Class<?> elementType(String path) {
+    return FhirPaths.elementType(path)
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "The base path %s names no FHIR element!".formatted(path)));
+  }
+
   private static Map<String, List<Registration>> pathHandlers(
-      Config config, Set<String> base, Registry registry) {
+      Config config, Map<String, Class<?>> base, Registry registry) {
     return Optional.of("paths")
         .filter(config::hasPath)
         .map(config::getConfig)
@@ -58,13 +74,18 @@ public interface HoconProfile {
   }
 
   private static Map<String, List<Registration>> handlersByPath(
-      Config paths, Set<String> base, Registry registry) {
-    Map<String, List<String>> keysByPath = keysByPath(paths.root().keySet(), base);
+      Config paths, Map<String, Class<?>> base, Registry registry) {
+    Map<String, List<String>> keysByPath = keysByPath(paths.root().keySet(), base.keySet());
     requireOneKeyPerPath(keysByPath);
     return keysByPath.entrySet().stream()
         .collect(
             toUnmodifiableMap(
-                Entry::getKey, e -> List.of(handler(paths, e.getValue().getFirst(), registry))));
+                Entry::getKey,
+                e -> {
+                  String path = e.getKey();
+                  return List.of(
+                      handler(paths, e.getValue().getFirst(), path, base.get(path), registry));
+                }));
   }
 
   /** The {@code paths} keys that reach each base path. */
@@ -74,8 +95,21 @@ public interface HoconProfile {
         .collect(groupingBy(Entry::getKey, mapping(Entry::getValue, toList())));
   }
 
-  private static Registration handler(Config paths, String key, Registry registry) {
-    return registry.resolve(child(paths, key).getString("handler"));
+  /** The handler of a {@code paths} key, which has to work on the element type of {@code path}. */
+  private static Registration handler(
+      Config paths, String key, String path, Class<?> elementType, Registry registry) {
+    String name = child(paths, key).getString("handler");
+    Registration registration = registry.resolve(name);
+    if (!registration.valueType().isAssignableFrom(elementType)) {
+      throw new IllegalStateException(
+          "Handler '%s' works on %s, not on %s (%s)!"
+              .formatted(
+                  name,
+                  registration.valueType().getSimpleName(),
+                  elementType.getSimpleName(),
+                  path));
+    }
+    return registration;
   }
 
   /** A path has one handler per module, so at most one {@code paths} key may reach it. */
