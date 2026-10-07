@@ -14,15 +14,23 @@ import java.util.Set;
  *
  * @param base the paths this module keeps
  * @param pathHandlers handlers per path; every key must be in {@code base}
+ * @param typeHandlers handlers per HAPI class; they run on every kept element of exactly that
+ *     class, at any path
  */
 public record Module(
-    FhirPathPattern pattern, Set<String> base, Map<String, List<Registration>> pathHandlers) {
+    FhirPathPattern pattern,
+    Set<String> base,
+    Map<String, List<Registration>> pathHandlers,
+    Map<Class<?>, List<Registration>> typeHandlers) {
 
   public Module {
     requireNonNull(pattern);
     base = Set.copyOf(base);
     pathHandlers =
         pathHandlers.entrySet().stream()
+            .collect(toUnmodifiableMap(Map.Entry::getKey, e -> List.copyOf(e.getValue())));
+    typeHandlers =
+        typeHandlers.entrySet().stream()
             .collect(toUnmodifiableMap(Map.Entry::getKey, e -> List.copyOf(e.getValue())));
     requireHandlersInBase(base, pathHandlers.keySet());
   }

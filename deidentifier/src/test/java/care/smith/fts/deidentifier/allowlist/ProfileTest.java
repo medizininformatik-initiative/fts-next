@@ -11,10 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.MarkdownType;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 
 class ProfileTest {
@@ -29,7 +33,11 @@ class ProfileTest {
   }
 
   private static Rule ruleFor(Profile profile, Resource resource, String path) {
-    return profile.rulesFor(resource).ruleFor(List.of(path.split("\\.")), new DateType());
+    return ruleFor(profile, resource, path, new DateType());
+  }
+
+  private static Rule ruleFor(Profile profile, Resource resource, String path, Base element) {
+    return profile.rulesFor(resource).ruleFor(List.of(path.split("\\.")), element);
   }
 
   @Test
@@ -40,7 +48,8 @@ class ProfileTest {
                 new Module(
                     PATIENT,
                     Set.of("Patient.gender", "Patient.birthDate"),
-                    Map.of("Patient.birthDate", List.of(registration(NOOP))))));
+                    Map.of("Patient.birthDate", List.of(registration(NOOP))),
+                    Map.of())));
     Patient patient = new Patient();
 
     assertThat(ruleFor(profile, patient, "Patient.gender")).isEqualTo(new Rule.Apply(List.of()));
@@ -51,7 +60,8 @@ class ProfileTest {
 
   @Test
   void aModuleWhosePatternDoesNotMatchTheResourceKeepsNothing() {
-    Profile profile = new Profile(List.of(new Module(PATIENT, Set.of("Patient.gender"), Map.of())));
+    Profile profile =
+        new Profile(List.of(new Module(PATIENT, Set.of("Patient.gender"), Map.of(), Map.of())));
 
     assertThat(ruleFor(profile, new Observation(), "Patient.gender")).isEqualTo(Rule.REMOVE);
   }
@@ -64,11 +74,13 @@ class ProfileTest {
                 new Module(
                     PATIENT,
                     Set.of("Patient.birthDate"),
-                    Map.of("Patient.birthDate", List.of(registration(NOOP)))),
+                    Map.of("Patient.birthDate", List.of(registration(NOOP))),
+                    Map.of()),
                 new Module(
                     PATIENT,
                     Set.of("Patient.birthDate"),
-                    Map.of("Patient.birthDate", List.of(registration(OTHER))))));
+                    Map.of("Patient.birthDate", List.of(registration(OTHER))),
+                    Map.of())));
 
     assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
         .isInstanceOfSatisfying(
@@ -81,8 +93,105 @@ class ProfileTest {
     Map<String, List<Registry.Registration>> pathHandlers =
         Map.of("Patient.birthDate", List.of(registration(NOOP)));
 
-    assertThatThrownBy(() -> new Module(PATIENT, Set.of("Patient.id"), pathHandlers))
+    assertThatThrownBy(() -> new Module(PATIENT, Set.of("Patient.id"), pathHandlers, Map.of()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Patient.birthDate");
+  }
+
+  @Test
+  void aTypeHandlerAppliesToAKeptElementOfExactlyItsClass() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate", new DateType()))
+        .isEqualTo(new Rule.Apply(List.of(NOOP)));
+  }
+
+  @Test
+  void typeHandlersRunBeforePathHandlersOnTheSameElement() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of("Patient.birthDate", List.of(registration(OTHER))),
+                    Map.of(DateType.class, List.of(registration(NOOP))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
+        .isEqualTo(new Rule.Apply(List.of(NOOP, OTHER)));
+  }
+
+  @Test
+  void aTypeHandlerDoesNotKeepAnElement() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.gender"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate")).isEqualTo(Rule.REMOVE);
+  }
+
+  @Test
+  void aTypeHandlerDoesNotApplyToAnElementOfAnotherClassNotEvenASubclass() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of(),
+                    Map.of(
+                        DateType.class,
+                        List.of(registration(NOOP)),
+                        StringType.class,
+                        List.of(registration(OTHER))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate", new DateTimeType()))
+        .isEqualTo(new Rule.Apply(List.of()));
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate", new MarkdownType()))
+        .isEqualTo(new Rule.Apply(List.of()));
+  }
+
+  @Test
+  void aTypeHandlerOfOneMatchedModuleAppliesToAnElementThatOnlyAnotherModuleKeeps() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.gender"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP)))),
+                new Module(PATIENT, Set.of("Patient.birthDate"), Map.of(), Map.of())));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
+        .isEqualTo(new Rule.Apply(List.of(NOOP)));
+  }
+
+  @Test
+  void aTypeHandlerOfAModuleWhosePatternDoesNotMatchTheResourceDoesNotApply() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    new ResourceExistsPath("Observation"),
+                    Set.of("Observation.status"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP)))),
+                new Module(PATIENT, Set.of("Patient.birthDate"), Map.of(), Map.of())));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
+        .isEqualTo(new Rule.Apply(List.of()));
   }
 }

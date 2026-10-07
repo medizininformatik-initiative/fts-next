@@ -4,6 +4,7 @@ import care.smith.fts.deidentifier.Registry.Registration;
 import care.smith.fts.deidentifier.Rule;
 import care.smith.fts.deidentifier.RuleSet;
 import java.util.List;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Resource;
 
@@ -31,9 +32,10 @@ public record Profile(List<Module> modules) implements RuleSet {
     }
 
     /**
-     * The merged decision for one element: the path handlers of all matched modules. An element
-     * that no matched module lists in its base is removed; one that a module lists without a
-     * handler is kept unchanged.
+     * The merged decision for one element: the type handlers of all matched modules for the exact
+     * class of the element, then the path handlers of the modules that keep the path. An element
+     * that no matched module lists in its base is removed, whatever the type handlers say; one that
+     * a module lists without a handler is kept unchanged.
      */
     @Override
     public Rule ruleFor(List<String> path, Base element) {
@@ -43,10 +45,18 @@ public record Profile(List<Module> modules) implements RuleSet {
         return Rule.REMOVE;
       }
       return new Rule.Apply(
-          keeping.stream()
-              .flatMap(m -> m.pathHandlers().getOrDefault(pathKey, List.of()).stream())
+          Stream.concat(typeHandlers(element.getClass()), pathHandlers(keeping, pathKey))
               .map(Registration::handler)
               .toList());
+    }
+
+    private Stream<Registration> typeHandlers(Class<?> type) {
+      return matched.stream().flatMap(m -> m.typeHandlers().getOrDefault(type, List.of()).stream());
+    }
+
+    private static Stream<Registration> pathHandlers(List<Module> keeping, String pathKey) {
+      return keeping.stream()
+          .flatMap(m -> m.pathHandlers().getOrDefault(pathKey, List.of()).stream());
     }
   }
 
