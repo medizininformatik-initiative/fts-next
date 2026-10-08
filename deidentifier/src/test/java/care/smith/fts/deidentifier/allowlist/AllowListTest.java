@@ -64,4 +64,26 @@ class AllowListTest {
     assertThat(result.getIdPart()).isEqualTo("123");
     assertThat(result.hasName()).isFalse();
   }
+
+  @Test
+  void appliesATypeHandlerToEveryKeptElementOfThatClass() {
+    Config config =
+        ConfigFactory.parseString(
+            """
+            modules.patient {
+              pattern = "Patient.exists()"
+              base = ["Patient.id", "Patient.birthDate"]
+              types { DateType { handler = firstOfYear } }
+            }
+            """);
+    Registry registry = new Registry();
+    registry.addHandler(
+        "firstOfYear", DateType.class, (value, context) -> Optional.of(new DateType("1970-01-01")));
+
+    Patient result =
+        (Patient) AllowList.fromConfig(config, registry).deidentify(patient()).orElseThrow();
+
+    assertThat(result.getIdPart()).isEqualTo("123");
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-01-01");
+  }
 }

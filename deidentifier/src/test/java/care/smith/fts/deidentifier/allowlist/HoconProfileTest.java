@@ -54,7 +54,29 @@ class HoconProfileTest {
             new Module(
                 new ResourceExistsPath("Patient"),
                 Set.of("Patient.gender", "Patient.birthDate"),
-                Map.of("Patient.birthDate", List.of(REGISTRY.resolve("noop")))));
+                Map.of("Patient.birthDate", List.of(REGISTRY.resolve("noop"))),
+                Map.of()));
+  }
+
+  @Test
+  void parsesTypeHandlersIntoAModule() {
+    Profile profile =
+        parse(
+            """
+            modules.test {
+              pattern = "Patient.exists()"
+              base = ["Patient.birthDate"]
+              types { DateType { handler = noop } }
+            }
+            """);
+
+    assertThat(profile.modules())
+        .containsExactly(
+            new Module(
+                new ResourceExistsPath("Patient"),
+                Set.of("Patient.birthDate"),
+                Map.of(),
+                Map.of(DateType.class, List.of(REGISTRY.resolve("noop")))));
   }
 
   @Test
@@ -70,7 +92,8 @@ class HoconProfileTest {
 
     assertThat(profile.modules())
         .containsExactly(
-            new Module(new ResourceExistsPath("Patient"), Set.of("Patient.gender"), Map.of()));
+            new Module(
+                new ResourceExistsPath("Patient"), Set.of("Patient.gender"), Map.of(), Map.of()));
   }
 
   @Test
@@ -96,9 +119,13 @@ class HoconProfileTest {
             new Module(
                 new ResourceExistsPath("Patient"),
                 Set.of("Patient.birthDate"),
-                Map.of("Patient.birthDate", List.of(REGISTRY.resolve("noop")))),
+                Map.of("Patient.birthDate", List.of(REGISTRY.resolve("noop"))),
+                Map.of()),
             new Module(
-                new ResourceExistsPath("Observation"), Set.of("Observation.status"), Map.of()));
+                new ResourceExistsPath("Observation"),
+                Set.of("Observation.status"),
+                Map.of(),
+                Map.of()));
   }
 
   @Test
@@ -114,7 +141,8 @@ class HoconProfileTest {
 
     assertThat(profile.modules())
         .containsExactly(
-            new Module(new ResourceExistsPath("Patient"), Set.of("Patient.gender"), Map.of()));
+            new Module(
+                new ResourceExistsPath("Patient"), Set.of("Patient.gender"), Map.of(), Map.of()));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -139,6 +167,104 @@ class HoconProfileTest {
     assertThatThrownBy(() -> parse(hocon))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining(expectedInMessage);
+  }
+
+  @Test
+  void rejectsATypesEntryThatNamesNoHapiClassKeepingTheCause() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { NoSuchType { handler = noop } }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("NoSuchType")
+        .hasMessageContaining("types")
+        .hasCauseInstanceOf(ClassNotFoundException.class);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"PrimitiveType", "BaseDateTimeType", "Coding", "Enumerations"})
+  void rejectsATypesEntryThatIsNoConcretePrimitiveTypeNamingIt(String type) {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { %s { handler = noop } }
+        }
+        """
+            .formatted(type);
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("types entry " + type + " ")
+        .hasMessageContaining("not a concrete FHIR primitive type")
+        .hasMessageContaining("never matches an element");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"Enumeration", "DateTimeType"})
+  void acceptsATypesEntryThatIsAConcretePrimitiveType(String type) throws ClassNotFoundException {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { %s { handler = noop } }
+        }
+        """
+            .formatted(type);
+
+    assertThat(parse(hocon).modules().getFirst().typeHandlers())
+        .containsOnlyKeys(Class.forName("org.hl7.fhir.r4.model." + type))
+        .containsValue(List.of(REGISTRY.resolve("noop")));
+  }
+
+  @Test
+  void rejectsAHandlerThatDoesNotWorkOnItsTypeNamingHandlerTypesAndTypesSection() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { StringType { handler = dateOnly } }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Handler 'dateOnly' works on DateType, not on StringType")
+        .hasMessageContaining("(types section)");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(
+      delimiter = ';',
+      value = {
+        "same type; DateType; dateOnly",
+        "supertype; DateType; primitive",
+        "Object; StringType; noop"
+      })
+  void acceptsAHandlerThatWorksOnItsType(String reason, String type, String handler)
+      throws ClassNotFoundException {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { %s { handler = %s } }
+        }
+        """
+            .formatted(type, handler);
+
+    assertThat(parse(hocon).modules().getFirst().typeHandlers())
+        .containsOnlyKeys(Class.forName("org.hl7.fhir.r4.model." + type))
+        .containsValue(List.of(REGISTRY.resolve(handler)));
   }
 
   @Test
