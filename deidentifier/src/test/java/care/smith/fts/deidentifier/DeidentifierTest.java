@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.Extension;
@@ -192,6 +193,150 @@ class DeidentifierTest {
         .hasMessage("Unexpected element of type class java.lang.String");
   }
 
+  private static Extension birthNote() {
+    return new Extension("https://example.org/note", new StringType("a note"));
+  }
+
+  private static Extension genderDetail() {
+    return new Extension(
+        "https://example.org/ga", new Coding("https://example.org/s", "D", "divers"));
+  }
+
+  /**
+   * The extension of a primitive is an element like any other: the rule set decides on its parts.
+   */
+  @Test
+  void keepsThePartsOfAnInputExtensionThatTheRuleSetKeeps() {
+    Patient patient = new Patient();
+    patient.setGender(AdministrativeGender.OTHER);
+    patient.getGenderElement().addExtension(genderDetail());
+    RuleSet ruleSet =
+        keeping(
+            "Patient.gender",
+            "Patient.gender.extension.url",
+            "Patient.gender.extension.value[Coding].code");
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+
+    assertThat(result.getGender()).isEqualTo(AdministrativeGender.OTHER);
+    assertThat(result.getGenderElement().getExtension())
+        .singleElement()
+        .satisfies(
+            extension -> {
+              assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
+              Coding coding = (Coding) extension.getValue();
+              assertThat(coding.getCode()).isEqualTo("D");
+              assertThat(coding.hasSystem()).isFalse();
+              assertThat(coding.hasDisplay()).isFalse();
+            });
+  }
+
+  /** A primitive whose value the rule set removes is still there as a carrier of its extension. */
+  @Test
+  void keepsTheExtensionOfAPrimitiveWhoseValueTheRuleSetRemoves() {
+    Patient patient = new Patient();
+    patient.setGender(AdministrativeGender.OTHER);
+    patient.getGenderElement().addExtension(genderDetail());
+    RuleSet ruleSet =
+        keeping("Patient.gender.extension.url", "Patient.gender.extension.value[Coding].code");
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+
+    assertThat(result.getGenderElement().hasValue()).isFalse();
+    assertThat(result.getGenderElement().getExtension())
+        .singleElement()
+        .satisfies(
+            extension -> {
+              assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
+              assertThat(((Coding) extension.getValue()).getCode()).isEqualTo("D");
+            });
+  }
+
+  /** A handler that builds a fresh value does not take the kept input extensions with it. */
+  @Test
+  void keepsTheInputExtensionWhenAHandlerReturnsAFreshPrimitive() {
+    Patient patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.getBirthDateElement().addExtension(birthNote());
+    DeidentifierHandler<Object> fresh = (value, context) -> Optional.of(new DateType("1970-01-01"));
+    RuleSet ruleSet =
+        applying(
+            Map.of(
+                "Patient.birthDate", List.of(fresh),
+                "Patient.birthDate.extension.url", List.of(),
+                "Patient.birthDate.extension.value[string]", List.of()));
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-01-01");
+    assertThat(result.getBirthDateElement().getExtension())
+        .singleElement()
+        .satisfies(
+            extension -> {
+              assertThat(extension.getUrl()).isEqualTo("https://example.org/note");
+              assertThat(extension.getValue().primitiveValue()).isEqualTo("a note");
+            });
+  }
+
+  /** A handler can add an extension to the value; it does not survive, the input extension does. */
+  @Test
+  void dropsAnExtensionAHandlerAddsToAPrimitive() {
+    Patient patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.getBirthDateElement().addExtension(birthNote());
+    DeidentifierHandler<Object> adding =
+        (value, context) -> {
+          DateType date = ((DateType) value).copy();
+          date.addExtension(new Extension("https://example.org/added", new StringType("added")));
+          return Optional.of(date);
+        };
+    RuleSet ruleSet =
+        applying(
+            Map.of(
+                "Patient.birthDate", List.of(adding),
+                "Patient.birthDate.extension.url", List.of(),
+                "Patient.birthDate.extension.value[string]", List.of()));
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+
+    assertThat(result.getBirthDateElement().getExtension())
+        .singleElement()
+        .satisfies(
+            extension -> assertThat(extension.getUrl()).isEqualTo("https://example.org/note"));
+  }
+
+  /**
+   * A handler under an extension of a primitive sees the primitive among its ancestors, between the
+   * resource and the extension.
+   */
+  @Test
+  void passesTheInputPrimitiveAsAncestorToTheHandlersOfItsExtensions() {
+    Patient patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    Extension extension = birthNote();
+    patient.getBirthDateElement().addExtension(extension);
+    List<List<Base>> seen = new ArrayList<>();
+    DeidentifierHandler<Object> recording =
+        (value, context) -> {
+          seen.add(context.ancestors());
+          return Optional.of(value);
+        };
+    RuleSet ruleSet =
+        applying(Map.of("Patient.birthDate.extension.value[string]", List.of(recording)));
+
+    new Deidentifier(ruleSet).deidentify(patient);
+
+    assertThat(seen)
+        .singleElement()
+        .satisfies(
+            ancestors -> {
+              assertThat(ancestors).hasSize(3);
+              assertThat(ancestors.get(0)).isSameAs(patient);
+              assertThat(ancestors.get(1)).isSameAs(patient.getBirthDateElement());
+              assertThat(ancestors.get(2)).isSameAs(extension);
+            });
+  }
+
   static Stream<Arguments> additionsToAPrimitive() {
     return Stream.of(
         Arguments.of("element id", (Consumer<DateType>) date -> date.setId("the-element-id")),
@@ -203,7 +348,10 @@ class DeidentifierTest {
                         new Extension("http://example.org/secret", new StringType("secret")))));
   }
 
-  /** The rule set is not asked about the element id or the extensions of a primitive. */
+  /**
+   * The rule set is not asked about the element id of a primitive, so it is dropped. An extension
+   * is dropped unless the rule set keeps a path below it.
+   */
   @ParameterizedTest(name = "{0}")
   @MethodSource("additionsToAPrimitive")
   void keepsOnlyTheValueOfAKeptPrimitive(String addition, Consumer<DateType> add) {
@@ -212,7 +360,8 @@ class DeidentifierTest {
     Patient patient = new Patient();
     patient.setBirthDateElement(birthDate);
 
-    Patient result = (Patient) new Deidentifier(KEEP_ALL).deidentify(patient).orElseThrow();
+    Patient result =
+        (Patient) new Deidentifier(keeping("Patient.birthDate")).deidentify(patient).orElseThrow();
 
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
     assertThat(result.getBirthDateElement().getId()).isNull();
