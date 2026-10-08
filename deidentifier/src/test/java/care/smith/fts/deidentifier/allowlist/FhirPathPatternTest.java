@@ -17,6 +17,18 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class FhirPathPatternTest {
 
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(
+      delimiter = ';',
+      value = {
+        "Patient.exists(); Patient",
+        "Observation.meta.profile contains 'https://example.org/P'; Observation",
+        "Patient.identifier.system contains 'https://example.org/S'; Patient"
+      })
+  void namesTheResourceTypeOfEveryPatternKind(String pattern, String resourceType) {
+    assertThat(FhirPathPattern.parse(pattern).resourceType()).isEqualTo(resourceType);
+  }
+
   @Test
   void existsPatternMatchesEveryResourceOfItsType() {
     FhirPathPattern pattern = FhirPathPattern.parse("Patient.exists()");
