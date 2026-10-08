@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.PrimitiveType;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,9 @@ class HoconProfileTest {
     REGISTRY.addHandler("noop", Object.class, NOOP);
     REGISTRY.addHandler("primitive", PrimitiveType.class, (value, context) -> Optional.of(value));
     REGISTRY.addHandler("dateOnly", DateType.class, (value, context) -> Optional.of(value));
+    REGISTRY.addTerminalHandler("dropDate", DateType.class, (value, context) -> Optional.empty());
+    REGISTRY.addTerminalHandler(
+        "dropDateTime", DateTimeType.class, (value, context) -> Optional.empty());
   }
 
   private static Profile parse(String hocon) {
@@ -429,6 +433,215 @@ class HoconProfileTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("dateOnly")
         .hasMessageContaining("(Patient.gender)");
+  }
+
+  @Test
+  void rejectsATerminalTypeHandlerFollowedByAPathHandlerNamingBothHandlersAndThePath() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { DateType { handler = dropDate } }
+          paths { "Patient.birthDate" { handler = noop } }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Handler 'dropDate' has to run last on Patient.birthDate,"
+                + " but the handlers there are dropDate, noop!");
+  }
+
+  @Test
+  void acceptsATerminalPathHandlerAfterANonTerminalTypeHandler() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { DateType { handler = dateOnly } }
+          paths { "Patient.birthDate" { handler = dropDate } }
+        }
+        """;
+
+    assertThat(parse(hocon).modules().getFirst().pathHandlers())
+        .containsEntry("Patient.birthDate", List.of(REGISTRY.resolve("dropDate")));
+  }
+
+  @Test
+  void rejectsATerminalTypeHandlerOfOneModuleAgainstAPathHandlerOfAnotherOfTheSameType() {
+    String hocon =
+        """
+        modules {
+          typeOnly {
+            pattern = "Patient.exists()"
+            base = ["Patient.gender"]
+            types { DateType { handler = dropDate } }
+          }
+          pathOnly {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            paths { "Patient.birthDate" { handler = noop } }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Handler 'dropDate' has to run last on Patient.birthDate,"
+                + " but the handlers there are dropDate, noop!");
+  }
+
+  @Test
+  void rejectsATerminalPathHandlerNextToAPathHandlerOfAnotherModuleOfTheSameType() {
+    String hocon =
+        """
+        modules {
+          first {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            paths { "Patient.birthDate" { handler = dropDate } }
+          }
+          second {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            paths { "Patient.birthDate" { handler = noop } }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageStartingWith("Handler 'dropDate' has to run last on Patient.birthDate")
+        .hasMessageContaining("noop");
+  }
+
+  @Test
+  void doesNotMeetTheHandlersOfModulesOfDifferentResourceTypes() {
+    String hocon =
+        """
+        modules {
+          patient {
+            pattern = "Patient.exists()"
+            base = ["Patient.deceased[dateTime]"]
+            types { DateTimeType { handler = dropDateTime } }
+          }
+          observation {
+            pattern = "Observation.exists()"
+            base = ["Observation.effective[dateTime]"]
+            paths { "Observation.effective[dateTime]" { handler = noop } }
+          }
+        }
+        """;
+
+    assertThat(parse(hocon).modules()).hasSize(2);
+  }
+
+  @Test
+  void acceptsALoneTerminalTypeHandlerOnAKeptPathWithoutPathHandler() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          types { DateType { handler = dropDate } }
+        }
+        """;
+
+    assertThat(parse(hocon).modules().getFirst().typeHandlers())
+        .containsEntry(DateType.class, List.of(REGISTRY.resolve("dropDate")));
+  }
+
+  @Test
+  void acceptsALoneTerminalPathHandler() {
+    String hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.birthDate"]
+          paths { "Patient.birthDate" { handler = dropDate } }
+        }
+        """;
+
+    assertThat(parse(hocon).modules().getFirst().pathHandlers())
+        .containsEntry("Patient.birthDate", List.of(REGISTRY.resolve("dropDate")));
+  }
+
+  @Test
+  void rejectsTwoTerminalTypeHandlersOfTheSameClassFromTwoModulesOfTheSameType() {
+    String hocon =
+        """
+        modules {
+          first {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            types { DateType { handler = dropDate } }
+          }
+          second {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            types { DateType { handler = dropDate } }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Handler 'dropDate' has to run last on Patient.birthDate,"
+                + " but the handlers there are dropDate, dropDate!");
+  }
+
+  @Test
+  void rejectsATerminalAndANonTerminalTypeHandlerOfTheSameClassFromTwoModules() {
+    String hocon =
+        """
+        modules {
+          first {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            types { DateType { handler = dateOnly } }
+          }
+          second {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            types { DateType { handler = dropDate } }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageStartingWith("Handler 'dropDate' has to run last on Patient.birthDate")
+        .hasMessageContaining("dateOnly");
+  }
+
+  @Test
+  void groupsModulesByResourceTypeNotByPatternKind() {
+    String hocon =
+        """
+        modules {
+          all {
+            pattern = "Patient.exists()"
+            base = ["Patient.birthDate"]
+            types { DateType { handler = dropDate } }
+          }
+          profiled {
+            pattern = "Patient.meta.profile contains 'https://example.org/Patient'"
+            base = ["Patient.birthDate"]
+            paths { "Patient.birthDate" { handler = noop } }
+          }
+        }
+        """;
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Handler 'dropDate' has to run last on Patient.birthDate,"
+                + " but the handlers there are dropDate, noop!");
   }
 
   /** The paths that the handler of one {@code paths} key ends up on, given a comma-list base. */
