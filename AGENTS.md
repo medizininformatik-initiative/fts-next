@@ -116,6 +116,7 @@ For integration tests, extend `AbstractAuthIT` to ensure proper authentication h
 - Avoid unnecessary comments: code should be self-explanatory; only comment non-obvious "why", not "what"
 - Use lombok annotations for boilerplate reduction (e.g., @Slf4j, @ToString), but avoid `@UtilityClass` — use interfaces with static methods instead
 - Follow standard Java naming conventions (camelCase for methods/variables, PascalCase for classes)
+- Prefer `var` over explicit local variable types: `var ids = List.of(id)`, not `List<String> ids = List.of(id)`. With the diamond operator, give the type argument on the right side: `new ArrayList<String>()`, because `var list = new ArrayList<>()` infers `ArrayList<Object>`
 - Use records for immutable data classes where appropriate
 - Proper exception handling with descriptive messages
 - Use Optional for values that might be missing
