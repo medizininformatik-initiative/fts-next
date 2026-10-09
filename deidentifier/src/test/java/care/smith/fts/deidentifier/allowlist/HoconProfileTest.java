@@ -293,7 +293,8 @@ class HoconProfileTest {
         "Patient.birthdate",
         "Foo.bar",
         "Patient.deceased",
-        "Patient.gender.extension.value"
+        "Patient.gender.extension.value",
+        "Patient.text.foo"
       })
   void rejectsABasePathThatNamesNoFhirElementNamingThePath(String path) {
     String hocon =
@@ -311,6 +312,73 @@ class HoconProfileTest {
         .hasMessageContaining(path);
   }
 
+  /** The engine asks the rule set only at primitives, so a composite base path never applies. */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(
+      strings = {
+        "Patient.gender.extension",
+        "Patient.name",
+        "Patient.meta",
+        "Patient.gender.extension.value[Coding]"
+      })
+  void rejectsABasePathThatNamesACompositeElementNamingThePath(String path) {
+    var hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.gender", "%s"]
+        }
+        """
+            .formatted(path);
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("names a composite element")
+        .hasMessageContaining(path);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(
+      strings = {
+        "Patient.gender.extension.url",
+        "Patient.deceased[dateTime]",
+        "Patient.id",
+        "Patient.meta.profile",
+        "Patient.name.family"
+      })
+  void acceptsABasePathThatNamesALeafTheEngineVisits(String path) {
+    var hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["%s"]
+        }
+        """
+            .formatted(path);
+
+    assertThat(parse(hocon).modules().getFirst().base()).containsExactly(path);
+  }
+
+  /** De-identification drops every narrative as a whole, so no rule inside it is ever asked. */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"Patient.text", "Patient.text.status", "Patient.text.div"})
+  void rejectsABasePathInTheNarrativeNamingThePath(String path) {
+    var hocon =
+        """
+        modules.patient {
+          pattern = "Patient.exists()"
+          base = ["Patient.gender", "%s"]
+        }
+        """
+            .formatted(path);
+
+    assertThatThrownBy(() -> parse(hocon))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("is in the narrative")
+        .hasMessageNotContaining("composite")
+        .hasMessageContaining(path);
+  }
+
   @ParameterizedTest(name = "{0}")
   @CsvSource(
       delimiter = ';',
@@ -319,18 +387,19 @@ class HoconProfileTest {
             + " Patient.name.family,Patient.name.given",
         "*.city; Patient.address.city,Patient.name.family; Patient.address.city",
         "Patient.*.family; Patient.name.family,Patient.contact.name.family; Patient.name.family",
-        "Patient.name.*; Patient.name,Patient.name.family,Patient.gender;"
-            + " Patient.name,Patient.name.family",
-        "*.Patient.gender; Patient.gender,Patient.gender.extension; Patient.gender",
-        "*.gender; Patient.gender,Patient.gender.extension,Patient.contact.gender;"
+        "Patient.gender.*; Patient.gender,Patient.gender.extension.url,Patient.birthDate;"
+            + " Patient.gender,Patient.gender.extension.url",
+        "*.Patient.gender; Patient.gender,Patient.gender.extension.url; Patient.gender",
+        "*.gender; Patient.gender,Patient.gender.extension.url,Patient.contact.gender;"
             + " Patient.gender,Patient.contact.gender",
-        "*.name; Patient.name.family,Patient.contact.name; Patient.contact.name",
+        "*.system; Patient.identifier.system,Patient.identifier.system.extension.url;"
+            + " Patient.identifier.system",
         "*; Patient.gender,Patient.name.family; Patient.gender,Patient.name.family",
-        "Patient.birth*; Patient.birthDate,Patient.birthDate.extension,Patient.name;"
+        "Patient.birth*; Patient.birthDate,Patient.birthDate.extension.url,Patient.name.family;"
             + " Patient.birthDate",
         "*.deceased[dateTime]; Patient.deceased[dateTime],Patient.deceased[boolean];"
             + " Patient.deceased[dateTime]",
-        "Patient.gender*; Patient.gender,Patient.name; Patient.gender",
+        "Patient.gender*; Patient.gender,Patient.name.family; Patient.gender",
         "Patient.*; Patient.gender,Patient.gender; Patient.gender"
       })
   void expandsAGlobAgainstTheBasePaths(String glob, String base, String expectedMatches) {
