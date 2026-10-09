@@ -113,13 +113,17 @@ public class Deidentifier {
 
   /**
    * The extensions of the input primitive are elements like any other: each goes through the rule
-   * set, and those with a surviving part are kept. Extensions a handler adds are removed.
+   * set, and those with a surviving part are kept. The extensions a handler adds follow them,
+   * unfiltered: a handler is registry code, not resource data.
    */
   private Optional<PrimitiveType<?>> deidentifyPrimitive(
       List<String> path, PrimitiveType<?> primitive, HandlerContext context, ResourceRules rules) {
     PrimitiveType<?> copy = (PrimitiveType<?>) primitive.copy();
     // the copy carries the element id of the input, which the rule set is never asked about
     copy.setId(null);
+    // the rule set decides on the input extensions, so every extension on the handler result is one
+    // the handlers added
+    copy.setExtension(new ArrayList<>());
     Optional<PrimitiveType<?>> deidentified =
         applyHandlers(path, primitive, copy, context, rules).map(value -> (PrimitiveType<?>) value);
     List<Extension> extensions = deidentifyExtensions(path, primitive, context, rules);
@@ -129,7 +133,9 @@ public class Deidentifier {
     // a primitive that lost its value can still carry an extension
     PrimitiveType<?> result =
         deidentified.orElseGet(() -> HapiReflection.newEmptyInstance(primitive.getClass()));
-    result.setExtension(new ArrayList<>(extensions));
+    var all = new ArrayList<>(extensions);
+    all.addAll(result.getExtension());
+    result.setExtension(all);
     return Optional.of(result);
   }
 
