@@ -185,6 +185,29 @@ class FhirCohortSelectorIT {
         .verifyComplete();
   }
 
+  /**
+   * Patient b has only a consent referencing it by identifier. That consent is not assigned to any
+   * patient, so b is not selected, while selection of a is not aborted.
+   */
+  @Test
+  void consentWithLogicalPatientReferenceIsIgnored() {
+    var logicalReference =
+        new Reference()
+            .setIdentifier(new Identifier().setSystem(PID_SYSTEM).setValue("patient-identifier-b"));
+    var bundle =
+        Stream.of(
+                patient("a"),
+                patient("b"),
+                consentFor("a", "MDAT_erheben"),
+                consentFor("b", "MDAT_erheben").setPatient(logicalReference))
+            .collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+        .verifyComplete();
+  }
+
   @Test
   void groupingRunsOnInjectedScheduler() {
     var used = new AtomicBoolean(false);
