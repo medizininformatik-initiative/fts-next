@@ -278,31 +278,90 @@ class DeidentifierTest {
             });
   }
 
-  /** A handler can add an extension to the value; it does not survive, the input extension does. */
+  /** An extension a handler adds to the value follows the kept input extensions. */
   @Test
-  void dropsAnExtensionAHandlerAddsToAPrimitive() {
-    Patient patient = new Patient();
+  void keepsAnExtensionAHandlerAddsToAPrimitive() {
+    var patient = new Patient();
     patient.setBirthDateElement(new DateType("1970-05-12"));
     patient.getBirthDateElement().addExtension(birthNote());
     DeidentifierHandler<Object> adding =
         (value, context) -> {
-          DateType date = ((DateType) value).copy();
+          var date = ((DateType) value).copy();
           date.addExtension(new Extension("https://example.org/added", new StringType("added")));
           return Optional.of(date);
         };
-    RuleSet ruleSet =
+    var ruleSet =
         applying(
             Map.of(
                 "Patient.birthDate", List.of(adding),
                 "Patient.birthDate.extension.url", List.of(),
                 "Patient.birthDate.extension.value[string]", List.of()));
 
-    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
 
+    assertThat(result.getBirthDateElement().getExtension())
+        .extracting(Extension::getUrl)
+        .containsExactly("https://example.org/note", "https://example.org/added");
+  }
+
+  /**
+   * The date-shift pattern: the handler takes the date value away and puts a transport id on the
+   * element as an extension. The rule set keeps no extension path, so the extension is not subject
+   * to it.
+   */
+  @Test
+  void keepsTheElementOfAHandlerThatReplacesTheValueWithAnExtension() {
+    var patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    DeidentifierHandler<Object> shifting =
+        (value, context) -> {
+          var date = new DateType();
+          date.addExtension(new Extension("https://example.org/added", new StringType("id-1")));
+          return Optional.of(date);
+        };
+    var ruleSet = applying(Map.of("Patient.birthDate", List.of(shifting)));
+
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+
+    assertThat(result.hasBirthDateElement()).isTrue();
+    assertThat(result.getBirthDateElement().hasValue()).isFalse();
     assertThat(result.getBirthDateElement().getExtension())
         .singleElement()
         .satisfies(
-            extension -> assertThat(extension.getUrl()).isEqualTo("https://example.org/note"));
+            extension -> {
+              assertThat(extension.getUrl()).isEqualTo("https://example.org/added");
+              assertThat(extension.getValue().primitiveValue()).isEqualTo("id-1");
+            });
+  }
+
+  /** A handler that removes the value leaves nothing behind when no input extension is kept. */
+  @Test
+  void removesAPrimitiveWhoseHandlerRemovesItWhenNoInputExtensionIsKept() {
+    var patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.setGender(AdministrativeGender.OTHER);
+    DeidentifierHandler<Object> removing = (value, context) -> Optional.empty();
+    var ruleSet =
+        applying(Map.of("Patient.birthDate", List.of(removing), "Patient.gender", List.of()));
+
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+
+    assertThat(result.hasBirthDateElement()).isFalse();
+  }
+
+  /** The handler gets the value without the input extensions, the rule set decides on those. */
+  @Test
+  void dropsInputExtensionsTheRuleSetDoesNotKeepWhenAHandlerReturnsTheValue() {
+    var patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.getBirthDateElement().addExtension(birthNote());
+    DeidentifierHandler<Object> identity = (value, context) -> Optional.of(value);
+    var ruleSet = applying(Map.of("Patient.birthDate", List.of(identity)));
+
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient).orElseThrow();
+
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
+    assertThat(result.getBirthDateElement().hasExtension()).isFalse();
   }
 
   /**
