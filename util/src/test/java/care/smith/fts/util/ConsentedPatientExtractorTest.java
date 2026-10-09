@@ -1,8 +1,10 @@
 package care.smith.fts.util;
 
+import static care.smith.fts.util.fhir.FhirUtils.stringToFhirResource;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import care.smith.fts.api.ConsentedPatient;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -18,6 +20,7 @@ import org.hl7.fhir.r4.model.Consent.ConsentState;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
 class ConsentedPatientExtractorTest {
@@ -48,6 +51,27 @@ class ConsentedPatientExtractorTest {
     assertThat(result.get(0).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
     assertThat(result.get(1).identifier()).isEqualTo("67890");
     assertThat(result.get(1).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
+  }
+
+  @Test
+  void processConsentedPatients_continuesAfterPatientWithUnreadableDate() {
+    var unreadable =
+        bundleWithProvisions(
+            "12345",
+            permittedProvisionComponent("POLICY_A"),
+            parsedProvision("POLICY_B", "2024-02-23T10:00:00", "2054-01-31"));
+    var readable = generateBundleWithConsent("67890", "POLICY_A", "POLICY_B");
+
+    var result =
+        ConsentedPatientExtractor.processConsentedPatients(
+                PATIENT_IDENTIFIER_SYSTEM,
+                POLICY_SYSTEM,
+                Stream.of(unreadable, readable),
+                POLICIES_TO_CHECK,
+                ConsentedPatientExtractorTest::getPatientIdentifier)
+            .toList();
+
+    assertThat(result).extracting(ConsentedPatient::identifier).containsExactly("67890");
   }
 
   @Test
@@ -223,7 +247,8 @@ class ConsentedPatientExtractorTest {
 
     var result =
         ConsentedPatientExtractor.getConsentedPoliciesFromProvision(
-            POLICY_SYSTEM, provision, Set.of("POLICY_A", "POLICY_B"));
+                POLICY_SYSTEM, provision, Set.of("POLICY_A", "POLICY_B"))
+            .orElseThrow();
 
     assertThat(result.hasAllPolicies(Set.of("POLICY_A"))).isTrue();
     assertThat(result.hasAllPolicies(Set.of("POLICY_A", "POLICY_B"))).isFalse();
@@ -245,7 +270,8 @@ class ConsentedPatientExtractorTest {
 
     var result =
         ConsentedPatientExtractor.getConsentedPoliciesFromProvision(
-            POLICY_SYSTEM, provision, Set.of("POLICY_A"));
+                POLICY_SYSTEM, provision, Set.of("POLICY_A"))
+            .orElseThrow();
 
     assertThat(result.hasAllPolicies(Set.of("POLICY_A"))).isTrue();
   }
@@ -263,7 +289,8 @@ class ConsentedPatientExtractorTest {
 
     var result =
         ConsentedPatientExtractor.getConsentedPoliciesFromProvision(
-            POLICY_SYSTEM, provision, Set.of("POLICY_A"));
+                POLICY_SYSTEM, provision, Set.of("POLICY_A"))
+            .orElseThrow();
 
     assertThat(result.getPeriods("POLICY_A"))
         .containsExactly(care.smith.fts.api.Period.parseOpenEnded("2024-02-23"));
@@ -279,7 +306,8 @@ class ConsentedPatientExtractorTest {
 
     var result =
         ConsentedPatientExtractor.getConsentedPoliciesFromProvision(
-            POLICY_SYSTEM, provision, Set.of("POLICY_A"));
+                POLICY_SYSTEM, provision, Set.of("POLICY_A"))
+            .orElseThrow();
 
     assertThat(result.getPeriods("POLICY_A"))
         .containsExactly(care.smith.fts.api.Period.parse("2024-02-23", "2054-01-31"));
@@ -295,7 +323,8 @@ class ConsentedPatientExtractorTest {
 
     var result =
         ConsentedPatientExtractor.getConsentedPoliciesFromProvision(
-            POLICY_SYSTEM, provision, Set.of("POLICY_A"));
+                POLICY_SYSTEM, provision, Set.of("POLICY_A"))
+            .orElseThrow();
 
     assertThat(result.getPeriods("POLICY_A"))
         .containsExactly(care.smith.fts.api.Period.parseOpenEnded("2024-02-23"));
@@ -338,6 +367,54 @@ class ConsentedPatientExtractorTest {
     assertThat(result.policyNames()).containsExactly("POLICY_A");
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"2024-02-23T10:00:00", " 2024-02-23"})
+  void provisionWithUnreadableStartIsSkipped(String start) {
+    var unreadable = parsedProvision("POLICY_B", start, "2054-01-31");
+    var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), unreadable);
+
+    var result =
+        ConsentedPatientExtractor.getConsentedPolicies(POLICY_SYSTEM, bundle, POLICIES_TO_CHECK);
+
+    assertThat(result.policyNames()).containsExactly("POLICY_A");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"2054-01-31T10:00:00", " 2054-01-31"})
+  void provisionWithUnreadableEndIsSkipped(String end) {
+    var unreadable = parsedProvision("POLICY_B", "2024-02-23", end);
+    var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), unreadable);
+
+    var result =
+        ConsentedPatientExtractor.getConsentedPolicies(POLICY_SYSTEM, bundle, POLICIES_TO_CHECK);
+
+    assertThat(result.policyNames()).containsExactly("POLICY_A");
+  }
+
+  @Test
+  void unreadableAndStartlessProvisionsAreCountedInOneWarningWithoutDates() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var unreadable = parsedProvision("POLICY_B", "2024-02-23T10:00:00", "2054-01-31");
+    var bundle = bundleWithProvisions("12345", withoutPeriod, unreadable);
+
+    var events =
+        recordExtractorLog(
+            () ->
+                ConsentedPatientExtractor.getConsentedPolicies(
+                    POLICY_SYSTEM, bundle, POLICIES_TO_CHECK));
+
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            e -> {
+              assertThat(e.getLevel()).isEqualTo(Level.WARN);
+              assertThat(e.getFormattedMessage())
+                  .isEqualTo(
+                      "Skipping 2 permit provisions with missing period start or unreadable"
+                          + " period");
+            });
+  }
+
   @Test
   void skippedProvisionsAreCountedInWarning() {
     var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
@@ -356,7 +433,9 @@ class ConsentedPatientExtractorTest {
             e -> {
               assertThat(e.getLevel()).isEqualTo(Level.WARN);
               assertThat(e.getFormattedMessage())
-                  .isEqualTo("Skipping 1 permit provisions without period start");
+                  .isEqualTo(
+                      "Skipping 1 permit provisions with missing period start or unreadable"
+                          + " period");
             });
   }
 
@@ -477,6 +556,24 @@ class ConsentedPatientExtractorTest {
                 new CodeableConcept()
                     .addCoding(new Coding().setSystem(POLICY_SYSTEM).setCode("POLICY_A"))))
         .setPeriod(period);
+  }
+
+  /**
+   * Parses the provision from JSON, as a consent response is read, so HAPI keeps the dates as given
+   * instead of normalizing them like its setters do.
+   */
+  private static Consent.ProvisionComponent parsedProvision(
+      String policy, String start, String end) {
+    var json =
+        """
+        {"resourceType": "Consent", "provision": {"provision": [{
+          "type": "permit",
+          "period": {"start": "%s", "end": "%s"},
+          "code": [{"coding": [{"system": "%s", "code": "%s"}]}]
+        }]}}\
+        """
+            .formatted(start, end, POLICY_SYSTEM, policy);
+    return stringToFhirResource(Consent.class, json).getProvision().getProvisionFirstRep();
   }
 
   private static Extension dataAbsentReason() {

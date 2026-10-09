@@ -1,7 +1,6 @@
 package care.smith.fts.util;
 
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
-import static java.util.function.Predicate.not;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
@@ -121,15 +120,13 @@ public interface ConsentedPatientExtractor {
    */
   static ConsentedPolicies getConsentedPolicies(
       String policySystem, Bundle bundle, Set<String> policiesToCheck) {
-    var provisions = getPermitProvisionsStream(bundle).toList();
-    warnAboutSkippedProvisions(
-        provisions.stream().filter(not(ConsentedPatientExtractor::hasStartValue)).count());
-    return provisions.stream()
-        .filter(ConsentedPatientExtractor::hasStartValue)
-        .map(
-            (provisionComponent) ->
-                getConsentedPoliciesFromProvision(
-                    policySystem, provisionComponent, policiesToCheck))
+    var fromProvisions =
+        getPermitProvisionsStream(bundle)
+            .map(p -> getConsentedPoliciesFromProvision(policySystem, p, policiesToCheck))
+            .toList();
+    warnAboutSkippedProvisions(fromProvisions.stream().filter(Optional::isEmpty).count());
+    return fromProvisions.stream()
+        .flatMap(Optional::stream)
         .reduce(
             new ConsentedPolicies(),
             (a, b) -> {
@@ -152,7 +149,6 @@ public interface ConsentedPatientExtractor {
   }
 
   /**
-   * A provision period without start value cannot be evaluated, so the provision grants no consent.
    * Checks {@code hasPeriod()} and {@code hasStart()} first, so HAPI does not auto-create empty
    * elements.
    */
@@ -164,7 +160,10 @@ public interface ConsentedPatientExtractor {
 
   private static void warnAboutSkippedProvisions(long skipped) {
     if (skipped > 0) {
-      log().warn("Skipping {} permit provisions without period start", skipped);
+      log()
+          .warn(
+              "Skipping {} permit provisions with missing period start or unreadable period",
+              skipped);
     }
   }
 
@@ -184,23 +183,37 @@ public interface ConsentedPatientExtractor {
    * Retrieves the consented policies from the given provision component.
    *
    * @param policySystem the system used for policy codes
-   * @param ProvisionComponent the provision component to process
+   * @param provision the provision component to process
    * @param policiesToCheck the set of policies to check for consent
-   * @return the consented policies
+   * @return the consented policies, or empty if the provision period cannot be evaluated
    */
-  static ConsentedPolicies getConsentedPoliciesFromProvision(
-      String policySystem,
-      Consent.ProvisionComponent ProvisionComponent,
-      Set<String> policiesToCheck) {
-    var period = toPeriod(ProvisionComponent.getPeriod());
+  static Optional<ConsentedPolicies> getConsentedPoliciesFromProvision(
+      String policySystem, Consent.ProvisionComponent provision, Set<String> policiesToCheck) {
+    return readPeriod(provision)
+        .map(period -> consentedPolicies(policySystem, provision, policiesToCheck, period));
+  }
 
-    var code = ProvisionComponent.getCode();
+  private static ConsentedPolicies consentedPolicies(
+      String policySystem,
+      Consent.ProvisionComponent provision,
+      Set<String> policiesToCheck,
+      Period period) {
     var consentedPolicies = new ConsentedPolicies();
-    code.stream()
+    provision.getCode().stream()
         .flatMap(c -> extractPolicyFromCodeableConcept(policySystem, policiesToCheck, c))
         .distinct()
         .forEach(p -> consentedPolicies.put(p, period));
     return consentedPolicies;
+  }
+
+  /**
+   * Reads the period of a provision. A provision without start value or with an unreadable start or
+   * end cannot be evaluated, so it grants no consent.
+   */
+  private static Optional<Period> readPeriod(Consent.ProvisionComponent provision) {
+    return Optional.of(provision)
+        .filter(ConsentedPatientExtractor::hasStartValue)
+        .flatMap(p -> toPeriod(p.getPeriod()));
   }
 
   /**
@@ -209,13 +222,13 @@ public interface ConsentedPatientExtractor {
    * data-absent-reason.
    *
    * @param fhirPeriod the FHIR period of a provision, with start value
-   * @return the bounded or open-ended period
+   * @return the bounded or open-ended period, or empty if start or end is unreadable
    */
-  private static Period toPeriod(org.hl7.fhir.r4.model.Period fhirPeriod) {
+  private static Optional<Period> toPeriod(org.hl7.fhir.r4.model.Period fhirPeriod) {
     var start = fhirPeriod.getStartElement().asStringValue();
     return hasEndValue(fhirPeriod)
-        ? Period.parse(start, fhirPeriod.getEndElement().asStringValue())
-        : Period.parseOpenEnded(start);
+        ? Period.tryParse(start, fhirPeriod.getEndElement().asStringValue())
+        : Period.tryParseOpenEnded(start);
   }
 
   /** Checks {@code hasEnd()} first, so HAPI does not auto-create an empty end element. */

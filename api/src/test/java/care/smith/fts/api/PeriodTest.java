@@ -8,6 +8,8 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.ObjectMapper;
 
 class PeriodTest {
@@ -184,6 +186,35 @@ class PeriodTest {
   @Test
   void parseOpenEndedNullStartThrows() {
     assertThrows(NullPointerException.class, () -> Period.parseOpenEnded(null));
+  }
+
+  @Test
+  void tryParseReadablePeriod() {
+    assertThat(Period.tryParse("2024-02-23", "2054-01-31"))
+        .contains(Period.parse("2024-02-23", "2054-01-31"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"2024-02-23T10:00:00", " 2024-02-23", "2024-02-30", "2024-13"})
+  void tryParseUnreadableStartIsEmpty(String start) {
+    assertThat(Period.tryParse(start, "2054-01-31")).isEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"2054-01-31T10:00:00", " 2054-01-31", "2054-02-30", "2054-13"})
+  void tryParseUnreadableEndIsEmpty(String end) {
+    assertThat(Period.tryParse("2024-02-23", end)).isEmpty();
+  }
+
+  @Test
+  void tryParseOpenEndedReadableStart() {
+    assertThat(Period.tryParseOpenEnded("2024-02-23"))
+        .contains(Period.parseOpenEnded("2024-02-23"));
+  }
+
+  @Test
+  void tryParseOpenEndedUnreadableStartIsEmpty() {
+    assertThat(Period.tryParseOpenEnded("2024-02-23T10:00:00")).isEmpty();
   }
 
   @Test

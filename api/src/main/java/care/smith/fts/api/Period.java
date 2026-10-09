@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
@@ -11,6 +12,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+import java.util.function.Supplier;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -81,6 +83,41 @@ public final class Period {
    */
   public static Period parseOpenEnded(String start) {
     return openEnded(parseFhirDateTime(start, START));
+  }
+
+  /**
+   * Like {@link #parse(String, String)}, but an unreadable value yields no period instead of an
+   * exception, so a caller can skip it without aborting.
+   *
+   * @param start the FHIR dateTime of the start
+   * @param end the FHIR dateTime of the end
+   * @return the bounded period, or empty if {@code start} or {@code end} is no valid FHIR dateTime
+   * @throws NullPointerException if {@code start} or {@code end} is {@code null}
+   * @throws IllegalArgumentException if {@code start} or {@code end} is empty
+   */
+  public static Optional<Period> tryParse(String start, String end) {
+    return readable(() -> parse(start, end));
+  }
+
+  /**
+   * Like {@link #parseOpenEnded(String)}, but an unreadable start yields no period instead of an
+   * exception, so a caller can skip it without aborting.
+   *
+   * @param start the FHIR dateTime of the start
+   * @return the open-ended period, or empty if {@code start} is no valid FHIR dateTime
+   * @throws NullPointerException if {@code start} is {@code null}
+   * @throws IllegalArgumentException if {@code start} is empty
+   */
+  public static Optional<Period> tryParseOpenEnded(String start) {
+    return readable(() -> parseOpenEnded(start));
+  }
+
+  private static Optional<Period> readable(Supplier<Period> parser) {
+    try {
+      return Optional.of(parser.get());
+    } catch (DateTimeException e) {
+      return Optional.empty();
+    }
   }
 
   /**
