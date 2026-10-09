@@ -31,6 +31,9 @@ class FhirPathsEngineAgreementTest {
            "type": {"coding": [{"system": "https://example.org/t", "code": "MR"}]}}],
          "name": [{"family": "Doe", "given": ["Jane"]}],
          "gender": "other", "birthDate": "1970-01-01", "deceasedDateTime": "2020-01-01",
+         "_birthDate": {"extension": [{"url": "https://example.org/b", "valueCoding": {
+           "system": "https://example.org/s", "code": "c", "extension": [
+             {"url": "note", "valueString": "n"}]}}]},
          "address": [{"postalCode": "12345", "country": "DE"}],
          "contact": [{"name": {"family": "Roe"}, "gender": "male"}]}
         """,

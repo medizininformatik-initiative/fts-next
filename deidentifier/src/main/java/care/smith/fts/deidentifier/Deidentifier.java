@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.PrimitiveType;
 import org.hl7.fhir.r4.model.Resource;
@@ -111,22 +112,42 @@ public class Deidentifier {
   }
 
   /**
-   * Extensions on a primitive are removed, those of the input and those a handler adds: the value
-   * does not carry them along, and the rule set is not asked about them.
+   * The extensions of the input primitive are elements like any other: each goes through the rule
+   * set, and those with a surviving part are kept. Extensions a handler adds are removed.
    */
   private Optional<PrimitiveType<?>> deidentifyPrimitive(
       List<String> path, PrimitiveType<?> primitive, HandlerContext context, ResourceRules rules) {
     PrimitiveType<?> copy = (PrimitiveType<?>) primitive.copy();
     // the copy carries the element id of the input, which the rule set is never asked about
     copy.setId(null);
-    return applyHandlers(path, primitive, copy, context, rules)
-        .map(value -> (PrimitiveType<?>) value)
-        .map(Deidentifier::withoutExtensions);
+    Optional<PrimitiveType<?>> deidentified =
+        applyHandlers(path, primitive, copy, context, rules).map(value -> (PrimitiveType<?>) value);
+    List<Extension> extensions = deidentifyExtensions(path, primitive, context, rules);
+    if (deidentified.isEmpty() && extensions.isEmpty()) {
+      return Optional.empty();
+    }
+    // a primitive that lost its value can still carry an extension
+    PrimitiveType<?> result =
+        deidentified.orElseGet(() -> HapiReflection.newEmptyInstance(primitive.getClass()));
+    result.setExtension(new ArrayList<>(extensions));
+    return Optional.of(result);
   }
 
-  private static PrimitiveType<?> withoutExtensions(PrimitiveType<?> primitive) {
-    primitive.setExtension(new ArrayList<>());
-    return primitive;
+  /**
+   * The extensions of the input primitive that survive the rule set. They are children of the
+   * primitive, so a handler under them sees it as an ancestor.
+   */
+  private List<Extension> deidentifyExtensions(
+      List<String> path, PrimitiveType<?> primitive, HandlerContext context, ResourceRules rules) {
+    List<String> extensionPath = append(path, "extension");
+    HandlerContext extensionContext = context.child(primitive);
+    return primitive.getExtension().stream()
+        .flatMap(
+            extension ->
+                deidentifyElement(extensionPath, extension, extensionContext, rules)
+                    .map(Extension.class::cast)
+                    .stream())
+        .toList();
   }
 
   /** The rule set sees the element of the input resource, the handlers work on its copy. */
