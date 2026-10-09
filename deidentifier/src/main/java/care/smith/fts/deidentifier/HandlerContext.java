@@ -48,10 +48,12 @@ public final class HandlerContext {
         .findFirst()
         .filter(Resource.class::isInstance)
         .map(Resource.class::cast)
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "This context has no resource at the root of its ancestor chain."));
+        .orElseThrow(HandlerContext::noResourceAtRoot);
+  }
+
+  private static IllegalStateException noResourceAtRoot() {
+    return new IllegalStateException(
+        "This context has no resource at the root of its ancestor chain.");
   }
 
   /**
@@ -62,10 +64,11 @@ public final class HandlerContext {
     return Optional.of(ancestors)
         .filter(not(List::isEmpty))
         .map(List::getLast)
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "This context has an empty ancestor chain and no parent."));
+        .orElseThrow(HandlerContext::noParent);
+  }
+
+  private static IllegalStateException noParent() {
+    return new IllegalStateException("This context has an empty ancestor chain and no parent.");
   }
 
   public List<Base> ancestors() {

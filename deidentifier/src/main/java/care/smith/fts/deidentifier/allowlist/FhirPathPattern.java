@@ -51,11 +51,7 @@ public sealed interface FhirPathPattern {
   private static RuntimeResourceDefinition definition(String fhirPath, String resourceType) {
     return lookUp(resourceType)
         .filter(definition -> definition.getName().equals(resourceType))
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Pattern '%s' names no FHIR R4 resource type: %s"
-                        .formatted(fhirPath, resourceType)));
+        .orElseThrow(() -> unknownResourceType(fhirPath, resourceType));
   }
 
   private static Optional<RuntimeResourceDefinition> lookUp(String resourceType) {
@@ -64,6 +60,12 @@ public sealed interface FhirPathPattern {
     } catch (DataFormatException unknownResourceType) {
       return Optional.empty();
     }
+  }
+
+  private static IllegalArgumentException unknownResourceType(
+      String fhirPath, String resourceType) {
+    return new IllegalArgumentException(
+        "Pattern '%s' names no FHIR R4 resource type: %s".formatted(fhirPath, resourceType));
   }
 
   private static String requireResourceType(String fhirPath, String resourceType) {

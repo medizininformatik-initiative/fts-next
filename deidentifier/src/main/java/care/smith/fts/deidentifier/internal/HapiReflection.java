@@ -83,12 +83,7 @@ public interface HapiReflection {
      */
     public void copyInto(Base target, Object newValue) {
       try {
-        reflectively(
-            field,
-            () -> {
-              field.set(target, newValue);
-              return null;
-            });
+        reflectively(field, () -> write(target, newValue));
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(
             "%s holds %s, not %s"
@@ -99,19 +94,23 @@ public interface HapiReflection {
             e);
       }
     }
+
+    private Void write(Base target, Object newValue) throws IllegalAccessException {
+      field.set(target, newValue);
+      return null;
+    }
   }
 
   /** All children that hold a value, in metadata order. */
   static List<FhirChild> childrenWithValue(Base base) {
-    Class<?> clazz = base.getClass();
-    Map<String, Field> fields = FIELDS.get(clazz);
     return base.children().stream()
-        .flatMap(
-            property -> {
-              Field field = lookup(fields, clazz, nameToField(property.getName()));
-              return get(field, base).map(value -> new FhirChild(property, field, value)).stream();
-            })
+        .flatMap(property -> childWithValue(base, property).stream())
         .toList();
+  }
+
+  private static Optional<FhirChild> childWithValue(Base base, Property property) {
+    var field = field(base.getClass(), nameToField(property.getName()));
+    return get(field, base).map(value -> new FhirChild(property, field, value));
   }
 
   /** Choice elements are named {@code value[x]} in metadata; the concrete type names the path. */
@@ -140,13 +139,14 @@ public interface HapiReflection {
     return clazz.cast(reflectively(clazz, () -> CONSTRUCTORS.get(clazz).newInstance()));
   }
 
-  private static Field lookup(Map<String, Field> fields, Class<?> clazz, String name) {
-    return Optional.ofNullable(fields.get(name))
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "No field '%s' found on %s or its superclasses"
-                        .formatted(name, clazz.getName())));
+  private static Field field(Class<?> clazz, String name) {
+    return Optional.ofNullable(FIELDS.get(clazz).get(name))
+        .orElseThrow(() -> noSuchField(clazz, name));
+  }
+
+  private static IllegalStateException noSuchField(Class<?> clazz, String name) {
+    return new IllegalStateException(
+        "No field '%s' found on %s or its superclasses".formatted(name, clazz.getName()));
   }
 
   private static Optional<Object> get(Field field, Object target) {

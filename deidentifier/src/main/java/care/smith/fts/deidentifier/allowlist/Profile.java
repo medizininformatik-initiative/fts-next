@@ -36,10 +36,11 @@ public record Profile(List<Module> modules) implements RuleSet {
     modulesOfOneType.stream()
         .flatMap(module -> module.base().stream())
         .collect(toCollection(TreeSet::new))
-        .forEach(
-            path ->
-                HandlerChain.at(modulesOfOneType, path, BasePaths.leafType(path))
-                    .requireTerminalLast(path));
+        .forEach(path -> requireTerminalLast(modulesOfOneType, path));
+  }
+
+  private static void requireTerminalLast(List<Module> modules, String path) {
+    HandlerChain.at(modules, path, BasePaths.leafType(path)).requireTerminalLast(path);
   }
 
   /**

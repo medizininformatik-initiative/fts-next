@@ -20,12 +20,7 @@ interface BasePaths {
    *     or names a composite element
    */
   static Class<?> leafType(String path) {
-    var type =
-        FhirPaths.elementType(path)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "The base path %s names no FHIR element!".formatted(path)));
+    var type = FhirPaths.elementType(path).orElseThrow(() -> noSuchElement(path));
     if (inNarrative(path)) {
       throw new IllegalStateException(
           "The base path %s is in the narrative, which de-identification always drops!"
@@ -37,6 +32,10 @@ interface BasePaths {
               .formatted(path));
     }
     return type;
+  }
+
+  private static IllegalStateException noSuchElement(String path) {
+    return new IllegalStateException("The base path %s names no FHIR element!".formatted(path));
   }
 
   /** Whether {@code path} or any prefix of it is a narrative, which the engine drops unvisited. */
