@@ -141,6 +141,58 @@ class ConsentedPatientTest {
     assertThat(consentedPolicies.maxConsentedPeriod()).isEmpty();
   }
 
+  /** Policies touching at the same instant in different zones overlap for zero length, too. */
+  @Test
+  void getMaxPermittedPeriodWithTwoPoliciesThatOnlyTouchInDifferentZones() {
+    ConsentedPatient.ConsentedPolicies consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies.put(
+        "a", Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T10:00:00+02:00"));
+    consentedPolicies.put(
+        "b", Period.parse("1234-03-03T08:00:00+00:00", "1234-03-05T00:00:00+00:00"));
+    assertThat(consentedPolicies.maxConsentedPeriod()).isEmpty();
+  }
+
+  @Test
+  void openEndedPolicyYieldsOpenEndedMaxPeriod() {
+    var consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    var period = Period.parseOpenEnded("1234-03-01T00:00:00+00:00");
+    consentedPolicies.put("a", period);
+
+    assertThat(consentedPolicies.maxConsentedPeriod()).contains(period);
+  }
+
+  @Test
+  void openEndedPeriodOutlastsBoundedPeriodOfSamePolicy() {
+    var consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies.put(
+        "a", Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00"));
+    consentedPolicies.put("a", Period.parseOpenEnded("1234-03-05T00:00:00+00:00"));
+
+    assertThat(consentedPolicies.maxConsentedPeriod())
+        .contains(Period.parseOpenEnded("1234-03-01T00:00:00+00:00"));
+  }
+
+  @Test
+  void boundedPolicyLimitsOpenEndedPolicy() {
+    var consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies.put("a", Period.parseOpenEnded("1234-03-01T00:00:00+00:00"));
+    consentedPolicies.put(
+        "b", Period.parse("1234-03-02T00:00:00+00:00", "1234-03-06T00:00:00+00:00"));
+
+    assertThat(consentedPolicies.maxConsentedPeriod())
+        .contains(Period.parse("1234-03-02T00:00:00+00:00", "1234-03-06T00:00:00+00:00"));
+  }
+
+  @Test
+  void boundedPolicyEndingBeforeOpenEndedPolicyStartsYieldsNoPeriod() {
+    var consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies.put("a", Period.parseOpenEnded("1234-03-05T00:00:00+00:00"));
+    consentedPolicies.put(
+        "b", Period.parse("1234-03-01T00:00:00+00:00", "1234-03-03T00:00:00+00:00"));
+
+    assertThat(consentedPolicies.maxConsentedPeriod()).isEmpty();
+  }
+
   @Test
   void mergeKeepsThePoliciesOfBothSets() {
     ConsentedPatient.ConsentedPolicies consentedPolicies1 =
@@ -180,6 +232,19 @@ class ConsentedPatientTest {
 
     String des = om.writeValueAsString(consentedPatient);
     ConsentedPatient ser = om.readValue(des, ConsentedPatient.class);
+    assertThat(ser).isEqualTo(consentedPatient);
+  }
+
+  @Test
+  void deAndSerializationOfOpenEndedPeriod() throws JacksonException {
+    var consentedPolicies = new ConsentedPatient.ConsentedPolicies();
+    consentedPolicies.put("a", Period.parseOpenEnded("1234-03-01T00:00:00+00:00"));
+    var consentedPatient =
+        new ConsentedPatient("patient", "http://fts.smith.care", consentedPolicies);
+    var om = new ObjectMapper();
+
+    var ser = om.readValue(om.writeValueAsString(consentedPatient), ConsentedPatient.class);
+
     assertThat(ser).isEqualTo(consentedPatient);
   }
 }

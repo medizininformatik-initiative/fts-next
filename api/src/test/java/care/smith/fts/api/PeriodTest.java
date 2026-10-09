@@ -8,8 +8,50 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 class PeriodTest {
+  private static final ObjectMapper OM = new ObjectMapper();
+
+  @Test
+  void boundedPeriodSerializesStartAndEnd() {
+    var period = Period.parse("2024-02-23T00:00:00+01:00", "2054-01-31T00:00:00+01:00");
+
+    assertThat(OM.writeValueAsString(period))
+        .isEqualTo(
+            "{\"start\":\"2024-02-23T00:00:00+01:00\",\"end\":\"2054-01-31T00:00:00+01:00\"}");
+  }
+
+  @Test
+  void openEndedPeriodSerializesNullEnd() {
+    var period = Period.parseOpenEnded("2024-02-23T00:00:00+01:00");
+
+    assertThat(OM.writeValueAsString(period))
+        .isEqualTo("{\"start\":\"2024-02-23T00:00:00+01:00\",\"end\":null}");
+  }
+
+  @Test
+  void deserializesWithoutEndAsOpenEnded() {
+    var period = OM.readValue("{\"start\":\"2024-02-23T00:00:00+01:00\"}", Period.class);
+
+    assertThat(period.end()).isEmpty();
+  }
+
+  @Test
+  void deserializesNullEndAsOpenEnded() {
+    var period =
+        OM.readValue("{\"start\":\"2024-02-23T00:00:00+01:00\",\"end\":null}", Period.class);
+
+    assertThat(period.end()).isEmpty();
+  }
+
+  @Test
+  void openEndedPeriodsAreEqual() {
+    assertThat(Period.parseOpenEnded("2024-02-23"))
+        .isEqualTo(Period.parseOpenEnded("2024-02-23"))
+        .hasSameHashCodeAs(Period.parseOpenEnded("2024-02-23"));
+  }
+
   @Test
   void parseEmptyStartThrows() {
     assertThrows(
@@ -66,8 +108,8 @@ class PeriodTest {
     var period = Period.parse("2024-02-23", "2054-01-31");
     assertThat(period.start().toLocalDate()).isEqualTo(LocalDate.of(2024, 2, 23));
     assertThat(period.start().toLocalTime()).isEqualTo(LocalTime.of(0, 0, 0));
-    assertThat(period.end().toLocalDate()).isEqualTo(LocalDate.of(2054, 1, 31));
-    assertThat(period.end().toLocalTime()).isEqualTo(LocalTime.MAX);
+    assertThat(period.end().orElseThrow().toLocalDate()).isEqualTo(LocalDate.of(2054, 1, 31));
+    assertThat(period.end().orElseThrow().toLocalTime()).isEqualTo(LocalTime.MAX);
   }
 
   @Test
@@ -89,8 +131,8 @@ class PeriodTest {
     var period = Period.parse("2024", "2054");
     assertThat(period.start().toLocalDate()).isEqualTo(LocalDate.of(2024, 1, 1));
     assertThat(period.start().toLocalTime()).isEqualTo(LocalTime.of(0, 0, 0));
-    assertThat(period.end().toLocalDate()).isEqualTo(LocalDate.of(2054, 12, 31));
-    assertThat(period.end().toLocalTime()).isEqualTo(LocalTime.MAX);
+    assertThat(period.end().orElseThrow().toLocalDate()).isEqualTo(LocalDate.of(2054, 12, 31));
+    assertThat(period.end().orElseThrow().toLocalTime()).isEqualTo(LocalTime.MAX);
   }
 
   @Test
@@ -105,8 +147,8 @@ class PeriodTest {
     var period = Period.parse("2024-02", "2054-01");
     assertThat(period.start().toLocalDate()).isEqualTo(LocalDate.of(2024, 2, 1));
     assertThat(period.start().toLocalTime()).isEqualTo(LocalTime.of(0, 0, 0));
-    assertThat(period.end().toLocalDate()).isEqualTo(LocalDate.of(2054, 1, 31));
-    assertThat(period.end().toLocalTime()).isEqualTo(LocalTime.MAX);
+    assertThat(period.end().orElseThrow().toLocalDate()).isEqualTo(LocalDate.of(2054, 1, 31));
+    assertThat(period.end().orElseThrow().toLocalTime()).isEqualTo(LocalTime.MAX);
   }
 
   @Test
@@ -128,7 +170,20 @@ class PeriodTest {
     var period = Period.parse("2024-02-23", "2054-01-31T10:00:00+02:00");
     assertThat(period.start().toLocalDate()).isEqualTo(LocalDate.of(2024, 2, 23));
     assertThat(period.start().toLocalTime()).isEqualTo(LocalTime.of(0, 0, 0));
-    assertThat(period.end()).isEqualTo(ZonedDateTime.parse("2054-01-31T10:00:00+02:00"));
+    assertThat(period.end()).contains(ZonedDateTime.parse("2054-01-31T10:00:00+02:00"));
+  }
+
+  @Test
+  void parseOpenEndedHasNoEnd() {
+    var period = Period.parseOpenEnded("2024-02-23");
+
+    assertThat(period.start().toLocalDate()).isEqualTo(LocalDate.of(2024, 2, 23));
+    assertThat(period.end()).isEmpty();
+  }
+
+  @Test
+  void parseOpenEndedNullStartThrows() {
+    assertThrows(NullPointerException.class, () -> Period.parseOpenEnded(null));
   }
 
   @Test

@@ -1,6 +1,7 @@
 package care.smith.fts.util;
 
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
+import static java.util.function.Predicate.not;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
@@ -12,6 +13,8 @@ import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.Consent.ConsentProvisionType;
 import org.hl7.fhir.r4.model.Consent.ConsentState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Interface for extracting consented patients from FHIR bundles. This interface contains all the
@@ -118,7 +121,11 @@ public interface ConsentedPatientExtractor {
    */
   static ConsentedPolicies getConsentedPolicies(
       String policySystem, Bundle bundle, Set<String> policiesToCheck) {
-    return getPermitProvisionsStream(bundle)
+    var provisions = getPermitProvisionsStream(bundle).toList();
+    warnAboutSkippedProvisions(
+        provisions.stream().filter(not(ConsentedPatientExtractor::hasStartValue)).count());
+    return provisions.stream()
+        .filter(ConsentedPatientExtractor::hasStartValue)
         .map(
             (provisionComponent) ->
                 getConsentedPoliciesFromProvision(
@@ -144,6 +151,27 @@ public interface ConsentedPatientExtractor {
         .filter(ConsentedPatientExtractor::isPermit);
   }
 
+  /**
+   * A provision period without start value cannot be evaluated, so the provision grants no consent.
+   * Checks {@code hasPeriod()} and {@code hasStart()} first, so HAPI does not auto-create empty
+   * elements.
+   */
+  private static boolean hasStartValue(Consent.ProvisionComponent provision) {
+    return provision.hasPeriod()
+        && provision.getPeriod().hasStart()
+        && provision.getPeriod().getStartElement().hasValue();
+  }
+
+  private static void warnAboutSkippedProvisions(long skipped) {
+    if (skipped > 0) {
+      log().warn("Skipping {} permit provisions without period start", skipped);
+    }
+  }
+
+  private static Logger log() {
+    return LoggerFactory.getLogger(ConsentedPatientExtractor.class);
+  }
+
   private static boolean isActive(Consent consent) {
     return consent.getStatus() == ConsentState.ACTIVE;
   }
@@ -164,16 +192,35 @@ public interface ConsentedPatientExtractor {
       String policySystem,
       Consent.ProvisionComponent ProvisionComponent,
       Set<String> policiesToCheck) {
-    String start = ProvisionComponent.getPeriod().getStartElement().asStringValue();
-    String end = ProvisionComponent.getPeriod().getEndElement().asStringValue();
+    var period = toPeriod(ProvisionComponent.getPeriod());
 
     var code = ProvisionComponent.getCode();
     var consentedPolicies = new ConsentedPolicies();
     code.stream()
         .flatMap(c -> extractPolicyFromCodeableConcept(policySystem, policiesToCheck, c))
         .distinct()
-        .forEach(p -> consentedPolicies.put(p, Period.parse(start, end)));
+        .forEach(p -> consentedPolicies.put(p, period));
     return consentedPolicies;
+  }
+
+  /**
+   * Converts a FHIR provision period. A provision period without end value is open-ended, as
+   * allowed since MII KDS Consent 2026. This includes an end carrying only an extension, e.g.
+   * data-absent-reason.
+   *
+   * @param fhirPeriod the FHIR period of a provision, with start value
+   * @return the bounded or open-ended period
+   */
+  private static Period toPeriod(org.hl7.fhir.r4.model.Period fhirPeriod) {
+    var start = fhirPeriod.getStartElement().asStringValue();
+    return hasEndValue(fhirPeriod)
+        ? Period.parse(start, fhirPeriod.getEndElement().asStringValue())
+        : Period.parseOpenEnded(start);
+  }
+
+  /** Checks {@code hasEnd()} first, so HAPI does not auto-create an empty end element. */
+  private static boolean hasEndValue(org.hl7.fhir.r4.model.Period fhirPeriod) {
+    return fhirPeriod.hasEnd() && fhirPeriod.getEndElement().hasValue();
   }
 
   /**
