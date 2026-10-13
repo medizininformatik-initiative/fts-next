@@ -2,23 +2,16 @@ package care.smith.fts.deidentifier.allowlist;
 
 import static com.typesafe.config.ConfigUtil.joinPath;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import care.smith.fts.deidentifier.Registry;
 import care.smith.fts.deidentifier.Registry.Registration;
 import com.typesafe.config.Config;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Pattern;
 import org.hl7.fhir.r4.model.PrimitiveType;
 
 /**
@@ -108,24 +101,14 @@ public interface HoconProfile {
 
   private static Map<String, List<Registration>> handlersByPath(
       Config paths, Map<String, Class<?>> base, Registry registry) {
-    Map<String, List<String>> keysByPath = keysByPath(paths.root().keySet(), base.keySet());
-    requireOneKeyPerPath(keysByPath);
-    return keysByPath.entrySet().stream()
+    return PathGlobs.keyPerPath(paths.root().keySet(), base.keySet()).entrySet().stream()
         .collect(
             toUnmodifiableMap(
                 Entry::getKey,
                 e -> {
                   String path = e.getKey();
-                  return List.of(
-                      handler(paths, e.getValue().getFirst(), path, base.get(path), registry));
+                  return List.of(handler(paths, e.getValue(), path, base.get(path), registry));
                 }));
-  }
-
-  /** The {@code paths} keys that reach each base path. */
-  private static Map<String, List<String>> keysByPath(Set<String> keys, Set<String> base) {
-    return keys.stream()
-        .flatMap(key -> expand(key, base).stream().map(path -> Map.entry(path, key)))
-        .collect(groupingBy(Entry::getKey, mapping(Entry::getValue, toList())));
   }
 
   /** The handler of a {@code paths} key, which has to work on the element type of {@code path}. */
@@ -152,53 +135,5 @@ public interface HoconProfile {
                   context));
     }
     return registration;
-  }
-
-  /** A path has one handler per module, so at most one {@code paths} key may reach it. */
-  private static void requireOneKeyPerPath(Map<String, List<String>> keysByPath) {
-    keysByPath.entrySet().stream()
-        .filter(e -> e.getValue().size() > 1)
-        .findFirst()
-        .ifPresent(
-            e -> {
-              throw new IllegalStateException(
-                  "The paths entries %s both reach the path %s, but a path has one handler!"
-                      .formatted(String.join(" and ", e.getValue()), e.getKey()));
-            });
-  }
-
-  /** The base paths a {@code paths} key stands for; a key without {@code *} stands for itself. */
-  private static List<String> expand(String key, Set<String> base) {
-    Pattern pattern = Pattern.compile(globToRegex(key));
-    List<String> matches = base.stream().filter(path -> pattern.matcher(path).matches()).toList();
-    if (matches.isEmpty()) {
-      throw new IllegalStateException(
-          "The paths entry %s matches no path of the base list!".formatted(key));
-    }
-    return matches;
-  }
-
-  /**
-   * A {@code *} inside a path element matches within that element. A leading {@code *.} also
-   * matches any number of whole leading elements, a trailing {@code .*} any number of whole
-   * trailing elements, and a lone {@code *} every path. Everything else is literal: path keys carry
-   * regex metacharacters, e.g. the brackets of {@code deceased[dateTime]}.
-   */
-  private static String globToRegex(String glob) {
-    if (glob.equals("*")) {
-      return ".*";
-    }
-    String[] elements = glob.split("\\.", -1);
-    boolean leading = elements[0].equals("*");
-    boolean trailing = elements[elements.length - 1].equals("*");
-    String inner =
-        Arrays.stream(elements, leading ? 1 : 0, trailing ? elements.length - 1 : elements.length)
-            .map(HoconProfile::elementToRegex)
-            .collect(joining("\\."));
-    return (leading ? "(|.*\\.)" : "") + inner + (trailing ? "(|\\..*)" : "");
-  }
-
-  private static String elementToRegex(String element) {
-    return Arrays.stream(element.split("\\*", -1)).map(Pattern::quote).collect(joining("[^.]*"));
   }
 }
