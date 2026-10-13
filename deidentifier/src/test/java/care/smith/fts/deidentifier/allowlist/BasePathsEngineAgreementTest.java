@@ -1,4 +1,4 @@
-package care.smith.fts.deidentifier.internal;
+package care.smith.fts.deidentifier.allowlist;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -7,22 +7,25 @@ import care.smith.fts.deidentifier.Deidentifier;
 import care.smith.fts.deidentifier.Rule;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * {@link FhirPaths} and the engine spell paths independently. Every path the engine visits must
- * resolve to the class of the value found there, or the profile checks reject valid paths.
+ * {@link BasePaths} and the engine decide independently which paths exist and which the engine
+ * visits. Every path the engine visits must be a base path of the class of the value found there,
+ * or the profile checks reject valid paths. The narrative in the fixture fails this test if the
+ * engine starts to visit it while {@link BasePaths} still rejects it; it has no {@code div}, so
+ * that the engine reaches {@code text.status} instead of failing on the XHTML.
  */
-class FhirPathsEngineAgreementTest {
+class BasePathsEngineAgreementTest {
 
   @ParameterizedTest
   @ValueSource(
       strings = {
         """
         {"resourceType": "Patient", "id": "p1",
+         "text": {"status": "generated"},
          "meta": {"lastUpdated": "2024-01-01T00:00:00Z", "profile": ["https://example.org/p"]},
          "extension": [{"url": "https://example.org/e", "extension": [
            {"url": "inner", "valueUri": "https://example.org/u"},
@@ -58,9 +61,9 @@ class FhirPathsEngineAgreementTest {
            "strength": {"numerator": {"value": 1}, "denominator": {"value": 2}}}]}
         """
       })
-  void resolvesEveryPathTheEngineVisitsToTheClassOfItsValue(String json) {
-    Resource resource = (Resource) FhirContext.forR4Cached().newJsonParser().parseResource(json);
-    Map<String, Class<?>> visited = new HashMap<>();
+  void acceptsEveryPathTheEngineVisitsAsBasePathOfTheClassOfItsValue(String json) {
+    var resource = (Resource) FhirContext.forR4Cached().newJsonParser().parseResource(json);
+    var visited = new HashMap<String, Class<?>>();
     new Deidentifier(
             r ->
                 (path, element) -> {
@@ -71,7 +74,6 @@ class FhirPathsEngineAgreementTest {
 
     assertThat(visited).isNotEmpty();
     visited.forEach(
-        (path, valueClass) ->
-            assertThat(FhirPaths.elementType(path)).as(path).contains(valueClass));
+        (path, valueClass) -> assertThat(BasePaths.leafType(path)).as(path).isEqualTo(valueClass));
   }
 }
