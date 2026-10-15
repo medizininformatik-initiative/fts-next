@@ -29,7 +29,15 @@ class ProfileTest {
   private static final FhirPathPattern PATIENT = new ResourceExistsPath("Patient");
 
   private static Registry.Registration registration(DeidentifierHandler<Object> handler) {
-    return new Registry.Registration(Object.class, handler, false);
+    return new Registry.Registration("handler", Object.class, handler, false);
+  }
+
+  private static Registry.Registration terminal(String name) {
+    return new Registry.Registration(name, Object.class, NOOP, true);
+  }
+
+  private static Registry.Registration named(String name) {
+    return new Registry.Registration(name, Object.class, NOOP, false);
   }
 
   private static Rule ruleFor(Profile profile, Resource resource, String path) {
@@ -193,5 +201,58 @@ class ProfileTest {
 
     assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
         .isEqualTo(new Rule.Apply(List.of()));
+  }
+
+  @Test
+  void rejectsATerminalTypeHandlerOfOneModuleFollowedByAPathHandlerOfAnother() {
+    var modules =
+        List.of(
+            new Module(
+                PATIENT,
+                Set.of("Patient.gender"),
+                Map.of(),
+                Map.of(DateType.class, List.of(terminal("dropDate")))),
+            new Module(
+                PATIENT,
+                Set.of("Patient.birthDate"),
+                Map.of("Patient.birthDate", List.of(named("noop"))),
+                Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Handler 'dropDate' has to run last on Patient.birthDate,"
+                + " but the handlers there are dropDate, noop!");
+  }
+
+  @Test
+  void rejectsABasePathThatNamesNoFhirElement() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.nope"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("The base path Patient.nope names no FHIR element!");
+  }
+
+  @Test
+  void rejectsABasePathInTheNarrative() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.text.status"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The base path Patient.text.status is in the narrative,"
+                + " which de-identification always drops!");
+  }
+
+  @Test
+  void rejectsABasePathThatNamesACompositeElement() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.name"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The base path Patient.name names a composite element, which the engine never"
+                + " visits; list its leaf paths!");
   }
 }
