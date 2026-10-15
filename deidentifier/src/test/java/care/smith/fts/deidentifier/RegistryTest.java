@@ -39,12 +39,18 @@ class RegistryTest {
   }
 
   @Test
-  void anAliasResolvesToTheSameHandler() {
+  void anAliasResolvesToTheSameHandlerUnderItsOwnName() {
     Registry registry = new Registry();
-    registry.addHandler("canonical", StringType.class, NOOP);
+    registry.addTerminalHandler("canonical", StringType.class, NOOP);
     registry.addAlias("older-name", "canonical");
 
-    assertThat(registry.resolve("older-name")).isSameAs(registry.resolve("canonical"));
+    var alias = registry.resolve("older-name");
+    var canonical = registry.resolve("canonical");
+    assertThat(alias.handler()).isSameAs(canonical.handler());
+    assertThat(alias.valueType()).isEqualTo(canonical.valueType());
+    assertThat(alias.terminal()).isTrue();
+    assertThat(alias.name()).isEqualTo("older-name");
+    assertThat(canonical.name()).isEqualTo("canonical");
   }
 
   static Stream<Arguments> invalidUsesOfAName() {

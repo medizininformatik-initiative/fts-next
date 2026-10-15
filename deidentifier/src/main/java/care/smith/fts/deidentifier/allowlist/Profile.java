@@ -1,21 +1,45 @@
 package care.smith.fts.deidentifier.allowlist;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toCollection;
+
 import care.smith.fts.deidentifier.Registry.Registration;
 import care.smith.fts.deidentifier.Rule;
 import care.smith.fts.deidentifier.RuleSet;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.TreeSet;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Resource;
 
 /**
  * An allow-list profile: an element that no matched {@link Module} lists in its base is removed. If
- * several modules match, their handler chains for a path are merged.
+ * several modules match, their handler chains for a path are merged. A profile cannot be built if
+ * its base lists a path that the engine never visits, or if a terminal handler can run before
+ * another handler.
  */
 public record Profile(List<Module> modules) implements RuleSet {
 
   public Profile {
     modules = List.copyOf(modules);
+    modules.stream()
+        .collect(groupingBy(module -> module.pattern().resourceType()))
+        .values()
+        .forEach(Profile::requireTerminalsLast);
+  }
+
+  /**
+   * All modules of one resource type can match the same resource, in no defined order, so their
+   * chains are checked together on every path that one of them keeps. Patterns cannot be evaluated
+   * without a resource, so this over-approximates the modules that match at run time.
+   */
+  private static void requireTerminalsLast(List<Module> modulesOfOneType) {
+    modulesOfOneType.stream()
+        .flatMap(module -> module.base().stream())
+        .collect(toCollection(TreeSet::new))
+        .forEach(
+            path ->
+                HandlerChain.at(modulesOfOneType, path, BasePaths.leafType(path))
+                    .requireTerminalLast(path));
   }
 
   /**
@@ -39,24 +63,14 @@ public record Profile(List<Module> modules) implements RuleSet {
      */
     @Override
     public Rule ruleFor(List<String> path, Base element) {
-      String pathKey = String.join(".", path);
-      List<Module> keeping = matched.stream().filter(m -> m.base().contains(pathKey)).toList();
-      if (keeping.isEmpty()) {
+      var pathKey = String.join(".", path);
+      if (matched.stream().noneMatch(m -> m.base().contains(pathKey))) {
         return Rule.REMOVE;
       }
       return new Rule.Apply(
-          Stream.concat(typeHandlers(element.getClass()), pathHandlers(keeping, pathKey))
+          HandlerChain.at(matched, pathKey, element.getClass()).all().stream()
               .map(Registration::handler)
               .toList());
-    }
-
-    private Stream<Registration> typeHandlers(Class<?> type) {
-      return matched.stream().flatMap(m -> m.typeHandlers().getOrDefault(type, List.of()).stream());
-    }
-
-    private static Stream<Registration> pathHandlers(List<Module> keeping, String pathKey) {
-      return keeping.stream()
-          .flatMap(m -> m.pathHandlers().getOrDefault(pathKey, List.of()).stream());
     }
   }
 
