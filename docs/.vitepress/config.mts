@@ -1,10 +1,11 @@
-import {withMermaid} from 'vitepress-plugin-mermaid';
+import {defineConfig} from 'vitepress';
+import {mermaid} from './theme/mermaid';
 
 const shortVersion = (process.env.VITE_LATEST_RELEASE || "local").split(".")[0];
 const currentYear = new Date().getFullYear();
 const base = process.env.DOCS_BASE || "";
 
-export default withMermaid({
+export default defineConfig({
   title: "FTSnext",
   description: "SMITH FHIR Transfer Services",
 
@@ -21,6 +22,7 @@ export default withMermaid({
 
   markdown: {
     math: true,
+    config: (md) => md.use(mermaid),
   },
 
   vue: {
