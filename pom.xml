@@ -25,6 +25,8 @@
     <revision>5.0.0-SNAPSHOT</revision>
     <java.version>21</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
+    <!-- Since JDK 23, javac skips classpath annotation processors (e.g. lombok) by default. -->
+    <maven.compiler.proc>full</maven.compiler.proc>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>4.1.1</spring-boot.version>
     <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
