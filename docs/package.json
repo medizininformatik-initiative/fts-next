@@ -4,7 +4,7 @@
     "markdown-it": "15.0.3",
     "markdown-it-mathjax3": "4.3.2",
     "mermaid": "12.2.0",
-    "rapidoc": "9.3.8",
+    "rapidoc": "11.0.1",
     "vitepress": "1.6.4"
   },
   "scripts": {
