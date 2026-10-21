@@ -3,10 +3,13 @@ package care.smith.fts.util.fhir;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirCodecUtils.ensureBaseResource;
 import static care.smith.fts.util.fhir.FhirCodecUtils.isBaseResource;
+import static java.lang.Boolean.TRUE;
 import static org.springframework.core.io.buffer.DataBufferUtils.join;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.parser.IParser;
+import ca.uhn.fhir.parser.LenientErrorHandler;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -24,6 +27,13 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Component
 public class FhirDecoder extends AbstractDecoder<IBaseResource> {
+  /**
+   * Hint to keep malformed primitive values, e.g. consent dates from external systems, as raw text
+   * instead of failing the whole resource, so the caller decides how to handle them. Set it only
+   * where the caller does, all other FHIR input is parsed strictly.
+   */
+  public static final String LENIENT = FhirDecoder.class.getName() + ".LENIENT";
+
   private final FhirContext fhir;
 
   public FhirDecoder(FhirContext fhir) {
@@ -51,11 +61,24 @@ public class FhirDecoder extends AbstractDecoder<IBaseResource> {
       throws DecodingException {
     log.trace("decode {} from {}", targetType, mimeType);
     try {
-      return fhir.newJsonParser()
-          .parseResource(ensureBaseResource(targetType), buffer.asInputStream());
+      return parser(hints).parseResource(ensureBaseResource(targetType), buffer.asInputStream());
     } finally {
       DataBufferUtils.release(buffer);
     }
+  }
+
+  private IParser parser(Map<String, Object> hints) {
+    var parser = fhir.newJsonParser();
+    return isLenient(hints) ? parser.setParserErrorHandler(lenientWithoutLogging()) : parser;
+  }
+
+  private static boolean isLenient(Map<String, Object> hints) {
+    return hints != null && TRUE.equals(hints.get(LENIENT));
+  }
+
+  /** Does not log either, as HAPI would log the malformed value. */
+  private static LenientErrorHandler lenientWithoutLogging() {
+    return new LenientErrorHandler(false).setErrorOnInvalidValue(false);
   }
 
   @Override
