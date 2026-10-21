@@ -233,4 +233,26 @@ class ProfileTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("The base path Patient.nope names no FHIR element!");
   }
+
+  @Test
+  void rejectsABasePathInTheNarrative() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.text.status"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The base path Patient.text.status is in the narrative,"
+                + " which de-identification always drops!");
+  }
+
+  @Test
+  void rejectsABasePathThatNamesACompositeElement() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.name"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The base path Patient.name names a composite element, which the engine never"
+                + " visits; list its leaf paths!");
+  }
 }

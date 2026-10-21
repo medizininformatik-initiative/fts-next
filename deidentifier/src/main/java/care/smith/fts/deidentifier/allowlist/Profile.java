@@ -6,7 +6,6 @@ import static java.util.stream.Collectors.toCollection;
 import care.smith.fts.deidentifier.Registry.Registration;
 import care.smith.fts.deidentifier.Rule;
 import care.smith.fts.deidentifier.RuleSet;
-import care.smith.fts.deidentifier.internal.FhirPaths;
 import java.util.List;
 import java.util.TreeSet;
 import org.hl7.fhir.r4.model.Base;
@@ -14,8 +13,9 @@ import org.hl7.fhir.r4.model.Resource;
 
 /**
  * An allow-list profile: an element that no matched {@link Module} lists in its base is removed. If
- * several modules match, their handler chains for a path are merged. A profile in which a terminal
- * handler can run before another handler cannot be built.
+ * several modules match, their handler chains for a path are merged. A profile cannot be built if
+ * its base lists a path that the engine never visits, or if a terminal handler can run before
+ * another handler.
  */
 public record Profile(List<Module> modules) implements RuleSet {
 
@@ -38,16 +38,8 @@ public record Profile(List<Module> modules) implements RuleSet {
         .collect(toCollection(TreeSet::new))
         .forEach(
             path ->
-                HandlerChain.at(modulesOfOneType, path, elementType(path))
+                HandlerChain.at(modulesOfOneType, path, BasePaths.leafType(path))
                     .requireTerminalLast(path));
-  }
-
-  private static Class<?> elementType(String path) {
-    return FhirPaths.elementType(path)
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "The base path %s names no FHIR element!".formatted(path)));
   }
 
   /**

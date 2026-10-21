@@ -10,7 +10,6 @@ import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import care.smith.fts.deidentifier.Registry;
 import care.smith.fts.deidentifier.Registry.Registration;
-import care.smith.fts.deidentifier.internal.FhirPaths;
 import com.typesafe.config.Config;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -20,8 +19,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
-import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.PrimitiveType;
 
 /**
@@ -97,43 +94,7 @@ public interface HoconProfile {
 
   /** The HAPI class of the element that each base path names. */
   private static Map<String, Class<?>> baseTypes(List<String> base) {
-    return base.stream()
-        .distinct()
-        .collect(toUnmodifiableMap(path -> path, HoconProfile::elementType));
-  }
-
-  /**
-   * The class of the element at {@code path}, which has to be a leaf: the engine asks the rule set
-   * only at primitives.
-   */
-  private static Class<?> elementType(String path) {
-    var type =
-        FhirPaths.elementType(path)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "The base path %s names no FHIR element!".formatted(path)));
-    if (inNarrative(path)) {
-      throw new IllegalStateException(
-          "The base path %s is in the narrative, which de-identification always drops!"
-              .formatted(path));
-    }
-    if (!PrimitiveType.class.isAssignableFrom(type)) {
-      throw new IllegalStateException(
-          "The base path %s names a composite element, which the engine never visits; list its leaf paths!"
-              .formatted(path));
-    }
-    return type;
-  }
-
-  /** Whether {@code path} or any prefix of it is a narrative, which the engine drops unvisited. */
-  private static boolean inNarrative(String path) {
-    var elements = List.of(path.split("\\."));
-    return IntStream.rangeClosed(1, elements.size())
-        .mapToObj(n -> String.join(".", elements.subList(0, n)))
-        .map(FhirPaths::elementType)
-        .flatMap(Optional::stream)
-        .anyMatch(Narrative.class::equals);
+    return base.stream().distinct().collect(toUnmodifiableMap(path -> path, BasePaths::leafType));
   }
 
   private static Map<String, List<Registration>> pathHandlers(
