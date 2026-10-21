@@ -348,28 +348,8 @@ jobs:
     - name: Start Test Environment
       run: make generate-certs start
 
-    - name: Download Test Data Checksums
-      if: matrix.needs_data
-      run: make download-test-data-checksums
-
-    - name: Cache Test Data
-      if: matrix.needs_data
-      id: cache-test-data
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: .github/test/test-data
-        key: test-data:${{ env.TEST_SET_SIZE }}@${{ hashFiles('.github/test/test-data/**/checksums.*') }}
-
-    - name: Check Test Data
-      if: matrix.needs_data
-      id: check-test-data
-      continue-on-error: true
-      run: make check-test-data
-
     - name: Download Test Data
       if: matrix.needs_data
-        && (steps.cache-test-data.outputs.cache-hit != 'true'
-            || steps.check-test-data.outcome != 'success')
       run: make download-test-data
 
     - name: Upload Test Data

@@ -78,7 +78,7 @@ gICS, gPAS, Keycloak, Redis) via Docker Compose and drives real transfer process
 ├── deidentifhir/            # Deidentifhir profile (mounted into cd-agent)
 ├── mtls/                    # Compose overlay + per-agent application.yaml for mTLS
 ├── results/                 # Baseline transfer status JSONs (asserted by check-status)
-└── test-data/               # Downloaded FHIR test bundles (gitignored)
+└── test-data/               # FHIR test bundles from the release asset (gitignored)
 ```
 
 The CI job (`.github/workflows/build.yml::e2e-tests`) runs as a parallel matrix. Every leg
@@ -112,7 +112,7 @@ matrix leg and is green iff all of them succeeded.
 ```bash
 cd .github/test
 make pull
-make generate-certs start upload-test-data
+make generate-certs start download-test-data upload-test-data
 make transfer-all PROJECT=gics-consent-example
 make wait
 make check-status RESULTS_FILE=example.json
@@ -126,6 +126,20 @@ For the mTLS leg, layer the overlay on top:
 docker compose -f compose.yaml -f mtls/compose.yaml up --wait
 make transfer-with-fhir-consent-list PROJECT=mtls TEST_SET_SIZE=10
 ```
+
+#### Test data
+
+`make download-test-data` fetches `fts-test-data.tar.gz` from the prerelease `TEST_DATA_TAG`
+of this repo and checks it against `TEST_DATA_CHECKSUM` (both in `.github/test/Makefile`). The
+asset holds the first 100 patients of the two speicherwolke shares `MioAzTLMjzbPNyx` and
+`4p2JNfHa8mXmLSF`, so `TEST_SET_SIZE` above 100 has no effect. To change the data:
+
+```bash
+.github/scripts/pack-test-data.sh fts-test-data.tar.gz 100   # prints the SHA-256
+gh release create test-data-v2 --prerelease --title "Test Data v2" fts-test-data.tar.gz
+```
+
+Then set `TEST_DATA_TAG` and `TEST_DATA_CHECKSUM` to the new values.
 
 #### Adding a scenario
 
