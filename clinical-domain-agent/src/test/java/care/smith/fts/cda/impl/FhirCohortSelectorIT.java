@@ -1,5 +1,7 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
+import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.test.MockServerUtil.onRandomPort;
@@ -202,6 +204,25 @@ class FhirCohortSelectorIT {
                 consentFor("b", "MDAT_erheben").setPatient(logicalReference))
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+        .verifyComplete();
+  }
+
+  /**
+   * Patient b has only a consent with a malformed date, which grants no consent, while selection of
+   * a is not aborted.
+   */
+  @Test
+  void consentWithMalformedDateGrantsNoConsent() {
+    var b = consentFor("b", "MDAT_erheben");
+    b.getProvision()
+        .setProvision(List.of(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben")));
+    var bundle =
+        Stream.of(patient("a"), patient("b"), consentFor("a", "MDAT_erheben"), b)
+            .collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(bundle))));
 
     create(cohortSelector.selectCohort(List.of()))
         .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))

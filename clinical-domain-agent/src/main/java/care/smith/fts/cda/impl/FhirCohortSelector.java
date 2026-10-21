@@ -3,6 +3,7 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.util.ConsentedPatientExtractor.*;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
+import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.web.util.UriComponentsBuilder.*;
@@ -83,7 +84,8 @@ class FhirCohortSelector implements CohortSelector {
         .uri(uriBuilder)
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
-        .bodyToMono(Bundle.class)
+        .toEntityFlux(readLenient(Bundle.class))
+        .flatMap(response -> Mono.from(response.getBody()))
         .retryWhen(retryStrategy.forRequest("fetchFhirBundle"))
         .doOnNext(b -> log.trace("fetchBundle: {} entries", b.getEntry().size()));
   }

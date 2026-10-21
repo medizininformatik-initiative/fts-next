@@ -5,6 +5,7 @@ import static care.smith.fts.tca.TtpFhirGatewayUtil.handleError;
 import static care.smith.fts.tca.consent.GicsFhirUtil.GICS_OPERATIONS;
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
+import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
 
 import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
@@ -78,7 +79,8 @@ public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvi
         .onStatus(
             HttpStatusCode::is4xxClientError,
             r -> handle4xxError("gICS", gicsClient, GICS_OPERATIONS, r))
-        .bodyToMono(Bundle.class)
+        .toEntityFlux(readLenient(Bundle.class))
+        .flatMap(response -> Mono.from(response.getBody()))
         .doOnNext(b -> log.trace("body(n: {})", b.getEntry().size()))
         .retryWhen(retryStrategy.forRequest(helper.requestName()))
         .onErrorResume(e -> handleError("gICS", e))

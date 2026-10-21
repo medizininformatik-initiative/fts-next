@@ -1,11 +1,14 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
+import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.operationOutcomeWithIssue;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -191,6 +194,24 @@ class TcaCohortSelectorIT {
             .willReturn(fhirResponse(Stream.of(consent).collect(toBundle()))));
 
     create(cohortSelector.selectCohort(List.of("patient0"))).expectNextCount(1).verifyComplete();
+  }
+
+  /**
+   * The TCA forwards a patient whose consent holds all policies, but also a provision with a
+   * malformed date. Only that provision grants no consent, so the patient is still selected.
+   */
+  @Test
+  void consentWithMalformedDateIsRead() {
+    var inner = allCohortSelector.generateConsents("patient", 1).getFirst();
+    typedResourceStream(inner, Consent.class)
+        .forEach(
+            c ->
+                c.getProvision()
+                    .addProvision(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_speichern")));
+    var outer = Stream.of(inner).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(outer))));
+
+    create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete();
   }
 
   @Test
