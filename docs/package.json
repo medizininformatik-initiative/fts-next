@@ -1,7 +1,7 @@
 {
   "type": "module",
   "devDependencies": {
-    "markdown-it": "15.0.2",
+    "markdown-it": "15.0.3",
     "markdown-it-mathjax3": "4.3.2",
     "mermaid": "12.2.0",
     "rapidoc": "9.3.8",
