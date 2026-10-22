@@ -1,5 +1,6 @@
 package care.smith.fts.deidentifier.internal;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
 import java.lang.reflect.Constructor;
@@ -79,19 +80,23 @@ public interface HapiReflection {
     /**
      * Writes {@code newValue} into the slot of this child on {@code target}.
      *
+     * @throws NullPointerException when {@code newValue} is null
      * @throws IllegalArgumentException when the slot does not accept the class of {@code newValue}
      */
     public void copyInto(Base target, Object newValue) {
-      try {
-        reflectively(field, () -> write(target, newValue));
-      } catch (IllegalArgumentException e) {
+      requireNonNull(newValue, () -> property.getName() + " cannot hold null");
+      requireAssignable(newValue);
+      reflectively(field, () -> write(target, newValue));
+    }
+
+    private void requireAssignable(Object newValue) {
+      if (!field.getType().isInstance(newValue)) {
         throw new IllegalArgumentException(
             "%s holds %s, not %s"
                 .formatted(
                     property.getName(),
                     field.getType().getSimpleName(),
-                    newValue.getClass().getSimpleName()),
-            e);
+                    newValue.getClass().getSimpleName()));
       }
     }
 

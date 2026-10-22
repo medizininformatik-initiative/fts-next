@@ -45,7 +45,12 @@ public class Registry {
 
   private void register(Registration registration) {
     var name = requireNonNull(registration.name());
-    if (registrations.putIfAbsent(name, registration) != null) {
+    requireNotRegistered(name);
+    registrations.put(name, registration);
+  }
+
+  private void requireNotRegistered(String name) {
+    if (registrations.containsKey(name)) {
       throw new IllegalStateException(
           "There is already a handler named %s registered!".formatted(name));
     }

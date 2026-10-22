@@ -84,6 +84,16 @@ class HapiReflectionTest {
         .hasMessage("text holds MarkdownType, not StringType");
   }
 
+  @Test
+  void copyIntoRejectsNullNamingTheField() {
+    var annotation = new Annotation().setText("free text");
+    var text = HapiReflection.childrenWithValue(annotation).getFirst();
+
+    assertThatThrownBy(() -> text.copyInto(new Annotation(), null))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessage("text cannot hold null");
+  }
+
   /** A property in the metadata without a field of the same name is a model HAPI does not have. */
   @Test
   void childrenWithValueNamesAPropertyWithoutAField() {

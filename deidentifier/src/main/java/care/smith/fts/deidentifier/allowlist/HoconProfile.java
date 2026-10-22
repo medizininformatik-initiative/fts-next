@@ -68,12 +68,16 @@ public interface HoconProfile {
    */
   private static Class<?> primitiveType(String key) {
     Class<?> type = loadHapiClass(key);
+    requireConcretePrimitive(key, type);
+    return type;
+  }
+
+  private static void requireConcretePrimitive(String key, Class<?> type) {
     if (!PrimitiveType.class.isAssignableFrom(type) || Modifier.isAbstract(type.getModifiers())) {
       throw new IllegalStateException(
           "The types entry %s is not a concrete FHIR primitive type, so it never matches an element!"
               .formatted(key));
     }
-    return type;
   }
 
   private static Class<?> loadHapiClass(String key) {
@@ -126,15 +130,20 @@ public interface HoconProfile {
       Config entry, Class<?> elementType, String context, Registry registry) {
     String name = entry.getString("handler");
     Registration registration = registry.resolve(name);
+    requireHandlerFits(registration, elementType, context);
+    return registration;
+  }
+
+  private static void requireHandlerFits(
+      Registration registration, Class<?> elementType, String context) {
     if (!registration.valueType().isAssignableFrom(elementType)) {
       throw new IllegalStateException(
           "Handler '%s' works on %s, not on %s (%s)!"
               .formatted(
-                  name,
+                  registration.name(),
                   registration.valueType().getSimpleName(),
                   elementType.getSimpleName(),
                   context));
     }
-    return registration;
   }
 }

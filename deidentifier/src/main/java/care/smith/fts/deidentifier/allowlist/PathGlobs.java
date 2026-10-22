@@ -30,27 +30,32 @@ interface PathGlobs {
         keys.stream()
             .flatMap(key -> expand(key, base).stream().map(path -> Map.entry(path, key)))
             .collect(groupingBy(Entry::getKey, mapping(Entry::getValue, toList())));
-    keysByPath.entrySet().stream()
-        .filter(e -> e.getValue().size() > 1)
-        .findFirst()
-        .ifPresent(
-            e -> {
-              throw new IllegalStateException(
-                  "The paths entries %s both reach the path %s, but a path has one handler!"
-                      .formatted(String.join(" and ", e.getValue()), e.getKey()));
-            });
+    requireOneKeyPerPath(keysByPath);
     return keysByPath.entrySet().stream()
         .collect(toUnmodifiableMap(Entry::getKey, e -> e.getValue().getFirst()));
+  }
+
+  private static void requireOneKeyPerPath(Map<String, List<String>> keysByPath) {
+    var shared = keysByPath.entrySet().stream().filter(e -> e.getValue().size() > 1).findFirst();
+    if (shared.isPresent()) {
+      throw new IllegalStateException(
+          "The paths entries %s both reach the path %s, but a path has one handler!"
+              .formatted(String.join(" and ", shared.get().getValue()), shared.get().getKey()));
+    }
   }
 
   private static List<String> expand(String key, Set<String> base) {
     Pattern pattern = Pattern.compile(globToRegex(key));
     List<String> matches = base.stream().filter(path -> pattern.matcher(path).matches()).toList();
+    requireAnyMatch(key, matches);
+    return matches;
+  }
+
+  private static void requireAnyMatch(String key, List<String> matches) {
     if (matches.isEmpty()) {
       throw new IllegalStateException(
           "The paths entry %s matches no path of the base list!".formatted(key));
     }
-    return matches;
   }
 
   /**
