@@ -113,7 +113,7 @@
     <dependency>
       <groupId>org.redisson</groupId>
       <artifactId>redisson</artifactId>
-      <version>4.7.0</version>
+      <version>4.8.0</version>
     </dependency>
 
     <dependency>
