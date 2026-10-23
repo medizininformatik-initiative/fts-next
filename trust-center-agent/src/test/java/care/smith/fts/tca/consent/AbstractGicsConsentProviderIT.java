@@ -1,7 +1,13 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
+import static care.smith.fts.test.MalformedConsentDates.MALFORMED_DATE;
+import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
+import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
+import static care.smith.fts.test.MockServerUtil.fhirResponse;
+import static care.smith.fts.util.fhir.FhirUtils.fhirResourceToString;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
@@ -17,6 +23,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CapabilityStatement;
+import org.hl7.fhir.r4.model.Consent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -225,6 +232,31 @@ public abstract class AbstractGicsConsentProviderIT<
    * @param pageSize the page size
    */
   protected abstract void verifyNoConsentsResponse(int offset, int pageSize);
+
+  /**
+   * The patient holds all policies through other provisions, so the consent is forwarded, with the
+   * malformed date as received, for the clinical domain agent to skip that provision.
+   */
+  @Test
+  void consentWithMalformedDateIsForwardedAsReceived() {
+    var inner = gicsConsentGenerator.generateResource();
+    typedResourceStream(inner, Consent.class)
+        .forEach(
+            c ->
+                c.getProvision()
+                    .addProvision(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben")));
+    var body = encodeWithMalformedDates(Stream.of(inner).collect(toBundle()).setTotal(1));
+    wireMock.register(getRequestMappingBuilder().willReturn(fhirResponse(body)));
+
+    create(executePagedRequest(getDefaultRequest(), 0, 2))
+        .assertNext(
+            consentBundle -> {
+              assertThat(consentBundle.getEntry()).hasSize(1);
+              assertThat(fhirResourceToString(consentBundle))
+                  .contains("\"start\":\"%s\"".formatted(MALFORMED_DATE));
+            })
+        .verifyComplete();
+  }
 
   /** Test that empty policies yield an empty bundle. */
   @Test
