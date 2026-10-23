@@ -39,17 +39,8 @@ public interface Handlers {
 
   /** Changes {@code date} in place. */
   private static void toMidMonth(DateType date) {
-    // a switch expression, so that the compiler checks that every precision is handled
-    boolean hasDay =
-        switch (date.getPrecision()) {
-          case YEAR, MONTH -> false;
-          case DAY -> true;
-          case MINUTE, SECOND, MILLI ->
-              throw new IllegalArgumentException(
-                  "Unexpected precision for object of type DateType!");
-        };
     // do nothing if the precision is lower than DAY
-    if (hasDay) {
+    if (hasDay(date)) {
       date.setDay(15); // the day field is 1-indexed!
     }
 
@@ -62,6 +53,19 @@ public interface Handlers {
   }
 
   /**
+   * A switch expression, so that the compiler checks that every precision is handled. A DateType
+   * holds no time, so a precision finer than DAY is a broken element.
+   */
+  private static boolean hasDay(DateType date) {
+    return switch (date.getPrecision()) {
+      case YEAR, MONTH -> false;
+      case DAY -> true;
+      case MINUTE, SECOND, MILLI ->
+          throw new IllegalArgumentException("Unexpected precision for object of type DateType!");
+    };
+  }
+
+  /**
    * Replaces the given string with a predefined static string. The result keeps the class of the
    * element, so it also fits a field of a subtype such as MarkdownType. A string element without a
    * value carries only extensions; it passes through unchanged.
@@ -71,12 +75,14 @@ public interface Handlers {
     return (string, context) ->
         Optional.of(
             Optional.ofNullable(string.getValue())
-                .map(
-                    value -> {
-                      StringType replaced = string.copy();
-                      replaced.setValue(staticString);
-                      return replaced;
-                    })
+                .map(value -> withValue(string, staticString))
                 .orElse(string));
+  }
+
+  /** A copy of {@code string}, so it keeps the class of the element, with {@code value}. */
+  private static StringType withValue(StringType string, String value) {
+    var replaced = string.copy();
+    replaced.setValue(value);
+    return replaced;
   }
 }
