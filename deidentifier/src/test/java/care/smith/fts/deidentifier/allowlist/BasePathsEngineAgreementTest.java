@@ -70,7 +70,7 @@ class BasePathsEngineAgreementTest {
                   visited.put(String.join(".", path), element.getClass());
                   return new Rule.Apply(List.of());
                 })
-        .deidentify(resource);
+        .deidentify(resource, "p");
 
     assertThat(visited).isNotEmpty();
     visited.forEach(
