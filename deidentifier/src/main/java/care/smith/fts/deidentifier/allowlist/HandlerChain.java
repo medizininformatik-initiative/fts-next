@@ -37,16 +37,23 @@ record HandlerChain(List<Registration> byType, List<Registration> byPath) {
    * handler at all.
    */
   void requireTerminalLast(String path) {
-    var chain = all();
-    var terminals = chain.stream().filter(Registration::terminal).toList();
-    if (!terminals.isEmpty()
-        && !(terminals.size() == 1 && (byPath.equals(terminals) || chain.equals(terminals)))) {
+    if (!terminalRunsLast()) {
       throw new IllegalStateException(
           "Handler '%s' has to run last on %s, but the handlers there are %s!"
               .formatted(
-                  terminals.getFirst().name(),
+                  terminals().getFirst().name(),
                   path,
-                  chain.stream().map(Registration::name).collect(joining(", "))));
+                  all().stream().map(Registration::name).collect(joining(", "))));
     }
+  }
+
+  private boolean terminalRunsLast() {
+    var terminals = terminals();
+    return terminals.isEmpty()
+        || (terminals.size() == 1 && (byPath.equals(terminals) || all().equals(terminals)));
+  }
+
+  private List<Registration> terminals() {
+    return all().stream().filter(Registration::terminal).toList();
   }
 }

@@ -1,5 +1,6 @@
 package care.smith.fts.deidentifier.internal;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
 import java.lang.reflect.Constructor;
@@ -79,39 +80,42 @@ public interface HapiReflection {
     /**
      * Writes {@code newValue} into the slot of this child on {@code target}.
      *
+     * @throws NullPointerException when {@code newValue} is null
      * @throws IllegalArgumentException when the slot does not accept the class of {@code newValue}
      */
     public void copyInto(Base target, Object newValue) {
-      try {
-        reflectively(
-            field,
-            () -> {
-              field.set(target, newValue);
-              return null;
-            });
-      } catch (IllegalArgumentException e) {
+      requireNonNull(newValue, () -> property.getName() + " cannot hold null");
+      requireAssignable(newValue);
+      reflectively(field, () -> write(target, newValue));
+    }
+
+    private void requireAssignable(Object newValue) {
+      if (!field.getType().isInstance(newValue)) {
         throw new IllegalArgumentException(
             "%s holds %s, not %s"
                 .formatted(
                     property.getName(),
                     field.getType().getSimpleName(),
-                    newValue.getClass().getSimpleName()),
-            e);
+                    newValue.getClass().getSimpleName()));
       }
+    }
+
+    private Void write(Base target, Object newValue) throws IllegalAccessException {
+      field.set(target, newValue);
+      return null;
     }
   }
 
   /** All children that hold a value, in metadata order. */
   static List<FhirChild> childrenWithValue(Base base) {
-    Class<?> clazz = base.getClass();
-    Map<String, Field> fields = FIELDS.get(clazz);
     return base.children().stream()
-        .flatMap(
-            property -> {
-              Field field = lookup(fields, clazz, nameToField(property.getName()));
-              return get(field, base).map(value -> new FhirChild(property, field, value)).stream();
-            })
+        .flatMap(property -> childWithValue(base, property).stream())
         .toList();
+  }
+
+  private static Optional<FhirChild> childWithValue(Base base, Property property) {
+    var field = field(base.getClass(), nameToField(property.getName()));
+    return get(field, base).map(value -> new FhirChild(property, field, value));
   }
 
   /** Choice elements are named {@code value[x]} in metadata; the concrete type names the path. */
@@ -140,13 +144,14 @@ public interface HapiReflection {
     return clazz.cast(reflectively(clazz, () -> CONSTRUCTORS.get(clazz).newInstance()));
   }
 
-  private static Field lookup(Map<String, Field> fields, Class<?> clazz, String name) {
-    return Optional.ofNullable(fields.get(name))
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "No field '%s' found on %s or its superclasses"
-                        .formatted(name, clazz.getName())));
+  private static Field field(Class<?> clazz, String name) {
+    return Optional.ofNullable(FIELDS.get(clazz).get(name))
+        .orElseThrow(() -> noSuchField(clazz, name));
+  }
+
+  private static IllegalStateException noSuchField(Class<?> clazz, String name) {
+    return new IllegalStateException(
+        "No field '%s' found on %s or its superclasses".formatted(name, clazz.getName()));
   }
 
   private static Optional<Object> get(Field field, Object target) {

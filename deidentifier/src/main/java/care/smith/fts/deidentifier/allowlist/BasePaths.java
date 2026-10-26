@@ -20,23 +20,30 @@ interface BasePaths {
    *     or names a composite element
    */
   static Class<?> leafType(String path) {
-    var type =
-        FhirPaths.elementType(path)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "The base path %s names no FHIR element!".formatted(path)));
+    var type = FhirPaths.elementType(path).orElseThrow(() -> noSuchElement(path));
+    requireOutsideNarrative(path);
+    requireLeaf(path, type);
+    return type;
+  }
+
+  private static void requireOutsideNarrative(String path) {
     if (inNarrative(path)) {
       throw new IllegalStateException(
           "The base path %s is in the narrative, which de-identification always drops!"
               .formatted(path));
     }
+  }
+
+  private static void requireLeaf(String path, Class<?> type) {
     if (!PrimitiveType.class.isAssignableFrom(type)) {
       throw new IllegalStateException(
           "The base path %s names a composite element, which the engine never visits; list its leaf paths!"
               .formatted(path));
     }
-    return type;
+  }
+
+  private static IllegalStateException noSuchElement(String path) {
+    return new IllegalStateException("The base path %s names no FHIR element!".formatted(path));
   }
 
   /** Whether {@code path} or any prefix of it is a narrative, which the engine drops unvisited. */

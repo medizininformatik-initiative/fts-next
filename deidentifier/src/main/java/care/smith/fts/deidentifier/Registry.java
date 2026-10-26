@@ -45,7 +45,12 @@ public class Registry {
 
   private void register(Registration registration) {
     var name = requireNonNull(registration.name());
-    if (registrations.putIfAbsent(name, registration) != null) {
+    requireNotRegistered(name);
+    registrations.put(name, registration);
+  }
+
+  private void requireNotRegistered(String name) {
+    if (registrations.containsKey(name)) {
       throw new IllegalStateException(
           "There is already a handler named %s registered!".formatted(name));
     }
@@ -69,10 +74,10 @@ public class Registry {
    * @throws IllegalStateException when no handler of that name is registered
    */
   public Registration resolve(String name) {
-    return Optional.ofNullable(registrations.get(name))
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Cannot resolve requested handler '%s'!".formatted(name)));
+    return Optional.ofNullable(registrations.get(name)).orElseThrow(() -> unknownHandler(name));
+  }
+
+  private static IllegalStateException unknownHandler(String name) {
+    return new IllegalStateException("Cannot resolve requested handler '%s'!".formatted(name));
   }
 }

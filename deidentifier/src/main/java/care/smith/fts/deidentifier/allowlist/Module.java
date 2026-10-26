@@ -1,6 +1,7 @@
 package care.smith.fts.deidentifier.allowlist;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import care.smith.fts.deidentifier.Registry.Registration;
@@ -37,13 +38,10 @@ public record Module(
 
   /** A path handler only transforms what the base keeps, so its path must be in the base. */
   private static void requireHandlersInBase(Set<String> base, Set<String> handlerPaths) {
-    handlerPaths.stream()
-        .filter(path -> !base.contains(path))
-        .findFirst()
-        .ifPresent(
-            path -> {
-              throw new IllegalStateException(
-                  "trying to register a handler to the unspecified FHIR path %s!".formatted(path));
-            });
+    var outside = handlerPaths.stream().filter(not(base::contains)).findFirst();
+    if (outside.isPresent()) {
+      throw new IllegalStateException(
+          "trying to register a handler to the unspecified FHIR path %s!".formatted(outside.get()));
+    }
   }
 }

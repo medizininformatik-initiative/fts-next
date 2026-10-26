@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.Extension;
@@ -394,6 +395,39 @@ class DeidentifierTest {
               assertThat(ancestors.get(1)).isSameAs(patient.getBirthDateElement());
               assertThat(ancestors.get(2)).isSameAs(extension);
             });
+  }
+
+  @Test
+  void rejectsARuleSetThatReturnsNoRules() {
+    RuleSet noRules = resource -> null;
+
+    assertThatThrownBy(() -> new Deidentifier(noRules).deidentify(new Patient()))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("returned no rules");
+  }
+
+  /** Siblings share their parent, so a handler that keeps state per context treats them alike. */
+  @Test
+  void passesOneContextToTheHandlersOfSiblingElements() {
+    var patient = new Patient();
+    patient.addName().getPeriod().setStartElement(new DateTimeType("2020-01-01"));
+    patient.getNameFirstRep().getPeriod().setEndElement(new DateTimeType("2020-12-31"));
+    var seen = new ArrayList<HandlerContext>();
+    DeidentifierHandler<Object> recording =
+        (value, context) -> {
+          seen.add(context);
+          return Optional.of(value);
+        };
+    var ruleSet =
+        applying(
+            Map.of(
+                "Patient.name.period.start", List.of(recording),
+                "Patient.name.period.end", List.of(recording)));
+
+    new Deidentifier(ruleSet).deidentify(patient);
+
+    assertThat(seen).hasSize(2);
+    assertThat(seen.get(0)).isSameAs(seen.get(1));
   }
 
   static Stream<Arguments> additionsToAPrimitive() {

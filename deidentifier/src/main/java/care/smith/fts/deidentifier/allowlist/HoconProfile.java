@@ -68,12 +68,16 @@ public interface HoconProfile {
    */
   private static Class<?> primitiveType(String key) {
     Class<?> type = loadHapiClass(key);
+    requireConcretePrimitive(key, type);
+    return type;
+  }
+
+  private static void requireConcretePrimitive(String key, Class<?> type) {
     if (!PrimitiveType.class.isAssignableFrom(type) || Modifier.isAbstract(type.getModifiers())) {
       throw new IllegalStateException(
           "The types entry %s is not a concrete FHIR primitive type, so it never matches an element!"
               .formatted(key));
     }
-    return type;
   }
 
   private static Class<?> loadHapiClass(String key) {
@@ -102,19 +106,20 @@ public interface HoconProfile {
   private static Map<String, List<Registration>> handlersByPath(
       Config paths, Map<String, Class<?>> base, Registry registry) {
     return PathGlobs.keyPerPath(paths.root().keySet(), base.keySet()).entrySet().stream()
-        .collect(
-            toUnmodifiableMap(
-                Entry::getKey,
-                e -> {
-                  String path = e.getKey();
-                  return List.of(handler(paths, e.getValue(), path, base.get(path), registry));
-                }));
+        .collect(toUnmodifiableMap(Entry::getKey, e -> pathHandler(paths, e, base, registry)));
   }
 
-  /** The handler of a {@code paths} key, which has to work on the element type of {@code path}. */
-  private static Registration handler(
-      Config paths, String key, String path, Class<?> elementType, Registry registry) {
-    return handler(child(paths, key), elementType, path, registry);
+  /**
+   * The handler of the {@code paths} key that reaches a base path, which has to work on the element
+   * type of that path.
+   */
+  private static List<Registration> pathHandler(
+      Config paths,
+      Entry<String, String> keyOfPath,
+      Map<String, Class<?>> base,
+      Registry registry) {
+    var path = keyOfPath.getKey();
+    return List.of(handler(child(paths, keyOfPath.getValue()), base.get(path), path, registry));
   }
 
   /**
@@ -125,15 +130,20 @@ public interface HoconProfile {
       Config entry, Class<?> elementType, String context, Registry registry) {
     String name = entry.getString("handler");
     Registration registration = registry.resolve(name);
+    requireHandlerFits(registration, elementType, context);
+    return registration;
+  }
+
+  private static void requireHandlerFits(
+      Registration registration, Class<?> elementType, String context) {
     if (!registration.valueType().isAssignableFrom(elementType)) {
       throw new IllegalStateException(
           "Handler '%s' works on %s, not on %s (%s)!"
               .formatted(
-                  name,
+                  registration.name(),
                   registration.valueType().getSimpleName(),
                   elementType.getSimpleName(),
                   context));
     }
-    return registration;
   }
 }
