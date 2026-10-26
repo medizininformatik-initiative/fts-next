@@ -4,6 +4,7 @@ import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier
 import static care.smith.fts.util.ConsentedPatientExtractor.processConsentedPatients;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
+import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -70,7 +71,8 @@ class TcaCohortSelector implements CohortSelector {
         .headers(h -> h.setAccept(List.of(APPLICATION_FHIR_JSON)))
         .retrieve()
         .onStatus(r -> r.equals(BAD_REQUEST), TcaCohortSelector::handleBadRequest)
-        .bodyToMono(Bundle.class)
+        .toEntityFlux(readLenient(Bundle.class))
+        .flatMap(response -> Mono.from(response.getBody()))
         .retryWhen(retryStrategy.forRequest("fetchBundle"));
   }
 
