@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.PrimitiveType;
@@ -33,13 +35,54 @@ public class Deidentifier {
   }
 
   /**
+   * De-identifies a resource of the patient. A {@link Bundle} goes to {@link #deidentifyBundle}.
+   *
    * @return the de-identified resource, or empty if every element was removed
    */
-  public Optional<Resource> deidentify(Resource resource) {
+  public Optional<Resource> deidentify(Resource resource, String patientIdentifier) {
     requireNonNull(resource);
+    if (resource instanceof Bundle bundle) {
+      return Optional.of(deidentifyBundle(bundle, patientIdentifier));
+    }
+    return walk(resource, HandlerContext.of(List.of(), patientIdentifier));
+  }
+
+  /**
+   * De-identifies every entry resource and builds a bundle skeleton around the survivors. A bundle
+   * never disappears: its skeleton survives even when no entry does.
+   */
+  public Bundle deidentifyBundle(Bundle bundle, String patientIdentifier) {
+    requireNonNull(bundle);
+    var root = HandlerContext.of(List.of(), patientIdentifier);
+    var result = new Bundle();
+    if (bundle.hasType()) {
+      result.setType(bundle.getType());
+    }
+    var entries = bundle.getEntry();
+    for (var i = 0; i < entries.size(); i++) {
+      deidentifyEntry(i, entries.get(i), root)
+          .ifPresent(resource -> result.addEntry().setResource(resource));
+    }
+    return result;
+  }
+
+  private Optional<Resource> deidentifyEntry(
+      int index, BundleEntryComponent entry, HandlerContext root) {
+    if (!entry.hasResource()) {
+      return Optional.empty();
+    }
+    var resource = entry.getResource();
+    if (resource instanceof Bundle) {
+      throw new IllegalArgumentException(
+          "Bundle entry %d is a bundle: nested bundles are not supported".formatted(index));
+    }
+    return walk(resource, root);
+  }
+
+  private Optional<Resource> walk(Resource resource, HandlerContext root) {
     // the rules are constant per resource, so they are resolved once here
     var rules = requireNonNull(ruleSet.rulesFor(resource), () -> ruleSet + " returned no rules");
-    return new ResourceWalk(rules).deidentify(resource);
+    return new ResourceWalk(rules).deidentify(resource, root);
   }
 
   /**
@@ -55,8 +98,8 @@ public class Deidentifier {
       this.rules = rules;
     }
 
-    Optional<Resource> deidentify(Resource resource) {
-      return deidentifyElement(Position.root(resource), resource).map(Resource.class::cast);
+    Optional<Resource> deidentify(Resource resource, HandlerContext root) {
+      return deidentifyElement(Position.root(resource, root), resource).map(Resource.class::cast);
     }
 
     /**
@@ -65,8 +108,8 @@ public class Deidentifier {
      */
     private record Position(List<String> path, HandlerContext context) {
 
-      static Position root(Resource resource) {
-        return new Position(List.of(resource.fhirType()), HandlerContext.empty());
+      static Position root(Resource resource, HandlerContext context) {
+        return new Position(List.of(resource.fhirType()), context);
       }
 
       /** The children of {@code parent}, which is at this position. */

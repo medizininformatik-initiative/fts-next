@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ca.uhn.fhir.model.api.TemporalPrecisionEnum;
 import care.smith.fts.deidentifier.DeidentifierHandler;
 import care.smith.fts.deidentifier.HandlerContext;
+import java.util.List;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.MarkdownType;
@@ -17,13 +18,14 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 class HandlersTest {
 
+  private static final HandlerContext CONTEXT = HandlerContext.of(List.of(), "p");
+
   /** A five-digit code keeps its first three digits; any other code is removed. */
   @ParameterizedTest(name = "{0} -> {1}")
   @CsvSource({"48149, 481", "1234, ", ", "})
   void generalizePostalCodeKeepsThreeOfFiveDigits(String code, String expected) {
     assertThat(
-            Handlers.generalizePostalCode(new StringType(code), HandlerContext.empty())
-                .map(StringType::getValue))
+            Handlers.generalizePostalCode(new StringType(code), CONTEXT).map(StringType::getValue))
         .isEqualTo(Optional.ofNullable(expected));
   }
 
@@ -31,8 +33,7 @@ class HandlersTest {
   @ParameterizedTest(name = "{0} -> {1}")
   @CsvSource({"1970-05-12, 1970-05-15", "1970, 1970", "1970-05, 1970-05"})
   void generalizeDateSetsTheDayOfMonthToTheFifteenth(String date, String expected) {
-    DateType result =
-        Handlers.generalizeDateHandler(new DateType(date), HandlerContext.empty()).orElseThrow();
+    DateType result = Handlers.generalizeDateHandler(new DateType(date), CONTEXT).orElseThrow();
 
     assertThat(result.getValueAsString()).isEqualTo(expected);
     // the day of a coarser date stays untouched, even where its string does not show it
@@ -48,7 +49,7 @@ class HandlersTest {
     DateType date = new DateType("1970-05-12");
     date.setPrecision(precision);
 
-    assertThatThrownBy(() -> Handlers.generalizeDateHandler(date, HandlerContext.empty()))
+    assertThatThrownBy(() -> Handlers.generalizeDateHandler(date, CONTEXT))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Unexpected precision for object of type DateType!");
   }
@@ -57,7 +58,7 @@ class HandlersTest {
   void stringReplacementHandlerReplacesTheValueWithTheConfiguredString() {
     DeidentifierHandler<StringType> handler = Handlers.stringReplacementHandler("PSEUDONYMISIERT");
 
-    StringType result = handler.apply(new StringType("Doe"), HandlerContext.empty()).orElseThrow();
+    StringType result = handler.apply(new StringType("Doe"), CONTEXT).orElseThrow();
 
     assertThat(result.getValue()).isEqualTo("PSEUDONYMISIERT");
   }
@@ -70,8 +71,7 @@ class HandlersTest {
   void stringReplacementHandlerKeepsTheClassOfTheElement() {
     DeidentifierHandler<StringType> handler = Handlers.stringReplacementHandler("PSEUDONYMISIERT");
 
-    StringType result =
-        handler.apply(new MarkdownType("free text"), HandlerContext.empty()).orElseThrow();
+    StringType result = handler.apply(new MarkdownType("free text"), CONTEXT).orElseThrow();
 
     assertThat(result).isInstanceOf(MarkdownType.class);
     assertThat(result.getValue()).isEqualTo("PSEUDONYMISIERT");
@@ -83,7 +83,7 @@ class HandlersTest {
     DeidentifierHandler<StringType> handler = Handlers.stringReplacementHandler("PSEUDONYMISIERT");
     StringType valueless = new StringType();
 
-    assertThat(handler.apply(valueless, HandlerContext.empty())).containsSame(valueless);
+    assertThat(handler.apply(valueless, CONTEXT)).containsSame(valueless);
   }
 
   /**
@@ -94,7 +94,7 @@ class HandlersTest {
   void generalizeDatePassesAValuelessDateThrough() {
     DateType valueless = new DateType();
 
-    assertThat(Handlers.generalizeDateHandler(valueless, HandlerContext.empty()).orElseThrow())
+    assertThat(Handlers.generalizeDateHandler(valueless, CONTEXT).orElseThrow())
         .isSameAs(valueless);
   }
 }

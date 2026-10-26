@@ -11,31 +11,29 @@ import org.hl7.fhir.r4.model.Resource;
 
 /**
  * What a handler may ask about the element it transforms: the resource it belongs to, the parent
- * element, and the full ancestor chain.
+ * element, the full ancestor chain, and the patient identifier of the call.
  */
 public final class HandlerContext {
-
-  private static final HandlerContext EMPTY = new HandlerContext(List.of());
 
   /** All ancestors from the resource root to the parent of the current element, root first. */
   private final List<Base> ancestors;
 
-  private HandlerContext(List<Base> ancestors) {
+  private final String patientIdentifier;
+
+  private HandlerContext(List<Base> ancestors, String patientIdentifier) {
     this.ancestors = ancestors;
+    this.patientIdentifier = patientIdentifier;
   }
 
-  public static HandlerContext empty() {
-    return EMPTY;
-  }
-
-  public static HandlerContext of(List<Base> ancestors) {
-    return new HandlerContext(List.copyOf(ancestors));
+  public static HandlerContext of(List<Base> ancestors, String patientIdentifier) {
+    return new HandlerContext(List.copyOf(ancestors), requireNonNull(patientIdentifier));
   }
 
   /** The same call, one level deeper: {@code ancestor} appended to the chain. */
   public HandlerContext child(Base ancestor) {
     requireNonNull(ancestor);
-    return new HandlerContext(Stream.concat(ancestors.stream(), Stream.of(ancestor)).toList());
+    return new HandlerContext(
+        Stream.concat(ancestors.stream(), Stream.of(ancestor)).toList(), patientIdentifier);
   }
 
   /**
@@ -73,5 +71,10 @@ public final class HandlerContext {
 
   public List<Base> ancestors() {
     return ancestors;
+  }
+
+  /** The patient identifier of the call. */
+  public String patientIdentifier() {
+    return patientIdentifier;
   }
 }

@@ -40,7 +40,7 @@ class AllowListTest {
         "redact", StringType.class, (value, context) -> Optional.of(new StringType("X")));
 
     Patient result =
-        (Patient) AllowList.fromConfig(CONFIG, registry).deidentify(patient()).orElseThrow();
+        (Patient) AllowList.fromConfig(CONFIG, registry).deidentify(patient(), "p").orElseThrow();
 
     assertThat(result.getIdPart()).isEqualTo("123");
     assertThat(result.getNameFirstRep().getFamily()).isEqualTo("X");
@@ -59,7 +59,8 @@ class AllowListTest {
             }
             """);
 
-    Patient result = (Patient) AllowList.fromConfig(config).deidentify(patient()).orElseThrow();
+    Patient result =
+        (Patient) AllowList.fromConfig(config).deidentify(patient(), "p").orElseThrow();
 
     assertThat(result.getIdPart()).isEqualTo("123");
     assertThat(result.hasName()).isFalse();
@@ -81,7 +82,7 @@ class AllowListTest {
         "firstOfYear", DateType.class, (value, context) -> Optional.of(new DateType("1970-01-01")));
 
     Patient result =
-        (Patient) AllowList.fromConfig(config, registry).deidentify(patient()).orElseThrow();
+        (Patient) AllowList.fromConfig(config, registry).deidentify(patient(), "p").orElseThrow();
 
     assertThat(result.getIdPart()).isEqualTo("123");
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-01-01");
