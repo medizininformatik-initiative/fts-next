@@ -39,7 +39,7 @@ public interface GicsFhirUtil {
     return typedResourceStream(outerBundle, Bundle.class)
         .filter(b -> hasAllPolicies(policySystem, b, policiesToCheck))
         .map(GicsFhirUtil::filterInnerBundle)
-        .collect(toBundle())
+        .collect(toBundle(outerBundle.getType()))
         .setTotal(outerBundle.getTotal());
   }
 
@@ -52,6 +52,6 @@ public interface GicsFhirUtil {
   private static Bundle filterInnerBundle(Bundle b) {
     return resourceStream(b)
         .filter(Predicates.or(Patient.class::isInstance, Consent.class::isInstance))
-        .collect(toBundle());
+        .collect(toBundle(b.getType()));
   }
 }

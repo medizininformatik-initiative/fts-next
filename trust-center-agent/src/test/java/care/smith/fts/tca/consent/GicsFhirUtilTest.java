@@ -6,6 +6,8 @@ import static care.smith.fts.util.fhir.FhirUtils.stringToFhirResource;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.SEARCHSET;
 
 import java.util.Date;
 import java.util.Set;
@@ -69,6 +71,21 @@ class GicsFhirUtilTest {
     assertThat(resources).hasAtLeastOneElementOfType(Patient.class);
     assertThat(resources).hasAtLeastOneElementOfType(Consent.class);
     assertThat(resources).noneMatch(Observation.class::isInstance);
+  }
+
+  @Test
+  void filteredBundlesKeepTheirType() {
+    var innerBundle =
+        resourceStream(innerBundle("with-all", "POLICY_A", "POLICY_B"))
+            .collect(toBundle(COLLECTION));
+    var outerBundle = Stream.of(innerBundle).collect(toBundle(SEARCHSET));
+
+    var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
+
+    assertThat(filtered.getType()).isEqualTo(SEARCHSET);
+    assertThat(typedResourceStream(filtered, Bundle.class))
+        .map(Bundle::getType)
+        .containsExactly(COLLECTION);
   }
 
   private static Stream<String> patientIds(Bundle outerBundle) {
