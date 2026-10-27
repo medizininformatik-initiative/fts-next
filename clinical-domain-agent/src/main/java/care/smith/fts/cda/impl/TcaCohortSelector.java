@@ -1,7 +1,5 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
-import static care.smith.fts.util.ConsentedPatientExtractor.processConsentedPatients;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
@@ -10,6 +8,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.error.fhir.FhirException;
@@ -31,17 +30,18 @@ import reactor.core.publisher.Mono;
 class TcaCohortSelector implements CohortSelector {
   private final TcaCohortSelectorConfig config;
   private final WebClient tcaClient;
+  private final ConsentedPatientExtractor extractor;
   private final RetryStrategy retryStrategy;
 
   public TcaCohortSelector(
-      TcaCohortSelectorConfig config, WebClient tcaClient, RetryStrategy retryStrategy) {
+      TcaCohortSelectorConfig config,
+      WebClient tcaClient,
+      ConsentedPatientExtractor extractor,
+      RetryStrategy retryStrategy) {
     this.config = config;
     this.tcaClient = tcaClient;
+    this.extractor = extractor;
     this.retryStrategy = retryStrategy;
-  }
-
-  private String getGicsIdentifierSystem() {
-    return "https://ths-greifswald.de/fhir/gics/identifiers/" + config.signerIdType();
   }
 
   @Override
@@ -91,7 +91,7 @@ class TcaCohortSelector implements CohortSelector {
             .put("policySystem", config.policySystem())
             .put("domain", config.domain());
     if (!identifiers.isEmpty()) {
-      body = body.put("patientIdentifierSystem", getGicsIdentifierSystem());
+      body = body.put("patientIdentifierSystem", config.gicsIdentifierSystem());
       body = body.put("identifiers", identifiers);
     }
     var result = body.build();
@@ -102,13 +102,7 @@ class TcaCohortSelector implements CohortSelector {
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
     var resources = typedResourceStream(outerBundle, Bundle.class);
-    return Flux.fromStream(
-            processConsentedPatients(
-                config.patientIdentifierSystem(),
-                config.policySystem(),
-                resources,
-                config.policies(),
-                b -> getPatientIdentifier(getGicsIdentifierSystem(), b)))
+    return Flux.fromStream(extractor.consentedPatients(resources))
         .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
   }

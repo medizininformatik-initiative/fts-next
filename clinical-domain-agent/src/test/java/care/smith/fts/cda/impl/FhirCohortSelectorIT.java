@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.cda.impl.FhirCohortSelectorFactory.consentedPatientExtractor;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
@@ -78,6 +79,7 @@ class FhirCohortSelectorIT {
         new FhirCohortSelector(
             selectorConfig,
             fhirClient,
+            consentedPatientExtractor(selectorConfig),
             new DefaultRetryStrategy(meterRegistry),
             Schedulers.parallel(),
             4);
@@ -248,7 +250,12 @@ class FhirCohortSelectorIT {
         };
     var selector =
         new FhirCohortSelector(
-            selectorConfig, fhirClient, new DefaultRetryStrategy(meterRegistry), spy, 4);
+            selectorConfig,
+            fhirClient,
+            consentedPatientExtractor(selectorConfig),
+            new DefaultRetryStrategy(meterRegistry),
+            spy,
+            4);
 
     var bundle = cohortGenerator.generate();
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
