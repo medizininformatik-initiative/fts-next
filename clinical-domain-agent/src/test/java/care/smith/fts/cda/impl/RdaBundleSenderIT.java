@@ -9,11 +9,13 @@ import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.matching.UrlPattern.ANY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
@@ -143,6 +145,19 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
     wireMock.register(get("/api/v2/process/status/processId").willReturn(ok()));
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
+    create(bundleSender.send(new TransportBundle(bundle, "transferId")))
+        .expectNext(new BundleSender.Result())
+        .verifyComplete();
+  }
+
+  @Test
+  void bundleSentWithTypeOfTransportBundle() {
+    wireMock.register(
+        rdaRequest()
+            .withRequestBody(matchingJsonPath("$.type", equalTo("collection")))
+            .willReturn(ok()));
+
+    var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle(COLLECTION));
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
         .expectNext(new BundleSender.Result())
         .verifyComplete();

@@ -1,10 +1,10 @@
 package care.smith.fts.util.fhir;
 
-import static java.util.stream.Stream.concat;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toList;
 
 import ca.uhn.fhir.context.FhirContext;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
@@ -62,18 +62,20 @@ public interface FhirUtils {
     return resourceStream(bundle).filter(type::isInstance).map(type::cast);
   }
 
-  static Collector<? super Resource, List<Resource>, Bundle> toBundle() {
-    return Collector.of(
-        ArrayList::new,
-        List::add,
-        (l1, l2) -> concat(l1.stream(), l2.stream()).toList(),
-        FhirUtils::toBundle,
-        Collector.Characteristics.UNORDERED);
+  static Collector<Resource, ?, Bundle> toBundle() {
+    return collectingAndThen(toList(), FhirUtils::bundleOf);
   }
 
-  private static Bundle toBundle(List<Resource> l) {
-    List<Bundle.BundleEntryComponent> list =
-        l.stream().map(r -> new Bundle.BundleEntryComponent().setResource(r)).toList();
-    return new Bundle().setTotal(l.size()).setEntry(list);
+  /**
+   * @param type the bundle type, e.g. that of the source bundle; {@code null} leaves it unset
+   */
+  static Collector<Resource, ?, Bundle> toBundle(Bundle.BundleType type) {
+    return collectingAndThen(toBundle(), bundle -> bundle.setType(type));
+  }
+
+  private static Bundle bundleOf(List<Resource> resources) {
+    var entries =
+        resources.stream().map(r -> new Bundle.BundleEntryComponent().setResource(r)).toList();
+    return new Bundle().setEntry(entries);
   }
 }

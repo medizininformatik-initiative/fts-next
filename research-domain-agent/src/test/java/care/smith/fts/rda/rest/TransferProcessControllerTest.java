@@ -8,6 +8,7 @@ import static java.time.Duration.ofHours;
 import static java.util.List.of;
 import static java.util.stream.Stream.concat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpHeaders.RETRY_AFTER;
@@ -158,6 +159,20 @@ class TransferProcessControllerTest {
     TransportBundle transportBundle = fromPlainBundle(bundle);
     assertThat(transportBundle.transferId()).isEqualTo("transfer-142431");
     assertThat(transportBundle.bundle().getEntry()).hasSize(2);
+  }
+
+  @Test
+  void transportBundleConversionKeepsBundleType() {
+    var bundle =
+        Stream.of(
+                new Parameters()
+                    .addParameter("id", new StringType("transfer-151022"))
+                    .setId("transfer-id"),
+                new Patient())
+            .collect(toBundle(COLLECTION));
+
+    TransportBundle transportBundle = fromPlainBundle(bundle);
+    assertThat(transportBundle.bundle().getType()).isEqualTo(COLLECTION);
   }
 
   @Test
