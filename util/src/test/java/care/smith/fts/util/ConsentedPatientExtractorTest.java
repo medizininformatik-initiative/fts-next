@@ -9,7 +9,10 @@ import static care.smith.fts.util.ConsentBundles.parsedProvision;
 import static care.smith.fts.util.ConsentBundles.permittedProvisionComponent;
 import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 
+import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.api.ConsentedPatient;
 import java.util.Optional;
 import java.util.Set;
@@ -21,6 +24,8 @@ import org.hl7.fhir.r4.model.Consent.ConsentState;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ConsentedPatientExtractorTest {
 
@@ -105,6 +110,72 @@ class ConsentedPatientExtractorTest {
             "12345", permittedProvisionComponent("POLICY_A"), deniedProvisionComponent("POLICY_B"));
 
     assertThat(EXTRACTOR.consentedPatient(bundle)).isEmpty();
+  }
+
+  @Test
+  void toCohortEntry_withAllPoliciesIsConsented() {
+    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
+
+    var result = EXTRACTOR.toCohortEntry(bundle);
+
+    assertThat(result)
+        .get()
+        .asInstanceOf(type(Consented.class))
+        .extracting(Consented::patient)
+        .satisfies(
+            p -> {
+              assertThat(p.identifier()).isEqualTo("12345");
+              assertThat(p.patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
+              assertThat(p.consentedPolicies().hasAllPolicies(POLICIES_TO_CHECK)).isTrue();
+            });
+  }
+
+  @Test
+  void toCohortEntry_withMissingPolicyIsNotReported() {
+    var bundle = generateBundleWithConsent("12345", "POLICY_A");
+
+    assertThat(EXTRACTOR.toCohortEntry(bundle)).isEmpty();
+  }
+
+  @Test
+  void toCohortEntry_withNoPatientIsNotReported() {
+    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
+    var extractor = extractor(POLICIES_TO_CHECK, b -> Optional.empty());
+
+    assertThat(extractor.toCohortEntry(bundle)).isEmpty();
+  }
+
+  @Test
+  void toCohortEntry_requiredPolicyOnlyInProvisionWithoutStartIsExcluded() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
+    var bundle =
+        bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
+
+    var result = EXTRACTOR.toCohortEntry(bundle);
+
+    assertThat(result)
+        .contains(new Excluded("12345", "Consent for policy POLICY_B has no start date"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"2024-02-23T10:00:00|2054-01-31", "2024-02-23|2054-01-31T10:00:00"})
+  void toCohortEntry_requiredPolicyOnlyInProvisionWithUnreadableDateIsExcluded(String dates) {
+    var startAndEnd = dates.split("\\|");
+    var unreadable = parsedProvision("POLICY_B", startAndEnd[0], startAndEnd[1]);
+    var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), unreadable);
+
+    var result = EXTRACTOR.toCohortEntry(bundle);
+
+    assertThat(result)
+        .contains(new Excluded("12345", "Consent for policy POLICY_B has an unreadable date"));
+  }
+
+  @Test
+  void toCohortEntry_faultyProvisionOfConsentedPolicyDoesNotExclude() {
+    var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), faultyA);
+
+    assertThat(EXTRACTOR.toCohortEntry(bundle)).isEmpty();
   }
 
   @Test

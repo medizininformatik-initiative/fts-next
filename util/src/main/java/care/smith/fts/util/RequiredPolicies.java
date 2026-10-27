@@ -52,6 +52,45 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
             });
   }
 
+  /**
+   * The reason of the first faulty provision in the bundle covering one of the missing policies.
+   * Contains no dates.
+   *
+   * @param missingPolicies the required policies the bundle's consents do not cover
+   */
+  public Optional<String> faultReason(Bundle bundle, Set<String> missingPolicies) {
+    return permitProvisions(bundle).flatMap(p -> faultReasons(p, missingPolicies)).findFirst();
+  }
+
+  /** One reason per missing policy of the provision, if the provision is faulty. */
+  private Stream<String> faultReasons(
+      Consent.ProvisionComponent provision, Set<String> missingPolicies) {
+    var policies = missingCodes(provision, missingPolicies);
+    return provisionFault(provision).stream().flatMap(fault -> policies.map(fault::formatted));
+  }
+
+  /**
+   * The fault of a provision as reason template with a {@code %s} for the policy, or empty if its
+   * period is readable.
+   */
+  private static Optional<String> provisionFault(Consent.ProvisionComponent provision) {
+    if (!hasStartValue(provision)) {
+      return Optional.of("Consent for policy %s has no start date");
+    }
+    return toPeriod(provision.getPeriod()).isEmpty()
+        ? Optional.of("Consent for policy %s has an unreadable date")
+        : Optional.empty();
+  }
+
+  /** The distinct codes of the missing policies the provision covers. */
+  private Stream<String> missingCodes(
+      Consent.ProvisionComponent provision, Set<String> missingPolicies) {
+    return provision.getCode().stream()
+        .flatMap(this::requiredCodes)
+        .filter(missingPolicies::contains)
+        .distinct();
+  }
+
   /** The nested permit provisions of all active consents in the bundle. */
   static Stream<Consent.ProvisionComponent> permitProvisions(Bundle bundle) {
     return typedResourceStream(bundle, Consent.class)

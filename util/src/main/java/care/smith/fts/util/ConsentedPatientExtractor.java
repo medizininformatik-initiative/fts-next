@@ -1,8 +1,12 @@
 package care.smith.fts.util;
 
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
+import static com.google.common.collect.Sets.difference;
 import static java.util.Objects.requireNonNull;
 
+import care.smith.fts.api.CohortEntry;
+import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import java.util.Optional;
@@ -45,6 +49,34 @@ public record ConsentedPatientExtractor(
         .apply(bundle)
         .map(id -> new ConsentedPatient(id, patientIdentifierSystem, consentedPolicies(bundle)))
         .filter(p -> p.consentedPolicies().hasAllPolicies(requiredPolicies.codes()));
+  }
+
+  /**
+   * Classifies the patient of the given bundle for the cohort.
+   *
+   * @return {@link Consented} if all required policies are consented to, {@link Excluded} if a
+   *     missing policy is only covered by a faulty provision, otherwise empty
+   */
+  public Optional<CohortEntry> toCohortEntry(Bundle bundle) {
+    return patientIdentifierExtractor.apply(bundle).flatMap(id -> classifyPatient(id, bundle));
+  }
+
+  /**
+   * Consented if no required policy is missing, Excluded if a missing policy is covered by a faulty
+   * provision, otherwise empty.
+   */
+  private Optional<CohortEntry> classifyPatient(String patientIdentifier, Bundle bundle) {
+    var consentedPolicies = consentedPolicies(bundle);
+    var missingPolicies = difference(requiredPolicies.codes(), consentedPolicies.policyNames());
+    return Optional.of(
+            new ConsentedPatient(patientIdentifier, patientIdentifierSystem, consentedPolicies))
+        .filter(p -> missingPolicies.isEmpty())
+        .<CohortEntry>map(Consented::new)
+        .or(
+            () ->
+                requiredPolicies
+                    .faultReason(bundle, missingPolicies)
+                    .map(reason -> new Excluded(patientIdentifier, reason)));
   }
 
   private ConsentedPolicies consentedPolicies(Bundle bundle) {
