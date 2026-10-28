@@ -39,6 +39,8 @@ class DeidentifierTest {
 
   private static final RuleSet KEEP_ALL = resource -> (path, element) -> new Rule.Apply(List.of());
 
+  private static final BundleEntryUrls NO_REFERENCE_RULE = BundleEntryUrls.none();
+
   /** Keeps the listed paths unchanged and removes all other elements. */
   private static RuleSet keeping(String... paths) {
     return applying(Arrays.stream(paths).collect(toMap(identity(), path -> List.of())));
@@ -73,7 +75,9 @@ class DeidentifierTest {
               return new Rule.Apply(List.of());
             };
 
-    Patient result = (Patient) new Deidentifier(recording).deidentify(patient, "p").orElseThrow();
+    Patient result =
+        (Patient)
+            new Deidentifier(recording, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
     assertThat(asked).singleElement().isSameAs(patient.getBirthDateElement());
@@ -89,7 +93,7 @@ class DeidentifierTest {
 
     Patient result =
         (Patient)
-            new Deidentifier(keeping("Patient.id", "Patient.gender"))
+            new Deidentifier(keeping("Patient.id", "Patient.gender"), NO_REFERENCE_RULE)
                 .deidentify(patient, "p")
                 .orElseThrow();
 
@@ -104,7 +108,7 @@ class DeidentifierTest {
     Patient patient = new Patient();
     patient.setId("123");
 
-    assertThat(new Deidentifier(keeping()).deidentify(patient, "p")).isEmpty();
+    assertThat(new Deidentifier(keeping(), NO_REFERENCE_RULE).deidentify(patient, "p")).isEmpty();
   }
 
   @Test
@@ -113,7 +117,9 @@ class DeidentifierTest {
     patient.addName(new HumanName().setFamily("Doe"));
     RuleSet ruleSet = applying(Map.of("Patient.name.family", List.of(replacingWith("REDACTED"))));
 
-    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    Patient result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getNameFirstRep().getFamily()).isEqualTo("REDACTED");
   }
@@ -129,7 +135,7 @@ class DeidentifierTest {
     RuleSet ruleSet =
         applying(Map.of("Patient.name.family", List.of(removes, replacingWith("REDACTED"))));
 
-    assertThat(new Deidentifier(ruleSet).deidentify(patient, "p")).isEmpty();
+    assertThat(new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p")).isEmpty();
   }
 
   /**
@@ -142,7 +148,8 @@ class DeidentifierTest {
     observation.addNote().setText("free text");
     RuleSet ruleSet = applying(Map.of("Observation.note.text", List.of(replacingWith("x"))));
 
-    assertThatThrownBy(() -> new Deidentifier(ruleSet).deidentify(observation, "p"))
+    assertThatThrownBy(
+            () -> new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(observation, "p"))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Observation.note.text")
         .hasMessageContaining("StringType")
@@ -159,7 +166,8 @@ class DeidentifierTest {
         keeping("Observation.value[Quantity].value", "Observation.value[Quantity].unit");
 
     Observation result =
-        (Observation) new Deidentifier(ruleSet).deidentify(observation, "p").orElseThrow();
+        (Observation)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(observation, "p").orElseThrow();
 
     assertThat(result.getValueQuantity().getValue()).isEqualByComparingTo("42");
     assertThat(result.getValueQuantity().getUnit()).isEqualTo("mg");
@@ -175,7 +183,9 @@ class DeidentifierTest {
     patient.getText().setStatus(Narrative.NarrativeStatus.GENERATED);
     patient.getText().setDivAsString("<div xmlns=\"http://www.w3.org/1999/xhtml\">Jane Doe</div>");
 
-    Patient result = (Patient) new Deidentifier(KEEP_ALL).deidentify(patient, "p").orElseThrow();
+    Patient result =
+        (Patient)
+            new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getIdPart()).isEqualTo("123");
     assertThat(result.hasText()).isFalse();
@@ -194,7 +204,7 @@ class DeidentifierTest {
           }
         };
 
-    assertThatThrownBy(() -> new Deidentifier(KEEP_ALL).deidentify(patient, "p"))
+    assertThatThrownBy(() -> new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentify(patient, "p"))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unexpected element of type class java.lang.String");
   }
@@ -222,7 +232,9 @@ class DeidentifierTest {
             "Patient.gender.extension.url",
             "Patient.gender.extension.value[Coding].code");
 
-    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    Patient result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getGender()).isEqualTo(AdministrativeGender.OTHER);
     assertThat(result.getGenderElement().getExtension())
@@ -246,7 +258,9 @@ class DeidentifierTest {
     RuleSet ruleSet =
         keeping("Patient.gender.extension.url", "Patient.gender.extension.value[Coding].code");
 
-    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    Patient result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getGenderElement().hasValue()).isFalse();
     assertThat(result.getGenderElement().getExtension())
@@ -272,7 +286,9 @@ class DeidentifierTest {
                 "Patient.birthDate.extension.url", List.of(),
                 "Patient.birthDate.extension.value[string]", List.of()));
 
-    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    Patient result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-01-01");
     assertThat(result.getBirthDateElement().getExtension())
@@ -303,7 +319,9 @@ class DeidentifierTest {
                 "Patient.birthDate.extension.url", List.of(),
                 "Patient.birthDate.extension.value[string]", List.of()));
 
-    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    var result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getBirthDateElement().getExtension())
         .extracting(Extension::getUrl)
@@ -327,7 +345,9 @@ class DeidentifierTest {
         };
     var ruleSet = applying(Map.of("Patient.birthDate", List.of(shifting)));
 
-    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    var result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.hasBirthDateElement()).isTrue();
     assertThat(result.getBirthDateElement().hasValue()).isFalse();
@@ -350,7 +370,9 @@ class DeidentifierTest {
     var ruleSet =
         applying(Map.of("Patient.birthDate", List.of(removing), "Patient.gender", List.of()));
 
-    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    var result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.hasBirthDateElement()).isFalse();
   }
@@ -364,7 +386,9 @@ class DeidentifierTest {
     DeidentifierHandler<Object> identity = (value, context) -> Optional.of(value);
     var ruleSet = applying(Map.of("Patient.birthDate", List.of(identity)));
 
-    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+    var result =
+        (Patient)
+            new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p").orElseThrow();
 
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
     assertThat(result.getBirthDateElement().hasExtension()).isFalse();
@@ -389,7 +413,7 @@ class DeidentifierTest {
     RuleSet ruleSet =
         applying(Map.of("Patient.birthDate.extension.value[string]", List.of(recording)));
 
-    new Deidentifier(ruleSet).deidentify(patient, "p");
+    new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p");
 
     assertThat(seen)
         .singleElement()
@@ -406,7 +430,8 @@ class DeidentifierTest {
   void rejectsARuleSetThatReturnsNoRules() {
     RuleSet noRules = resource -> null;
 
-    assertThatThrownBy(() -> new Deidentifier(noRules).deidentify(new Patient(), "p"))
+    assertThatThrownBy(
+            () -> new Deidentifier(noRules, NO_REFERENCE_RULE).deidentify(new Patient(), "p"))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("returned no rules");
   }
@@ -429,7 +454,7 @@ class DeidentifierTest {
                 "Patient.name.period.start", List.of(recording),
                 "Patient.name.period.end", List.of(recording)));
 
-    new Deidentifier(ruleSet).deidentify(patient, "p");
+    new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentify(patient, "p");
 
     assertThat(seen).hasSize(2);
     assertThat(seen.get(0)).isSameAs(seen.get(1));
@@ -460,7 +485,9 @@ class DeidentifierTest {
 
     Patient result =
         (Patient)
-            new Deidentifier(keeping("Patient.birthDate")).deidentify(patient, "p").orElseThrow();
+            new Deidentifier(keeping("Patient.birthDate"), NO_REFERENCE_RULE)
+                .deidentify(patient, "p")
+                .orElseThrow();
 
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
     assertThat(result.getBirthDateElement().getId()).isNull();
@@ -475,7 +502,7 @@ class DeidentifierTest {
     bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.MALE));
     var ruleSet = keeping("Patient.gender", "Observation.status");
 
-    var result = new Deidentifier(ruleSet).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntry())
         .extracting(entry -> entry.getResource().fhirType())
@@ -490,7 +517,9 @@ class DeidentifierTest {
     bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
     bundle.addEntry().setResource(new Observation().setStatus(Observation.ObservationStatus.FINAL));
 
-    var result = new Deidentifier(keeping("Observation.status")).deidentifyBundle(bundle, "p");
+    var result =
+        new Deidentifier(keeping("Observation.status"), NO_REFERENCE_RULE)
+            .deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntry())
         .singleElement()
@@ -501,14 +530,14 @@ class DeidentifierTest {
   void keepsTheTypeOfABundle() {
     var bundle = new Bundle().setType(Bundle.BundleType.COLLECTION);
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getType()).isEqualTo(Bundle.BundleType.COLLECTION);
   }
 
   @Test
   void leavesTheTypeOfABundleWithoutOneUnset() {
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(new Bundle(), "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(new Bundle(), "p");
 
     assertThat(result.hasType()).isFalse();
   }
@@ -525,7 +554,7 @@ class DeidentifierTest {
     entry.getRequest().setUrl("Patient");
     entry.setResource(new Patient().setGender(AdministrativeGender.FEMALE));
 
-    var result = new Deidentifier(keeping()).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(keeping(), NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getType()).isEqualTo(Bundle.BundleType.TRANSACTION);
     assertThat(result.hasEntry()).isFalse();
@@ -543,7 +572,7 @@ class DeidentifierTest {
         .setFullUrl("urn:uuid:1")
         .setResource(new Patient().setGender(AdministrativeGender.FEMALE));
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntryFirstRep().hasFullUrl()).isFalse();
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
@@ -562,7 +591,7 @@ class DeidentifierTest {
   void keepsTheRequestOfAnEntryWhoseUrlNamesOnlyTheType() {
     var bundle = patientEntryWithRequest(HTTPVerb.POST, "Patient");
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     var request = result.getEntryFirstRep().getRequest();
     assertThat(request.getMethod()).isEqualTo(HTTPVerb.POST);
@@ -576,7 +605,7 @@ class DeidentifierTest {
     var ruleSet =
         applying(Map.of("Patient.id", List.of(pseudonymizing), "Patient.gender", List.of()));
 
-    var result = new Deidentifier(ruleSet).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     var request = result.getEntryFirstRep().getRequest();
     assertThat(request.getMethod()).isEqualTo(HTTPVerb.PUT);
@@ -587,15 +616,15 @@ class DeidentifierTest {
   void dropsTheRequestWhenTheResourceLosesItsId() {
     var bundle = patientEntryWithRequest(HTTPVerb.PUT, "Patient/123");
 
-    var result = new Deidentifier(keeping("Patient.gender")).deidentifyBundle(bundle, "p");
+    var result =
+        new Deidentifier(keeping("Patient.gender"), NO_REFERENCE_RULE)
+            .deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
   }
 
-  /**
-   * Only S4c can pseudonymize these urls, so until then the request goes and the resource stays.
-   */
+  /** Without a reference rule the request goes and the resource stays. */
   @ParameterizedTest
   @ValueSource(
       strings = {
@@ -608,7 +637,7 @@ class DeidentifierTest {
   void dropsTheRequestWhenItsUrlNamesTheResourceInAnotherWay(String url) {
     var bundle = patientEntryWithRequest(HTTPVerb.POST, url);
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
@@ -620,7 +649,7 @@ class DeidentifierTest {
     var entry = bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
     entry.getRequest().setMethod(HTTPVerb.POST);
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
   }
@@ -636,7 +665,7 @@ class DeidentifierTest {
         .setIfNoneMatch("*")
         .setIfModifiedSince(new Date());
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     var request = result.getEntryFirstRep().getRequest();
     assertThat(request.hasIfNoneExist()).isFalse();
@@ -651,7 +680,7 @@ class DeidentifierTest {
     var bundle = new Bundle();
     var entry = bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
     assertThat(entry.hasRequest()).isFalse();
@@ -670,7 +699,7 @@ class DeidentifierTest {
         };
     var ruleSet = applying(Map.of("Patient.gender", List.of(recording)));
 
-    new Deidentifier(ruleSet).deidentifyBundle(bundle, "p1");
+    new Deidentifier(ruleSet, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p1");
 
     assertThat(seen)
         .singleElement()
@@ -680,6 +709,139 @@ class DeidentifierTest {
               assertThat(context.resource()).isSameAs(patient);
               assertThat(context.ancestors()).containsExactly(patient);
             });
+  }
+
+  private static DeidentifierHandler<StringType> urlRecording(List<HandlerContext> seen) {
+    return (value, context) -> {
+      seen.add(context);
+      return Optional.of(new StringType("Patient/p-1"));
+    };
+  }
+
+  @Test
+  void showsTheReferenceHandlerTheBundleTheEntryAndTheRequestOfTheUrl() {
+    var bundle = patientEntryWithRequest(HTTPVerb.PUT, "Patient?identifier=sys|12345");
+    var entry = bundle.getEntryFirstRep();
+    var seen = new ArrayList<HandlerContext>();
+
+    new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)))
+        .deidentifyBundle(bundle, "p1");
+
+    assertThat(seen)
+        .singleElement()
+        .satisfies(
+            context -> {
+              assertThat(context.patientIdentifier()).isEqualTo("p1");
+              assertThat(context.resource()).isSameAs(bundle);
+              assertThat(context.parent()).isSameAs(entry.getRequest());
+              assertThat(context.ancestors()).containsExactly(bundle, entry, entry.getRequest());
+            });
+  }
+
+  @Test
+  void keepsTheConditionalUrlOfAResourceEntryThePseudonymizedUrl() {
+    var bundle = patientEntryWithRequest(HTTPVerb.PUT, "Patient?identifier=sys|12345");
+
+    var result =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())))
+            .deidentifyBundle(bundle, "p");
+
+    var request = result.getEntryFirstRep().getRequest();
+    assertThat(request.getMethod()).isEqualTo(HTTPVerb.PUT);
+    assertThat(request.getUrl()).isEqualTo("Patient/p-1");
+    assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  private static Bundle deleteEntry(String url) {
+    var bundle = new Bundle();
+    var entry = bundle.addEntry().setFullUrl("urn:uuid:1");
+    entry.getRequest().setMethod(HTTPVerb.DELETE).setUrl(url).setIfMatch("W/\"1\"");
+    return bundle;
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"Patient/123", "Patient?identifier=sys|12345"})
+  void keepsADeleteEntryWithThePseudonymizedUrlAndNoResource(String url) {
+    var bundle = deleteEntry(url);
+
+    var result =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())))
+            .deidentifyBundle(bundle, "p");
+
+    var kept = result.getEntryFirstRep();
+    assertThat(result.getEntry()).hasSize(1);
+    assertThat(kept.hasResource()).isFalse();
+    assertThat(kept.hasFullUrl()).isFalse();
+    assertThat(kept.getRequest().getMethod()).isEqualTo(HTTPVerb.DELETE);
+    assertThat(kept.getRequest().getUrl()).isEqualTo("Patient/p-1");
+    assertThat(kept.getRequest().hasIfMatch()).isFalse();
+  }
+
+  @Test
+  void showsTheReferenceHandlerTheBundleTheEntryAndTheRequestOfADelete() {
+    var bundle = deleteEntry("Patient/123");
+    var entry = bundle.getEntryFirstRep();
+    var seen = new ArrayList<HandlerContext>();
+
+    new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)))
+        .deidentifyBundle(bundle, "p1");
+
+    assertThat(seen)
+        .singleElement()
+        .satisfies(
+            context ->
+                assertThat(context.ancestors()).containsExactly(bundle, entry, entry.getRequest()));
+  }
+
+  @Test
+  void dropsATypeOnlyDeleteEntryWithoutAskingTheReferenceHandler() {
+    var seen = new ArrayList<HandlerContext>();
+
+    var result =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)))
+            .deidentifyBundle(deleteEntry("Patient"), "p");
+
+    assertThat(result.getEntry()).isEmpty();
+    assertThat(seen).isEmpty();
+  }
+
+  @Test
+  void dropsADeleteEntryWithoutAReferenceRule() {
+    var result =
+        new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE)
+            .deidentifyBundle(deleteEntry("Patient/123"), "p");
+
+    assertThat(result.getEntry()).isEmpty();
+  }
+
+  @Test
+  void dropsADeleteEntryWhenTheReferenceHandlerRemovesTheUrl() {
+    var entryUrls = BundleEntryUrls.of((value, context) -> Optional.empty());
+
+    var result =
+        new Deidentifier(KEEP_ALL, entryUrls).deidentifyBundle(deleteEntry("Patient/123"), "p");
+
+    assertThat(result.getEntry()).isEmpty();
+  }
+
+  @Test
+  void dropsAnEntryWithoutResourceAndWithoutRequestOrUrlAndLeavesTheInputAlone() {
+    var bundle = new Bundle();
+    var withoutRequest = bundle.addEntry().setFullUrl("urn:uuid:1");
+    var withoutUrl = bundle.addEntry();
+    withoutUrl.getRequest().setMethod(HTTPVerb.DELETE);
+    var entryUrls = BundleEntryUrls.of(urlRecording(new ArrayList<>()));
+
+    var result = new Deidentifier(KEEP_ALL, entryUrls).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntry()).isEmpty();
+    assertThat(withoutRequest.hasRequest()).isFalse();
+  }
+
+  @Test
+  void refusesNullBundleEntryUrls() {
+    assertThatThrownBy(() -> new Deidentifier(KEEP_ALL, null))
+        .isInstanceOf(NullPointerException.class);
   }
 
   @Test
@@ -692,7 +854,7 @@ class DeidentifierTest {
         };
     var ruleSet = applying(Map.of("Patient.gender", List.of(recording)));
 
-    new Deidentifier(ruleSet)
+    new Deidentifier(ruleSet, NO_REFERENCE_RULE)
         .deidentify(new Patient().setGender(AdministrativeGender.FEMALE), "p1");
 
     assertThat(seen)
@@ -706,7 +868,7 @@ class DeidentifierTest {
     bundle.addEntry().setFullUrl("urn:uuid:1");
     bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
 
-    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntry()).hasSize(1);
   }
@@ -717,7 +879,8 @@ class DeidentifierTest {
     bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
     bundle.addEntry().setResource(new Bundle().setType(Bundle.BundleType.COLLECTION));
 
-    assertThatThrownBy(() -> new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p"))
+    assertThatThrownBy(
+            () -> new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("entry 1")
         .hasMessageContaining("nested bundles are not supported");
@@ -729,7 +892,8 @@ class DeidentifierTest {
     bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
     bundle.addEntry().setResource(new Observation().setStatus(Observation.ObservationStatus.FINAL));
 
-    var result = new Deidentifier(keeping("Patient.gender")).deidentify(bundle, "p");
+    var result =
+        new Deidentifier(keeping("Patient.gender"), NO_REFERENCE_RULE).deidentify(bundle, "p");
 
     assertThat(result)
         .get()
@@ -748,14 +912,14 @@ class DeidentifierTest {
     var bundle = new Bundle();
     bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
 
-    assertThat(new Deidentifier(keeping()).deidentify(bundle, "p"))
+    assertThat(new Deidentifier(keeping(), NO_REFERENCE_RULE).deidentify(bundle, "p"))
         .get()
         .isInstanceOfSatisfying(Bundle.class, result -> assertThat(result.hasEntry()).isFalse());
   }
 
   @Test
   void refusesANullResourceOrPatientIdentifier() {
-    var deidentifier = new Deidentifier(KEEP_ALL);
+    var deidentifier = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE);
 
     assertThatThrownBy(() -> deidentifier.deidentify(null, "p"))
         .isInstanceOf(NullPointerException.class);
@@ -765,7 +929,7 @@ class DeidentifierTest {
 
   @Test
   void refusesANullBundleOrPatientIdentifier() {
-    var deidentifier = new Deidentifier(KEEP_ALL);
+    var deidentifier = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE);
 
     assertThatThrownBy(() -> deidentifier.deidentifyBundle(null, "p"))
         .isInstanceOf(NullPointerException.class);

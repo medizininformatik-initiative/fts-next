@@ -130,20 +130,7 @@ public interface HoconProfile {
       Config entry, Class<?> elementType, String context, Registry registry) {
     String name = entry.getString("handler");
     Registration registration = registry.resolve(name);
-    requireHandlerFits(registration, elementType, context);
+    registration.requireAccepts(elementType, context);
     return registration;
-  }
-
-  private static void requireHandlerFits(
-      Registration registration, Class<?> elementType, String context) {
-    if (!registration.valueType().isAssignableFrom(elementType)) {
-      throw new IllegalStateException(
-          "Handler '%s' works on %s, not on %s (%s)!"
-              .formatted(
-                  registration.name(),
-                  registration.valueType().getSimpleName(),
-                  elementType.getSimpleName(),
-                  context));
-    }
   }
 }

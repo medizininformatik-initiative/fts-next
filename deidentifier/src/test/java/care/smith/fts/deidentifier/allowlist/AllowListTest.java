@@ -6,6 +6,8 @@ import care.smith.fts.deidentifier.Registry;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.util.Optional;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.HTTPVerb;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.Patient;
@@ -86,5 +88,46 @@ class AllowListTest {
 
     assertThat(result.getIdPart()).isEqualTo("123");
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-01-01");
+  }
+
+  private static final Config ID_ONLY =
+      ConfigFactory.parseString(
+          """
+          modules.patient {
+            pattern = "Patient.exists()"
+            base = ["Patient.id"]
+          }
+          """);
+
+  private static Bundle patientBundleWithConditionalRequest() {
+    var bundle = new Bundle();
+    var entry = bundle.addEntry().setResource(patient());
+    entry.getRequest().setMethod(HTTPVerb.PUT).setUrl("Patient?identifier=sys|12345");
+    return bundle;
+  }
+
+  @Test
+  void replacesTheRequestUrlWithTheReferenceHandlerOfTheRegistry() {
+    var registry = new Registry();
+    registry.addHandler(
+        Registry.REFERENCE_HANDLER_NAME,
+        StringType.class,
+        (value, context) -> Optional.of(new StringType("Patient/p-1")));
+
+    var result =
+        AllowList.fromConfig(ID_ONLY, registry)
+            .deidentifyBundle(patientBundleWithConditionalRequest(), "p");
+
+    assertThat(result.getEntryFirstRep().getRequest().getUrl()).isEqualTo("Patient/p-1");
+  }
+
+  @Test
+  void dropsTheRequestUrlWithoutAReferenceHandler() {
+    var result =
+        AllowList.fromConfig(ID_ONLY, new Registry())
+            .deidentifyBundle(patientBundleWithConditionalRequest(), "p");
+
+    assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
+    assertThat(result.getEntryFirstRep().hasResource()).isTrue();
   }
 }

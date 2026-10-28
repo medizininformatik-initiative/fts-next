@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.hl7.fhir.r4.model.StringType;
 
 /**
  * Named handlers that a profile can reference by name. Each handler is registered with the FHIR
@@ -26,7 +27,27 @@ public class Registry {
     Registration withName(String name) {
       return new Registration(name, valueType, handler, terminal);
     }
+
+    /**
+     * @param elementType the type of the elements the handler is to work on
+     * @param context where the handler is used, for the error message
+     * @throws IllegalStateException when the handler does not accept {@code elementType}
+     */
+    public void requireAccepts(Class<?> elementType, String context) {
+      if (!valueType.isAssignableFrom(elementType)) {
+        throw new IllegalStateException(
+            "Handler '%s' works on %s, not on %s (%s)!"
+                .formatted(name, valueType.getSimpleName(), elementType.getSimpleName(), context));
+      }
+    }
   }
+
+  /**
+   * The name of the handler that replaces a reference. A bundle entry's {@code request.url} (and
+   * later {@code fullUrl}) names a resource the same way a reference does, so one rule replaces all
+   * of them.
+   */
+  public static final String REFERENCE_HANDLER_NAME = "referenceReplacementHandler";
 
   private final Map<String, Registration> registrations = new HashMap<>();
 
@@ -75,6 +96,21 @@ public class Registry {
    */
   public Registration resolve(String name) {
     return Optional.ofNullable(registrations.get(name)).orElseThrow(() -> unknownHandler(name));
+  }
+
+  /**
+   * @return the handler registered as {@link #REFERENCE_HANDLER_NAME}, if any
+   * @throws IllegalStateException when that handler does not accept a {@link StringType}
+   */
+  public Optional<DeidentifierHandler<StringType>> referenceHandler() {
+    return Optional.ofNullable(registrations.get(REFERENCE_HANDLER_NAME))
+        .map(Registry::acceptingStrings);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static DeidentifierHandler<StringType> acceptingStrings(Registration registration) {
+    registration.requireAccepts(StringType.class, "bundle entry urls");
+    return (DeidentifierHandler<StringType>) (DeidentifierHandler<?>) registration.handler();
   }
 
   private static IllegalStateException unknownHandler(String name) {
