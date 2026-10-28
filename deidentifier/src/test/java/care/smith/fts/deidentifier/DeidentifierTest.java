@@ -15,12 +15,14 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.HTTPVerb;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.HumanName;
+import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
@@ -31,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DeidentifierTest {
 
@@ -533,18 +536,125 @@ class DeidentifierTest {
   }
 
   @Test
-  void keepsNeitherFullUrlNorRequestOfASurvivingEntry() {
+  void keepsNoFullUrlOfASurvivingEntry() {
     var bundle = new Bundle();
-    var entry = bundle.addEntry();
-    entry.setFullUrl("urn:uuid:1");
-    entry.getRequest().setUrl("Patient");
-    entry.setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle
+        .addEntry()
+        .setFullUrl("urn:uuid:1")
+        .setResource(new Patient().setGender(AdministrativeGender.FEMALE));
 
     var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntryFirstRep().hasFullUrl()).isFalse();
+    assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  /** A bundle with one patient entry whose request has {@code method} and {@code url}. */
+  private static Bundle patientEntryWithRequest(HTTPVerb method, String url) {
+    var bundle = new Bundle();
+    var entry = bundle.addEntry();
+    entry.setResource(new Patient().setGender(AdministrativeGender.FEMALE).setId("123"));
+    entry.getRequest().setMethod(method).setUrl(url);
+    return bundle;
+  }
+
+  @Test
+  void keepsTheRequestOfAnEntryWhoseUrlNamesOnlyTheType() {
+    var bundle = patientEntryWithRequest(HTTPVerb.POST, "Patient");
+
+    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+
+    var request = result.getEntryFirstRep().getRequest();
+    assertThat(request.getMethod()).isEqualTo(HTTPVerb.POST);
+    assertThat(request.getUrl()).isEqualTo("Patient");
+  }
+
+  @Test
+  void takesTheIdOfTheDeidentifiedResourceForATypeAndIdUrl() {
+    var bundle = patientEntryWithRequest(HTTPVerb.PUT, "Patient/123");
+    DeidentifierHandler<Object> pseudonymizing = (id, context) -> Optional.of(new IdType("x9"));
+    var ruleSet =
+        applying(Map.of("Patient.id", List.of(pseudonymizing), "Patient.gender", List.of()));
+
+    var result = new Deidentifier(ruleSet).deidentifyBundle(bundle, "p");
+
+    var request = result.getEntryFirstRep().getRequest();
+    assertThat(request.getMethod()).isEqualTo(HTTPVerb.PUT);
+    assertThat(request.getUrl()).isEqualTo("Patient/x9");
+  }
+
+  @Test
+  void dropsTheRequestWhenTheResourceLosesItsId() {
+    var bundle = patientEntryWithRequest(HTTPVerb.PUT, "Patient/123");
+
+    var result = new Deidentifier(keeping("Patient.gender")).deidentifyBundle(bundle, "p");
+
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  /**
+   * Only S4c can pseudonymize these urls, so until then the request goes and the resource stays.
+   */
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "Patient?identifier=sys|12345",
+        "Patient?name=Doe",
+        "Patient/123/_history/2",
+        "https://server.example/fhir/Patient/123",
+        ""
+      })
+  void dropsTheRequestWhenItsUrlNamesTheResourceInAnotherWay(String url) {
+    var bundle = patientEntryWithRequest(HTTPVerb.POST, url);
+
+    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
+    assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  @Test
+  void dropsARequestWithoutUrl() {
+    var bundle = new Bundle();
+    var entry = bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    entry.getRequest().setMethod(HTTPVerb.POST);
+
+    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
+  }
+
+  @Test
+  void keepsOnlyMethodAndUrlOfARequest() {
+    var bundle = patientEntryWithRequest(HTTPVerb.POST, "Patient");
+    bundle
+        .getEntryFirstRep()
+        .getRequest()
+        .setIfNoneExist("identifier=sys|12345")
+        .setIfMatch("W/\"1\"")
+        .setIfNoneMatch("*")
+        .setIfModifiedSince(new Date());
+
+    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+
+    var request = result.getEntryFirstRep().getRequest();
+    assertThat(request.hasIfNoneExist()).isFalse();
+    assertThat(request.hasIfMatch()).isFalse();
+    assertThat(request.hasIfNoneMatch()).isFalse();
+    assertThat(request.hasIfModifiedSince()).isFalse();
+    assertThat(request.getUrl()).isEqualTo("Patient");
+  }
+
+  @Test
+  void leavesAnEntryWithoutRequestWithoutRequest() {
+    var bundle = new Bundle();
+    var entry = bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+
+    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
+    assertThat(entry.hasRequest()).isFalse();
   }
 
   @Test
