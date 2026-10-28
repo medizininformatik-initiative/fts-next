@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.cda.impl.TcaCohortSelectorFactory.consentedPatientExtractor;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
@@ -76,6 +77,7 @@ class TcaCohortSelectorIT {
         new TcaCohortSelector(
             config,
             clientFactory.create(clientConfig(wireMockRuntime)),
+            consentedPatientExtractor(config),
             new DefaultRetryStrategy(meterRegistry));
     wireMock = wireMockRuntime.getWireMock();
     allCohortSelector = MockCohortSelector.fetchAll(wireMock);
@@ -277,11 +279,13 @@ class TcaCohortSelectorIT {
         new TcaCohortSelector(
             configWithNull,
             clientFactory.create(clientConfig(wireMockRuntime)),
+            consentedPatientExtractor(configWithNull),
             new DefaultRetryStrategy(meterRegistry));
     var selectorWithPseudonym =
         new TcaCohortSelector(
             configWithPseudonym,
             clientFactory.create(clientConfig(wireMockRuntime)),
+            consentedPatientExtractor(configWithPseudonym),
             new DefaultRetryStrategy(meterRegistry));
 
     // Both should behave identically

@@ -1,6 +1,5 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.util.ConsentedPatientExtractor.*;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
@@ -10,6 +9,7 @@ import static org.springframework.web.util.UriComponentsBuilder.*;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
+import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
 import java.net.URI;
@@ -35,6 +35,7 @@ import reactor.core.scheduler.Scheduler;
 class FhirCohortSelector implements CohortSelector {
   private final FhirCohortSelectorConfig config;
   private final WebClient fhirClient;
+  private final ConsentedPatientExtractor extractor;
   private final RetryStrategy retryStrategy;
   private final Scheduler scheduler;
   private final int cohortSelectionConcurrency;
@@ -42,11 +43,13 @@ class FhirCohortSelector implements CohortSelector {
   public FhirCohortSelector(
       FhirCohortSelectorConfig config,
       WebClient fhirClient,
+      ConsentedPatientExtractor extractor,
       RetryStrategy retryStrategy,
       Scheduler scheduler,
       int cohortSelectionConcurrency) {
     this.config = config;
     this.fhirClient = fhirClient;
+    this.extractor = extractor;
     this.retryStrategy = retryStrategy;
     this.scheduler = scheduler;
     this.cohortSelectionConcurrency = cohortSelectionConcurrency;
@@ -107,17 +110,8 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
-    var patientIdentifierSystem = config.patientIdentifierSystem();
     return groupPatientsAndConsents(bundle)
-        .mapNotNull(
-            b ->
-                processConsentedPatient(
-                        patientIdentifierSystem,
-                        config.policySystem(),
-                        b,
-                        config.policies(),
-                        p -> getPatientIdentifier(patientIdentifierSystem, p))
-                    .orElse(null))
+        .mapNotNull(b -> extractor.consentedPatient(b).orElse(null))
         .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
   }

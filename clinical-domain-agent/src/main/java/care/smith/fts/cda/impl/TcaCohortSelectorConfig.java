@@ -16,7 +16,7 @@ public record TcaCohortSelectorConfig(
     @NotNull String policySystem,
 
     /* Set of consent policies to check */
-    Set<String> policies,
+    @NotNull Set<String> policies,
 
     /* Domain identifier for consent queries */
     String domain,
@@ -37,5 +37,10 @@ public record TcaCohortSelectorConfig(
     this.policies = policies;
     this.domain = domain;
     this.signerIdType = Optional.ofNullable(signerIdType).orElse("Pseudonym");
+  }
+
+  /** The identifier system gICS uses for patients, depending on {@link #signerIdType()}. */
+  public String gicsIdentifierSystem() {
+    return "https://ths-greifswald.de/fhir/gics/identifiers/" + signerIdType;
   }
 }
