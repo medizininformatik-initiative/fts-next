@@ -78,7 +78,7 @@ gICS, gPAS, Keycloak, Redis) via Docker Compose and drives real transfer process
 ├── deidentifhir/            # Deidentifhir profile (mounted into cd-agent)
 ├── mtls/                    # Compose overlay + per-agent application.yaml for mTLS
 ├── results/                 # Baseline transfer status JSONs (asserted by check-status)
-└── test-data/               # Downloaded FHIR test bundles (gitignored)
+└── test-data/               # FHIR test data from life-research/fhir-test-data (gitignored)
 ```
 
 The CI job (`.github/workflows/build.yml::e2e-tests`) runs as a parallel matrix. Every leg
@@ -109,9 +109,13 @@ matrix leg and is green iff all of them succeeded.
 
 #### Running a leg locally
 
+Downloading the test data needs [ORAS](https://oras.land/docs/installation). It uses the same
+`life-research/fhir-test-data` commit as CI; `TEST_SET_SIZE` must be 100, 1000, or 10.000.
+
 ```bash
 cd .github/test
 make pull
+make download-test-data TEST_SET_SIZE=100
 make generate-certs start upload-test-data
 make transfer-all PROJECT=gics-consent-example
 make wait
