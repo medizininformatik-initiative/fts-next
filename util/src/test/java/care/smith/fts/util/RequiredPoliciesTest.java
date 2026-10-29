@@ -10,8 +10,13 @@ import static care.smith.fts.util.ConsentBundles.permittedProvisionComponent;
 import static care.smith.fts.util.ConsentBundles.policyAProvision;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 
+import care.smith.fts.util.RequiredPolicies.Covered;
+import care.smith.fts.util.RequiredPolicies.Faulty;
+import care.smith.fts.util.RequiredPolicies.NotCovered;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -19,6 +24,7 @@ import ch.qos.logback.core.read.ListAppender;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Consent.ConsentState;
@@ -52,12 +58,19 @@ class RequiredPoliciesTest {
   }
 
   @Test
+  void requiresAtLeastOnePolicy() {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> new RequiredPolicies(POLICY_SYSTEM, Set.of()))
+        .withMessageContaining("policies");
+  }
+
+  @Test
   void deniedProvisionsDoNotGrantConsent() {
     var bundle =
         bundleWithProvisions(
             "12345", deniedProvisionComponent("POLICY_A"), deniedProvisionComponent("POLICY_B"));
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isFalse();
+    assertThat(allRequiredConsented(bundle)).isFalse();
   }
 
   @ParameterizedTest
@@ -73,39 +86,115 @@ class RequiredPoliciesTest {
             permittedProvisionComponent("POLICY_A"),
             permittedProvisionComponent("POLICY_B"));
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isFalse();
+    assertThat(allRequiredConsented(bundle)).isFalse();
   }
 
   @Test
-  void allConsented_withAllRequired() {
+  void extraPoliciesDoNotPreventConsent() {
+    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B", "POLICY_C");
+
+    assertThat(allRequiredConsented(bundle)).isTrue();
+  }
+
+  @Test
+  void consentedOrFaulty_withAllRequired() {
     var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isTrue();
+    assertThat(POLICIES_A_B.consentedOrFaulty(bundle)).isTrue();
   }
 
   @Test
-  void allConsented_withMissingPolicy() {
+  void consentedOrFaulty_withMissingPolicyOnlyInFaultyProvision() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
+    var bundle =
+        bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
+
+    assertThat(POLICIES_A_B.consentedOrFaulty(bundle)).isTrue();
+  }
+
+  @Test
+  void consentedOrFaulty_withMissingPolicy() {
     var bundle = generateBundleWithConsent("12345", "POLICY_A");
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isFalse();
+    assertThat(POLICIES_A_B.consentedOrFaulty(bundle)).isFalse();
   }
 
   @Test
-  void allConsented_withExtraPolicies() {
-    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B", "POLICY_C");
+  void consentedOrFaulty_withOneMissingPolicyFaultyAndOneAbsent() {
+    var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", faultyA);
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isTrue();
+    assertThat(POLICIES_A_B.consentedOrFaulty(bundle)).isFalse();
   }
 
   @Test
-  void consentedPolicies() {
+  void consentedOrFaulty_logsSkippedProvisionsOnceAtDebug() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
+    var bundle =
+        bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
+
+    var events = recordLog(() -> POLICIES_A_B.consentedOrFaulty(bundle));
+
+    assertThat(events).singleElement().extracting(ILoggingEvent::getLevel).isEqualTo(Level.DEBUG);
+  }
+
+  @Test
+  void classify_withAllRequiredIsCovered() {
     var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B", "POLICY_C");
 
-    var result = POLICIES_A_B.consentedPolicies(bundle);
+    assertThat(POLICIES_A_B.classify(bundle))
+        .asInstanceOf(type(Covered.class))
+        .satisfies(
+            c -> assertThat(c.policies().policyNames()).containsOnly("POLICY_A", "POLICY_B"));
+  }
 
-    assertThat(result.hasAllPolicies(Set.of("POLICY_A", "POLICY_B"))).isTrue();
-    assertThat(result.hasAllPolicies(Set.of("POLICY_A", "POLICY_B", "POLICY_C")))
-        .isFalse(); // POLICY_C is not required
+  @Test
+  void classify_withMissingPolicyIsNotCovered() {
+    var bundle = generateBundleWithConsent("12345", "POLICY_A");
+
+    assertThat(POLICIES_A_B.classify(bundle)).isEqualTo(new NotCovered());
+  }
+
+  @Test
+  void classify_withOneMissingPolicyFaultyAndOneAbsentIsNotCovered() {
+    var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", faultyA);
+
+    assertThat(POLICIES_A_B.classify(bundle)).isEqualTo(new NotCovered());
+  }
+
+  @Test
+  void classify_withEachMissingPolicyFaultyJoinsReasonsByPolicy() {
+    var unreadableB = parsedProvision("POLICY_B", "2024-02-23T10:00:00", "2054-01-31");
+    var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", unreadableB, faultyA);
+
+    assertThat(POLICIES_A_B.classify(bundle))
+        .isEqualTo(
+            new Faulty(
+                "Consent for policy POLICY_A has no start date;"
+                    + " Consent for policy POLICY_B has an unreadable date"));
+  }
+
+  @Test
+  void classify_withSeveralFaultsOfOnePolicyNamesTheFirst() {
+    var unreadableA = parsedProvision("POLICY_A", "2024-02-23T10:00:00", "2054-01-31");
+    var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", unreadableA, faultyA);
+
+    assertThat(POLICY_A.classify(bundle))
+        .isEqualTo(new Faulty("Consent for policy POLICY_A has an unreadable date"));
+  }
+
+  @Test
+  void classify_warnsOnceAboutSkippedProvisions() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
+    var bundle =
+        bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
+
+    var events = recordLog(() -> POLICIES_A_B.classify(bundle));
+
+    assertThat(events).singleElement().extracting(ILoggingEvent::getLevel).isEqualTo(Level.WARN);
   }
 
   @Test
@@ -193,9 +282,9 @@ class RequiredPoliciesTest {
     var bundle =
         bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
 
-    var result = POLICIES_A_B.consentedPolicies(bundle);
+    var result = POLICIES_A_B.classify(bundle);
 
-    assertThat(result.policyNames()).containsExactly("POLICY_A");
+    assertThat(result).isInstanceOf(Faulty.class);
   }
 
   @Test
@@ -207,9 +296,9 @@ class RequiredPoliciesTest {
     var bundle =
         bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutStartValue);
 
-    var result = POLICIES_A_B.consentedPolicies(bundle);
+    var result = POLICIES_A_B.classify(bundle);
 
-    assertThat(result.policyNames()).containsExactly("POLICY_A");
+    assertThat(result).isInstanceOf(Faulty.class);
   }
 
   @ParameterizedTest
@@ -218,9 +307,9 @@ class RequiredPoliciesTest {
     var unreadable = parsedProvision("POLICY_B", start, "2054-01-31");
     var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), unreadable);
 
-    var result = POLICIES_A_B.consentedPolicies(bundle);
+    var result = POLICIES_A_B.classify(bundle);
 
-    assertThat(result.policyNames()).containsExactly("POLICY_A");
+    assertThat(result).isInstanceOf(Faulty.class);
   }
 
   @ParameterizedTest
@@ -229,9 +318,9 @@ class RequiredPoliciesTest {
     var unreadable = parsedProvision("POLICY_B", "2024-02-23", end);
     var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), unreadable);
 
-    var result = POLICIES_A_B.consentedPolicies(bundle);
+    var result = POLICIES_A_B.classify(bundle);
 
-    assertThat(result.policyNames()).containsExactly("POLICY_A");
+    assertThat(result).isInstanceOf(Faulty.class);
   }
 
   @Test
@@ -240,7 +329,7 @@ class RequiredPoliciesTest {
     var unreadable = parsedProvision("POLICY_B", "2024-02-23T10:00:00", "2054-01-31");
     var bundle = bundleWithProvisions("12345", withoutPeriod, unreadable);
 
-    var events = recordLog(() -> POLICIES_A_B.consentedPolicies(bundle));
+    var events = recordLog(() -> POLICIES_A_B.classify(bundle));
 
     assertThat(events)
         .singleElement()
@@ -259,7 +348,7 @@ class RequiredPoliciesTest {
     var bundle =
         bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
 
-    var events = recordLog(() -> POLICIES_A_B.consentedPolicies(bundle));
+    var events = recordLog(() -> POLICIES_A_B.classify(bundle));
 
     assertThat(events)
         .singleElement()
@@ -276,7 +365,7 @@ class RequiredPoliciesTest {
   void noWarningWithoutSkippedProvisions() {
     var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
 
-    var events = recordLog(() -> POLICIES_A_B.consentedPolicies(bundle));
+    var events = recordLog(() -> POLICIES_A_B.classify(bundle));
 
     assertThat(events).isEmpty();
   }
@@ -286,7 +375,7 @@ class RequiredPoliciesTest {
     var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
     var bundle = bundleWithProvisions("12345", withoutPeriod);
 
-    POLICIES_A_B.consentedPolicies(bundle);
+    POLICIES_A_B.classify(bundle);
 
     assertThat(withoutPeriod.getNamedProperty("period").hasValues()).isFalse();
   }
@@ -297,7 +386,7 @@ class RequiredPoliciesTest {
     withoutStart.getPeriod().setStartElement(null);
     var bundle = bundleWithProvisions("12345", withoutStart);
 
-    POLICIES_A_B.consentedPolicies(bundle);
+    POLICIES_A_B.classify(bundle);
 
     assertThat(withoutStart.getPeriod().getNamedProperty("start").hasValues()).isFalse();
   }
@@ -327,16 +416,23 @@ class RequiredPoliciesTest {
     assertThat(policies).containsExactlyInAnyOrder("POLICY_A", "POLICY_B");
   }
 
+  private static boolean allRequiredConsented(Bundle bundle) {
+    return POLICIES_A_B.classify(bundle) instanceof Covered;
+  }
+
   private static List<ILoggingEvent> recordLog(Runnable action) {
     var logger = (Logger) LoggerFactory.getLogger(RequiredPolicies.class);
     var appender = new ListAppender<ILoggingEvent>();
     appender.start();
     logger.addAppender(appender);
+    var originalLevel = logger.getLevel();
+    logger.setLevel(Level.DEBUG);
     try {
       action.run();
       return List.copyOf(appender.list);
     } finally {
       logger.detachAppender(appender);
+      logger.setLevel(originalLevel);
     }
   }
 }

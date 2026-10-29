@@ -23,7 +23,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -171,16 +170,6 @@ class GicsFhirConsentedPatientsProviderFetchIT
           assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink);
         })
         .verifyComplete();
-  }
-
-  @Override
-  protected ConsentFetchRequest createRequestWithEmptyPolicies() {
-    return new ConsentFetchRequest(
-        "MII",
-        Set.of(),
-        POLICY_SYSTEM,
-        PATIENT_IDENTIFIER_SYSTEM,
-        List.of("id1", "id2", "id3", "id4"));
   }
 
   @Test

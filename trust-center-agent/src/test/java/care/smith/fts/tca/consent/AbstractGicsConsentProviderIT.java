@@ -254,23 +254,4 @@ public abstract class AbstractGicsConsentProviderIT<
         })
         .verifyComplete();
   }
-
-  /** Test that empty policies yield an empty bundle. */
-  @Test
-  void emptyPoliciesYieldEmptyBundle() {
-    R requestWithEmptyPolicies = createRequestWithEmptyPolicies();
-
-    create(executePagedRequest(requestWithEmptyPolicies, 0, 2))
-        .assertNext(consentBundle -> {
-          assertThat(consentBundle.getEntry()).isEmpty();
-        })
-        .verifyComplete();
-  }
-
-  /**
-   * Create a request with empty policies.
-   *
-   * @return the request
-   */
-  protected abstract R createRequestWithEmptyPolicies();
 }
