@@ -1,12 +1,17 @@
 package care.smith.fts.util;
 
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
+import static com.google.common.collect.Sets.difference;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import care.smith.fts.api.Period;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -15,6 +20,7 @@ import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Consent;
 import org.hl7.fhir.r4.model.Consent.ConsentProvisionType;
 import org.hl7.fhir.r4.model.Consent.ConsentState;
+import org.slf4j.event.Level;
 
 /**
  * The policies a patient has to consent to, and how to read them from the consents of a bundle.
@@ -31,17 +37,62 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
   public RequiredPolicies {
     requireNonNull(policySystem, "Required policy system cannot be null");
     codes = Set.copyOf(requireNonNull(codes, "Required policies cannot be null"));
+    if (codes.isEmpty()) {
+      throw new IllegalArgumentException("Required policies cannot be empty");
+    }
   }
 
-  /** Whether the consents in the bundle cover all required policies. */
-  public boolean allConsented(Bundle bundle) {
-    return consentedPolicies(bundle).hasAllPolicies(codes);
+  /** How the consents of a bundle relate to the required policies. */
+  public sealed interface Classification {}
+
+  /** The consents cover all required policies, with these periods. */
+  public record Covered(ConsentedPolicies policies) implements Classification {}
+
+  /**
+   * Each missing policy is covered by a faulty provision only, so the patient has to be reported.
+   *
+   * @param reason one reason per missing policy, contains no dates
+   */
+  public record Faulty(String reason) implements Classification {}
+
+  /** The consents do not cover all required policies. */
+  public record NotCovered() implements Classification {}
+
+  /** Classifies the consents in the bundle, warning about provisions that cannot be evaluated. */
+  public Classification classify(Bundle bundle) {
+    return classify(bundle, Level.WARN);
+  }
+
+  /**
+   * Whether the consents in the bundle cover all required policies, or each missing policy is
+   * covered by a faulty provision. Logs skipped provisions at debug level only, as the clinical
+   * domain agent warns about them.
+   */
+  public boolean consentedOrFaulty(Bundle bundle) {
+    return !(classify(bundle, Level.DEBUG) instanceof NotCovered);
+  }
+
+  private Classification classify(Bundle bundle, Level skippedLevel) {
+    var provisions = permitProvisions(bundle).toList();
+    var policies = consentedPolicies(provisions, skippedLevel);
+    var missingPolicies = difference(codes, policies.policyNames());
+    if (missingPolicies.isEmpty()) {
+      return new Covered(policies);
+    }
+    return faultReason(provisions, missingPolicies)
+        .<Classification>map(Faulty::new)
+        .orElseGet(NotCovered::new);
   }
 
   /** The required policies the consents in the bundle cover, with their periods. */
   public ConsentedPolicies consentedPolicies(Bundle bundle) {
-    var fromProvisions = permitProvisions(bundle).map(this::consentedPolicies).toList();
-    warnAboutSkippedProvisions(fromProvisions.stream().filter(Optional::isEmpty).count());
+    return consentedPolicies(permitProvisions(bundle).toList(), Level.WARN);
+  }
+
+  private ConsentedPolicies consentedPolicies(
+      List<Consent.ProvisionComponent> provisions, Level skippedLevel) {
+    var fromProvisions = provisions.stream().map(this::consentedPolicies).toList();
+    logSkippedProvisions(fromProvisions.stream().filter(Optional::isEmpty).count(), skippedLevel);
     return fromProvisions.stream()
         .flatMap(Optional::stream)
         .reduce(
@@ -53,20 +104,25 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
   }
 
   /**
-   * The reason of the first faulty provision in the bundle covering one of the missing policies.
-   * Contains no dates.
-   *
-   * @param missingPolicies the required policies the bundle's consents do not cover
+   * The reasons of the faulty provisions, if each missing policy is covered by one. Names the first
+   * fault of each missing policy, ordered by policy.
    */
-  public Optional<String> faultReason(Bundle bundle, Set<String> missingPolicies) {
-    return permitProvisions(bundle).flatMap(p -> faultReasons(p, missingPolicies)).findFirst();
+  private Optional<String> faultReason(
+      List<Consent.ProvisionComponent> provisions, Set<String> missingPolicies) {
+    var reasonByPolicy = new TreeMap<String, String>();
+    provisions.forEach(p -> faultReasons(p, missingPolicies).forEach(reasonByPolicy::putIfAbsent));
+    return Optional.of(reasonByPolicy)
+        .filter(reasons -> reasons.keySet().equals(missingPolicies))
+        .map(reasons -> String.join("; ", reasons.values()));
   }
 
-  /** One reason per missing policy of the provision, if the provision is faulty. */
-  private Stream<String> faultReasons(
+  /** The reason per missing policy of the provision, if the provision is faulty. */
+  private Map<String, String> faultReasons(
       Consent.ProvisionComponent provision, Set<String> missingPolicies) {
-    var policies = missingCodes(provision, missingPolicies);
-    return provisionFault(provision).stream().flatMap(fault -> policies.map(fault::formatted));
+    return provisionFault(provision)
+        .map(fault ->
+            missingCodes(provision, missingPolicies).collect(toMap(c -> c, fault::formatted)))
+        .orElse(Map.of());
   }
 
   /**
@@ -95,8 +151,12 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
   static Stream<Consent.ProvisionComponent> permitProvisions(Bundle bundle) {
     return typedResourceStream(bundle, Consent.class)
         .filter(RequiredPolicies::isActive)
-        .flatMap(c -> c.getProvision().getProvision().stream())
-        .filter(RequiredPolicies::isPermit);
+        .flatMap(RequiredPolicies::permitProvisions);
+  }
+
+  /** The nested permit provisions of the consent. */
+  static Stream<Consent.ProvisionComponent> permitProvisions(Consent consent) {
+    return consent.getProvision().getProvision().stream().filter(RequiredPolicies::isPermit);
   }
 
   /**
@@ -119,10 +179,12 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
 
   /** The codes of required policies in the codeable concept. */
   Stream<String> requiredCodes(CodeableConcept concept) {
-    return concept.getCoding().stream()
-        .filter(coding -> coding.getSystem().equals(policySystem))
-        .map(Coding::getCode)
-        .filter(codes::contains);
+    return concept.getCoding().stream().filter(this::isRequired).map(Coding::getCode);
+  }
+
+  /** Whether the coding is one of a required policy. */
+  boolean isRequired(Coding coding) {
+    return policySystem.equals(coding.getSystem()) && codes.contains(coding.getCode());
   }
 
   /**
@@ -165,10 +227,12 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
     return fhirPeriod.hasEnd() && fhirPeriod.getEndElement().hasValue();
   }
 
-  private static void warnAboutSkippedProvisions(long skipped) {
+  private static void logSkippedProvisions(long skipped, Level level) {
     if (skipped > 0) {
-      log.warn(
-          "Skipping {} permit provisions with missing period start or unreadable period", skipped);
+      log.atLevel(level)
+          .log(
+              "Skipping {} permit provisions with missing period start or unreadable period",
+              skipped);
     }
   }
 

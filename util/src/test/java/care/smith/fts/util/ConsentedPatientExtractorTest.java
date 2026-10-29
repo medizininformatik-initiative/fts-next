@@ -170,6 +170,14 @@ class ConsentedPatientExtractorTest {
   }
 
   @Test
+  void toCohortEntry_oneMissingPolicyFaultyAndOneAbsentIsNotReported() {
+    var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", faultyA);
+
+    assertThat(EXTRACTOR.toCohortEntry(bundle)).isEmpty();
+  }
+
+  @Test
   void toCohortEntry_faultyProvisionOfConsentedPolicyDoesNotExclude() {
     var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
     var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), faultyA);

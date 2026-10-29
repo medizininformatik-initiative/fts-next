@@ -21,7 +21,6 @@ import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.Set;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.redisson.api.RedissonClient;
@@ -151,10 +150,5 @@ class GicsFhirConsentedPatientsProviderFetchAllIT
           assertThat(consentBundle.getLink("next")).isNull();
         })
         .verifyComplete();
-  }
-
-  @Override
-  protected ConsentFetchAllRequest createRequestWithEmptyPolicies() {
-    return new ConsentFetchAllRequest("MII", Set.of(), POLICY_SYSTEM);
   }
 }
