@@ -1,7 +1,11 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
+
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.cda.TransferProcessRunnerConfig;
+import care.smith.fts.util.ConsentedPatientExtractor;
+import care.smith.fts.util.RequiredPolicies;
 import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import org.springframework.stereotype.Component;
@@ -35,6 +39,20 @@ public class FhirCohortSelectorFactory implements CohortSelector.Factory<FhirCoh
   public CohortSelector create(CohortSelector.Config ignored, FhirCohortSelectorConfig config) {
     var client = clientFactory.create(config.server());
     return new FhirCohortSelector(
-        config, client, retryStrategy, cohortSelectionScheduler, cohortSelectionConcurrency);
+        config,
+        client,
+        consentedPatientExtractor(config),
+        retryStrategy,
+        cohortSelectionScheduler,
+        cohortSelectionConcurrency);
+  }
+
+  /** Reads consented patients by their configured identifier from the FHIR server's bundles. */
+  static ConsentedPatientExtractor consentedPatientExtractor(FhirCohortSelectorConfig config) {
+    var patientIdentifierSystem = config.patientIdentifierSystem();
+    return new ConsentedPatientExtractor(
+        patientIdentifierSystem,
+        new RequiredPolicies(config.policySystem(), config.policies()),
+        b -> getPatientIdentifier(patientIdentifierSystem, b));
   }
 }

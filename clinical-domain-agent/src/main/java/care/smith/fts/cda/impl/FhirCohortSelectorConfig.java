@@ -17,4 +17,4 @@ public record FhirCohortSelectorConfig(
     @NotNull String policySystem,
 
     /* Set of policy codes to filter consents by */
-    Set<String> policies) {}
+    @NotNull Set<String> policies) {}

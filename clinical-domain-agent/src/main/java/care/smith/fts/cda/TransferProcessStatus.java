@@ -45,17 +45,17 @@ public record TransferProcessStatus(
   }
 
   /**
-   * Set the process phase. If the phase switches to COMPLETED or COMPLETED_WITH_ERROR `finishedAt`
-   * is set. Once the process is in a completed state going back is not possible anymore.
+   * Set the process phase. If the phase switches to COMPLETED, COMPLETED_WITH_ERROR or FATAL
+   * `finishedAt` is set. Once the process is in a completed state going back is not possible
+   * anymore.
    *
    * @param phase the next phase
    * @return TransferProcessStatus
    */
   public TransferProcessStatus setPhase(Phase phase) {
-    return !isCompleted(this.phase) ? setAnyCompleted(phase) : this;
-  }
-
-  private TransferProcessStatus setAnyCompleted(Phase phase) {
+    if (isCompleted(this.phase)) {
+      return this;
+    }
     return isCompleted(phase) ? withPhase(phase).withFinishedAt(Instant.now()) : withPhase(phase);
   }
 

@@ -1,12 +1,11 @@
 {
   "type": "module",
   "devDependencies": {
-    "markdown-it": "15.0.2",
+    "markdown-it": "15.0.3",
     "markdown-it-mathjax3": "4.3.2",
-    "mermaid": "11.17.2",
-    "rapidoc": "9.3.8",
-    "vitepress": "1.6.4",
-    "vitepress-plugin-mermaid": "2.0.17"
+    "mermaid": "12.2.0",
+    "rapidoc": "11.0.1",
+    "vitepress": "1.6.4"
   },
   "scripts": {
     "docs:dev": "vitepress dev --host 0.0.0.0",

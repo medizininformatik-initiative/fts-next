@@ -124,7 +124,7 @@ public class TransferProcessController {
         resourceStream(bundle)
             .filter(
                 not(and(Parameters.class::isInstance, p -> p.getIdPart().equals("transfer-id"))))
-            .collect(toBundle());
+            .collect(toBundle(bundle.getType()));
     var transferId =
         resourceStream(bundle)
             .filter(Parameters.class::isInstance)
