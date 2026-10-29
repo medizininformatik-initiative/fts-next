@@ -1,5 +1,6 @@
 package care.smith.fts.util;
 
+import static care.smith.fts.util.LogUtil.errorType;
 import static reactor.core.Exceptions.retryExhausted;
 
 import io.micrometer.core.instrument.Counter;
@@ -46,7 +47,7 @@ public class BackpressureRetryStrategy implements RetryStrategy {
     if (is429TooManyRequests(failure)) {
       counter.increment();
       var delay = extractRetryAfter((WebClientResponseException) failure).orElse(DEFAULT_BACKOFF);
-      log.debug("RetrySignal: retrying after {} due to {}", delay, failure.getMessage());
+      log.debug("RetrySignal: retrying after {} due to {}", delay, errorType(failure));
       return Mono.delay(delay).flux();
     }
 

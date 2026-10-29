@@ -25,7 +25,6 @@ public class ExternalCohortSelector
   @Override
   public CohortSelector create(CohortSelector.Config ignored, Config config) {
     return identifiers -> {
-      log.debug("identifiers: {}", identifiers);
       var msg = "patientIdentifierSystem={}, emitting {} patients";
       log.trace(msg, config.patientIdentifierSystem(), identifiers.size());
       return fromStream(
