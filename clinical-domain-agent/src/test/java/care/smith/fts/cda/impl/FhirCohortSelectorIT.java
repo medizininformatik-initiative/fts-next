@@ -1,6 +1,8 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.impl.FhirCohortSelectorFactory.consentedPatientExtractor;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
@@ -23,12 +25,14 @@ import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -214,10 +218,37 @@ class FhirCohortSelectorIT {
         .verifyComplete();
   }
 
-  /**
-   * Patient b has only a consent with a malformed date, which grants no consent, so b is excluded
-   * with a reason, while selection of a is not aborted.
-   */
+  @Test
+  void errorLogNamesNoPatient() {
+    wireMock.register(fetchListRequest("pid-4711").willReturn(notFound()));
+
+    var events =
+        recordLog(
+            FhirCohortSelector.class,
+            Level.TRACE,
+            () -> create(cohortSelector.selectCohort(List.of("pid-4711"))).verifyError());
+
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains("pid-4711"));
+  }
+
+  @Test
+  void logsContainNoPatientIdentifiers() {
+    var bundle = Stream.of(patient("a"), consentFor("a", "MDAT_erheben")).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    var entries = new ArrayList<CohortEntry>();
+
+    var events =
+        recordLog(
+            FhirCohortSelector.class,
+            Level.TRACE,
+            () -> entries.addAll(cohortSelector.selectCohort(List.of()).collectList().block()));
+
+    assertThat(entries).hasSize(1);
+    var identifier = entries.getFirst().identifier();
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains(identifier));
+  }
+
   @Test
   void consentWithMalformedDateExcludesPatient() {
     var b = consentFor("b", "MDAT_erheben");

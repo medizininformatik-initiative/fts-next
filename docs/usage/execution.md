@@ -119,6 +119,57 @@ curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c
 
 [API Reference for Failed Patients Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-/failed_patients)
 
+### Finding the Patient of a Log Message
+
+The log messages of the clinical domain agent name no patients: neither patient
+identifiers, nor FHIR resource IDs, nor consent dates. A message about a failed or
+excluded patient names the process and, for errors, only the type of the error. The
+failed patients endpoint of that process names the patient and the full error message:
+
+<!--@formatter:off-->
+```text
+… ERROR … DefaultTransferProcessRunner : [Process t5K0Qs] Failed to select data for a patient: WebClientRequestException, see /api/v2/process/status/t5K0Qs/failed_patients
+… WARN  … DefaultTransferProcessRunner : [Process t5K0Qs] Patient excluded from cohort: Consent for policy 2.16.840.1.113883.3.1937.777.24.5.3.6 has no start date
+```
+<!--@formatter:on-->
+
+Query the path from the message on the clinical domain agent:
+
+```shell
+curl -sSf "https://cd-agent:8080/api/v2/process/status/t5K0Qs/failed_patients"
+```
+
+<!--@formatter:off-->
+```json
+[
+  {
+    "patientIdentifier": "patient-007",
+    "step": "SELECT_COHORT",
+    "errorMessage": "Consent for policy 2.16.840.1.113883.3.1937.777.24.5.3.6 has no start date"
+  },
+  {
+    "patientIdentifier": "patient-001",
+    "step": "SELECT_DATA",
+    "errorMessage": "Connection refused: hds/10.0.0.12:8080"
+  }
+]
+```
+<!--@formatter:on-->
+
+Each entry matches a log message of the same `step`: `SELECT_COHORT` entries match the
+reason of a `Patient excluded from cohort` message, other entries a `Failed to …` message.
+Failed patients are kept as long as the process status, see
+[`processTtl`](../configuration/runner#processttl) in the runner configuration.
+
+::: warning
+Two kinds of log output can still contain patient data, so keep them off in production:
+
+* Stack traces, which the clinical domain agent logs only at level `TRACE`. Their error
+  messages may contain request URLs with patient IDs.
+* Messages of the libraries the agent uses, e.g. Spring's web client, which logs request
+  URLs at level `DEBUG`.
+  :::
+
 ## Monitoring
 
 FTSnext provides a monitoring docker container with Grafana dashboards that show some metrics.

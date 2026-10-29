@@ -1,5 +1,7 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.LogUtil.errorType;
+import static care.smith.fts.util.LogUtil.traceException;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
@@ -56,7 +58,7 @@ class TcaCohortSelector implements CohortSelector {
         .expand(bundle -> fetchNextPage(bundle, identifiers))
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
-        .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
+        .doOnError(e -> log.error("Error fetching cohort: {}", errorType(e)))
         .onErrorResume(WebClientException.class, TcaCohortSelector::handleWebClientException)
         .flatMap(this::extractCohortEntries);
   }
@@ -103,7 +105,7 @@ class TcaCohortSelector implements CohortSelector {
   private Flux<CohortEntry> extractCohortEntries(Bundle outerBundle) {
     var resources = typedResourceStream(outerBundle, Bundle.class);
     return Flux.fromStream(extractor.cohortEntries(resources))
-        .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
+        .doOnNext(e -> log.trace("extractCohortEntries: emitted {}", e.getClass().getSimpleName()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
 
@@ -116,7 +118,8 @@ class TcaCohortSelector implements CohortSelector {
     return r.bodyToMono(OperationOutcome.class)
         .onErrorResume(
             e -> {
-              log.error("Failed to parse error response", e);
+              log.error("Failed to parse error response: {}", errorType(e));
+              traceException(log, e);
               return Mono.just(
                   new FhirException(BAD_REQUEST, e.getMessage()).getOperationOutcome());
             })

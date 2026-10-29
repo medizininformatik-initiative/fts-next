@@ -1,5 +1,7 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.LogUtil.errorType;
+import static care.smith.fts.util.LogUtil.traceException;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.util.Optional.ofNullable;
@@ -28,10 +30,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class EverythingDataSelector implements DataSelector {
 
-  private static final String RESOLVED_MSG = "Resolved patient {} to FHIR ID {}";
-  private static final String FETCH_EVERYTHING_MSG =
-      "fetchEverything for patient {}, FHIR ID {}, ignoreConsent={}";
-
   private final Config common;
   private final WebClient hdsClient;
   private final PatientIdResolver pidResolver;
@@ -55,23 +53,26 @@ public class EverythingDataSelector implements DataSelector {
   public Flux<ConsentedPatientBundle> select(ConsentedPatient patient) {
     return pidResolver
         .resolve(patient)
-        .doOnNext(fhirId -> log.trace(RESOLVED_MSG, patient.identifier(), fhirId.getIdPart()))
+        .doOnNext(fhirId -> log.trace("Resolved patient to FHIR ID"))
         .flatMapMany(fhirId -> fetchEverything(patient, fhirId))
         .map(b -> new ConsentedPatientBundle(b, patient))
-        .doOnComplete(() -> log.trace("select for patient {} completed", patient.identifier()));
+        .doOnComplete(() -> log.trace("select completed"));
   }
 
   private Flux<Bundle> fetchEverything(ConsentedPatient patient, IIdType fhirId) {
-    log.trace(
-        FETCH_EVERYTHING_MSG, patient.identifier(), fhirId.getIdPart(), common.ignoreConsent());
+    log.trace("fetchEverything, ignoreConsent={}", common.ignoreConsent());
     var uriBuilder = common.ignoreConsent() ? withoutConsent(fhirId) : withConsent(patient, fhirId);
     return fetchBundle("/Patient/{id}/$everything", uriBuilder)
-        .doOnError(e -> log.error("Unable to fetch patient data from HDS: {}", e.getMessage()))
-        .expand(this::fetchNextPage);
+        .expand(this::fetchNextPage)
+        .doOnError(
+            e -> {
+              log.error("Unable to fetch patient data from HDS: {}", errorType(e));
+              traceException(log, e);
+            });
   }
 
   private Mono<Bundle> fetchBundle(String uri, Function<UriBuilder, URI> builder) {
-    log.debug("Fetching patient data from HDS: {}", uri);
+    log.debug("Fetching patient data from HDS");
     return hdsClient
         .get()
         .uri(uri, builder)
@@ -87,7 +88,7 @@ public class EverythingDataSelector implements DataSelector {
     var nextLink = ofNullable(bundle.getLink("next"));
     if (nextLink.isEmpty()) log.trace("fetchNextPage: no next link");
     return Mono.justOrEmpty(nextLink)
-        .doOnNext(l -> log.trace("fetchNextPage: {}", l.getUrl()))
+        .doOnNext(l -> log.trace("fetchNextPage"))
         .map(BundleLinkComponent::getUrl)
         .flatMap(uri -> fetchBundle(uri, UriBuilder::build));
   }
@@ -104,7 +105,6 @@ public class EverythingDataSelector implements DataSelector {
       throw new IllegalArgumentException(msg);
     }
     var p = period.get();
-    log.trace("withConsent: patient {}, period {} to {}", patient.identifier(), p.start(), p.end());
     return (uriBuilder) ->
         uriBuilder
             .queryParam("_count", pageSize)

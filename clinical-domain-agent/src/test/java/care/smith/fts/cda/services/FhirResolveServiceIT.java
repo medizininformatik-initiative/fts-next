@@ -2,6 +2,9 @@ package care.smith.fts.cda.services;
 
 import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.test.FhirGenerators.resolveSearchResponse;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
+import static care.smith.fts.test.LogRecorder.stackTraces;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
@@ -9,6 +12,7 @@ import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.google.common.net.HttpHeaders.ACCEPT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -22,6 +26,8 @@ import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
+import care.smith.fts.util.error.TransferProcessException;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -33,6 +39,8 @@ import org.hl7.fhir.instance.model.api.IIdType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -102,7 +110,7 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
         .verifyErrorMatches(
             err ->
                 err.getMessage().contains("Unable to resolve")
-                    && err.getMessage().contains("external-141392"));
+                    && !err.getMessage().contains("external-141392"));
   }
 
   @Test
@@ -130,7 +138,55 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
         .verifyErrorMatches(
             err ->
                 err.getMessage().contains("more then one")
-                    && err.getMessage().contains("external-075521"));
+                    && !err.getMessage().contains("external-075521"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"INFO", "TRACE"})
+  void logsNameNoPatient(String level) throws Exception {
+    try (var found = getClass().getResourceAsStream("search-1.json");
+        var none = getClass().getResourceAsStream("search-0.json")) {
+      wireMock.register(
+          fhirStoreRequest()
+              .withQueryParam("identifier", equalTo(PID_SYSTEM + "|external-141392"))
+              .willReturn(fhirResponse(new String(requireNonNull(found).readAllBytes(), UTF_8))));
+      wireMock.register(
+          fhirStoreRequest()
+              .withQueryParam("identifier", equalTo(PID_SYSTEM + "|external-000000"))
+              .willReturn(fhirResponse(new String(requireNonNull(none).readAllBytes(), UTF_8))));
+    }
+
+    var events =
+        recordLog(
+            FhirResolveService.class,
+            Level.toLevel(level),
+            () -> {
+              create(service.resolve(new ConsentedPatient("external-141392", PID_SYSTEM)))
+                  .expectNextCount(1)
+                  .verifyComplete();
+              create(service.resolve(new ConsentedPatient("external-000000", PID_SYSTEM)))
+                  .verifyError();
+            });
+
+    assertThat(messages(events))
+        .noneMatch(m -> m.contains("external-"))
+        .noneMatch(m -> m.contains(PATIENT_IDENTIFIER));
+  }
+
+  @Test
+  void fetchErrorIsTransferProcessExceptionWithStackTraceAtTrace() {
+    wireMock.register(fhirStoreRequest().willReturn(notFound()));
+
+    var events =
+        recordLog(
+            FhirResolveService.class,
+            Level.TRACE,
+            () ->
+                create(service.resolve(new ConsentedPatient(PATIENT_IDENTIFIER, PID_SYSTEM)))
+                    .expectError(TransferProcessException.class)
+                    .verify());
+
+    assertThat(stackTraces(events)).isNotEmpty();
   }
 
   @Test

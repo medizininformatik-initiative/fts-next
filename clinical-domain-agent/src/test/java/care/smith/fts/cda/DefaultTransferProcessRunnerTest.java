@@ -1,5 +1,7 @@
 package care.smith.fts.cda;
 
+import static care.smith.fts.test.LogRecorder.recordLog;
+import static care.smith.fts.test.LogRecorder.stackTraces;
 import static java.lang.Thread.sleep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -18,9 +20,7 @@ import care.smith.fts.cda.TransferProcessRunner.PatientError;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessRunner.Step;
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +31,8 @@ import java.util.stream.IntStream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -276,6 +277,41 @@ class DefaultTransferProcessRunnerTest {
         .verifyComplete();
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"INFO", "TRACE"})
+  void logsContainNoPatientIdentifiers(String level) {
+    var patients =
+        IntStream.range(0, 5).mapToObj(i -> new ConsentedPatient("pid-" + i, "system")).toList();
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                fromIterable(patients)
+                    .<CohortEntry>map(Consented::new)
+                    .concatWithValues(new Excluded("pid-excluded", "Faulty consent")),
+            p ->
+                p.identifier().equals("pid-1")
+                    ? Flux.error(new RuntimeException("No data for " + p.identifier()))
+                    : fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            failOnSecondCall(new TransportBundle(new Bundle(), "transferId")),
+            failOnSecondCall(new Result()));
+
+    var events =
+        recordRunnerLog(
+            Level.toLevel(level),
+            () -> waitForCompletion(runner.start(process, List.of("pid-0", "pid-missing"))));
+
+    assertThat(events)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .noneMatch(m -> m.contains("pid-"));
+    assertThat(events)
+        .filteredOn(e -> e.getLevel() == Level.ERROR)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .hasSize(3)
+        .allMatch(m -> m.contains("failed_patients"));
+  }
+
   @Test
   void errorInCohortSelectorIsFatal() {
     var process =
@@ -327,7 +363,30 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void cohortSelectorErrorIsLoggedWithStacktrace() {
+  void unexpectedPipelineErrorIsLoggedByTypeWithStacktraceAtTrace() {
+    DataSelector throwingSelector =
+        p -> {
+          throw new RuntimeException("Data selector boom");
+        };
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> consented(PATIENT),
+            throwingSelector,
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var events =
+        recordRunnerLog(Level.TRACE, () -> waitForCompletion(runner.start(process, List.of())));
+
+    var event = firstErrorContaining(events, "Unexpected pipeline error");
+    assertThat(event.getFormattedMessage()).contains("RuntimeException").doesNotContain("boom");
+    assertThat(stackTraces(events)).containsExactly("Data selector boom");
+  }
+
+  @Test
+  void cohortSelectorErrorIsLoggedByTypeWithStacktraceAtTrace() {
     var process =
         new TransferProcessDefinition(
             "test",
@@ -338,11 +397,12 @@ class DefaultTransferProcessRunnerTest {
             b -> Mono.just(new Result()));
 
     var events =
-        recordRunnerLog(Level.ERROR, () -> waitForCompletion(runner.start(process, List.of())));
+        recordRunnerLog(Level.TRACE, () -> waitForCompletion(runner.start(process, List.of())));
 
     var event = firstErrorContaining(events, "Cohort selection failed");
-    assertThat(event.getThrowableProxy()).isNotNull();
-    assertThat(event.getThrowableProxy().getMessage()).isEqualTo("Cohort fetch boom");
+    assertThat(event.getFormattedMessage()).contains("RuntimeException").doesNotContain("boom");
+    assertThat(event.getThrowableProxy()).isNull();
+    assertThat(stackTraces(events)).containsExactly("Cohort fetch boom");
   }
 
   @Test
@@ -697,17 +757,22 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
-  void logErrorIncludesExceptionWhenDebugEnabled() {
+  void patientErrorIsLoggedByTypeNotMessage() {
     var event = runWithLogLevel(Level.DEBUG);
-    assertThat(event.getThrowableProxy()).isNotNull();
-    assertThat(event.getThrowableProxy().getMessage()).isEqualTo("Cannot select data");
+    assertThat(event.getThrowableProxy()).isNull();
+    assertThat(event.getFormattedMessage())
+        .contains("RuntimeException")
+        .doesNotContain("Cannot select data");
   }
 
   @Test
-  void logErrorIncludesMessageOnlyWhenDebugDisabled() {
-    var event = runWithLogLevel(Level.ERROR);
-    assertThat(event.getThrowableProxy()).isNull();
-    assertThat(event.getFormattedMessage()).contains("Cannot select data");
+  void stackTraceOfPatientErrorIsLoggedOnlyAtTrace() {
+    var events =
+        recordRunnerLog(
+            Level.TRACE,
+            () -> waitForCompletion(runner.start(failingDataSelectorProcess(), List.of())));
+
+    assertThat(stackTraces(events)).contains("Cannot select data");
   }
 
   private ILoggingEvent runWithLogLevel(Level level) {
@@ -922,19 +987,7 @@ class DefaultTransferProcessRunnerTest {
   }
 
   private List<ILoggingEvent> recordRunnerLog(Level level, Runnable action) {
-    var logger = (Logger) LoggerFactory.getLogger(DefaultTransferProcessRunner.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    var originalLevel = logger.getLevel();
-    logger.setLevel(level);
-    try {
-      action.run();
-      return List.copyOf(appender.list);
-    } finally {
-      logger.detachAppender(appender);
-      logger.setLevel(originalLevel);
-    }
+    return recordLog(DefaultTransferProcessRunner.class, level, action);
   }
 
   private TransferProcessDefinition fastProcess() {

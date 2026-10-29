@@ -1,6 +1,8 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.buildRegistry;
+import static care.smith.fts.util.LogUtil.errorType;
+import static care.smith.fts.util.LogUtil.traceException;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
@@ -58,21 +60,18 @@ class DeidentifhirStep implements Deidentificator {
         () -> {
           var patient = bundle.consentedPatient();
           var inputBundleSize = bundle.bundle().getEntry().size();
-          var deidentifyMsg = "deidentify for patient {}, input bundle has {} entries";
-          log.trace(deidentifyMsg, patient.identifier(), inputBundleSize);
+          log.trace("deidentify, input bundle has {} entries", inputBundleSize);
           var provider = new GeneratingReplacementProvider(patient.identifier());
           var registry = buildRegistry(provider);
           var deidentified =
               DeidentifhirUtils.deidentify(
                   config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
-          var deidentifiedMsg = "deidentified bundle for patient {} has {} entries";
-          log.trace(deidentifiedMsg, patient.identifier(), deidentified.getEntry().size());
+          log.trace("deidentified bundle has {} entries", deidentified.getEntry().size());
 
           var idMappings = provider.getIdMappings();
           var dateMappings = provider.getDateMappings();
-          var producedMsg =
-              "deidentify produced {} ID mappings and {} date mappings for patient {}";
-          log.trace(producedMsg, idMappings.size(), dateMappings.size(), patient.identifier());
+          var producedMsg = "deidentify produced {} ID mappings and {} date mappings";
+          log.trace(producedMsg, idMappings.size(), dateMappings.size());
           return (idMappings.isEmpty() && dateMappings.isEmpty())
               ? Mono.fromRunnable(() -> log.warn("No mappings to send to TCA"))
               : sendMappingsToTca(patient, idMappings, dateMappings)
@@ -116,6 +115,7 @@ class DeidentifhirStep implements Deidentificator {
   }
 
   private static void handleError(Throwable e) {
-    log.error("Cannot send transport mappings to TCA: {}", e.getMessage());
+    log.error("Cannot send transport mappings to TCA: {}", errorType(e));
+    traceException(log, e);
   }
 }

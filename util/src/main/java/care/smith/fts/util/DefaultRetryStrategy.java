@@ -1,5 +1,6 @@
 package care.smith.fts.util;
 
+import static care.smith.fts.util.LogUtil.errorType;
 import static java.lang.Boolean.parseBoolean;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -30,7 +31,13 @@ public class DefaultRetryStrategy implements RetryStrategy {
   public Retry forRequest(String name) {
     var counter = meterRegistry.counter("http.client.requests.retries", "request_name", name);
     return Retry.backoff(3, Duration.ofSeconds(1))
-        .doBeforeRetry(retry -> log.debug("RetrySignal {}", retry))
+        .doBeforeRetry(
+            retry ->
+                log.debug(
+                    "Retry {} of {} after {}",
+                    retry.totalRetries() + 1,
+                    name,
+                    errorType(retry.failure())))
         .filter(this::isRetryable)
         .doAfterRetry(i -> counter.increment());
   }

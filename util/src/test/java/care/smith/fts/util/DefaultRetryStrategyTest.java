@@ -1,7 +1,9 @@
 package care.smith.fts.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -40,6 +42,26 @@ class DefaultRetryStrategyTest {
   private static WebClientResponseException responseException(int status) {
     return new WebClientResponseException(
         status, "status " + status, new HttpHeaders(), new byte[0], StandardCharsets.UTF_8);
+  }
+
+  @Test
+  void retryLogNamesNoErrorMessage() {
+    var calls = new AtomicInteger();
+    var error =
+        new WebClientResponseException(
+            503, "GET http://hds/Patient/patient-4711", new HttpHeaders(), new byte[0], UTF_8);
+
+    var events =
+        LogEvents.recordLog(
+            DefaultRetryStrategy.class,
+            Level.TRACE,
+            () ->
+                StepVerifier.withVirtualTime(() -> withRetry(calls, 1, error, "logged"))
+                    .thenAwait(Duration.ofSeconds(60))
+                    .expectNext("ok")
+                    .verifyComplete());
+
+    assertThat(LogEvents.messages(events)).isNotEmpty().noneMatch(m -> m.contains("patient-4711"));
   }
 
   @Test
