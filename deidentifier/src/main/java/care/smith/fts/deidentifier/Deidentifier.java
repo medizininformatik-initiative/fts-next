@@ -12,7 +12,7 @@ import care.smith.fts.deidentifier.internal.HapiReflection.FhirChild;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Bundle;
@@ -30,14 +30,13 @@ import org.hl7.fhir.r4.model.Resource;
  */
 public class Deidentifier {
 
-  private static final Pattern TYPE_ONLY_URL = Pattern.compile("[^/?]+");
-
-  private static final Pattern TYPE_AND_ID_URL = Pattern.compile("[^/?]+/[^/?]+");
-
   private final RuleSet ruleSet;
 
-  public Deidentifier(RuleSet ruleSet) {
+  private final BundleEntryUrls entryUrls;
+
+  public Deidentifier(RuleSet ruleSet, BundleEntryUrls entryUrls) {
     this.ruleSet = requireNonNull(ruleSet);
+    this.entryUrls = requireNonNull(entryUrls);
   }
 
   /**
@@ -59,71 +58,85 @@ public class Deidentifier {
    */
   public Bundle deidentifyBundle(Bundle bundle, String patientIdentifier) {
     requireNonNull(bundle);
-    var root = HandlerContext.of(List.of(), patientIdentifier);
     var result = new Bundle();
     if (bundle.hasType()) {
       result.setType(bundle.getType());
     }
+    var bundleContext = HandlerContext.of(List.of(), patientIdentifier).child(bundle);
     var entries = bundle.getEntry();
     for (var i = 0; i < entries.size(); i++) {
-      deidentifyEntry(i, entries.get(i), root).ifPresent(result::addEntry);
+      deidentifyEntry(i, entries.get(i), bundleContext).ifPresent(result::addEntry);
     }
     return result;
   }
 
+  /**
+   * The entry's own fields see the bundle and the entry as ancestors; the entry resource is a
+   * resource of its own and sees none.
+   */
   private Optional<BundleEntryComponent> deidentifyEntry(
-      int index, BundleEntryComponent entry, HandlerContext root) {
+      int index, BundleEntryComponent entry, HandlerContext bundleContext) {
+    var entryContext = bundleContext.child(entry);
     if (!entry.hasResource()) {
-      return Optional.empty();
+      return deidentifyDelete(entry, entryContext);
     }
     var resource = entry.getResource();
     if (resource instanceof Bundle) {
       throw new IllegalArgumentException(
           "Bundle entry %d is a bundle: nested bundles are not supported".formatted(index));
     }
-    return walk(resource, root).map(deidentified -> rebuildEntry(entry, deidentified));
+    var root = HandlerContext.of(List.of(), bundleContext.patientIdentifier());
+    return walk(resource, root)
+        .map(deidentified -> rebuildEntry(entry, deidentified, entryContext));
+  }
+
+  /**
+   * A DELETE names the resource by its url alone. The entry survives with only its request, and
+   * only when {@link BundleEntryUrls#requestUrl(String, HandlerContext)} keeps the url.
+   */
+  private Optional<BundleEntryComponent> deidentifyDelete(
+      BundleEntryComponent entry, HandlerContext entryContext) {
+    return rebuildRequestOf(entry, entryContext, entryUrls::requestUrl)
+        .map(request -> new BundleEntryComponent().setRequest(request));
   }
 
   /**
    * The entry around a de-identified resource. Of the request only {@code method} and {@code url}
-   * survive, and only while the url names nothing the source system chose: see {@link #requestUrl}.
+   * survive, and only while the url names nothing the source system chose: see {@link
+   * BundleEntryUrls#requestUrl(String, Resource, HandlerContext)}.
    */
-  private static BundleEntryComponent rebuildEntry(
-      BundleEntryComponent entry, Resource deidentified) {
+  private BundleEntryComponent rebuildEntry(
+      BundleEntryComponent entry, Resource deidentified, HandlerContext entryContext) {
     var rebuilt = new BundleEntryComponent().setResource(deidentified);
-    // getRequest() would add an empty request to the input entry
-    Optional.of(entry)
-        .filter(BundleEntryComponent::hasRequest)
-        .map(BundleEntryComponent::getRequest)
-        .flatMap(request -> rebuildRequest(request, deidentified))
+    rebuildRequestOf(
+            entry, entryContext, (url, context) -> entryUrls.requestUrl(url, deidentified, context))
         .ifPresent(rebuilt::setRequest);
     return rebuilt;
   }
 
-  /** The {@code method} and {@code url} of the request, or empty if its url does not survive. */
-  private static Optional<BundleEntryRequestComponent> rebuildRequest(
-      BundleEntryRequestComponent request, Resource deidentified) {
-    return Optional.ofNullable(request.getUrl())
-        .flatMap(url -> requestUrl(url, deidentified))
-        .map(url -> new BundleEntryRequestComponent().setMethod(request.getMethod()).setUrl(url));
+  /** The request of the entry with only the {@code method} and {@code url}, see below. */
+  private static Optional<BundleEntryRequestComponent> rebuildRequestOf(
+      BundleEntryComponent entry, HandlerContext entryContext, UrlRule urlRule) {
+    // getRequest() would add an empty request to the input entry
+    return Optional.of(entry)
+        .filter(BundleEntryComponent::hasRequest)
+        .map(BundleEntryComponent::getRequest)
+        .flatMap(request -> rebuildRequest(request, entryContext.child(request), urlRule));
   }
 
   /**
-   * A url that names only a type ({@code Patient}) stays. A url {@code Type/id} names the entry's
-   * own resource, so it takes the id of the de-identified resource and never disagrees with it;
-   * without a surviving id it goes. Any other url, e.g. a conditional {@code
-   * Patient?identifier=sys|12345}, names the resource by what the source system chose and goes.
+   * The {@code method} and {@code url} of the request, or empty if its url does not survive. The
+   * request is the parent of its url, so the rule sees it as the last ancestor.
    */
-  private static Optional<String> requestUrl(String url, Resource deidentified) {
-    if (TYPE_ONLY_URL.matcher(url).matches()) {
-      return Optional.of(url);
-    }
-    if (TYPE_AND_ID_URL.matcher(url).matches()) {
-      return Optional.ofNullable(deidentified.getIdElement().getIdPart())
-          .map(id -> deidentified.fhirType() + "/" + id);
-    }
-    return Optional.empty();
+  private static Optional<BundleEntryRequestComponent> rebuildRequest(
+      BundleEntryRequestComponent request, HandlerContext context, UrlRule urlRule) {
+    return Optional.ofNullable(request.getUrl())
+        .flatMap(url -> urlRule.apply(url, context))
+        .map(url -> new BundleEntryRequestComponent().setMethod(request.getMethod()).setUrl(url));
   }
+
+  /** What {@link BundleEntryUrls} makes of a request url, in the context of the request. */
+  private interface UrlRule extends BiFunction<String, HandlerContext, Optional<String>> {}
 
   private Optional<Resource> walk(Resource resource, HandlerContext root) {
     // the rules are constant per resource, so they are resolved once here

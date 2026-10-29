@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -66,6 +67,41 @@ class RegistryTest {
                   r.addHandler("the-name", StringType.class, NOOP);
                   r.addHandler("the-name", StringType.class, NOOP);
                 }));
+  }
+
+  @Test
+  void hasNoReferenceHandlerUntilOneIsRegistered() {
+    assertThat(new Registry().referenceHandler()).isEmpty();
+  }
+
+  @Test
+  void returnsTheHandlerRegisteredAsReferenceHandler() {
+    var registry = new Registry();
+    registry.addHandler(Registry.REFERENCE_HANDLER_NAME, StringType.class, NOOP);
+
+    assertThat(registry.referenceHandler()).containsSame(NOOP);
+  }
+
+  @Test
+  void returnsTheReferenceHandlerRegisteredUnderAnAlias() {
+    var registry = new Registry();
+    registry.addHandler("replace", StringType.class, NOOP);
+    registry.addAlias(Registry.REFERENCE_HANDLER_NAME, "replace");
+
+    assertThat(registry.referenceHandler()).containsSame(NOOP);
+  }
+
+  @Test
+  void refusesAReferenceHandlerThatDoesNotAcceptAString() {
+    var registry = new Registry();
+    registry.addHandler(
+        Registry.REFERENCE_HANDLER_NAME, Coding.class, (value, context) -> Optional.of(value));
+
+    assertThatThrownBy(registry::referenceHandler)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Handler 'referenceReplacementHandler' works on Coding, not on StringType"
+                + " (bundle entry urls)!");
   }
 
   /** The error names the handler, so the profile author finds the entry. */
