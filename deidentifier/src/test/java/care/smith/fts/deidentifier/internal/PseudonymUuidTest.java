@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class PseudonymUuidTest {
@@ -42,5 +43,17 @@ class PseudonymUuidTest {
     assertThat(PseudonymUuid.isUrnUuid("urn:uuid:1234")).isTrue();
     assertThat(PseudonymUuid.isUrnUuid("urn:oid:1.2")).isFalse();
     assertThat(PseudonymUuid.isUrnUuid("Patient/1")).isFalse();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "urn:uuid:1234, 1234",
+    "urn:oid:1.2, urn:oid:1.2",
+    "Patient/1, Patient/1",
+    "1234, 1234",
+    "urn:uuid:, ''"
+  })
+  void stripsTheUrnUuidPrefixOnly(String value, String expected) {
+    assertThat(PseudonymUuid.stripUrnUuid(value)).isEqualTo(expected);
   }
 }
