@@ -18,10 +18,12 @@ public record TransferProcessStatus(
     @With(PRIVATE) long totalBundles,
     @With(PRIVATE) long deidentifiedBundles,
     @With(PRIVATE) long sentBundles,
-    @With(PRIVATE) long skippedBundles) {
+    @With(PRIVATE) long skippedBundles,
+    @With(PRIVATE) long skippedPatients) {
 
   public static TransferProcessStatus create(String processId) {
-    return new TransferProcessStatus(processId, Phase.QUEUED, Instant.now(), null, 0, 0, 0, 0, 0);
+    return new TransferProcessStatus(
+        processId, Phase.QUEUED, Instant.now(), null, 0, 0, 0, 0, 0, 0);
   }
 
   public TransferProcessStatus incTotalPatients() {
@@ -42,6 +44,10 @@ public record TransferProcessStatus(
 
   public TransferProcessStatus incSkippedBundles() {
     return withSkippedBundles(skippedBundles + 1);
+  }
+
+  public TransferProcessStatus incSkippedPatients() {
+    return withSkippedPatients(skippedPatients + 1);
   }
 
   /**
