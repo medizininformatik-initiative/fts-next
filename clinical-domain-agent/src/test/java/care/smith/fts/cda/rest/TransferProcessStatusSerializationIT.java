@@ -53,6 +53,7 @@ class TransferProcessStatusSerializationIT {
             0,
             0,
             0,
+            0,
             0);
     Mockito.when(processRunner.status(processId)).thenReturn(Mono.just(status));
 
@@ -88,6 +89,7 @@ class TransferProcessStatusSerializationIT {
             Phase.RUNNING,
             Instant.parse("2026-05-13T03:00:00.818008066Z"),
             null,
+            0,
             0,
             0,
             0,

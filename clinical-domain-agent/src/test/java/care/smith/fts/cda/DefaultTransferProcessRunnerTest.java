@@ -14,6 +14,7 @@ import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
+import care.smith.fts.cda.TransferProcessRunner.PatientError;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessRunner.Step;
 import ch.qos.logback.classic.Level;
@@ -104,6 +105,80 @@ class DefaultTransferProcessRunnerTest {
         .assertNext(r -> assertThat(r.sentBundles()).isEqualTo(1))
         .verifyComplete();
     assertThat(selected).containsExactly(PATIENT_IDENTIFIER);
+  }
+
+  @Test
+  void excludedPatientIsRecordedAsFailedPatient() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Consented(PATIENT), new Excluded(PATIENT_IDENTIFIER_2, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(
+            r -> {
+              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+              assertThat(r.totalPatients()).isEqualTo(1);
+              assertThat(r.skippedPatients()).isEqualTo(1);
+              assertThat(r.skippedBundles()).isEqualTo(0);
+            })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(
+            errors ->
+                assertThat(errors)
+                    .containsExactly(
+                        new PatientError(
+                            PATIENT_IDENTIFIER_2, Step.SELECT_COHORT, "Faulty consent")))
+        .verifyComplete();
+  }
+
+  @Test
+  void runWithOnlyExcludedPatientsCompletesWithError() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.just(new Excluded(PATIENT_IDENTIFIER, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR))
+        .verifyComplete();
+  }
+
+  @Test
+  void excludedPatientIsLoggedWithoutIdentifier() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.just(new Excluded(PATIENT_IDENTIFIER, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var events =
+        recordRunnerLog(Level.TRACE, () -> waitForCompletion(runner.start(process, List.of())));
+
+    assertThat(events)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .anyMatch(m -> m.contains("Faulty consent"))
+        .noneMatch(m -> m.contains(PATIENT_IDENTIFIER));
   }
 
   @Test

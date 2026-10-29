@@ -56,29 +56,31 @@ The status response looks like this:
   "totalBundles": 119,
   "deidentifiedBundles": 118,
   "sentBundles": 118,
-  "skippedBundles": 0
+  "skippedBundles": 0,
+  "skippedPatients": 0
 }
 ```
 <!--@formatter:on-->
 
-| Field                 | Description                                                                              |
-|-----------------------|------------------------------------------------------------------------------------------|
-| `processId`           | Process ID                                                                               |
-| `phase`               | Status of the process (`QUEUED`, `RUNNING`, `COMPLETED`)                                 |
-| `createdAt`           | Point in time when the process was created (ISO-8601 with offset; see [Time Zone](../configuration/time-zone)) |
-| `finishedAt`          | Point in time when the process finished (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))    |
-| `totalPatients`       | Total number of patients to be processed, may change while the process is running        |
-| `totalBundles`        | Total number of bundles to be processed                                                  |
-| `deidentifiedBundles` | Number of bundles after deidentification                                                 |
-| `sentBundles`         | Number of bundles sent to RDA                                                            |
-| `skippedBundles`      | Number of skipped bundles; if greater than zero, query the [failed patients endpoint](#failed-patients) for details |
+| Field                 | Description                                                                                                                                                              |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `processId`           | Process ID                                                                                                                                                               |
+| `phase`               | Status of the process (`QUEUED`, `RUNNING`, `COMPLETED`)                                                                                                                 |
+| `createdAt`           | Point in time when the process was created (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))                                                           |
+| `finishedAt`          | Point in time when the process finished (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))                                                              |
+| `totalPatients`       | Total number of consented patients to be processed, may change while the process is running                                                                              |
+| `totalBundles`        | Total number of bundles to be processed                                                                                                                                  |
+| `deidentifiedBundles` | Number of bundles after deidentification                                                                                                                                 |
+| `sentBundles`         | Number of bundles sent to RDA                                                                                                                                            |
+| `skippedBundles`      | Number of skipped bundles; if greater than zero, query the [failed patients endpoint](#failed-patients) for details                                                      |
+| `skippedPatients`     | Number of patients excluded during cohort selection, e.g. for a faulty consent; if greater than zero, query the [failed patients endpoint](#failed-patients) for details |
 
 [API Reference for Status Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-)
 
 ### Failed Patients
 
-When `skippedBundles` is greater than zero, the failed patients endpoint returns
-which patients failed and at which step:
+When `skippedBundles` or `skippedPatients` is greater than zero, the failed patients
+endpoint returns which patients failed and at which step:
 
 ```shell
 curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c0eafbe8ead0/failed_patients"
@@ -87,6 +89,11 @@ curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c
 <!--@formatter:off-->
 ```json
 [
+  {
+    "patientIdentifier": "patient-007",
+    "step": "SELECT_COHORT",
+    "errorMessage": "Consent for policy 2.16.840.1.113883.3.1937.777.24.5.3.6 has no start date"
+  },
   {
     "patientIdentifier": "patient-001",
     "step": "SELECT_DATA",
@@ -101,11 +108,11 @@ curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c
 ```
 <!--@formatter:on-->
 
-| Field          | Description                                                                                      |
-|----------------|--------------------------------------------------------------------------------------------------|
-| `patientIdentifier` | Identifier of the patient whose transfer failed                                             |
-| `step`         | Processing step where the error occurred (`SELECT_DATA`, `DEIDENTIFY`, `SEND_BUNDLE`)            |
-| `errorMessage` | Error message describing the failure                                                             |
+| Field               | Description                                                                                            |
+|---------------------|--------------------------------------------------------------------------------------------------------|
+| `patientIdentifier` | Identifier of the patient whose transfer failed                                                        |
+| `step`              | Processing step where the error occurred (`SELECT_COHORT`, `SELECT_DATA`, `DEIDENTIFY`, `SEND_BUNDLE`) |
+| `errorMessage`      | Error message describing the failure                                                                   |
 
 [API Reference for Failed Patients Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-/failed_patients)
 

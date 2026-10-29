@@ -4,7 +4,9 @@ import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
 
+import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
@@ -163,6 +165,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .cohortSelector()
           .selectCohort(identifiers)
+          .doOnNext(this::reportIfExcluded)
           .ofType(Consented.class)
           .map(Consented::patient)
           .doOnNext(
@@ -177,6 +180,17 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
                 log.error("[Process {}] Cohort selection failed", processId(), e);
               })
           .onErrorComplete();
+    }
+
+    /** Records an excluded patient as failed patient; the log names only the reason. */
+    private void reportIfExcluded(CohortEntry entry) {
+      if (entry instanceof Excluded excluded) {
+        // Increment counter first, as in handlePatientError
+        status.updateAndGet(TransferProcessStatus::incSkippedPatients);
+        failedPatients.add(
+            new PatientError(excluded.identifier(), Step.SELECT_COHORT, excluded.reason()));
+        log.warn("[Process {}] Patient excluded from cohort: {}", processId(), excluded.reason());
+      }
     }
 
     private Flux<ConsentedPatientBundle> selectData(Flux<ConsentedPatient> cohortSelection) {
@@ -286,17 +300,18 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       log.info("[Process {}] Finished with: {}", processId(), status.phase());
       log.trace(
           "[Process {}] Summary: totalPatients={}, totalBundles={}, deidentifiedBundles={}, "
-              + "sentBundles={}, skippedBundles={}",
+              + "sentBundles={}, skippedBundles={}, skippedPatients={}",
           processId(),
           status.totalPatients(),
           status.totalBundles(),
           status.deidentifiedBundles(),
           status.sentBundles(),
-          status.skippedBundles());
+          status.skippedBundles(),
+          status.skippedPatients());
     }
 
     private TransferProcessStatus checkCompletion(TransferProcessStatus s) {
-      return s.skippedBundles() == 0
+      return s.skippedBundles() == 0 && s.skippedPatients() == 0
           ? s.setPhase(Phase.COMPLETED)
           : s.setPhase(Phase.COMPLETED_WITH_ERROR);
     }
