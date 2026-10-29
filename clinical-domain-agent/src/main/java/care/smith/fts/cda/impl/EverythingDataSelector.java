@@ -109,7 +109,7 @@ public class EverythingDataSelector implements DataSelector {
         uriBuilder
             .queryParam("_count", pageSize)
             .queryParam("start", formatWithSystemTZ(p.start()))
-            .queryParam("end", formatWithSystemTZ(p.end()))
+            .queryParamIfPresent("end", p.end().map(EverythingDataSelector::formatWithSystemTZ))
             .build(Map.of("id", fhirId.getIdPart()));
   }
 

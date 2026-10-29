@@ -2,7 +2,7 @@ name: fts-monitoring
 
 services:
   prometheus:
-    image: prom/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
+    image: prom/prometheus:v3.15.1@sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2
     volumes:
     - ./prometheus.yml:/prometheus.yml
     command:
@@ -13,7 +13,7 @@ services:
     - :9090
 
   grafana:
-    image: grafana/grafana:13.2.2@sha256:ac461fb352abc50da10a51c7d02462e9c05488f11f53f14b3ad79a8145f638a0
+    image: grafana/grafana:13.3.0@sha256:488984b716c0862639f91a698adbe2862677a5a07bad42da5f03f3030883b205
     volumes:
     - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
     - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboards.yaml

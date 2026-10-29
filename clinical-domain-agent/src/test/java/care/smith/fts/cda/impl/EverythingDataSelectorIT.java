@@ -71,7 +71,7 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
             common, client, pidResolver, new DefaultRetryStrategy(meterRegistry), PAGE_SIZE);
 
     var consentedPolicies = new ConsentedPolicies();
-    consentedPolicies.put("pol", new Period(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
+    consentedPolicies.put("pol", Period.of(ZonedDateTime.now(), ZonedDateTime.now().plusYears(5)));
     consentedPatient = new ConsentedPatient(PATIENT_IDENTIFIER, "system", consentedPolicies);
   }
 
@@ -82,11 +82,15 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
 
   private static MappingBuilder fhirStoreRequestWithConsent() {
     var period = consentedPatient.consentedPolicies().maxConsentedPeriod().get();
-    var start = period.start().format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
-    var end = period.end().format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
+    var start = formatDate(period.start());
+    var end = formatDate(period.end().orElseThrow());
     return get("/Patient/%s/$everything?_count=%s&start=%s&end=%s"
             .formatted(PATIENT_IDENTIFIER, PAGE_SIZE, start, end))
         .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON));
+  }
+
+  private static String formatDate(ZonedDateTime dateTime) {
+    return dateTime.format(ISO_LOCAL_DATE.withZone(ZoneId.systemDefault()));
   }
 
   @Override
@@ -140,6 +144,21 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     wireMock.register(fhirStoreRequestWithConsent().willReturn(fhirResponse(new Bundle())));
 
     create(dataSelector.select(consentedPatient)).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void openEndedConsentRequestsWithoutEnd() {
+    var start = ZonedDateTime.now();
+    var consentedPolicies = new ConsentedPolicies();
+    consentedPolicies.put("pol", Period.openEnded(start));
+    var patient = new ConsentedPatient(PATIENT_IDENTIFIER, "system", consentedPolicies);
+    wireMock.register(
+        get("/Patient/%s/$everything?_count=%s&start=%s"
+                .formatted(PATIENT_IDENTIFIER, PAGE_SIZE, formatDate(start)))
+            .withHeader(ACCEPT, equalTo(APPLICATION_FHIR_JSON))
+            .willReturn(fhirResponse(new Bundle())));
+
+    create(dataSelector.select(patient)).expectNextCount(1).verifyComplete();
   }
 
   @Test

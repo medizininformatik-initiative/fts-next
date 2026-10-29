@@ -1,12 +1,12 @@
 package care.smith.fts.tca.consent;
 
-import static care.smith.fts.util.ConsentedPatientExtractor.hasAllPolicies;
 import static care.smith.fts.util.fhir.FhirClientUtils.fetchCapabilityStatementOperations;
 import static care.smith.fts.util.fhir.FhirClientUtils.requireOperations;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 
+import care.smith.fts.util.RequiredPolicies;
 import com.google.common.base.Predicates;
 import java.util.List;
 import java.util.Set;
@@ -36,10 +36,11 @@ public interface GicsFhirUtil {
    */
   static Bundle filterOuterBundle(
       String policySystem, Set<String> policiesToCheck, Bundle outerBundle) {
+    var requiredPolicies = new RequiredPolicies(policySystem, policiesToCheck);
     return typedResourceStream(outerBundle, Bundle.class)
-        .filter(b -> hasAllPolicies(policySystem, b, policiesToCheck))
+        .filter(requiredPolicies::allConsented)
         .map(GicsFhirUtil::filterInnerBundle)
-        .collect(toBundle())
+        .collect(toBundle(outerBundle.getType()))
         .setTotal(outerBundle.getTotal());
   }
 
@@ -52,6 +53,6 @@ public interface GicsFhirUtil {
   private static Bundle filterInnerBundle(Bundle b) {
     return resourceStream(b)
         .filter(Predicates.or(Patient.class::isInstance, Consent.class::isInstance))
-        .collect(toBundle());
+        .collect(toBundle(b.getType()));
   }
 }

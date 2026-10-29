@@ -53,24 +53,71 @@ public record ConsentedPatient(
       return policies.keySet().containsAll(policiesToCheck);
     }
 
+    /**
+     * The period all policies are consented to: from the latest policy start to the earliest policy
+     * end. Per policy, the earliest start and the latest end of its periods count. An open-ended
+     * period outlasts any bounded one.
+     *
+     * @return the consented period, or empty if there are no policies or their periods do not
+     *     overlap
+     */
     public Optional<Period> maxConsentedPeriod() {
-      Optional<ZonedDateTime> start =
-          policies.asMap().values().stream()
+      if (policies.isEmpty()) {
+        return Optional.empty();
+      }
+      var periodsPerPolicy = policies.asMap().values();
+      var start =
+          periodsPerPolicy.stream()
               .map(ConsentedPolicies::minStartOfPolicyPeriods)
-              .max(ChronoZonedDateTime.timeLineOrder());
-      Optional<ZonedDateTime> end =
-          policies.asMap().values().stream()
+              .max(TIME_LINE_ORDER)
+              .orElseThrow();
+      var end =
+          periodsPerPolicy.stream()
               .map(ConsentedPolicies::maxEndOfPolicyPeriods)
-              .min(ChronoZonedDateTime.timeLineOrder());
-      return start.flatMap(s -> end.filter(e -> s.compareTo(e) < 0).map(e -> new Period(s, e)));
+              .min(OPEN_END_LAST)
+              .orElseThrow();
+      return Optional.of(Period.of(start, end.orElse(null)))
+          .filter(ConsentedPolicies::endsAfterStart);
     }
 
+    /**
+     * Orders date-times by their instant on the timeline, ignoring zone and chronology. Unlike
+     * {@link ZonedDateTime#compareTo}, the same instant in different zones compares as equal.
+     */
+    private static final Comparator<ChronoZonedDateTime<?>> TIME_LINE_ORDER =
+        ChronoZonedDateTime.timeLineOrder();
+
+    /**
+     * Orders period ends by {@link #TIME_LINE_ORDER}, with an empty (open) end after every bounded
+     * end, since an open-ended period lasts indefinitely.
+     */
+    private static final Comparator<Optional<ZonedDateTime>> OPEN_END_LAST =
+        Comparator.comparing(end -> end.orElse(null), Comparator.nullsLast(TIME_LINE_ORDER));
+
+    /**
+     * @param col the periods of one policy, not empty
+     * @return the earliest start of the periods
+     */
     private static ZonedDateTime minStartOfPolicyPeriods(Collection<Period> col) {
-      return col.stream().map(Period::start).min(ChronoZonedDateTime.timeLineOrder()).get();
+      return col.stream().map(Period::start).min(TIME_LINE_ORDER).orElseThrow();
     }
 
-    private static ZonedDateTime maxEndOfPolicyPeriods(Collection<Period> col) {
-      return col.stream().map(Period::end).max(ChronoZonedDateTime.timeLineOrder()).get();
+    /**
+     * @param col the periods of one policy, not empty
+     * @return the latest end of the periods, or empty if any of them is open-ended
+     */
+    private static Optional<ZonedDateTime> maxEndOfPolicyPeriods(Collection<Period> col) {
+      return col.stream().map(Period::end).max(OPEN_END_LAST).orElseThrow();
+    }
+
+    /**
+     * A zero-length or inverted period is no consent, because there is no time to select data for.
+     *
+     * @param period the period to check
+     * @return {@code true} if the period ends strictly after it starts or is open-ended
+     */
+    private static boolean endsAfterStart(Period period) {
+      return period.end().map(period.start()::isBefore).orElse(true);
     }
 
     public Boolean hasPolicy(String policy) {

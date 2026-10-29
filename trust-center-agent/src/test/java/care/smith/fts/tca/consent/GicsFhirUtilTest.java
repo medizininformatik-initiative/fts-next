@@ -2,9 +2,12 @@ package care.smith.fts.tca.consent;
 
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
+import static care.smith.fts.util.fhir.FhirUtils.stringToFhirResource;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.SEARCHSET;
 
 import java.util.Date;
 import java.util.Set;
@@ -39,6 +42,19 @@ class GicsFhirUtilTest {
   }
 
   @Test
+  void innerBundleWithUnreadableDateIsDroppedAndOthersRemain() {
+    var outerBundle =
+        Stream.of(
+                innerBundleWithUnreadablePolicyB("unreadable"),
+                innerBundle("with-all", "POLICY_A", "POLICY_B"))
+            .collect(toBundle());
+
+    var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
+
+    assertThat(patientIds(filtered)).containsExactly("with-all");
+  }
+
+  @Test
   void innerBundleKeepsOnlyPatientAndConsent() {
     var innerBundle =
         Stream.concat(
@@ -57,6 +73,21 @@ class GicsFhirUtilTest {
     assertThat(resources).noneMatch(Observation.class::isInstance);
   }
 
+  @Test
+  void filteredBundlesKeepTheirType() {
+    var innerBundle =
+        resourceStream(innerBundle("with-all", "POLICY_A", "POLICY_B"))
+            .collect(toBundle(COLLECTION));
+    var outerBundle = Stream.of(innerBundle).collect(toBundle(SEARCHSET));
+
+    var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
+
+    assertThat(filtered.getType()).isEqualTo(SEARCHSET);
+    assertThat(typedResourceStream(filtered, Bundle.class))
+        .map(Bundle::getType)
+        .containsExactly(COLLECTION);
+  }
+
   private static Stream<String> patientIds(Bundle outerBundle) {
     return typedResourceStream(outerBundle, Bundle.class)
         .flatMap(b -> typedResourceStream(b, Patient.class))
@@ -66,9 +97,36 @@ class GicsFhirUtilTest {
   private static Bundle innerBundle(String patientId, String... policies) {
     var mainProvision = new Consent.ProvisionComponent();
     Stream.of(policies).forEach(p -> mainProvision.addProvision(permitProvision(p)));
-    var consent = (Consent) new Consent().setProvision(mainProvision).setId("consent-" + patientId);
+    var consent =
+        (Consent)
+            new Consent()
+                .setStatus(Consent.ConsentState.ACTIVE)
+                .setProvision(mainProvision)
+                .setId("consent-" + patientId);
 
     return Stream.of(new Patient().setId(patientId), consent).collect(toBundle());
+  }
+
+  /**
+   * Parses the unreadable provision from JSON, as the gICS response is read, so HAPI keeps the date
+   * as given.
+   */
+  private static Bundle innerBundleWithUnreadablePolicyB(String patientId) {
+    var json =
+        """
+        {"resourceType": "Consent", "provision": {"provision": [{
+          "type": "permit",
+          "period": {"start": "2024-02-23T10:00:00", "end": "2054-01-31"},
+          "code": [{"coding": [{"system": "%s", "code": "POLICY_B"}]}]
+        }]}}\
+        """
+            .formatted(POLICY_SYSTEM);
+    var unreadable =
+        stringToFhirResource(Consent.class, json).getProvision().getProvisionFirstRep();
+    var bundle = innerBundle(patientId, "POLICY_A");
+    typedResourceStream(bundle, Consent.class)
+        .forEach(c -> c.getProvision().addProvision(unreadable));
+    return bundle;
   }
 
   private static Consent.ProvisionComponent permitProvision(String policy) {

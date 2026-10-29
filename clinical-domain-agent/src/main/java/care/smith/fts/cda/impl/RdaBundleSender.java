@@ -53,7 +53,8 @@ final class RdaBundleSender implements BundleSender {
     Parameters transportIdMap = new Parameters();
     transportIdMap.setId("transfer-id");
     transportIdMap.addParameter("id", transportBundle.transferId());
-    return concat(of(transportIdMap), resourceStream(transportBundle.bundle())).collect(toBundle());
+    var bundle = transportBundle.bundle();
+    return concat(of(transportIdMap), resourceStream(bundle)).collect(toBundle(bundle.getType()));
   }
 
   private Mono<ResponseEntity<Void>> sendBundle(Bundle bundle) {

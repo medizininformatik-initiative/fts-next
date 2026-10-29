@@ -2,11 +2,14 @@ package care.smith.fts.util.fhir;
 
 import static care.smith.fts.util.fhir.FhirUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collector.Characteristics;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -121,11 +124,49 @@ class FhirUtilsTest {
   }
 
   @Test
-  public void toBundleCollectorCombines() {
-    List<Resource> list1 = List.of(new Patient(), new Patient(), new Patient());
-    List<Resource> list2 = List.of(new Patient(), new Patient(), new Patient());
-    List<Resource> combination = toBundle().combiner().apply(list1, list2);
-    assertThat(combination).isNotNull();
-    assertThat(combination).hasSize(6);
+  void toBundleKeepsEncounterOrderOfParallelStream() {
+    var resources =
+        IntStream.range(0, 10_000).mapToObj(i -> (Resource) new Patient().setId("p" + i)).toList();
+
+    var bundle = resources.parallelStream().collect(toBundle());
+
+    assertThat(bundle.getEntry())
+        .map(BundleEntryComponent::getResource)
+        .containsExactlyElementsOf(resources);
+  }
+
+  @Test
+  void toBundleIsOrdered() {
+    assertThat(toBundle().characteristics()).doesNotContain(Characteristics.UNORDERED);
+  }
+
+  @Test
+  void toBundleSetsNoType() {
+    var bundle = Stream.of(new Patient()).collect(toBundle());
+
+    assertThat(bundle.hasType()).isFalse();
+  }
+
+  @Test
+  void toBundleWithTypeSetsType() {
+    var bundle = Stream.of(new Patient()).collect(toBundle(COLLECTION));
+
+    assertThat(bundle.getType()).isEqualTo(COLLECTION);
+  }
+
+  @Test
+  void toBundleWithoutTypeOfSourceSetsNoType() {
+    var source = new Bundle();
+
+    var bundle = Stream.of(new Patient()).collect(toBundle(source.getType()));
+
+    assertThat(bundle.hasType()).isFalse();
+  }
+
+  @Test
+  void toBundleSetsNoTotal() {
+    var bundle = Stream.of(new Patient(), new Patient()).collect(toBundle());
+
+    assertThat(bundle.hasTotal()).isFalse();
   }
 }

@@ -26,8 +26,10 @@
     <revision>5.0.0-SNAPSHOT</revision>
     <java.version>21</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
+    <!-- Since JDK 23, javac skips classpath annotation processors (e.g. lombok) by default. -->
+    <maven.compiler.proc>full</maven.compiler.proc>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <spring-boot.version>4.1.1</spring-boot.version>
+    <spring-boot.version>4.1.2</spring-boot.version>
     <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
     <junit-platform.version>6.0.3</junit-platform.version>
     <skipUnitTests>false</skipUnitTests>
@@ -51,7 +53,7 @@
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
         <!-- See https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot -->
-        <version>3.1.1</version>
+        <version>3.2.0</version>
       </dependency>
 
       <dependency>
@@ -83,26 +85,26 @@
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-core</artifactId>
-        <version>1.6.3</version>
+        <version>1.6.6</version>
       </dependency>
 
       <!-- TODO: Temporary transitive update for CVE-2026-54515 - Remove when the Spring Boot BOM manages jackson-databind >= 2.21.5! -->
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.22.2</version>
+        <version>2.22.4</version>
       </dependency>
 
       <!-- TODO: Temporary transitive update for CVE-2026-55471 and CVE-2026-45367 - Remove when hapi-fhir bundles org.hl7.fhir core >= 6.9.10! -->
       <dependency>
         <groupId>ca.uhn.hapi.fhir</groupId>
         <artifactId>org.hl7.fhir.r4</artifactId>
-        <version>6.10.4</version>
+        <version>7.0.3</version>
       </dependency>
       <dependency>
         <groupId>ca.uhn.hapi.fhir</groupId>
         <artifactId>org.hl7.fhir.utilities</artifactId>
-        <version>6.10.4</version>
+        <version>7.0.3</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -151,7 +153,7 @@
         <plugin>
           <groupId>org.pitest</groupId>
           <artifactId>pitest-maven</artifactId>
-          <version>1.30.0</version>
+          <version>1.30.1</version>
           <dependencies>
             <dependency>
               <groupId>org.pitest</groupId>
@@ -223,7 +225,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.6.0</version>
+          <version>3.6.1</version>
           <dependencies>
             <dependency>
               <groupId>org.junit.platform</groupId>
@@ -239,7 +241,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>3.6.0</version>
+          <version>3.6.1</version>
           <dependencies>
             <dependency>
               <groupId>org.junit.platform</groupId>
@@ -304,7 +306,7 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.15</version>
+        <version>0.8.16</version>
         <executions>
           <execution>
             <id>prepare</id>
