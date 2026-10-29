@@ -51,6 +51,7 @@ class TcaCohortSelector implements CohortSelector {
             ? "/api/v2/cd/consented-patients/fetch-all"
             : "/api/v2/cd/consented-patients/fetch";
     log.trace("selectCohort: url={}, {} identifiers", url, identifiers.size());
+    var requestedExtractor = extractor.preferring(identifiers);
 
     return fetchBundle(url, identifiers)
         .expand(bundle -> fetchNextPage(bundle, identifiers))
@@ -58,7 +59,7 @@ class TcaCohortSelector implements CohortSelector {
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
         .onErrorResume(WebClientException.class, TcaCohortSelector::handleWebClientException)
-        .flatMap(this::extractCohortEntries);
+        .flatMap(b -> extractCohortEntries(requestedExtractor, b));
   }
 
   private Mono<Bundle> fetchBundle(String uri, List<String> identifiers) {
@@ -100,9 +101,10 @@ class TcaCohortSelector implements CohortSelector {
     return result;
   }
 
-  private Flux<CohortEntry> extractCohortEntries(Bundle outerBundle) {
+  private static Flux<CohortEntry> extractCohortEntries(
+      ConsentedPatientExtractor extractor, Bundle outerBundle) {
     var resources = typedResourceStream(outerBundle, Bundle.class);
-    return Flux.fromStream(extractor.cohortEntries(resources))
+    return Flux.fromIterable(extractor.cohortEntries(resources))
         .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }

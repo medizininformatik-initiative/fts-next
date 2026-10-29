@@ -1,11 +1,13 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
+import static care.smith.fts.tca.consent.GicsFhirUtil.filterRequestedOuterBundle;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.stringToFhirResource;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.SEARCHSET;
 
@@ -17,6 +19,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Consent;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Period;
@@ -26,6 +29,8 @@ class GicsFhirUtilTest {
 
   private static final String POLICY_SYSTEM = "http://hospital.com/policy";
   private static final Set<String> POLICIES = Set.of("POLICY_A", "POLICY_B");
+  private static final String PATIENT_SYSTEM =
+      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
 
   @Test
   void onlyInnerBundlesWithAllPoliciesRemain() {
@@ -40,6 +45,44 @@ class GicsFhirUtilTest {
 
     assertThat(patientIds(filtered)).containsExactly("with-all");
     assertThat(filtered.getTotal()).isEqualTo(2);
+  }
+
+  @Test
+  void requestedPatientWithoutAllPoliciesRemainsWithoutConsents() {
+    var outerBundle =
+        Stream.of(
+                innerBundle("with-all", "POLICY_A", "POLICY_B"),
+                innerBundle("with-one", "POLICY_A"))
+            .collect(toBundle());
+
+    var filtered = filterRequestedOuterBundle(POLICY_SYSTEM, POLICIES, PATIENT_SYSTEM, outerBundle);
+
+    assertThat(patientIds(filtered)).containsExactly("with-all", "with-one");
+    var withOne = typedResourceStream(filtered, Bundle.class).toList().getLast();
+    assertThat(resourceStream(withOne)).singleElement().isInstanceOf(Patient.class);
+  }
+
+  @Test
+  void requestedPatientsKeepOnlyIdentifiersOfRequestedSystem() {
+    var covered = innerBundle("with-all", "POLICY_A", "POLICY_B");
+    var notCovered = innerBundle("with-one", "POLICY_A");
+    Stream.of(covered, notCovered)
+        .flatMap(b -> typedResourceStream(b, Patient.class))
+        .forEach(p -> {
+          p.addIdentifier().setSystem("http://mpi.example.com").setValue("mpi-" + p.getIdPart());
+          p.addIdentifier().setSystem(PATIENT_SYSTEM).setValue("pseudonym-" + p.getIdPart());
+        });
+    var outerBundle = Stream.of(covered, notCovered).collect(toBundle());
+
+    var filtered = filterRequestedOuterBundle(POLICY_SYSTEM, POLICIES, PATIENT_SYSTEM, outerBundle);
+
+    assertThat(typedResourceStream(filtered, Bundle.class))
+        .flatMap(b -> typedResourceStream(b, Patient.class).toList())
+        .flatMap(Patient::getIdentifier)
+        .extracting(Identifier::getSystem, Identifier::getValue)
+        .containsExactly(
+            tuple(PATIENT_SYSTEM, "pseudonym-with-all"),
+            tuple(PATIENT_SYSTEM, "pseudonym-with-one"));
   }
 
   @Test

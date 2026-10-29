@@ -1,7 +1,5 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
-
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.cda.TransferProcessRunnerConfig;
 import care.smith.fts.util.ConsentedPatientExtractor;
@@ -53,6 +51,6 @@ public class FhirCohortSelectorFactory implements CohortSelector.Factory<FhirCoh
     return new ConsentedPatientExtractor(
         patientIdentifierSystem,
         new RequiredPolicies(config.policySystem(), config.policies()),
-        b -> getPatientIdentifier(patientIdentifierSystem, b));
+        patientIdentifierSystem);
   }
 }
