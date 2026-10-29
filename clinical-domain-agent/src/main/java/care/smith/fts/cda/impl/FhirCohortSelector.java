@@ -7,7 +7,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.web.util.UriComponentsBuilder.*;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.RetryStrategy;
@@ -56,7 +56,7 @@ class FhirCohortSelector implements CohortSelector {
   }
 
   @Override
-  public Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
+  public Flux<CohortEntry> selectCohort(List<String> identifiers) {
     log.trace("selectCohort: {} identifiers", identifiers.size());
     return fetchBundle(b -> buildFhirSearchQuery(b, identifiers))
         .expand(this::fetchNextPage)
@@ -64,7 +64,7 @@ class FhirCohortSelector implements CohortSelector {
         .doOnNext(b -> log.debug("Found {} entries in bundle", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort from FHIR server: {}", e.getMessage()))
         .onErrorResume(WebClientException.class, FhirCohortSelector::handleWebClientException)
-        .flatMap(this::extractConsentedPatients);
+        .flatMap(this::extractCohortEntries);
   }
 
   private URI buildFhirSearchQuery(UriBuilder builder, List<String> identifiers) {
@@ -109,11 +109,11 @@ class FhirCohortSelector implements CohortSelector {
     }
   }
 
-  private Flux<ConsentedPatient> extractConsentedPatients(Bundle bundle) {
+  private Flux<CohortEntry> extractCohortEntries(Bundle bundle) {
     return groupPatientsAndConsents(bundle)
-        .mapNotNull(b -> extractor.consentedPatient(b).orElse(null))
-        .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
-        .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
+        .mapNotNull(b -> extractor.toCohortEntry(b).orElse(null))
+        .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
+        .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
 
   /**

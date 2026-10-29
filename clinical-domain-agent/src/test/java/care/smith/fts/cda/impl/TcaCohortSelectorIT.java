@@ -14,13 +14,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.cda.impl.mock.MockCohortSelector;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
@@ -100,14 +102,14 @@ class TcaCohortSelectorIT {
   public class FetchAllRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return TcaCohortSelectorIT.fetchAllRequest();
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return TcaCohortSelectorIT.cohortSelector.selectCohort(List.of());
         }
       };
@@ -118,14 +120,14 @@ class TcaCohortSelectorIT {
   public class FetchListRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return TcaCohortSelectorIT.fetchListRequest();
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return TcaCohortSelectorIT.cohortSelector.selectCohort(List.of("id"));
         }
 
@@ -196,6 +198,32 @@ class TcaCohortSelectorIT {
             .willReturn(fhirResponse(Stream.of(consent).collect(toBundle()))));
 
     create(cohortSelector.selectCohort(List.of("patient0"))).expectNextCount(1).verifyComplete();
+  }
+
+  /**
+   * The TCA forwards a patient whose only provision for the required policy has a malformed date,
+   * so the patient is excluded with a reason.
+   */
+  @Test
+  void consentWithMalformedDateOfRequiredPolicyExcludesPatient() {
+    var inner = allCohortSelector.generateConsents("patient", 1).getFirst();
+    typedResourceStream(inner, Consent.class)
+        .forEach(
+            c ->
+                c.getProvision()
+                    .setProvision(
+                        List.of(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben"))));
+    var outer = Stream.of(inner).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(outer))));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(
+            e ->
+                assertThat(e)
+                    .isInstanceOf(Excluded.class)
+                    .extracting(entry -> ((Excluded) entry).reason())
+                    .isEqualTo("Consent for policy MDAT_erheben has an unreadable date"))
+        .verifyComplete();
   }
 
   /**

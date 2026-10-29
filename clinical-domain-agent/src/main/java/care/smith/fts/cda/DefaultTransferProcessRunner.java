@@ -4,6 +4,7 @@ import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
 
+import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
@@ -162,6 +163,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .cohortSelector()
           .selectCohort(identifiers)
+          .ofType(Consented.class)
+          .map(Consented::patient)
           .doOnNext(
               p -> {
                 status.updateAndGet(TransferProcessStatus::incTotalPatients);

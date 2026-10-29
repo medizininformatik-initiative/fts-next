@@ -13,7 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
+import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
@@ -105,14 +107,14 @@ class FhirCohortSelectorIT {
   public class FetchAllRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return fetchAllRequest();
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return cohortSelector.selectCohort(List.of());
         }
       };
@@ -123,14 +125,14 @@ class FhirCohortSelectorIT {
   public class FetchListRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return fetchListRequest("patient-identifier-151337");
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return cohortSelector.selectCohort(List.of("patient-identifier-151337"));
         }
       };
@@ -213,11 +215,11 @@ class FhirCohortSelectorIT {
   }
 
   /**
-   * Patient b has only a consent with a malformed date, which grants no consent, while selection of
-   * a is not aborted.
+   * Patient b has only a consent with a malformed date, which grants no consent, so b is excluded
+   * with a reason, while selection of a is not aborted.
    */
   @Test
-  void consentWithMalformedDateGrantsNoConsent() {
+  void consentWithMalformedDateExcludesPatient() {
     var b = consentFor("b", "MDAT_erheben");
     b.getProvision()
         .setProvision(List.of(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben")));
@@ -226,8 +228,23 @@ class FhirCohortSelectorIT {
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(bundle))));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+    create(cohortSelector.selectCohort(List.of()).collectList())
+        .assertNext(
+            entries ->
+                assertThat(entries)
+                    .satisfiesExactlyInAnyOrder(
+                        a ->
+                            assertThat(a)
+                                .isInstanceOf(Consented.class)
+                                .extracting(CohortEntry::identifier)
+                                .isEqualTo("patient-identifier-a"),
+                        excluded ->
+                            assertThat(excluded)
+                                .isEqualTo(
+                                    new Excluded(
+                                        "patient-identifier-b",
+                                        "Consent for policy MDAT_erheben has an unreadable"
+                                            + " date"))))
         .verifyComplete();
   }
 

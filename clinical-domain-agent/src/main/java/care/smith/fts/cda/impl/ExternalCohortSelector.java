@@ -2,6 +2,7 @@ package care.smith.fts.cda.impl;
 
 import static reactor.core.publisher.Flux.fromStream;
 
+import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.CohortSelector;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +30,8 @@ public class ExternalCohortSelector
       log.trace(msg, config.patientIdentifierSystem(), identifiers.size());
       return fromStream(
           identifiers.stream()
-              .map(
-                  identifier ->
-                      new ConsentedPatient(identifier, config.patientIdentifierSystem())));
+              .map(identifier -> new ConsentedPatient(identifier, config.patientIdentifierSystem()))
+              .map(Consented::new));
     };
   }
 }
