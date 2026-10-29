@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.CohortEntry.Excluded;
+import care.smith.fts.api.CohortEntry.NotConsented;
 import org.junit.jupiter.api.Test;
 
 class CohortEntryTest {
@@ -29,5 +30,10 @@ class CohortEntryTest {
   @Test
   void excludedRequiresReason() {
     assertThatNullPointerException().isThrownBy(() -> new Excluded("id", null));
+  }
+
+  @Test
+  void notConsentedRequiresIdentifier() {
+    assertThatNullPointerException().isThrownBy(() -> new NotConsented(null));
   }
 }

@@ -1,6 +1,7 @@
 package care.smith.fts.cda.rest;
 
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
+import static care.smith.fts.util.error.ErrorResponseUtil.badRequest;
 import static care.smith.fts.util.error.ErrorResponseUtil.notFound;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -22,6 +23,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ProblemDetail;
@@ -88,12 +90,16 @@ public class TransferProcessController {
                     description = "Link to process status",
                     schema = @Schema(implementation = URI.class)),
             description = "The transfer has started successfully"),
+        @ApiResponse(responseCode = "400", description = "A patient identifier is null"),
         @ApiResponse(responseCode = "404", description = "The project could not be found")
       })
   Mono<ResponseEntity<Object>> start(
       @PathVariable("project") String project,
       @Valid @RequestBody(required = false) List<String> identifiers,
       UriComponentsBuilder uriBuilder) {
+    if (identifiers != null && identifiers.stream().anyMatch(Objects::isNull)) {
+      return badRequest(new IllegalArgumentException("Patient identifiers must not be null"));
+    }
     var process = findProcess(project);
     if (process.isPresent()) {
       log.debug("Running process: {}", process.get());
