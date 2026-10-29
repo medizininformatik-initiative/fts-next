@@ -4,8 +4,11 @@ import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.deidentifier.DeidentifierHandler;
 import care.smith.fts.deidentifier.HandlerContext;
+import care.smith.fts.deidentifier.internal.PseudonymUuid;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.IdType;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.StringType;
 
 /**
@@ -14,6 +17,9 @@ import org.hl7.fhir.r4.model.StringType;
  * Handlers that need collaborators are created by the static factory methods.
  */
 public interface Handlers {
+
+  /** The placeholder system of an identifier without a system, where that is accepted. */
+  String NO_SYSTEM = "<no_system>";
 
   /**
    * Truncates the postal code to its first three digits if it is five digits long. Any other postal
@@ -84,5 +90,66 @@ public interface Handlers {
     var replaced = string.copy();
     replaced.setValue(value);
     return replaced;
+  }
+
+  /**
+   * Replaces the id part with its pseudonym. The resource type used for the lookup is taken from
+   * the resource at the root of the context, not from the id itself.
+   *
+   * <p>HAPI reads the id of a transaction-bundle resource from the entry's {@code fullUrl} and
+   * keeps a urn id in one piece, so the id part of such a resource is {@code urn:uuid:<uuid>}
+   * rather than the raw {@code id} field of the JSON. The prefix is stripped before the lookup, so
+   * the provider sees the same string either way.
+   *
+   * <p>An id element without an id part carries only extensions; it passes through unchanged.
+   */
+  static DeidentifierHandler<IdType> idReplacementHandler(IDReplacementProvider provider) {
+    requireNonNull(provider);
+    return (id, context) ->
+        Optional.of(
+            Optional.ofNullable(id.getIdPart())
+                .map(PseudonymUuid::stripUrnUuid)
+                .map(
+                    idPart ->
+                        new IdType(
+                            id.getResourceType(),
+                            provider.getIDReplacement(
+                                context.resource().getResourceType().toString(), idPart)))
+                .orElse(id));
+  }
+
+  /**
+   * Replaces an identifier value with its pseudonym. Because the value is not unique on its own,
+   * the system of the enclosing identifier, the parent of the value, is passed along.
+   *
+   * <p>A value element without a value carries only extensions, e.g. a data-absent-reason; it
+   * passes through unchanged rather than being given an invented pseudonym.
+   *
+   * @param acceptNoSystem whether identifiers without a system are replaced under the placeholder
+   *     system {@link #NO_SYSTEM} instead of being rejected
+   * @throws IllegalStateException when the handler runs on an identifier without a system and does
+   *     not accept that; the message does not name the value, as source data must not reach logs
+   */
+  static DeidentifierHandler<StringType> identifierValueReplacementHandler(
+      IdentifierValueReplacementProvider provider, boolean acceptNoSystem) {
+    requireNonNull(provider);
+    return (value, context) ->
+        Optional.of(
+            Optional.ofNullable(value.getValue())
+                .map(
+                    plain ->
+                        new StringType(
+                            provider.getValueReplacement(
+                                systemOf((Identifier) context.parent(), acceptNoSystem), plain)))
+                .orElse(value));
+  }
+
+  private static String systemOf(Identifier identifier, boolean acceptNoSystem) {
+    return Optional.ofNullable(identifier.getSystem())
+        .or(() -> Optional.of(NO_SYSTEM).filter(placeholder -> acceptNoSystem))
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "An identifier is missing a system, which this replacement requires."));
   }
 }
