@@ -26,6 +26,23 @@ class TransferProcessStatusTest {
     assertThat(status.sentBundles()).isEqualTo(0);
     assertThat(status.skippedBundles()).isEqualTo(0);
     assertThat(status.excludedPatients()).isEqualTo(0);
+    assertThat(status.error()).isNull();
+  }
+
+  @Test
+  void failSetsFatalPhaseWithError() {
+    var status = TransferProcessStatus.create("process123").setPhase(Phase.RUNNING).fail("boom");
+
+    assertThat(status.phase()).isEqualTo(Phase.FATAL);
+    assertThat(status.finishedAt()).isNotNull();
+    assertThat(status.error()).isEqualTo("boom");
+  }
+
+  @Test
+  void failAfterCompletedKeepsStatus() {
+    var completed = TransferProcessStatus.create("process123").setPhase(Phase.COMPLETED);
+
+    assertThat(completed.fail("boom")).isEqualTo(completed);
   }
 
   @Test

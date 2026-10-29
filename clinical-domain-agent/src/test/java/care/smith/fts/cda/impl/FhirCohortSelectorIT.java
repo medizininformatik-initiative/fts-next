@@ -3,6 +3,7 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.cda.impl.FhirCohortSelectorFactory.consentedPatientExtractor;
 import static care.smith.fts.test.LogRecorder.messages;
 import static care.smith.fts.test.LogRecorder.recordLog;
+import static care.smith.fts.test.LogRecorder.stackTraces;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
@@ -40,6 +41,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -424,10 +426,67 @@ class FhirCohortSelectorIT {
         .containsExactly("Ignoring 1 consents that reference no patient of the bundle");
   }
 
-  /**
-   * Patient b has only a consent with a malformed date, which grants no consent, so b is excluded
-   * with a reason, while selection of a is not aborted.
-   */
+  @Test
+  void errorLogNamesNoPatient() {
+    wireMock.register(fetchListRequest("pid-4711").willReturn(notFound()));
+
+    var events =
+        recordLog(
+            FhirCohortSelector.class,
+            Level.TRACE,
+            () -> create(cohortSelector.selectCohort(List.of("pid-4711"))).verifyError());
+
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains("pid-4711"));
+    assertThat(stackTraces(events)).isNotEmpty();
+  }
+
+  @Test
+  void logsContainNoPatientIdentifiers() {
+    var bundle = Stream.of(patient("a"), consentFor("a", "MDAT_erheben")).collect(toBundle());
+    registerPage(fetchAllRequest(), bundle);
+
+    var entries = new ArrayList<CohortEntry>();
+
+    var events =
+        recordLog(
+            FhirCohortSelector.class,
+            Level.TRACE,
+            () -> entries.addAll(cohortSelector.selectCohort(List.of()).collectList().block()));
+
+    assertThat(entries).hasSize(1);
+    var identifier = entries.getFirst().identifier();
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains(identifier));
+  }
+
+  /** FHIR servers like Blaze repeat the search parameters in the next link. */
+  @Test
+  void logsOfNextPageContainNoRequestedIdentifiers() {
+    var requested = "patient-identifier-x";
+    var firstPage = Stream.<Resource>of(patient("x")).collect(toBundle());
+    firstPage
+        .addLink()
+        .setRelation("next")
+        .setUrl("/Patient?_page=1&identifier=" + PID_SYSTEM + "|" + requested);
+    wireMock.register(fetchListRequest(requested).willReturn(fhirResponse(firstPage)));
+    wireMock.register(
+        nextPageRequest().willReturn(fhirResponse(Stream.<Resource>of().collect(toBundle()))));
+    registerConsentsOf(
+        Stream.of(patient("x"), consentFor("x", "MDAT_erheben")).collect(toBundle()));
+
+    var events =
+        recordLog(
+            FhirCohortSelector.class,
+            Level.TRACE,
+            () ->
+                create(cohortSelector.selectCohort(List.of(requested)))
+                    .expectNextCount(1)
+                    .verifyComplete());
+
+    assertThat(messages(events))
+        .anyMatch(m -> m.contains("next page"))
+        .noneMatch(m -> m.contains(requested));
+  }
+
   @Test
   void consentWithMalformedDateExcludesPatient() {
     var b = consentFor("b", "MDAT_erheben");

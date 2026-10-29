@@ -18,9 +18,7 @@ import care.smith.fts.util.RequiredPolicies.Covered;
 import care.smith.fts.util.RequiredPolicies.Faulty;
 import care.smith.fts.util.RequiredPolicies.NotCovered;
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -34,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.slf4j.LoggerFactory;
 
 class RequiredPoliciesTest {
 
@@ -421,18 +418,6 @@ class RequiredPoliciesTest {
   }
 
   private static List<ILoggingEvent> recordLog(Runnable action) {
-    var logger = (Logger) LoggerFactory.getLogger(RequiredPolicies.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    var originalLevel = logger.getLevel();
-    logger.setLevel(Level.DEBUG);
-    try {
-      action.run();
-      return List.copyOf(appender.list);
-    } finally {
-      logger.detachAppender(appender);
-      logger.setLevel(originalLevel);
-    }
+    return LogEvents.recordLog(RequiredPolicies.class, Level.TRACE, action);
   }
 }

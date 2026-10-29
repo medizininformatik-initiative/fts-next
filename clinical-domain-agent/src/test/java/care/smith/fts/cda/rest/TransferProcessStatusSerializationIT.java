@@ -54,7 +54,8 @@ class TransferProcessStatusSerializationIT {
             0,
             0,
             0,
-            0);
+            0,
+            null);
     Mockito.when(processRunner.status(processId)).thenReturn(Mono.just(status));
 
     create(
@@ -93,7 +94,8 @@ class TransferProcessStatusSerializationIT {
             0,
             0,
             0,
-            0);
+            0,
+            null);
     Mockito.when(processRunner.statuses()).thenReturn(Mono.just(List.of(status)));
 
     create(client.get().uri("/api/v2/process/statuses").retrieve().bodyToMono(String.class))

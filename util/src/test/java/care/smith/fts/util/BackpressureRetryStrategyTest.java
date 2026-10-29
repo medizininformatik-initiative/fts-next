@@ -1,9 +1,11 @@
 package care.smith.fts.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import ch.qos.logback.classic.Level;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +55,28 @@ class BackpressureRetryStrategyTest {
     headers.add("Retry-After", retryAfter);
     return new WebClientResponseException(
         status, "status " + status, headers, new byte[0], StandardCharsets.UTF_8);
+  }
+
+  @Test
+  void retryLogNamesNoErrorMessage() {
+    var calls = new AtomicInteger();
+    var headers = new HttpHeaders();
+    headers.add("Retry-After", "1");
+    var error =
+        new WebClientResponseException(
+            429, "GET http://hds/Patient/patient-4711", headers, new byte[0], UTF_8);
+
+    var events =
+        LogEvents.recordLog(
+            BackpressureRetryStrategy.class,
+            Level.TRACE,
+            () ->
+                StepVerifier.withVirtualTime(() -> withRetry(calls, 1, error, "logged"))
+                    .thenAwait(Duration.ofSeconds(60))
+                    .expectNext("ok")
+                    .verifyComplete());
+
+    assertThat(LogEvents.messages(events)).isNotEmpty().noneMatch(m -> m.contains("patient-4711"));
   }
 
   @Test
