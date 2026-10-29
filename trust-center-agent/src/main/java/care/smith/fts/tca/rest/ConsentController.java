@@ -2,6 +2,10 @@ package care.smith.fts.tca.rest;
 
 import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.fromFhirException;
 import static care.smith.fts.util.error.fhir.FhirErrorResponseUtil.internalServerError;
+import static java.util.function.Predicate.not;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.just;
 
 import care.smith.fts.tca.consent.ConsentedPatientsProvider;
 import care.smith.fts.tca.consent.ConsentedPatientsProvider.PagingParams;
@@ -9,6 +13,7 @@ import care.smith.fts.util.MediaTypes;
 import care.smith.fts.util.error.fhir.FhirException;
 import care.smith.fts.util.tca.ConsentFetchAllRequest;
 import care.smith.fts.util.tca.ConsentFetchRequest;
+import care.smith.fts.util.tca.ConsentRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.Optional;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +80,7 @@ public class ConsentController {
         @ApiResponse(responseCode = "200", description = "Returns Bundle with consented patients"),
         @ApiResponse(
             responseCode = "400",
-            description = "Request body is no consent fetch request"),
+            description = "Request body is no consent fetch request or has no policies"),
         @ApiResponse(responseCode = "404", description = "Unknown domain"),
         @ApiResponse(
             responseCode = "500",
@@ -90,7 +96,9 @@ public class ConsentController {
       @RequestParam("count") Optional<Integer> count) {
     var pagingParams = new PagingParams(from.orElse(0), count.orElse(pageSize));
     var response =
-        request.flatMap(r -> consentedPatientsProvider.fetchAll(r, uriBuilder, pagingParams));
+        request
+            .flatMap(ConsentController::requirePolicies)
+            .flatMap(r -> consentedPatientsProvider.fetchAll(r, uriBuilder, pagingParams));
     return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
   }
 
@@ -123,7 +131,7 @@ public class ConsentController {
         @ApiResponse(responseCode = "200", description = "Returns Bundle with consented patients"),
         @ApiResponse(
             responseCode = "400",
-            description = "Request body is no consent fetch request"),
+            description = "Request body is no consent fetch request or has no policies"),
         @ApiResponse(responseCode = "404", description = "Unknown domain"),
         @ApiResponse(
             responseCode = "500",
@@ -139,8 +147,17 @@ public class ConsentController {
       @RequestParam("count") Optional<Integer> count) {
     var pagingParams = new PagingParams(from.orElse(0), count.orElse(pageSize));
     var response =
-        request.flatMap(r -> consentedPatientsProvider.fetch(r, uriBuilder, pagingParams));
+        request
+            .flatMap(ConsentController::requirePolicies)
+            .flatMap(r -> consentedPatientsProvider.fetch(r, uriBuilder, pagingParams));
     return response.map(ResponseEntity::ok).onErrorResume(ConsentController::errorResponse);
+  }
+
+  /** Rejects a request without policies, as every patient would lack consent. */
+  private static <R extends ConsentRequest> Mono<R> requirePolicies(R request) {
+    return Optional.ofNullable(request.policies()).filter(not(Set::isEmpty)).isPresent()
+        ? just(request)
+        : error(new FhirException(BAD_REQUEST, "Policies must not be empty"));
   }
 
   private static Mono<ResponseEntity<Bundle>> errorResponse(Throwable e) {
