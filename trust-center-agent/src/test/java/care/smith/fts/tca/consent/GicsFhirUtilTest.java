@@ -10,6 +10,7 @@ import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.SEARCHSET;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
@@ -42,7 +43,7 @@ class GicsFhirUtilTest {
   }
 
   @Test
-  void innerBundleWithUnreadableDateIsDroppedAndOthersRemain() {
+  void innerBundleWithUnreadableDateRemainsForReporting() {
     var outerBundle =
         Stream.of(
                 innerBundleWithUnreadablePolicyB("unreadable"),
@@ -51,7 +52,19 @@ class GicsFhirUtilTest {
 
     var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
 
-    assertThat(patientIds(filtered)).containsExactly("with-all");
+    assertThat(patientIds(filtered)).containsExactly("unreadable", "with-all");
+  }
+
+  @Test
+  void innerBundleWithoutStartDateRemainsForReporting() {
+    var withoutStart = innerBundle("without-start", "POLICY_A", "POLICY_B");
+    typedResourceStream(withoutStart, Consent.class)
+        .forEach(c -> c.getProvision().getProvision().getLast().setPeriod(null));
+    var outerBundle = Stream.of(withoutStart).collect(toBundle());
+
+    var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
+
+    assertThat(patientIds(filtered)).containsExactly("without-start");
   }
 
   @Test
@@ -71,6 +84,31 @@ class GicsFhirUtilTest {
     assertThat(resources).hasAtLeastOneElementOfType(Patient.class);
     assertThat(resources).hasAtLeastOneElementOfType(Consent.class);
     assertThat(resources).noneMatch(Observation.class::isInstance);
+  }
+
+  @Test
+  void innerBundleKeepsNoOtherPatientOrConsentData() {
+    var innerBundle = innerBundle("with-all", "POLICY_A", "POLICY_B", "POLICY_C");
+    typedResourceStream(innerBundle, Patient.class).forEach(p -> p.addName().setFamily("Doe"));
+    typedResourceStream(innerBundle, Consent.class).forEach(c -> c.setDateTime(new Date(0)));
+
+    var filtered =
+        filterOuterBundle(POLICY_SYSTEM, POLICIES, Stream.of(innerBundle).collect(toBundle()));
+
+    var inner = typedResourceStream(filtered, Bundle.class).findFirst().orElseThrow();
+    assertThat(typedResourceStream(inner, Patient.class)).noneMatch(Patient::hasName);
+    assertThat(typedResourceStream(inner, Consent.class))
+        .noneMatch(Consent::hasDateTime)
+        .flatMap(c -> c.getProvision().getProvision())
+        .flatMap(GicsFhirUtilTest::codes)
+        .containsExactlyInAnyOrder("POLICY_A", "POLICY_B");
+  }
+
+  private static List<String> codes(Consent.ProvisionComponent provision) {
+    return provision.getCode().stream()
+        .flatMap(c -> c.getCoding().stream())
+        .map(Coding::getCode)
+        .toList();
   }
 
   @Test
