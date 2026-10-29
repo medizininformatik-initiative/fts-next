@@ -2,8 +2,10 @@ package care.smith.fts.cda.rest;
 
 import static care.smith.fts.util.HeaderTypes.X_PROGRESS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
@@ -16,6 +18,7 @@ import care.smith.fts.cda.TransferProcessRunner.PatientError;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessRunner.Step;
 import care.smith.fts.cda.TransferProcessStatus;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,6 +67,18 @@ class TransferProcessControllerTest {
         .expectNext(
             ResponseEntity.accepted().headers(h -> h.add(CONTENT_LOCATION, uri.toString())).build())
         .verifyComplete();
+  }
+
+  @Test
+  void startWithNullIdentifierIsBadRequest() {
+    var result =
+        ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Patient identifiers must not be null");
+
+    var start =
+        api.start(EXISTING_PROJECT_NAME, Arrays.asList("a", null), fromUriString(MOCK_HOST));
+
+    create(start).expectNext(ResponseEntity.of(result).build()).verifyComplete();
+    verifyNoInteractions(mockRunner);
   }
 
   @Test

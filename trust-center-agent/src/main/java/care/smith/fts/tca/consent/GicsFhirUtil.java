@@ -1,6 +1,7 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.util.MinimalConsents.minimalConsents;
+import static care.smith.fts.util.MinimalConsents.minimalPatients;
 import static care.smith.fts.util.fhir.FhirClientUtils.fetchCapabilityStatementOperations;
 import static care.smith.fts.util.fhir.FhirClientUtils.requireOperations;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
@@ -9,9 +10,12 @@ import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import care.smith.fts.util.MinimalConsents;
 import care.smith.fts.util.RequiredPolicies;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CapabilityStatement;
+import org.hl7.fhir.r4.model.Consent;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -39,9 +43,48 @@ public interface GicsFhirUtil {
   static Bundle filterOuterBundle(
       String policySystem, Set<String> policiesToCheck, Bundle outerBundle) {
     var requiredPolicies = new RequiredPolicies(policySystem, policiesToCheck);
-    return typedResourceStream(outerBundle, Bundle.class)
+    return filterInnerBundles(outerBundle, b -> consentedOrFaulty(requiredPolicies, b));
+  }
+
+  /**
+   * Filters an outer Bundle of requested patients like {@link #filterOuterBundle}, but keeps the
+   * other patients having consents without their consents, so the clinical domain agent can report
+   * a requested patient whose consents do not cover all policies apart from one without any
+   * consent. Patients keep only identifiers of the requested patient identifier system.
+   */
+  static Bundle filterRequestedOuterBundle(
+      String policySystem,
+      Set<String> policiesToCheck,
+      String patientIdentifierSystem,
+      Bundle outerBundle) {
+    var requiredPolicies = new RequiredPolicies(policySystem, policiesToCheck);
+    return filterInnerBundles(
+        outerBundle,
+        b ->
+            Optional.of(b)
+                .filter(requiredPolicies::consentedOrFaulty)
+                .map(inner -> minimalConsents(requiredPolicies, patientIdentifierSystem, inner))
+                .or(() ->
+                    Optional.of(b)
+                        .filter(GicsFhirUtil::hasConsent)
+                        .map(inner -> minimalPatients(patientIdentifierSystem, inner))));
+  }
+
+  private static boolean hasConsent(Bundle bundle) {
+    return typedResourceStream(bundle, Consent.class).findAny().isPresent();
+  }
+
+  private static Optional<Bundle> consentedOrFaulty(RequiredPolicies requiredPolicies, Bundle b) {
+    return Optional.of(b)
         .filter(requiredPolicies::consentedOrFaulty)
-        .map(b -> minimalConsents(requiredPolicies, b))
+        .map(inner -> minimalConsents(requiredPolicies, inner));
+  }
+
+  private static Bundle filterInnerBundles(
+      Bundle outerBundle, Function<Bundle, Optional<Bundle>> filter) {
+    return typedResourceStream(outerBundle, Bundle.class)
+        .map(filter)
+        .flatMap(Optional::stream)
         .collect(toBundle(outerBundle.getType()))
         .setTotal(outerBundle.getTotal());
   }

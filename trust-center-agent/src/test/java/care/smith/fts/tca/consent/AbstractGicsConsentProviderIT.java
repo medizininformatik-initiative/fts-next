@@ -255,6 +255,13 @@ public abstract class AbstractGicsConsentProviderIT<
         .verifyComplete();
   }
 
+  /** A patient whose consents cover no required policy, as gICS returns it. */
+  protected Bundle innerBundleWithoutRequiredPolicies() {
+    var inner = gicsConsentGenerator.generateResource();
+    typedResourceStream(inner, Consent.class).forEach(c -> c.getProvision().getProvision().clear());
+    return inner;
+  }
+
   /** Test that empty policies yield an empty bundle. */
   @Test
   void emptyPoliciesYieldEmptyBundle() {

@@ -2,6 +2,7 @@ package care.smith.fts.tca.consent;
 
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -22,8 +23,10 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -127,6 +130,16 @@ class GicsFhirConsentedPatientsProviderFetchAllIT
                 ofEntries(
                     entry("_offset", equalTo("2")), entry("_count", equalTo(valueOf(pageSize)))))
             .willReturn(fhirResponse(bundle)));
+  }
+
+  @Test
+  void patientWithoutConsentIsNotReturned() {
+    var body = Stream.of(innerBundleWithoutRequiredPolicies()).collect(toBundle()).setTotal(1);
+    wireMock.register(getRequestMappingBuilder().willReturn(fhirResponse(body)));
+
+    create(executePagedRequest(getDefaultRequest(), 0, 2))
+        .assertNext(consentBundle -> assertThat(consentBundle.getEntry()).isEmpty())
+        .verifyComplete();
   }
 
   @Override
