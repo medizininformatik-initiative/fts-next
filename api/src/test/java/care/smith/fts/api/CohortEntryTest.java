@@ -1,5 +1,6 @@
 package care.smith.fts.api;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import care.smith.fts.api.CohortEntry.Consented;
@@ -11,6 +12,13 @@ class CohortEntryTest {
   @Test
   void consentedRequiresPatient() {
     assertThatNullPointerException().isThrownBy(() -> new Consented(null));
+  }
+
+  @Test
+  void consentedHasIdentifierOfPatient() {
+    var entry = new Consented(new ConsentedPatient("patient-1", "system"));
+
+    assertThat(entry.identifier()).isEqualTo("patient-1");
   }
 
   @Test
