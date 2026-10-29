@@ -1,6 +1,7 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
+import static care.smith.fts.tca.consent.GicsFhirUtil.filterRequestedOuterBundle;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.stringToFhirResource;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
@@ -40,6 +41,21 @@ class GicsFhirUtilTest {
 
     assertThat(patientIds(filtered)).containsExactly("with-all");
     assertThat(filtered.getTotal()).isEqualTo(2);
+  }
+
+  @Test
+  void requestedPatientWithoutAllPoliciesRemainsWithoutConsents() {
+    var outerBundle =
+        Stream.of(
+                innerBundle("with-all", "POLICY_A", "POLICY_B"),
+                innerBundle("with-one", "POLICY_A"))
+            .collect(toBundle());
+
+    var filtered = filterRequestedOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
+
+    assertThat(patientIds(filtered)).containsExactly("with-all", "with-one");
+    var withOne = typedResourceStream(filtered, Bundle.class).toList().getLast();
+    assertThat(resourceStream(withOne)).singleElement().isInstanceOf(Patient.class);
   }
 
   @Test

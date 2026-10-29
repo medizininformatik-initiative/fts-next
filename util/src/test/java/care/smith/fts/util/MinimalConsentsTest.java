@@ -7,6 +7,7 @@ import static care.smith.fts.util.ConsentBundles.deniedProvisionComponent;
 import static care.smith.fts.util.ConsentBundles.parsedProvision;
 import static care.smith.fts.util.ConsentBundles.permittedProvisionComponent;
 import static care.smith.fts.util.MinimalConsents.minimalConsents;
+import static care.smith.fts.util.MinimalConsents.minimalPatients;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,6 +46,18 @@ class MinimalConsentsTest {
     assertThat(minimal.getIdentifierFirstRep().getValue()).isEqualTo("12345");
     assertThat(minimal.hasName()).isFalse();
     assertThat(minimal.hasBirthDate()).isFalse();
+  }
+
+  @Test
+  void minimalPatientsKeepOnlyThePatientWithIdAndIdentifiers() {
+    var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"));
+    patient(bundle).addName().setFamily("Doe");
+
+    var minimal = minimalPatients(bundle);
+
+    assertThat(minimal.getEntry()).singleElement();
+    assertThat(patient(minimal).hasName()).isFalse();
+    assertThat(patient(minimal).getIdentifierFirstRep().getValue()).isEqualTo("12345");
   }
 
   @Test
@@ -100,6 +113,19 @@ class MinimalConsentsTest {
           assertThat(p.getPeriod().getStart()).isEqualTo(both.getPeriod().getStart());
           assertThat(p.hasActor()).isFalse();
         });
+  }
+
+  @Test
+  void consentWithoutPatientAndProvisionWithoutPeriodAreNotAltered() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", withoutPeriod);
+
+    var minimal = consent(minimalConsents(POLICIES_A_B, bundle));
+
+    assertThat(consent(bundle).hasPatient()).isFalse();
+    assertThat(withoutPeriod.hasPeriod()).isFalse();
+    assertThat(minimal.hasPatient()).isFalse();
+    assertThat(minimal.getProvision().getProvisionFirstRep().hasPeriod()).isFalse();
   }
 
   @Test

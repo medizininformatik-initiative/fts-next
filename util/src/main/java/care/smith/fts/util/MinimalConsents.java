@@ -22,13 +22,20 @@ public interface MinimalConsents {
    * The patients of the bundle with their ids and identifiers only, and their active consents with
    * the permit provisions of required policies only.
    */
-  static Bundle minimalConsents(RequiredPolicies requiredPolicies, Bundle bundle) {
+  public static Bundle minimalConsents(RequiredPolicies requiredPolicies, Bundle bundle) {
     var patients = typedResourceStream(bundle, Patient.class).map(MinimalConsents::minimalPatient);
     var consents =
         typedResourceStream(bundle, Consent.class)
             .filter(c -> c.getStatus() == ConsentState.ACTIVE)
             .map(c -> minimalConsent(requiredPolicies, c));
     return Stream.<Resource>concat(patients, consents).collect(toBundle(bundle.getType()));
+  }
+
+  /** The patients of the bundle with their ids and identifiers only, without their consents. */
+  public static Bundle minimalPatients(Bundle bundle) {
+    return typedResourceStream(bundle, Patient.class)
+        .map(MinimalConsents::minimalPatient)
+        .collect(toBundle(bundle.getType()));
   }
 
   private static Patient minimalPatient(Patient patient) {

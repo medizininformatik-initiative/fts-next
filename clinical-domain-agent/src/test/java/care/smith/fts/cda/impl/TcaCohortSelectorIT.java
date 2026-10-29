@@ -23,6 +23,7 @@ import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.CohortEntry.Excluded;
+import care.smith.fts.api.CohortEntry.NotConsented;
 import care.smith.fts.cda.impl.mock.MockCohortSelector;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
@@ -156,6 +157,19 @@ class TcaCohortSelectorIT {
     create(cohortSelector.selectCohort(List.of()))
         .expectErrorMessage("TCA Returns Bad Request")
         .verify();
+  }
+
+  @Test
+  void requestedPatientReturnedWithoutConsentsIsNotConsented() {
+    var patient = new Patient();
+    patient.addIdentifier().setSystem(GICS_IDENTIFIER_SYSTEM).setValue("patient-4711");
+    var inner = Stream.of(patient).collect(toBundle());
+    wireMock.register(
+        fetchListRequest().willReturn(fhirResponse(Stream.of(inner).collect(toBundle()))));
+
+    create(cohortSelector.selectCohort(List.of("patient-4711")))
+        .expectNext(new NotConsented("patient-4711"))
+        .verifyComplete();
   }
 
   @Test

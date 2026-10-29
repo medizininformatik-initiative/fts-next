@@ -102,7 +102,7 @@ class TcaCohortSelector implements CohortSelector {
 
   private Flux<CohortEntry> extractCohortEntries(Bundle outerBundle) {
     var resources = typedResourceStream(outerBundle, Bundle.class);
-    return Flux.fromStream(extractor.cohortEntries(resources))
+    return Flux.fromIterable(extractor.cohortEntries(resources))
         .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }

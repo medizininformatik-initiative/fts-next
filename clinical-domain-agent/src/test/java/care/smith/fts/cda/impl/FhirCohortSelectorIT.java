@@ -1,6 +1,8 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.impl.FhirCohortSelectorFactory.consentedPatientExtractor;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
@@ -16,13 +18,16 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.CohortEntry.Excluded;
+import care.smith.fts.api.CohortEntry.NotConsented;
 import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -175,6 +180,41 @@ class FhirCohortSelectorIT {
   }
 
   @Test
+  void patientWithoutConsentCoveringAllPoliciesIsNotConsented() {
+    var bundle = Stream.of(patient("b"), consentFor("b", "MDAT_speichern")).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .expectNext(new NotConsented("patient-identifier-b"))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientWithoutIdentifierOfConfiguredSystemIsCountedInWarning() {
+    var unidentified = patient("b");
+    unidentified.getIdentifierFirstRep().setSystem("http://other-system");
+    var bundle =
+        Stream.of(
+                patient("a"),
+                consentFor("a", "MDAT_erheben"),
+                unidentified,
+                consentFor("b", "MDAT_erheben"))
+            .collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    var events =
+        recordLog(
+            ConsentedPatientExtractor.class,
+            Level.WARN,
+            () ->
+                create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete());
+
+    assertThat(messages(events))
+        .singleElement()
+        .satisfies(m -> assertThat(m).contains("Ignoring 1 patients").doesNotContain("-b"));
+  }
+
+  @Test
   void consentsAreGroupedWithTheirOwnPatient() {
     var bundle =
         Stream.of(
@@ -185,8 +225,12 @@ class FhirCohortSelectorIT {
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+    create(cohortSelector.selectCohort(List.of()).collectList())
+        .assertNext(entries ->
+            assertThat(entries)
+                .filteredOn(Consented.class::isInstance)
+                .extracting(CohortEntry::identifier)
+                .containsExactly("patient-identifier-a"))
         .verifyComplete();
   }
 
@@ -208,8 +252,12 @@ class FhirCohortSelectorIT {
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+    create(cohortSelector.selectCohort(List.of()).collectList())
+        .assertNext(entries ->
+            assertThat(entries)
+                .filteredOn(Consented.class::isInstance)
+                .extracting(CohortEntry::identifier)
+                .containsExactly("patient-identifier-a"))
         .verifyComplete();
   }
 

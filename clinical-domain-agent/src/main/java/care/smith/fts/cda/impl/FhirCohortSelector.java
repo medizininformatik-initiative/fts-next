@@ -111,7 +111,9 @@ class FhirCohortSelector implements CohortSelector {
 
   private Flux<CohortEntry> extractCohortEntries(Bundle bundle) {
     return groupPatientsAndConsents(bundle)
-        .mapNotNull(b -> extractor.toCohortEntry(b).orElse(null))
+        .map(extractor::toCohortEntry)
+        .collectList()
+        .flatMapIterable(extractor::identified)
         .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
