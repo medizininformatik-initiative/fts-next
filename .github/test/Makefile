@@ -2,7 +2,7 @@
 	transfer-all transfer-list transfer-with-fhir-consent-list wait  \
 	check-status check-resources check-pseudonymization check-date-shift show-status show-hds \
 	clean-dbs clean-rd-hds \
-	download-test-data download-test-data-checksums check-test-data \
+	download-test-data \
 	openapi-specs list-projects show-project
 
 all: pull generate-certs start upload-test-data transfer-all wait check-status check-resources check-pseudonymization check-date-shift show-hds clean-dbs
@@ -29,17 +29,9 @@ check-certs:
 start: check-certs
 	docker compose ${COMPOSE_FILES} up --wait --pull missing ${SERVICES}
 
-download-test-data-checksums:
-	$(SCRIPTS)/download-test-data-checksums.sh MioAzTLMjzbPNyx
-	$(SCRIPTS)/download-test-data-checksums.sh 4p2JNfHa8mXmLSF
-
 download-test-data:
-	$(SCRIPTS)/download-test-data.sh MioAzTLMjzbPNyx ${TEST_SET_SIZE}
-	$(SCRIPTS)/download-test-data.sh 4p2JNfHa8mXmLSF ${TEST_SET_SIZE}
-
-check-test-data:
-	(cd ./test-data/MioAzTLMjzbPNyx && sha256sum -c checksums.sha256 --ignore-missing)
-	(cd ./test-data/4p2JNfHa8mXmLSF && sha256sum -c checksums.sha256 --ignore-missing)
+	$(SCRIPTS)/download-test-data.sh kds ${TEST_SET_SIZE}
+	$(SCRIPTS)/download-test-data.sh kds-fhir-consent
 
 upload-consents:
 	$(SCRIPTS)/upload-consents.sh ${TEST_SET_SIZE}
@@ -51,10 +43,10 @@ transfer-all:
 	$(SCRIPTS)/start-transfer-all.sh ${PROJECT} >process.url
 
 transfer-list:
-	$(SCRIPTS)/start-transfer-list.sh ${PROJECT} MioAzTLMjzbPNyx ${TEST_SET_SIZE} >process.url
+	$(SCRIPTS)/start-transfer-list.sh ${PROJECT} kds ${TEST_SET_SIZE} >process.url
 
 transfer-with-fhir-consent-list:
-	$(SCRIPTS)/start-transfer-list.sh ${PROJECT} 4p2JNfHa8mXmLSF ${TEST_SET_SIZE} >process.url
+	$(SCRIPTS)/start-transfer-list.sh ${PROJECT} kds-fhir-consent ${TEST_SET_SIZE} >process.url
 
 wait:
 	$(SCRIPTS)/await-transfer.sh "$(shell cat process.url)"

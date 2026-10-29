@@ -7,5 +7,5 @@ if ! cd_hds_base_url="http://$(docker compose port cd-hds 8080)/fhir"; then
 fi
 
 # Upload data from both datasets
-blazectl upload ./test-data/MioAzTLMjzbPNyx --server "${cd_hds_base_url}" -c 8
-blazectl upload ./test-data/4p2JNfHa8mXmLSF --server "${cd_hds_base_url}" -c 8
+blazectl upload ./test-data/kds/kds --server "${cd_hds_base_url}" -c 8
+blazectl upload ./test-data/kds-fhir-consent/kds --server "${cd_hds_base_url}" -c 8
