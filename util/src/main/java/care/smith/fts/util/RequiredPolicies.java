@@ -84,11 +84,6 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
         .orElseGet(NotCovered::new);
   }
 
-  /** The required policies the consents in the bundle cover, with their periods. */
-  public ConsentedPolicies consentedPolicies(Bundle bundle) {
-    return consentedPolicies(permitProvisions(bundle).toList(), Level.WARN);
-  }
-
   private ConsentedPolicies consentedPolicies(
       List<Consent.ProvisionComponent> provisions, Level skippedLevel) {
     var fromProvisions = provisions.stream().map(this::consentedPolicies).toList();
