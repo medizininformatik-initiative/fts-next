@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import care.smith.fts.deidentifier.internal.PseudonymUuid;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -15,6 +16,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.HTTPVerb;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.DateTimeType;
@@ -565,7 +567,7 @@ class DeidentifierTest {
   }
 
   @Test
-  void keepsNoFullUrlOfASurvivingEntry() {
+  void dropsTheFullUrlOfASurvivingEntryWithoutAReferenceRule() {
     var bundle = new Bundle();
     bundle
         .addEntry()
@@ -576,6 +578,82 @@ class DeidentifierTest {
 
     assertThat(result.getEntryFirstRep().hasFullUrl()).isFalse();
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  @Test
+  void keepsTheFullUrlOfASurvivingEntryAsTheUuidOfThePseudonym() {
+    var bundle = new Bundle();
+    bundle
+        .addEntry()
+        .setFullUrl("urn:uuid:source-chosen")
+        .setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+
+    var result =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())))
+            .deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntryFirstRep().getFullUrl())
+        .isEqualTo("urn:uuid:" + PseudonymUuid.uuidFrom("Patient/p-1"));
+    assertThat(bundle.getEntryFirstRep().getFullUrl()).isEqualTo("urn:uuid:source-chosen");
+  }
+
+  @Test
+  void showsTheReferenceHandlerTheBundleAndTheEntryOfTheFullUrl() {
+    var bundle = new Bundle();
+    var entry =
+        bundle
+            .addEntry()
+            .setFullUrl("urn:uuid:1")
+            .setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    var seen = new ArrayList<HandlerContext>();
+
+    new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)))
+        .deidentifyBundle(bundle, "p1");
+
+    assertThat(seen)
+        .singleElement()
+        .satisfies(
+            context -> {
+              assertThat(context.patientIdentifier()).isEqualTo("p1");
+              assertThat(context.parent()).isSameAs(entry);
+              assertThat(context.ancestors()).containsExactly(bundle, entry);
+            });
+  }
+
+  @Test
+  void keepsAnEntryWithoutFullUrlWithoutOne() {
+    var bundle = new Bundle();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    var seen = new ArrayList<HandlerContext>();
+
+    var result =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)))
+            .deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntryFirstRep().hasFullUrl()).isFalse();
+    assertThat(seen).isEmpty();
+  }
+
+  @Test
+  void givesTwoEntriesWithTheSamePseudonymTheSameFullUrl() {
+    var bundle = new Bundle();
+    bundle
+        .addEntry()
+        .setFullUrl("urn:uuid:a")
+        .setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle
+        .addEntry()
+        .setFullUrl("urn:uuid:b")
+        .setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+
+    var result =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())))
+            .deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntry())
+        .extracting(BundleEntryComponent::getFullUrl)
+        .containsOnly("urn:uuid:" + PseudonymUuid.uuidFrom("Patient/p-1"))
+        .hasSize(2);
   }
 
   /** A bundle with one patient entry whose request has {@code method} and {@code url}. */
@@ -757,6 +835,17 @@ class DeidentifierTest {
     var entry = bundle.addEntry().setFullUrl("urn:uuid:1");
     entry.getRequest().setMethod(HTTPVerb.DELETE).setUrl(url).setIfMatch("W/\"1\"");
     return bundle;
+  }
+
+  @Test
+  void neverAsksTheReferenceHandlerForTheFullUrlOfADeleteEntry() {
+    var seen = new ArrayList<HandlerContext>();
+
+    new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)))
+        .deidentifyBundle(deleteEntry("Patient/123"), "p");
+
+    assertThat(seen).hasSize(1);
+    assertThat(seen.get(0).ancestors()).hasSize(3);
   }
 
   @ParameterizedTest

@@ -2,6 +2,7 @@ package care.smith.fts.deidentifier;
 
 import static java.util.Objects.requireNonNull;
 
+import care.smith.fts.deidentifier.internal.PseudonymUuid;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import org.hl7.fhir.r4.model.Resource;
@@ -67,6 +68,24 @@ public final class BundleEntryUrls {
     var namesAResource =
         TYPE_AND_ID_URL.matcher(url).matches() || CONDITIONAL_URL.matcher(url).matches();
     return namesAResource ? replace(url, context) : Optional.empty();
+  }
+
+  /**
+   * The {@code fullUrl} of an entry with a resource. Only the literal form {@code urn:uuid:...}
+   * survives, as the same form carrying the pseudonym; any other form goes, because it names a
+   * location the source system chose.
+   *
+   * <p>The reference rule receives the {@code urn:uuid:} value unchanged and returns {@code
+   * Type/<pseudonym>}; the new urn is derived from that whole result, so the type keeps two
+   * resources apart whose pseudonyms coincide. The rule sees the entry's resource through the
+   * context, as for any other reference.
+   */
+  public Optional<String> fullUrl(String fullUrl, HandlerContext context) {
+    if (!PseudonymUuid.isUrnUuid(fullUrl)) {
+      return Optional.empty();
+    }
+    return replace(fullUrl, context)
+        .map(reference -> PseudonymUuid.URN_UUID_PREFIX + PseudonymUuid.uuidFrom(reference));
   }
 
   private Optional<String> replace(String url, HandlerContext context) {

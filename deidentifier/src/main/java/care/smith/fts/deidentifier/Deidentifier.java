@@ -103,11 +103,17 @@ public class Deidentifier {
   /**
    * The entry around a de-identified resource. Of the request only {@code method} and {@code url}
    * survive, and only while the url names nothing the source system chose: see {@link
-   * BundleEntryUrls#requestUrl(String, Resource, HandlerContext)}.
+   * BundleEntryUrls#requestUrl(String, Resource, HandlerContext)}. The {@code fullUrl} survives as
+   * the uuid of the pseudonym, see {@link BundleEntryUrls#fullUrl(String, HandlerContext)}.
    */
   private BundleEntryComponent rebuildEntry(
       BundleEntryComponent entry, Resource deidentified, HandlerContext entryContext) {
     var rebuilt = new BundleEntryComponent().setResource(deidentified);
+    Optional.of(entry)
+        .filter(BundleEntryComponent::hasFullUrl)
+        .map(BundleEntryComponent::getFullUrl)
+        .flatMap(fullUrl -> entryUrls.fullUrl(fullUrl, entryContext))
+        .ifPresent(rebuilt::setFullUrl);
     rebuildRequestOf(
             entry, entryContext, (url, context) -> entryUrls.requestUrl(url, deidentified, context))
         .ifPresent(rebuilt::setRequest);

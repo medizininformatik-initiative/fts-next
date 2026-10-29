@@ -100,3 +100,46 @@ sequenceDiagram
     TCA ->> RDA: tID➙sID, tID➙shiftedDate
     RDA ->> RDA: resolve tIDs to sIDs and dates
 ```
+
+## Bundle Entries
+
+The de-identification engine rebuilds each entry of a bundle. Of the entry it keeps only the
+resource, `fullUrl` and `request` (`method` and `url`). A value that names a resource by what the
+source system chose goes through the reference rule, or the engine drops it.
+
+| Value                                   | Entry with a resource               | Entry without a resource (DELETE) |
+|-----------------------------------------|-------------------------------------|-----------------------------------|
+| `fullUrl` `urn:uuid:…`                  | `urn:uuid:<uuid of Type/pseudonym>` | dropped                           |
+| any other `fullUrl`                     | dropped                             | dropped                           |
+| `request.url` `Patient`                 | kept                                | entry dropped                     |
+| `request.url` `Patient/123`             | `Patient/<id of the resource>`      | reference rule                    |
+| `request.url` `Patient?identifier=…`    | reference rule                      | reference rule                    |
+| any other `request.url`                 | request dropped                     | entry dropped                     |
+
+If no reference rule is configured, the engine drops every value that needs one.
+
+### Pseudonym UUID
+
+A `fullUrl` of the form `urn:uuid:…` must hold an RFC 4122 UUID. A pseudonym such as
+`SYNTH-ID-7D2BAA5F` is not a UUID. So the engine derives a UUID from the pseudonym:
+
+1. The reference rule replaces `urn:uuid:abc` with `Type/<pseudonym>`.
+2. The engine computes the name-based version 3 UUID (MD5) of the UTF-8 bytes of
+   `Type/<pseudonym>`.
+3. The new `fullUrl` is `urn:uuid:<uuid>`.
+
+The same `Type/<pseudonym>` always gives the same UUID. The type is part of the input, so two
+resources of different types with the same pseudonym get different UUIDs. A reference
+`urn:uuid:abc` inside a resource must go through the same derivation, so that it still points to
+the entry.
+
+The UUID is not a security function. Its input is already a pseudonym, so the hash has no key and
+hides nothing. It only puts the pseudonym into UUID form.
+
+In FTSnext the CDA runs the engine, so the pseudonym is the tID:
+
+- The UUID changes with every transfer, as the tID does.
+- The RDA replaces resource ids, references of the form `Type/tID` and identifier values with
+  sIDs. It does not replace a `urn:uuid:` value.
+- The RDA sends its own transaction bundle with only `request` and `resource` per entry. So the
+  research domain stores no `fullUrl`.

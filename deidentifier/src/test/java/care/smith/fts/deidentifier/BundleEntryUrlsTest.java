@@ -3,6 +3,8 @@ package care.smith.fts.deidentifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import care.smith.fts.deidentifier.internal.PseudonymUuid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.Patient;
@@ -138,5 +140,59 @@ class BundleEntryUrlsTest {
   @Test
   void refusesANullReferenceHandler() {
     assertThatThrownBy(() -> BundleEntryUrls.of(null)).isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void carriesThePseudonymizedReferenceOfAUrnUuidFullUrlAsAUuid() {
+    var seen = new ArrayList<String>();
+    var entryUrls =
+        BundleEntryUrls.of(
+            (value, context) -> {
+              seen.add(value.getValue());
+              return Optional.of(new StringType("Patient/SYNTH-1"));
+            });
+
+    var fullUrl = entryUrls.fullUrl("urn:uuid:source-chosen", CONTEXT);
+
+    assertThat(seen).containsExactly("urn:uuid:source-chosen");
+    assertThat(fullUrl).contains("urn:uuid:" + PseudonymUuid.uuidFrom("Patient/SYNTH-1"));
+  }
+
+  @Test
+  void dropsAUrnUuidFullUrlWhenTheHandlerRemovesIt() {
+    var entryUrls = BundleEntryUrls.of((value, context) -> Optional.empty());
+
+    assertThat(entryUrls.fullUrl("urn:uuid:1", CONTEXT)).isEmpty();
+  }
+
+  @Test
+  void dropsAUrnUuidFullUrlWhenTheHandlerReturnsAValuelessString() {
+    var entryUrls = BundleEntryUrls.of((value, context) -> Optional.of(new StringType()));
+
+    assertThat(entryUrls.fullUrl("urn:uuid:1", CONTEXT)).isEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"https://server.example/fhir/Patient/123", "urn:oid:1.2.3", "Patient/123", ""})
+  void dropsAFullUrlThatIsNoUrnUuidWithoutAskingTheHandler(String fullUrl) {
+    var entryUrls = BundleEntryUrls.of(FAILING);
+
+    assertThat(entryUrls.fullUrl(fullUrl, CONTEXT)).isEmpty();
+  }
+
+  @Test
+  void dropsEveryFullUrlWithoutAReferenceRule() {
+    assertThat(BundleEntryUrls.none().fullUrl("urn:uuid:1", CONTEXT)).isEmpty();
+  }
+
+  @Test
+  void givesTheSamePseudonymUnderTwoTypesTwoFullUrls() {
+    var patient = BundleEntryUrls.of((value, context) -> Optional.of(new StringType("Patient/X")));
+    var encounter =
+        BundleEntryUrls.of((value, context) -> Optional.of(new StringType("Encounter/X")));
+
+    assertThat(patient.fullUrl("urn:uuid:1", CONTEXT))
+        .isNotEqualTo(encounter.fullUrl("urn:uuid:2", CONTEXT));
   }
 }
