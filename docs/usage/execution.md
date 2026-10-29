@@ -80,7 +80,10 @@ The status response looks like this:
 ### Failed Patients
 
 When `skippedBundles` or `skippedPatients` is greater than zero, the failed patients
-endpoint returns which patients failed and at which step:
+endpoint returns which patients failed and at which step. Patients excluded at step
+`SELECT_COHORT` have a faulty consent, e.g. one without start date. When a transfer is
+started for a list of patients, each listed patient without consent covering all required
+policies is reported there as well:
 
 ```shell
 curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c0eafbe8ead0/failed_patients"

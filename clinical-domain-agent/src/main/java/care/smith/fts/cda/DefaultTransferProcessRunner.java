@@ -2,6 +2,7 @@ package care.smith.fts.cda;
 
 import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Stream.concat;
 
 import care.smith.fts.api.CohortEntry;
@@ -17,6 +18,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +32,8 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Component
 public class DefaultTransferProcessRunner implements TransferProcessRunner {
+
+  private static final String NO_CONSENT = "No consent covering all required policies";
 
   private final Map<String, TransferProcessInstance> instances = new HashMap<>();
   private final Queue<TransferProcessInstance> queued = new LinkedList<>() {};
@@ -162,10 +167,13 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
       log.trace("[Process {}] selectCohort with {} identifiers", processId(), identifiers.size());
+      var selected = ConcurrentHashMap.<String>newKeySet();
       return process
           .cohortSelector()
           .selectCohort(identifiers)
+          .doOnNext(e -> selected.add(e.identifier()))
           .doOnNext(this::reportIfExcluded)
+          .doOnComplete(() -> reportUnselected(identifiers, selected))
           .ofType(Consented.class)
           .map(Consented::patient)
           .doOnNext(
@@ -182,15 +190,31 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .onErrorComplete();
     }
 
-    /** Records an excluded patient as failed patient; the log names only the reason. */
     private void reportIfExcluded(CohortEntry entry) {
       if (entry instanceof Excluded excluded) {
-        // Increment counter first, as in handlePatientError
-        status.updateAndGet(TransferProcessStatus::incSkippedPatients);
-        failedPatients.add(
-            new PatientError(excluded.identifier(), Step.SELECT_COHORT, excluded.reason()));
-        log.warn("[Process {}] Patient excluded from cohort: {}", processId(), excluded.reason());
+        reportExcluded(excluded);
       }
+    }
+
+    /**
+     * Reports each requested patient the cohort selection returned neither as consented nor
+     * excluded.
+     */
+    private void reportUnselected(List<String> requested, Set<String> selected) {
+      requested.stream()
+          .distinct()
+          .filter(not(selected::contains))
+          .map(id -> new Excluded(id, NO_CONSENT))
+          .forEach(this::reportExcluded);
+    }
+
+    /** Records an excluded patient as failed patient; the log names only the reason. */
+    private void reportExcluded(Excluded excluded) {
+      // Increment counter first, as in handlePatientError
+      status.updateAndGet(TransferProcessStatus::incSkippedPatients);
+      failedPatients.add(
+          new PatientError(excluded.identifier(), Step.SELECT_COHORT, excluded.reason()));
+      log.warn("[Process {}] Patient excluded from cohort: {}", processId(), excluded.reason());
     }
 
     private Flux<ConsentedPatientBundle> selectData(Flux<ConsentedPatient> cohortSelection) {
