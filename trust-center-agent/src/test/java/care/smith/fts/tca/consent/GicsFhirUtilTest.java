@@ -42,7 +42,7 @@ class GicsFhirUtilTest {
   }
 
   @Test
-  void innerBundleWithUnreadableDateIsDroppedAndOthersRemain() {
+  void innerBundleWithUnreadableDateRemainsForReporting() {
     var outerBundle =
         Stream.of(
                 innerBundleWithUnreadablePolicyB("unreadable"),
@@ -51,7 +51,19 @@ class GicsFhirUtilTest {
 
     var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
 
-    assertThat(patientIds(filtered)).containsExactly("with-all");
+    assertThat(patientIds(filtered)).containsExactly("unreadable", "with-all");
+  }
+
+  @Test
+  void innerBundleWithoutStartDateRemainsForReporting() {
+    var withoutStart = innerBundle("without-start", "POLICY_A", "POLICY_B");
+    typedResourceStream(withoutStart, Consent.class)
+        .forEach(c -> c.getProvision().getProvision().getLast().setPeriod(null));
+    var outerBundle = Stream.of(withoutStart).collect(toBundle());
+
+    var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
+
+    assertThat(patientIds(filtered)).containsExactly("without-start");
   }
 
   @Test
