@@ -9,6 +9,7 @@ import static reactor.test.StepVerifier.create;
 import care.smith.fts.api.*;
 import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.CohortEntry.Excluded;
+import care.smith.fts.api.CohortEntry.NotConsented;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
@@ -200,6 +201,152 @@ class DefaultTransferProcessRunnerTest {
         .extracting(ILoggingEvent::getFormattedMessage)
         .anyMatch(m -> m.contains("Faulty consent"))
         .noneMatch(m -> m.contains(PATIENT_IDENTIFIER));
+  }
+
+  @Test
+  void requestedPatientWithoutConsentIsRecordedAsFailedPatient() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Consented(PATIENT),
+                    new Excluded(PATIENT_IDENTIFIER_2, "Faulty consent"),
+                    new NotConsented(PATIENT_IDENTIFIER_3)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var requested =
+        List.of(PATIENT_IDENTIFIER, PATIENT_IDENTIFIER_2, PATIENT_IDENTIFIER_3, "patient-unknown");
+    var processId = runner.start(process, requested);
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+          assertThat(r.excludedPatients()).isEqualTo(3);
+        })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(errors ->
+            assertThat(errors)
+                .containsExactly(
+                    new PatientError(PATIENT_IDENTIFIER_2, Step.SELECT_COHORT, "Faulty consent"),
+                    new PatientError(
+                        PATIENT_IDENTIFIER_3,
+                        Step.SELECT_COHORT,
+                        "No consent covering all required policies"),
+                    new PatientError("patient-unknown", Step.SELECT_COHORT, "No consent found")))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientExcludedAndConsentedByTheSelectionIsTransferredAndNotRecorded() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Excluded(PATIENT_IDENTIFIER, "Faulty consent"), new Consented(PATIENT)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+          assertThat(r.sentBundles()).isEqualTo(1);
+          assertThat(r.excludedPatients()).isEqualTo(0);
+        })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(errors -> assertThat(errors).isEmpty())
+        .verifyComplete();
+  }
+
+  @Test
+  void patientExcludedTwiceIsRecordedOnce() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Excluded(PATIENT_IDENTIFIER, "Faulty consent"),
+                    new Excluded(PATIENT_IDENTIFIER, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.excludedPatients()).isEqualTo(1))
+        .verifyComplete();
+  }
+
+  @Test
+  void requestedPatientWithoutConsentIsRecordedOnce() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.empty(),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of(PATIENT_IDENTIFIER, PATIENT_IDENTIFIER));
+    waitForCompletion(processId);
+
+    create(runner.failedPatients(processId))
+        .assertNext(errors -> assertThat(errors).hasSize(1))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientsWithoutConsentAreNotRecordedWhenSelectingAllPatients() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> consented(PATIENT),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED))
+        .verifyComplete();
+  }
+
+  @Test
+  void requestedPatientsAreNotRecordedWhenCohortSelectionFails() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.error(new RuntimeException("Cohort fetch boom")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of(PATIENT_IDENTIFIER));
+    waitForCompletion(processId);
+
+    create(runner.failedPatients(processId))
+        .assertNext(errors -> assertThat(errors).isEmpty())
+        .verifyComplete();
   }
 
   @Test

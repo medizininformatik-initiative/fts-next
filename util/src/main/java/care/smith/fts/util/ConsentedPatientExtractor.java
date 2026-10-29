@@ -6,13 +6,16 @@ import static java.util.Objects.requireNonNull;
 import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.CohortEntry.Excluded;
+import care.smith.fts.api.CohortEntry.NotConsented;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.util.RequiredPolicies.Covered;
 import care.smith.fts.util.RequiredPolicies.Faulty;
 import care.smith.fts.util.RequiredPolicies.NotCovered;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Patient;
@@ -24,6 +27,7 @@ import org.hl7.fhir.r4.model.Patient;
  * @param requiredPolicies the policies a patient has to consent to
  * @param patientIdentifierExtractor function to extract the patient identifier from a bundle
  */
+@Slf4j
 public record ConsentedPatientExtractor(
     String patientIdentifierSystem,
     RequiredPolicies requiredPolicies,
@@ -35,16 +39,34 @@ public record ConsentedPatientExtractor(
     requireNonNull(patientIdentifierExtractor, "Patient identifier extractor cannot be null");
   }
 
-  /** The cohort entries of the given bundles, see {@link #toCohortEntry(Bundle)}. */
-  public Stream<CohortEntry> cohortEntries(Stream<Bundle> bundles) {
-    return bundles.map(this::toCohortEntry).flatMap(Optional::stream);
+  /**
+   * The cohort entries of the given bundles, see {@link #toCohortEntry} and {@link #identified}.
+   */
+  public List<CohortEntry> cohortEntries(Stream<Bundle> bundles) {
+    return identified(bundles.map(this::toCohortEntry).toList());
+  }
+
+  /**
+   * The present cohort entries. Warns once about the patients without an identifier of the
+   * configured system, as they hint at a misconfigured identifier system.
+   */
+  public List<CohortEntry> identified(List<Optional<CohortEntry>> entries) {
+    var identified = entries.stream().flatMap(Optional::stream).toList();
+    var unidentified = entries.size() - identified.size();
+    if (unidentified > 0) {
+      log.warn(
+          "Ignoring {} patients without an identifier of the configured patient identifier system",
+          unidentified);
+    }
+    return identified;
   }
 
   /**
    * Classifies the patient of the given bundle for the cohort.
    *
-   * @return {@link Consented} if all required policies are consented to, {@link Excluded} if a each
-   *     missing policy is only covered by a faulty provision, otherwise empty
+   * @return {@link Consented} if all required policies are consented to, {@link Excluded} if each
+   *     missing policy is only covered by a faulty provision, otherwise {@link NotConsented}; empty
+   *     if the patient has no identifier
    */
   public Optional<CohortEntry> toCohortEntry(Bundle bundle) {
     return patientIdentifierExtractor.apply(bundle).flatMap(id -> classifyPatient(id, bundle));
@@ -57,7 +79,7 @@ public record ConsentedPatientExtractor(
               new Consented(
                   new ConsentedPatient(patientIdentifier, patientIdentifierSystem, c.policies())));
       case Faulty f -> Optional.of(new Excluded(patientIdentifier, f.reason()));
-      case NotCovered n -> Optional.empty();
+      case NotCovered n -> Optional.of(new NotConsented(patientIdentifier));
     };
   }
 

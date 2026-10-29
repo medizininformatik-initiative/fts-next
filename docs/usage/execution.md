@@ -90,8 +90,9 @@ The status response looks like this:
 ### Failed Patients
 
 When `skippedBundles` or `excludedPatients` is greater than zero, the failed patients
-endpoint returns which patients failed or were excluded, and at which step. Excluded
-patients have the step `SELECT_COHORT`:
+endpoint returns which patients failed or were excluded, and at which step. Patients
+excluded at step `SELECT_COHORT` are explained in
+[Excluded Patients](#excluded-patients):
 
 ```shell
 curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c0eafbe8ead0/failed_patients"
@@ -126,6 +127,34 @@ curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c
 | `errorMessage`      | Error message describing the failure                                                                   |
 
 [API Reference for Failed Patients Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-/failed_patients)
+
+### Excluded Patients
+
+The cohort selection excludes a patient for one of these reasons, given as `errorMessage`
+with step `SELECT_COHORT`:
+
+| Reason                                                  | Meaning                                                                                                     | Reported                       |
+|---------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|--------------------------------|
+| `Consent for policy … has no start date`                | The only consent for a required policy cannot be evaluated; fix the consent, e.g. in gICS                   | Always                         |
+| `Consent for policy … has an unreadable date`           | As above, its start or end date cannot be read                                                              | Always                         |
+| `No consent covering all required policies`             | The patient has consents, but not for all required policies                                                 | For a list of patients only    |
+| `No consent found`                                      | The consent source returned nothing for the patient                                                         | For a list of patients only    |
+
+If several required policies have a faulty consent, the reasons are joined by `; `. A
+patient is excluded for a faulty consent only if every policy it lacks has one; otherwise
+correcting the consent would not make the patient transferable.
+
+`No consent found` can also mean that the clinical domain agent cannot match the
+consent source's patients to the requested identifiers. Check these warnings in the log of
+the clinical domain agent:
+
+* `Ignoring N patients without an identifier of the configured patient identifier system`:
+  the patients returned by the consent source carry no identifier of the configured
+  system, e.g. `patientIdentifierSystem` or `signerIdType` does not match the consent
+  source.
+* `Ignoring N consents that reference no patient of the bundle`: with a FHIR server as
+  consent source, consents must reference their patient by a literal reference, e.g.
+  `Patient/123`, not by identifier only.
 
 ## Monitoring
 

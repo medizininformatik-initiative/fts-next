@@ -4,6 +4,7 @@ import static care.smith.fts.tca.TtpFhirGatewayUtil.handle4xxError;
 import static care.smith.fts.tca.TtpFhirGatewayUtil.handleError;
 import static care.smith.fts.tca.consent.GicsFhirUtil.GICS_OPERATIONS;
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
+import static care.smith.fts.tca.consent.GicsFhirUtil.filterRequestedOuterBundle;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
 
@@ -85,7 +86,14 @@ public class GicsFhirConsentedPatientsProvider implements ConsentedPatientsProvi
         .retryWhen(retryStrategy.forRequest(helper.requestName()))
         .onErrorResume(e -> handleError("gICS", e))
         .doOnError(b -> log.error("Unable to fetch consent from gICS", b))
-        .map(outerBundle -> filterOuterBundle(req.policySystem(), req.policies(), outerBundle))
+        .map(outerBundle -> filter(req, outerBundle))
         .map(bundle -> helper.processResponse(bundle, req, requestUrl, paging));
+  }
+
+  /** Keeps requested patients without consent, so they can be reported apart from unknown ones. */
+  private static Bundle filter(ConsentRequest req, Bundle outerBundle) {
+    return req instanceof ConsentFetchRequest
+        ? filterRequestedOuterBundle(req.policySystem(), req.policies(), outerBundle)
+        : filterOuterBundle(req.policySystem(), req.policies(), outerBundle);
   }
 }
