@@ -27,7 +27,9 @@ public interface GicsFhirUtil {
 
   /**
    * Filters an outer Bundle based on the provided policies. The outer Bundle contains Bundles that
-   * in turn contain with Consent, Patient, and others. More info can be found here: <a
+   * in turn contain with Consent, Patient, and others. Patients whose consents cover all policies
+   * remain, as do patients missing a policy only because of a faulty consent, so the clinical
+   * domain agent can report them. More info can be found here: <a
    * href="https://www.ths-greifswald.de/wp-content/uploads/tools/fhirgw/ig/2023-1-2/ImplementationGuide-markdown-Einwilligungsmanagement-Operations-allConsentsForDomain.html">...</a>
    *
    * @param policiesToCheck the set of policies to check
@@ -38,7 +40,7 @@ public interface GicsFhirUtil {
       String policySystem, Set<String> policiesToCheck, Bundle outerBundle) {
     var requiredPolicies = new RequiredPolicies(policySystem, policiesToCheck);
     return typedResourceStream(outerBundle, Bundle.class)
-        .filter(requiredPolicies::allConsented)
+        .filter(requiredPolicies::consentedOrFaulty)
         .map(GicsFhirUtil::filterInnerBundle)
         .collect(toBundle(outerBundle.getType()))
         .setTotal(outerBundle.getTotal());
