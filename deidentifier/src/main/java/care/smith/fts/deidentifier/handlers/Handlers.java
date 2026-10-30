@@ -4,8 +4,13 @@ import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.deidentifier.DeidentifierHandler;
 import care.smith.fts.deidentifier.HandlerContext;
+import care.smith.fts.deidentifier.internal.IdentifierToken;
+import care.smith.fts.deidentifier.internal.PseudonymUuid;
+import care.smith.fts.deidentifier.internal.References;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.IdType;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.StringType;
 
 /**
@@ -14,6 +19,9 @@ import org.hl7.fhir.r4.model.StringType;
  * Handlers that need collaborators are created by the static factory methods.
  */
 public interface Handlers {
+
+  /** The placeholder system of an identifier without a system, where that is accepted. */
+  String NO_SYSTEM = "<no_system>";
 
   /**
    * Truncates the postal code to its first three digits if it is five digits long. Any other postal
@@ -84,5 +92,134 @@ public interface Handlers {
     var replaced = string.copy();
     replaced.setValue(value);
     return replaced;
+  }
+
+  /**
+   * Replaces the id part with its pseudonym. The resource type used for the lookup is taken from
+   * the resource at the root of the context, not from the id itself.
+   *
+   * <p>HAPI reads the id of a transaction-bundle resource from the entry's {@code fullUrl} and
+   * keeps a urn id in one piece, so the id part of such a resource is {@code urn:uuid:<uuid>}
+   * rather than the raw {@code id} field of the JSON. The prefix is stripped before the lookup, so
+   * the provider sees the same string either way.
+   *
+   * <p>An id element without an id part carries only extensions; it passes through unchanged.
+   */
+  static DeidentifierHandler<IdType> idReplacementHandler(IDReplacementProvider provider) {
+    requireNonNull(provider);
+    return (id, context) ->
+        Optional.of(
+            Optional.ofNullable(id.getIdPart())
+                .map(PseudonymUuid::stripUrnUuid)
+                .map(
+                    idPart ->
+                        new IdType(
+                            id.getResourceType(),
+                            provider.getIDReplacement(
+                                context.resource().getResourceType().toString(), idPart)))
+                .orElse(id));
+  }
+
+  /**
+   * Replaces an identifier value with its pseudonym. Because the value is not unique on its own,
+   * the system of the enclosing identifier, the parent of the value, is passed along.
+   *
+   * <p>A value element without a value carries only extensions, e.g. a data-absent-reason; it
+   * passes through unchanged rather than being given an invented pseudonym.
+   *
+   * @param acceptNoSystem whether identifiers without a system are replaced under the placeholder
+   *     system {@link #NO_SYSTEM} instead of being rejected
+   * @throws IllegalStateException when the handler runs on an identifier without a system and does
+   *     not accept that; the message does not name the value, as source data must not reach logs
+   */
+  static DeidentifierHandler<StringType> identifierValueReplacementHandler(
+      IdentifierValueReplacementProvider provider, boolean acceptNoSystem) {
+    requireNonNull(provider);
+    return (value, context) ->
+        Optional.of(
+            Optional.ofNullable(value.getValue())
+                .map(
+                    plain ->
+                        new StringType(
+                            provider.getValueReplacement(
+                                systemOf((Identifier) context.parent(), acceptNoSystem), plain)))
+                .orElse(value));
+  }
+
+  private static String systemOf(Identifier identifier, boolean acceptNoSystem) {
+    return Optional.ofNullable(identifier.getSystem())
+        .or(() -> Optional.of(NO_SYSTEM).filter(placeholder -> acceptNoSystem))
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "An identifier is missing a system, which this replacement requires."));
+  }
+
+  /**
+   * Replaces what a reference names by its pseudonym. The resource type used for the lookup is the
+   * type the reference names, not the type of the resource that holds it.
+   *
+   * <ul>
+   *   <li>{@code Type/id} becomes {@code Type/<pseudonym>}; a version {@code /_history/v} is
+   *       dropped.
+   *   <li>{@code Type?identifier=system|value} keeps its shape with the value replaced, looked up
+   *       within the system. Without a system, or with an empty one, the lookup uses {@link
+   *       #NO_SYSTEM}. The value is everything after the first separator, which is {@code |} or
+   *       {@code %7C}. System and value are percent-decoded (UTF-8; a plus stays a plus) for the
+   *       lookup. The system and the separator are returned as written, and the pseudonym is
+   *       percent-encoded, so a plain pseudonym stays plain. The FHIR escape {@code \|} is not
+   *       handled. Any other search parameter, an empty value or a malformed escape is rejected.
+   *   <li>A contained reference {@code #id} and an element without a value, e.g. a
+   *       data-absent-reason, pass through unchanged.
+   *   <li>A {@code urn:uuid:} reference is rejected: it cannot be resolved from the reference
+   *       alone.
+   * </ul>
+   *
+   * @throws IllegalArgumentException when the handler runs on an absolute reference, a {@code
+   *     urn:uuid:} reference or a format it does not know; the message does not name the reference,
+   *     as source data must not reach logs
+   */
+  static DeidentifierHandler<StringType> referenceReplacementHandler(
+      IDReplacementProvider idProvider, IdentifierValueReplacementProvider identifierProvider) {
+    requireNonNull(idProvider);
+    requireNonNull(identifierProvider);
+    return (reference, context) -> {
+      var value = reference.getValue();
+      if (value == null || value.startsWith("#")) {
+        return Optional.of(reference);
+      }
+      if (PseudonymUuid.isUrnUuid(value)) {
+        throw new IllegalArgumentException("A urn:uuid reference cannot be resolved.");
+      }
+      return Optional.of(
+          withValue(reference, replaceReference(value, idProvider, identifierProvider)));
+    };
+  }
+
+  private static String replaceReference(
+      String reference,
+      IDReplacementProvider idProvider,
+      IdentifierValueReplacementProvider identifierProvider) {
+    if (References.ABSOLUTE.matcher(reference).lookingAt()) {
+      throw new IllegalArgumentException("An absolute reference cannot be pseudonymized.");
+    }
+    var conditional = References.CONDITIONAL.matcher(reference);
+    if (conditional.matches()) {
+      return IdentifierToken.replace(
+              conditional.group("token"), NO_SYSTEM, identifierProvider::getValueReplacement)
+          .map(token -> conditional.group("type") + "?identifier=" + token)
+          .orElseThrow(Handlers::unknownFormat);
+    }
+    var relative = References.RELATIVE.matcher(reference);
+    if (relative.matches()) {
+      return relative.group("type")
+          + "/"
+          + idProvider.getIDReplacement(relative.group("type"), relative.group("id"));
+    }
+    throw unknownFormat();
+  }
+
+  private static IllegalArgumentException unknownFormat() {
+    return new IllegalArgumentException("A reference has a format that cannot be pseudonymized.");
   }
 }

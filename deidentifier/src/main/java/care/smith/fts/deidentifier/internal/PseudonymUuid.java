@@ -15,6 +15,14 @@ public interface PseudonymUuid {
   }
 
   /**
+   * The value without a leading {@code urn:uuid:}, i.e. the bare uuid; any other value is returned
+   * as it is.
+   */
+  static String stripUrnUuid(String value) {
+    return isUrnUuid(value) ? value.substring(URN_UUID_PREFIX.length()) : value;
+  }
+
+  /**
    * The UUID a pseudonymized reference {@code Type/<pseudonym>} is carried as inside a {@code
    * urn:uuid:} value.
    *
