@@ -4,7 +4,9 @@ import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.deidentifier.DeidentifierHandler;
 import care.smith.fts.deidentifier.HandlerContext;
+import care.smith.fts.deidentifier.internal.IdentifierToken;
 import care.smith.fts.deidentifier.internal.PseudonymUuid;
+import care.smith.fts.deidentifier.internal.References;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.IdType;
@@ -151,5 +153,73 @@ public interface Handlers {
             () ->
                 new IllegalStateException(
                     "An identifier is missing a system, which this replacement requires."));
+  }
+
+  /**
+   * Replaces what a reference names by its pseudonym. The resource type used for the lookup is the
+   * type the reference names, not the type of the resource that holds it.
+   *
+   * <ul>
+   *   <li>{@code Type/id} becomes {@code Type/<pseudonym>}; a version {@code /_history/v} is
+   *       dropped.
+   *   <li>{@code Type?identifier=system|value} keeps its shape with the value replaced, looked up
+   *       within the system. Without a system, or with an empty one, the lookup uses {@link
+   *       #NO_SYSTEM}. The value is everything after the first separator, which is {@code |} or
+   *       {@code %7C}. System and value are percent-decoded (UTF-8; a plus stays a plus) for the
+   *       lookup. The system and the separator are returned as written, and the pseudonym is
+   *       percent-encoded, so a plain pseudonym stays plain. The FHIR escape {@code \|} is not
+   *       handled. Any other search parameter, an empty value or a malformed escape is rejected.
+   *   <li>A contained reference {@code #id} and an element without a value, e.g. a
+   *       data-absent-reason, pass through unchanged.
+   *   <li>A {@code urn:uuid:} reference is rejected: it cannot be resolved from the reference
+   *       alone.
+   * </ul>
+   *
+   * @throws IllegalArgumentException when the handler runs on an absolute reference, a {@code
+   *     urn:uuid:} reference or a format it does not know; the message does not name the reference,
+   *     as source data must not reach logs
+   */
+  static DeidentifierHandler<StringType> referenceReplacementHandler(
+      IDReplacementProvider idProvider, IdentifierValueReplacementProvider identifierProvider) {
+    requireNonNull(idProvider);
+    requireNonNull(identifierProvider);
+    return (reference, context) -> {
+      var value = reference.getValue();
+      if (value == null || value.startsWith("#")) {
+        return Optional.of(reference);
+      }
+      if (PseudonymUuid.isUrnUuid(value)) {
+        throw new IllegalArgumentException("A urn:uuid reference cannot be resolved.");
+      }
+      return Optional.of(
+          withValue(reference, replaceReference(value, idProvider, identifierProvider)));
+    };
+  }
+
+  private static String replaceReference(
+      String reference,
+      IDReplacementProvider idProvider,
+      IdentifierValueReplacementProvider identifierProvider) {
+    if (References.ABSOLUTE.matcher(reference).lookingAt()) {
+      throw new IllegalArgumentException("An absolute reference cannot be pseudonymized.");
+    }
+    var conditional = References.CONDITIONAL.matcher(reference);
+    if (conditional.matches()) {
+      return IdentifierToken.replace(
+              conditional.group("token"), NO_SYSTEM, identifierProvider::getValueReplacement)
+          .map(token -> conditional.group("type") + "?identifier=" + token)
+          .orElseThrow(Handlers::unknownFormat);
+    }
+    var relative = References.RELATIVE.matcher(reference);
+    if (relative.matches()) {
+      return relative.group("type")
+          + "/"
+          + idProvider.getIDReplacement(relative.group("type"), relative.group("id"));
+    }
+    throw unknownFormat();
+  }
+
+  private static IllegalArgumentException unknownFormat() {
+    return new IllegalArgumentException("A reference has a format that cannot be pseudonymized.");
   }
 }

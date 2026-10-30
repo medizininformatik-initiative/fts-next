@@ -3,6 +3,7 @@ package care.smith.fts.deidentifier;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.deidentifier.internal.PseudonymUuid;
+import care.smith.fts.deidentifier.internal.References;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import org.hl7.fhir.r4.model.Resource;
@@ -19,9 +20,6 @@ public final class BundleEntryUrls {
   private static final Pattern TYPE_ONLY_URL = Pattern.compile("[^/?]+");
 
   private static final Pattern TYPE_AND_ID_URL = Pattern.compile("[^/?]+/[^/?]+");
-
-  /** Only the identifier, so no other search value reaches the reference rule. */
-  private static final Pattern CONDITIONAL_URL = Pattern.compile("[^/?]+\\?identifier=[^&]*");
 
   private static final BundleEntryUrls NONE = new BundleEntryUrls(null);
 
@@ -55,7 +53,7 @@ public final class BundleEntryUrls {
       return Optional.ofNullable(deidentified.getIdElement().getIdPart())
           .map(id -> deidentified.fhirType() + "/" + id);
     }
-    return CONDITIONAL_URL.matcher(url).matches() ? replace(url, context) : Optional.empty();
+    return References.CONDITIONAL.matcher(url).matches() ? replace(url, context) : Optional.empty();
   }
 
   /**
@@ -66,7 +64,7 @@ public final class BundleEntryUrls {
    */
   public Optional<String> requestUrl(String url, HandlerContext context) {
     var namesAResource =
-        TYPE_AND_ID_URL.matcher(url).matches() || CONDITIONAL_URL.matcher(url).matches();
+        TYPE_AND_ID_URL.matcher(url).matches() || References.CONDITIONAL.matcher(url).matches();
     return namesAResource ? replace(url, context) : Optional.empty();
   }
 
