@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.Binary;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.HTTPVerb;
@@ -27,9 +28,11 @@ import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Property;
 import org.hl7.fhir.r4.model.Quantity;
+import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -837,6 +840,37 @@ class DeidentifierTest {
     assertThat(request.getMethod()).isEqualTo(HTTPVerb.PUT);
     assertThat(request.getUrl()).isEqualTo("Patient/p-1");
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  /** A FHIRPath patch carries a Parameters, a JSON patch a Binary. */
+  private static Stream<Resource> patches() {
+    return Stream.of(new Parameters().setId("patch-1"), new Binary().setId("patch-1"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("patches")
+  void failsOnAPatchEntryBecauseNoRuleCanDeidentifyAPatch(Resource patch) {
+    var bundle = new Bundle();
+    var entry = bundle.addEntry().setResource(patch);
+    entry.getRequest().setMethod(HTTPVerb.PATCH).setUrl("Patient/123");
+    var deidentifier =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())));
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Bundle entry 0 is a PATCH: patches are not supported.");
+  }
+
+  @Test
+  void failsOnAPatchEntryWithoutResourceRatherThanTakingItForADelete() {
+    var bundle = new Bundle();
+    bundle.addEntry().getRequest().setMethod(HTTPVerb.PATCH).setUrl("Patient/123");
+    var deidentifier =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())));
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Bundle entry 0 is a PATCH: patches are not supported.");
   }
 
   private static Bundle deleteEntry(String url) {

@@ -18,6 +18,7 @@ import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryRequestComponent;
+import org.hl7.fhir.r4.model.Bundle.HTTPVerb;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.PrimitiveType;
@@ -55,6 +56,10 @@ public class Deidentifier {
   /**
    * De-identifies every entry resource and builds a bundle skeleton around the survivors. A bundle
    * never disappears: its skeleton survives even when no entry does.
+   *
+   * @throws IllegalArgumentException for a PATCH entry: a patch puts each value beside the path it
+   *     changes, in a {@code Parameters}, or inside base64 data, in a {@code Binary}, so no rule
+   *     selected by path can de-identify it
    */
   public Bundle deidentifyBundle(Bundle bundle, String patientIdentifier) {
     requireNonNull(bundle);
@@ -77,6 +82,10 @@ public class Deidentifier {
   private Optional<BundleEntryComponent> deidentifyEntry(
       int index, BundleEntryComponent entry, HandlerContext bundleContext) {
     var entryContext = bundleContext.child(entry);
+    if (entry.hasRequest() && entry.getRequest().getMethod() == HTTPVerb.PATCH) {
+      throw new IllegalArgumentException(
+          "Bundle entry %d is a PATCH: patches are not supported.".formatted(index));
+    }
     if (!entry.hasResource()) {
       return deidentifyDelete(entry, entryContext);
     }

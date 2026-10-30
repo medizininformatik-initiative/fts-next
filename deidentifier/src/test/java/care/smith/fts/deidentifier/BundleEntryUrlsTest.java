@@ -65,6 +65,17 @@ class BundleEntryUrlsTest {
   }
 
   @Test
+  void failsOnATypeAndIdUrlOfAnotherTypeThanTheResource() {
+    var entryUrls = BundleEntryUrls.of(FAILING);
+    var resource = deidentified("x9");
+
+    assertThatThrownBy(() -> entryUrls.requestUrl("Observation/123", resource, CONTEXT))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A request url names a resource of another type than the entry's resource.")
+        .hasMessageNotContaining("123");
+  }
+
+  @Test
   void dropsATypeAndIdUrlWhenTheResourceLostItsId() {
     var entryUrls = BundleEntryUrls.of(FAILING);
 
