@@ -20,6 +20,9 @@ public final class BundleEntryUrls {
 
   private static final Pattern TYPE_AND_ID_URL = Pattern.compile("[^/?]+/[^/?]+");
 
+  /** The url of a write names a resource, not an operation such as {@code Patient/$validate}. */
+  private static final Pattern WRITTEN_RESOURCE_URL = Pattern.compile("[^/?]+/[^/?$]+");
+
   /** Only the identifier, so no other search value reaches the reference rule. */
   private static final Pattern CONDITIONAL_URL = Pattern.compile("[^/?]+\\?identifier=[^&]*");
 
@@ -61,13 +64,22 @@ public final class BundleEntryUrls {
   /**
    * The request url of an entry without a resource, i.e. a DELETE. There is no de-identified
    * resource to take an id from, so {@code Type/id} and {@code Type?identifier=...} go through the
-   * reference rule. A url that names only a type goes: {@code DELETE Patient} names no source
-   * resource, and a server may read it as delete-all.
+   * reference rule.
+   *
+   * @throws IllegalArgumentException for any other url, e.g. a type only, a search, a version, an
+   *     operation or an absolute url: {@code DELETE Patient} names no source resource and a server
+   *     may read it as delete-all, so the url cannot stay, and dropping the entry would lose a
+   *     deletion silently. The message does not contain the url, so source data does not reach the
+   *     logs.
    */
   public Optional<String> requestUrl(String url, HandlerContext context) {
     var namesAResource =
-        TYPE_AND_ID_URL.matcher(url).matches() || CONDITIONAL_URL.matcher(url).matches();
-    return namesAResource ? replace(url, context) : Optional.empty();
+        WRITTEN_RESOURCE_URL.matcher(url).matches() || CONDITIONAL_URL.matcher(url).matches();
+    if (!namesAResource) {
+      throw new IllegalArgumentException(
+          "A DELETE request url has a format that cannot be pseudonymized.");
+    }
+    return replace(url, context);
   }
 
   /**
