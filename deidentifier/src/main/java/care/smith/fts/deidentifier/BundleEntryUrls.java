@@ -20,6 +20,9 @@ public final class BundleEntryUrls {
 
   private static final Pattern TYPE_AND_ID_URL = Pattern.compile("[^/?]+/[^/?]+");
 
+  /** The url of a write names a resource, not an operation such as {@code Patient/$validate}. */
+  private static final Pattern WRITTEN_RESOURCE_URL = Pattern.compile("[^/?]+/[^/?$]+");
+
   /** Only the identifier, so no other search value reaches the reference rule. */
   private static final Pattern CONDITIONAL_URL = Pattern.compile("[^/?]+\\?identifier=[^&]*");
 
@@ -45,17 +48,24 @@ public final class BundleEntryUrls {
    * The request url of an entry with a resource. A url that names only a type stays. A url {@code
    * Type/id} names the entry's own resource, so it takes the id of the de-identified resource and
    * never disagrees with it; without a surviving id it goes. A conditional {@code
-   * Type?identifier=...} goes through the reference rule. Any other url goes.
+   * Type?identifier=...} goes through the reference rule.
+   *
+   * @throws IllegalArgumentException for any other url, e.g. a search, a version or an absolute
+   *     url: dropping it would leave a request without url, which a transaction does not allow. The
+   *     message does not contain the url, so source data does not reach the logs.
    */
   public Optional<String> requestUrl(String url, Resource deidentified, HandlerContext context) {
     if (TYPE_ONLY_URL.matcher(url).matches()) {
       return Optional.of(url);
     }
-    if (TYPE_AND_ID_URL.matcher(url).matches()) {
+    if (WRITTEN_RESOURCE_URL.matcher(url).matches()) {
       return Optional.ofNullable(deidentified.getIdElement().getIdPart())
           .map(id -> deidentified.fhirType() + "/" + id);
     }
-    return CONDITIONAL_URL.matcher(url).matches() ? replace(url, context) : Optional.empty();
+    if (CONDITIONAL_URL.matcher(url).matches()) {
+      return replace(url, context);
+    }
+    throw new IllegalArgumentException("A request url has a format that cannot be pseudonymized.");
   }
 
   /**
