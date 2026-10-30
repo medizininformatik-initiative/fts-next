@@ -27,6 +27,7 @@ import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Property;
 import org.hl7.fhir.r4.model.Quantity;
@@ -828,6 +829,21 @@ class DeidentifierTest {
     assertThat(request.getMethod()).isEqualTo(HTTPVerb.PUT);
     assertThat(request.getUrl()).isEqualTo("Patient/p-1");
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  @Test
+  void keepsTheUrlOfAPatchEntryNamingThePatientThePseudonymizedUrl() {
+    var bundle = new Bundle();
+    var entry = bundle.addEntry().setResource(new Parameters().setId("patch-1"));
+    entry.getRequest().setMethod(HTTPVerb.PATCH).setUrl("Patient/123");
+
+    var result =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())))
+            .deidentifyBundle(bundle, "p");
+
+    var request = result.getEntryFirstRep().getRequest();
+    assertThat(request.getMethod()).isEqualTo(HTTPVerb.PATCH);
+    assertThat(request.getUrl()).isEqualTo("Patient/p-1");
   }
 
   private static Bundle deleteEntry(String url) {

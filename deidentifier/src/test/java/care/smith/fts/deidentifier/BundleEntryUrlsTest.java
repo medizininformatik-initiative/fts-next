@@ -7,10 +7,15 @@ import care.smith.fts.deidentifier.internal.PseudonymUuid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+import org.hl7.fhir.r4.model.Binary;
+import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class BundleEntryUrlsTest {
@@ -62,6 +67,32 @@ class BundleEntryUrlsTest {
 
     assertThat(entryUrls.requestUrl("Patient/123", deidentified("x9"), CONTEXT))
         .contains("Patient/x9");
+  }
+
+  /** A FHIRPath patch carries a Parameters, a JSON patch a Binary. */
+  private static Stream<Resource> patches() {
+    return Stream.of(new Parameters().setId("patch-1"), new Binary().setId("patch-1"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("patches")
+  void sendsTheUrlOfAPatchThroughTheHandlerBecauseItsResourceIsOfAnotherType(Resource patch) {
+    var entryUrls = BundleEntryUrls.of(PSEUDONYMIZING);
+
+    assertThat(entryUrls.requestUrl("Patient/123", patch, CONTEXT)).contains("Patient/p-11");
+  }
+
+  @Test
+  void dropsTheUrlOfAPatchWithoutAReferenceRule() {
+    assertThat(BundleEntryUrls.none().requestUrl("Patient/123", new Parameters(), CONTEXT))
+        .isEmpty();
+  }
+
+  @Test
+  void dropsTheUrlOfAPatchWhenTheHandlerRemovesIt() {
+    var entryUrls = BundleEntryUrls.of((value, context) -> Optional.empty());
+
+    assertThat(entryUrls.requestUrl("Patient/123", new Parameters(), CONTEXT)).isEmpty();
   }
 
   @Test
