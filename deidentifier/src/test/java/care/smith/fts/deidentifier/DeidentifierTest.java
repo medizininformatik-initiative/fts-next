@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class DeidentifierTest {
@@ -709,8 +710,7 @@ class DeidentifierTest {
         "Patient?identifier=sys|12345",
         "Patient?name=Doe",
         "Patient/123/_history/2",
-        "https://server.example/fhir/Patient/123",
-        ""
+        "https://server.example/fhir/Patient/123"
       })
   void dropsTheRequestWhenItsUrlNamesTheResourceInAnotherWay(String url) {
     var bundle = patientEntryWithRequest(HTTPVerb.POST, url);
@@ -719,17 +719,6 @@ class DeidentifierTest {
 
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
-  }
-
-  @Test
-  void dropsARequestWithoutUrl() {
-    var bundle = new Bundle();
-    var entry = bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
-    entry.getRequest().setMethod(HTTPVerb.POST);
-
-    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
-
-    assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
   }
 
   @Test
@@ -914,17 +903,17 @@ class DeidentifierTest {
   }
 
   @Test
-  void dropsAnEntryWithoutResourceAndWithoutRequestOrUrlAndLeavesTheInputAlone() {
+  void failsOnAnEntryWithNeitherResourceNorRequestAndLeavesTheInputAlone() {
     var bundle = new Bundle();
-    var withoutRequest = bundle.addEntry().setFullUrl("urn:uuid:1");
-    var withoutUrl = bundle.addEntry();
-    withoutUrl.getRequest().setMethod(HTTPVerb.DELETE);
-    var entryUrls = BundleEntryUrls.of(urlRecording(new ArrayList<>()));
+    var entry = bundle.addEntry().setFullUrl("urn:uuid:secret-1");
+    var deidentifier =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())));
 
-    var result = new Deidentifier(KEEP_ALL, entryUrls).deidentifyBundle(bundle, "p");
-
-    assertThat(result.getEntry()).isEmpty();
-    assertThat(withoutRequest.hasRequest()).isFalse();
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Bundle entry 0 has neither a resource nor a request.")
+        .hasMessageNotContaining("secret-1");
+    assertThat(entry.hasRequest()).isFalse();
   }
 
   @Test
@@ -951,15 +940,48 @@ class DeidentifierTest {
         .satisfies(context -> assertThat(context.patientIdentifier()).isEqualTo("p1"));
   }
 
+  @ParameterizedTest
+  @NullAndEmptySource
+  void failsOnADeleteEntryWhoseRequestHasNoUrlAndLeavesTheInputAlone(String url) {
+    var bundle = deleteEntry("secret-1");
+    var request = bundle.getEntryFirstRep().getRequest();
+    request.setUrl(url);
+    var deidentifier =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())));
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Bundle entry 0 has a request without a url.");
+    assertThat(request.getMethod()).isEqualTo(HTTPVerb.DELETE);
+    assertThat(request.hasUrl()).isFalse();
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void failsOnAResourceEntryWhoseRequestHasNoUrlAndLeavesTheInputAlone(String url) {
+    var bundle = patientEntryWithRequest(HTTPVerb.POST, "Patient");
+    var request = bundle.getEntryFirstRep().getRequest();
+    request.setUrl(url);
+    var deidentifier =
+        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(new ArrayList<>())));
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Bundle entry 0 has a request without a url.");
+    assertThat(request.getMethod()).isEqualTo(HTTPVerb.POST);
+    assertThat(request.hasUrl()).isFalse();
+  }
+
   @Test
-  void dropsABundleEntryWithoutAResource() {
+  void failsOnAnEntryWithoutAResourceAndRequestEvenWithoutAReferenceRule() {
     var bundle = new Bundle();
-    bundle.addEntry().setFullUrl("urn:uuid:1");
     bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle.addEntry().setFullUrl("urn:uuid:1");
+    var deidentifier = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE);
 
-    var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
-
-    assertThat(result.getEntry()).hasSize(1);
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Bundle entry 1 has neither a resource nor a request.");
   }
 
   @Test
