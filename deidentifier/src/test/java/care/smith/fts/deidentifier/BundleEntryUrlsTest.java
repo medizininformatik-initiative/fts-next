@@ -101,20 +101,25 @@ class BundleEntryUrlsTest {
     assertThat(entryUrls.requestUrl(url, CONTEXT)).contains("Patient/p-" + url.length());
   }
 
-  @Test
-  void dropsATypeOnlyDeleteBecauseItNamesNoSourceResource() {
-    var entryUrls = BundleEntryUrls.of(FAILING);
-
-    assertThat(entryUrls.requestUrl("Patient", CONTEXT)).isEmpty();
-  }
-
+  /** {@code DELETE Patient} names no source resource, and a server may read it as delete-all. */
   @ParameterizedTest
   @ValueSource(
-      strings = {"Patient?name=Doe", CONDITIONAL + "&name=Doe", "Patient/123/_history/2", ""})
-  void dropsAnyOtherUrlOfADeleteWithoutAskingTheHandler(String url) {
+      strings = {
+        "Patient",
+        "Patient?name=Doe",
+        CONDITIONAL + "&name=Doe",
+        "Patient/123/_history/2",
+        "Patient/$validate",
+        "http://server.example/fhir/Patient/123",
+        ""
+      })
+  void failsOnAnyOtherUrlOfADeleteWithoutAskingTheHandler(String url) {
     var entryUrls = BundleEntryUrls.of(FAILING);
 
-    assertThat(entryUrls.requestUrl(url, CONTEXT)).isEmpty();
+    assertThatThrownBy(() -> entryUrls.requestUrl(url, CONTEXT))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A DELETE request url has a format that cannot be pseudonymized.")
+        .hasMessageNotContaining("Patient");
   }
 
   @ParameterizedTest

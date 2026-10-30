@@ -882,15 +882,16 @@ class DeidentifierTest {
                 assertThat(context.ancestors()).containsExactly(bundle, entry, entry.getRequest()));
   }
 
-  @Test
-  void dropsATypeOnlyDeleteEntryWithoutAskingTheReferenceHandler() {
+  @ParameterizedTest
+  @ValueSource(strings = {"Patient", "Patient?name=Doe", "Patient/123/_history/2", ""})
+  void failsTheBundleWhenTheDeleteUrlHasAFormatThatCannotBePseudonymized(String url) {
     var seen = new ArrayList<HandlerContext>();
+    var deidentifier = new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)));
+    var bundle = deleteEntry(url);
 
-    var result =
-        new Deidentifier(KEEP_ALL, BundleEntryUrls.of(urlRecording(seen)))
-            .deidentifyBundle(deleteEntry("Patient"), "p");
-
-    assertThat(result.getEntry()).isEmpty();
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A DELETE request url has a format that cannot be pseudonymized.");
     assertThat(seen).isEmpty();
   }
 
