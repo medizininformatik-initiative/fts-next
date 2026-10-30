@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class HandlersTest {
 
@@ -207,5 +208,132 @@ class HandlersTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("An identifier is missing a system, which this replacement requires.")
         .hasMessageNotContaining("secret-123");
+  }
+
+  private static final IDReplacementProvider NO_ID_LOOKUP =
+      (type, id) -> {
+        throw new AssertionError("the id provider must not be called");
+      };
+
+  @Test
+  void referenceReplacementHandlerRejectsAMissingProvider() {
+    assertThatThrownBy(() -> Handlers.referenceReplacementHandler(null))
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  /**
+   * The type for the lookup is the type the reference names, not the type of the resource that
+   * holds the reference.
+   */
+  @Test
+  void referenceReplacementHandlerReplacesTheIdOfARelativeReferenceUnderTheReferencedType() {
+    var calls = new ArrayList<List<String>>();
+    var handler =
+        Handlers.referenceReplacementHandler((type, id) -> {
+          calls.add(List.of(type, id));
+          return "pseudonym";
+        });
+    var context = HandlerContext.of(List.of(new Patient()), "p");
+
+    var result = handler.apply(new StringType("Organization/123"), context).orElseThrow();
+
+    assertThat(calls).containsExactly(List.of("Organization", "123"));
+    assertThat(result.getValue()).isEqualTo("Organization/pseudonym");
+  }
+
+  /**
+   * A reference can carry only extensions, e.g. a data-absent-reason. The handler returns it
+   * unchanged and asks no provider for a pseudonym of nothing.
+   */
+  @Test
+  void referenceReplacementHandlerPassesAValuelessReferenceThrough() {
+    var handler = Handlers.referenceReplacementHandler(NO_ID_LOOKUP);
+    var valueless = new StringType();
+
+    assertThat(handler.apply(valueless, CONTEXT)).containsSame(valueless);
+  }
+
+  /** A contained reference names an element of the same resource, not a source id. */
+  @Test
+  void referenceReplacementHandlerKeepsAContainedReference() {
+    var handler = Handlers.referenceReplacementHandler(NO_ID_LOOKUP);
+    var contained = new StringType("#med1");
+
+    assertThat(handler.apply(contained, CONTEXT)).containsSame(contained);
+  }
+
+  /** The version names a state of the resource the source chose, so it does not survive. */
+  @Test
+  void referenceReplacementHandlerDropsTheVersionOfAVersionedReference() {
+    var calls = new ArrayList<List<String>>();
+    var handler =
+        Handlers.referenceReplacementHandler((type, id) -> {
+          calls.add(List.of(type, id));
+          return "pseudonym";
+        });
+
+    var result = handler.apply(new StringType("Patient/123/_history/7"), CONTEXT).orElseThrow();
+
+    assertThat(calls).containsExactly(List.of("Patient", "123"));
+    assertThat(result.getValue()).isEqualTo("Patient/pseudonym");
+  }
+
+  /** The message must not carry the urn: source data must not reach the logs. */
+  @Test
+  void referenceReplacementHandlerRejectsAUrnUuidReferenceWithoutLeakingIt() {
+    var handler = Handlers.referenceReplacementHandler(NO_ID_LOOKUP);
+    var reference = new StringType("urn:uuid:5f2d5a6c-0000-4000-8000-000000000001");
+
+    assertThatThrownBy(() -> handler.apply(reference, CONTEXT))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A urn:uuid reference cannot be resolved.")
+        .hasMessageNotContaining("5f2d5a6c");
+  }
+
+  /** The message must not carry the reference: source data must not reach the logs. */
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "http://server/fhir/Patient/secret-1",
+        "https://server/fhir/Patient/secret-1/_history/2",
+        "HTTP://server/fhir/Patient?identifier=secret-1",
+        "x+y.z-1://secret-1"
+      })
+  void referenceReplacementHandlerRejectsAnAbsoluteReferenceWithoutLeakingIt(String reference) {
+    var handler = Handlers.referenceReplacementHandler(NO_ID_LOOKUP);
+
+    assertThatThrownBy(() -> handler.apply(new StringType(reference), CONTEXT))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("An absolute reference cannot be pseudonymized.")
+        .hasMessageNotContaining("secret-1");
+  }
+
+  /**
+   * Anything that is not a type and id names no resource the handler can replace. That includes a
+   * conditional reference: a server resolves it when it stores the resource, so a searchset does
+   * not carry one.
+   */
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "Patient?identifier=http://sys|secret-1",
+        "Patient?identifier=secret-1",
+        "Patient?name=secret-1",
+        "Patient?identifier=secret-1&name=secret-2",
+        "Patient",
+        "secret-1/b/c",
+        "Patient/secret-1/_history",
+        "Patient/secret-1?_format=json",
+        "urn:oid:1.2.3.secret-1",
+        ""
+      })
+  void referenceReplacementHandlerRejectsAnyOtherFormatWithoutLeakingIt(String reference) {
+    var handler = Handlers.referenceReplacementHandler(NO_ID_LOOKUP);
+
+    assertThatThrownBy(() -> handler.apply(new StringType(reference), CONTEXT))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A reference has a format that cannot be pseudonymized.")
+        .hasMessageNotContaining("secret-1")
+        .hasMessageNotContaining("secret-2");
   }
 }
