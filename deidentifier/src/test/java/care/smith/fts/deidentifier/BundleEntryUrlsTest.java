@@ -65,10 +65,14 @@ class BundleEntryUrlsTest {
   }
 
   @Test
-  void dropsATypeAndIdUrlWhenTheResourceLostItsId() {
+  void failsOnATypeAndIdUrlWhenTheResourceLostItsId() {
     var entryUrls = BundleEntryUrls.of(FAILING);
+    var withoutId = new Patient();
 
-    assertThat(entryUrls.requestUrl("Patient/123", new Patient(), CONTEXT)).isEmpty();
+    assertThatThrownBy(() -> entryUrls.requestUrl("Patient/123", withoutId, CONTEXT))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A request url names the resource by an id that de-identification removed.")
+        .hasMessageNotContaining("123");
   }
 
   @Test

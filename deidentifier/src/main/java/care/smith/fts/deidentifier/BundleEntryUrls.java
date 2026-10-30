@@ -44,16 +44,25 @@ public final class BundleEntryUrls {
   /**
    * The request url of an entry with a resource. A url that names only a type stays. A url {@code
    * Type/id} names the entry's own resource, so it takes the id of the de-identified resource and
-   * never disagrees with it; without a surviving id it goes. A conditional {@code
-   * Type?identifier=...} goes through the reference rule. Any other url goes.
+   * never disagrees with it. A conditional {@code Type?identifier=...} goes through the reference
+   * rule. Any other url goes.
+   *
+   * @throws IllegalArgumentException for a url {@code Type/id} when the de-identified resource has
+   *     no id, i.e. the profile removed it: dropping the url would leave a request without url,
+   *     which a transaction does not allow. The message does not contain the url, so source data
+   *     does not reach the logs.
    */
   public Optional<String> requestUrl(String url, Resource deidentified, HandlerContext context) {
     if (TYPE_ONLY_URL.matcher(url).matches()) {
       return Optional.of(url);
     }
     if (TYPE_AND_ID_URL.matcher(url).matches()) {
-      return Optional.ofNullable(deidentified.getIdElement().getIdPart())
-          .map(id -> deidentified.fhirType() + "/" + id);
+      var id = deidentified.getIdElement().getIdPart();
+      if (id == null) {
+        throw new IllegalArgumentException(
+            "A request url names the resource by an id that de-identification removed.");
+      }
+      return Optional.of(deidentified.fhirType() + "/" + id);
     }
     return CONDITIONAL_URL.matcher(url).matches() ? replace(url, context) : Optional.empty();
   }

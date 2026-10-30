@@ -691,15 +691,13 @@ class DeidentifierTest {
   }
 
   @Test
-  void dropsTheRequestWhenTheResourceLosesItsId() {
+  void failsTheBundleWhenTheResourceLosesTheIdItsRequestUrlNames() {
     var bundle = patientEntryWithRequest(HTTPVerb.PUT, "Patient/123");
+    var deidentifier = new Deidentifier(keeping("Patient.gender"), NO_REFERENCE_RULE);
 
-    var result =
-        new Deidentifier(keeping("Patient.gender"), NO_REFERENCE_RULE)
-            .deidentifyBundle(bundle, "p");
-
-    assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
-    assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A request url names the resource by an id that de-identification removed.");
   }
 
   /** Without a reference rule the request goes and the resource stays. */
