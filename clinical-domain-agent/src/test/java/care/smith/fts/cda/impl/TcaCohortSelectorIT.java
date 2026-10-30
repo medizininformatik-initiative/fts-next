@@ -1,6 +1,9 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.impl.TcaCohortSelectorFactory.consentedPatientExtractor;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
+import static care.smith.fts.test.LogRecorder.stackTraces;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
@@ -14,24 +17,28 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.cda.impl.mock.MockCohortSelector;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -100,14 +107,14 @@ class TcaCohortSelectorIT {
   public class FetchAllRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return TcaCohortSelectorIT.fetchAllRequest();
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return TcaCohortSelectorIT.cohortSelector.selectCohort(List.of());
         }
       };
@@ -118,14 +125,14 @@ class TcaCohortSelectorIT {
   public class FetchListRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return TcaCohortSelectorIT.fetchListRequest();
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return TcaCohortSelectorIT.cohortSelector.selectCohort(List.of("id"));
         }
 
@@ -154,6 +161,35 @@ class TcaCohortSelectorIT {
     create(cohortSelector.selectCohort(List.of()))
         .expectErrorMessage("TCA Returns Bad Request")
         .verify();
+  }
+
+  @Test
+  void stackTraceOfUnparsableBadRequestIsLoggedAtTrace() {
+    wireMock.register(
+        fetchAllRequest().willReturn(fhirResponse("not an OperationOutcome").withStatus(400)));
+
+    var events =
+        recordLog(
+            TcaCohortSelector.class,
+            Level.TRACE,
+            () -> create(cohortSelector.selectCohort(List.of())).verifyError());
+
+    assertThat(stackTraces(events)).isNotEmpty();
+  }
+
+  @Test
+  void errorLogNamesNoPatient() {
+    var response =
+        fhirResponse(operationOutcomeWithIssue(new Exception("Unknown patient pid-4711")));
+    wireMock.register(fetchListRequest().willReturn(response.withStatus(400)));
+
+    var events =
+        recordLog(
+            TcaCohortSelector.class,
+            Level.INFO,
+            () -> create(cohortSelector.selectCohort(List.of("pid-4711"))).verifyError());
+
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains("pid-4711"));
   }
 
   @Test
@@ -196,6 +232,47 @@ class TcaCohortSelectorIT {
             .willReturn(fhirResponse(Stream.of(consent).collect(toBundle()))));
 
     create(cohortSelector.selectCohort(List.of("patient0"))).expectNextCount(1).verifyComplete();
+  }
+
+  @Test
+  void logsContainNoPatientIdentifiers() {
+    var consent = allCohortSelector.generateConsents("pid-0", 1).getFirst();
+    wireMock.register(
+        fetchAllRequest().willReturn(fhirResponse(Stream.of(consent).collect(toBundle()))));
+
+    var entries = new ArrayList<CohortEntry>();
+
+    var events =
+        recordLog(
+            TcaCohortSelector.class,
+            Level.TRACE,
+            () -> entries.addAll(cohortSelector.selectCohort(List.of()).collectList().block()));
+
+    assertThat(entries).hasSize(1);
+    var identifier = entries.getFirst().identifier();
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains(identifier));
+  }
+
+  @Test
+  void consentWithMalformedDateOfRequiredPolicyExcludesPatient() {
+    var inner = allCohortSelector.generateConsents("patient", 1).getFirst();
+    typedResourceStream(inner, Consent.class)
+        .forEach(
+            c ->
+                c.getProvision()
+                    .setProvision(
+                        List.of(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben"))));
+    var outer = Stream.of(inner).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(outer))));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(
+            e ->
+                assertThat(e)
+                    .isInstanceOf(Excluded.class)
+                    .extracting(entry -> ((Excluded) entry).reason())
+                    .isEqualTo("Consent for policy MDAT_erheben has an unreadable date"))
+        .verifyComplete();
   }
 
   /**

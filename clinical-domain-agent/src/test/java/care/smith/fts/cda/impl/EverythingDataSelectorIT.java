@@ -1,11 +1,15 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
+import static care.smith.fts.test.LogRecorder.stackTraces;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.google.common.net.HttpHeaders.ACCEPT;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +25,7 @@ import care.smith.fts.cda.services.PatientIdResolver;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -33,6 +38,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.IdType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -174,5 +181,45 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
     wireMock.register(get("/page2").willReturn(fhirResponse(secondBundle)));
 
     create(dataSelector.select(consentedPatient)).expectNextCount(2).verifyComplete();
+  }
+
+  @Test
+  void stackTraceOfFetchErrorIsLoggedAtTrace() {
+    wireMock.register(fhirStoreRequestWithConsent().willReturn(notFound()));
+
+    var events =
+        recordLog(
+            EverythingDataSelector.class,
+            Level.TRACE,
+            () -> create(dataSelector.select(consentedPatient)).verifyError());
+
+    assertThat(stackTraces(events)).isNotEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"INFO", "TRACE"})
+  void logsNameNoPatientNorConsentDates(String level) {
+    var firstBundle = new Bundle();
+    firstBundle
+        .addLink()
+        .setRelation("next")
+        .setUrl(
+            "http://localhost:%d/Patient/%s/page2"
+                .formatted(wireMockRuntime.getHttpPort(), PATIENT_IDENTIFIER));
+    wireMock.register(fhirStoreRequestWithConsent().willReturn(fhirResponse(firstBundle)));
+    wireMock.register(
+        get("/Patient/%s/page2".formatted(PATIENT_IDENTIFIER)).willReturn(notFound()));
+
+    var events =
+        recordLog(
+            EverythingDataSelector.class,
+            Level.toLevel(level),
+            () -> create(dataSelector.select(consentedPatient)).expectNextCount(1).verifyError());
+
+    var start = formatDate(consentedPatient.maxConsentedPeriod().orElseThrow().start());
+    assertThat(messages(events))
+        .isNotEmpty()
+        .noneMatch(m -> m.contains(PATIENT_IDENTIFIER))
+        .noneMatch(m -> m.contains(start));
   }
 }

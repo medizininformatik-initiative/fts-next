@@ -1,12 +1,14 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.LogUtil.errorType;
+import static care.smith.fts.util.LogUtil.traceException;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.RetryStrategy;
@@ -45,7 +47,7 @@ class TcaCohortSelector implements CohortSelector {
   }
 
   @Override
-  public Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
+  public Flux<CohortEntry> selectCohort(List<String> identifiers) {
     var url =
         identifiers.isEmpty()
             ? "/api/v2/cd/consented-patients/fetch-all"
@@ -56,9 +58,9 @@ class TcaCohortSelector implements CohortSelector {
         .expand(bundle -> fetchNextPage(bundle, identifiers))
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
-        .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
+        .doOnError(e -> log.error("Error fetching cohort: {}", errorType(e)))
         .onErrorResume(WebClientException.class, TcaCohortSelector::handleWebClientException)
-        .flatMap(this::extractConsentedPatients);
+        .flatMap(this::extractCohortEntries);
   }
 
   private Mono<Bundle> fetchBundle(String uri, List<String> identifiers) {
@@ -100,11 +102,11 @@ class TcaCohortSelector implements CohortSelector {
     return result;
   }
 
-  private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
+  private Flux<CohortEntry> extractCohortEntries(Bundle outerBundle) {
     var resources = typedResourceStream(outerBundle, Bundle.class);
-    return Flux.fromStream(extractor.consentedPatients(resources))
-        .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
-        .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
+    return Flux.fromStream(extractor.cohortEntries(resources))
+        .doOnNext(e -> log.trace("extractCohortEntries: emitted {}", e.getClass().getSimpleName()))
+        .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {
@@ -116,7 +118,8 @@ class TcaCohortSelector implements CohortSelector {
     return r.bodyToMono(OperationOutcome.class)
         .onErrorResume(
             e -> {
-              log.error("Failed to parse error response", e);
+              log.error("Failed to parse error response: {}", errorType(e));
+              traceException(log, e);
               return Mono.just(
                   new FhirException(BAD_REQUEST, e.getMessage()).getOperationOutcome());
             })

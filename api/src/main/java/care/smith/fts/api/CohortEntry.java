@@ -5,10 +5,18 @@ import static java.util.Objects.requireNonNull;
 /** A patient selected for a transfer: either consented, or excluded for a stated reason. */
 public sealed interface CohortEntry {
 
+  /** The patient identifier value. */
+  String identifier();
+
   /** A patient consenting to all required policies. */
   record Consented(ConsentedPatient patient) implements CohortEntry {
     public Consented {
       requireNonNull(patient, "Patient cannot be null");
+    }
+
+    @Override
+    public String identifier() {
+      return patient.identifier();
     }
   }
 

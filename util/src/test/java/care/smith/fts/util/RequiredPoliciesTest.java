@@ -13,12 +13,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Consent.ConsentState;
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.slf4j.LoggerFactory;
 
 class RequiredPoliciesTest {
 
@@ -57,7 +55,7 @@ class RequiredPoliciesTest {
         bundleWithProvisions(
             "12345", deniedProvisionComponent("POLICY_A"), deniedProvisionComponent("POLICY_B"));
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isFalse();
+    assertThat(allRequiredConsented(bundle)).isFalse();
   }
 
   @ParameterizedTest
@@ -73,28 +71,48 @@ class RequiredPoliciesTest {
             permittedProvisionComponent("POLICY_A"),
             permittedProvisionComponent("POLICY_B"));
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isFalse();
+    assertThat(allRequiredConsented(bundle)).isFalse();
   }
 
   @Test
-  void allConsented_withAllRequired() {
-    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
-
-    assertThat(POLICIES_A_B.allConsented(bundle)).isTrue();
-  }
-
-  @Test
-  void allConsented_withMissingPolicy() {
-    var bundle = generateBundleWithConsent("12345", "POLICY_A");
-
-    assertThat(POLICIES_A_B.allConsented(bundle)).isFalse();
-  }
-
-  @Test
-  void allConsented_withExtraPolicies() {
+  void extraPoliciesDoNotPreventConsent() {
     var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B", "POLICY_C");
 
-    assertThat(POLICIES_A_B.allConsented(bundle)).isTrue();
+    assertThat(allRequiredConsented(bundle)).isTrue();
+  }
+
+  @Test
+  void consentedOrFaulty_withAllRequired() {
+    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
+
+    assertThat(POLICIES_A_B.consentedOrFaulty(bundle)).isTrue();
+  }
+
+  @Test
+  void consentedOrFaulty_withMissingPolicyOnlyInFaultyProvision() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
+    var bundle =
+        bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
+
+    assertThat(POLICIES_A_B.consentedOrFaulty(bundle)).isTrue();
+  }
+
+  @Test
+  void consentedOrFaulty_withMissingPolicy() {
+    var bundle = generateBundleWithConsent("12345", "POLICY_A");
+
+    assertThat(POLICIES_A_B.consentedOrFaulty(bundle)).isFalse();
+  }
+
+  @Test
+  void consentedOrFaulty_warnsOnceAboutSkippedProvisions() {
+    var withoutPeriod = permittedProvisionComponent("POLICY_B").setPeriod(null);
+    var bundle =
+        bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), withoutPeriod);
+
+    var events = recordLog(() -> POLICIES_A_B.consentedOrFaulty(bundle));
+
+    assertThat(events).hasSize(1);
   }
 
   @Test
@@ -329,16 +347,11 @@ class RequiredPoliciesTest {
     assertThat(policies).containsExactlyInAnyOrder("POLICY_A", "POLICY_B");
   }
 
+  private static boolean allRequiredConsented(Bundle bundle) {
+    return POLICIES_A_B.consentedPolicies(bundle).hasAllPolicies(POLICIES_A_B.codes());
+  }
+
   private static List<ILoggingEvent> recordLog(Runnable action) {
-    var logger = (Logger) LoggerFactory.getLogger(RequiredPolicies.class);
-    var appender = new ListAppender<ILoggingEvent>();
-    appender.start();
-    logger.addAppender(appender);
-    try {
-      action.run();
-      return List.copyOf(appender.list);
-    } finally {
-      logger.detachAppender(appender);
-    }
+    return LogEvents.recordLog(RequiredPolicies.class, Level.TRACE, action);
   }
 }

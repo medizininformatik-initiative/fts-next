@@ -8,7 +8,6 @@ import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.api.ConsentedPatient;
-import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -34,21 +33,9 @@ public record ConsentedPatientExtractor(
     requireNonNull(patientIdentifierExtractor, "Patient identifier extractor cannot be null");
   }
 
-  /** The consented patients of the given bundles. */
-  public Stream<ConsentedPatient> consentedPatients(Stream<Bundle> bundles) {
-    return bundles.map(this::consentedPatient).flatMap(Optional::stream);
-  }
-
-  /**
-   * The consented patient of the given bundle.
-   *
-   * @return the patient, if it has an identifier and all required policies are consented to
-   */
-  public Optional<ConsentedPatient> consentedPatient(Bundle bundle) {
-    return patientIdentifierExtractor
-        .apply(bundle)
-        .map(id -> new ConsentedPatient(id, patientIdentifierSystem, consentedPolicies(bundle)))
-        .filter(p -> p.consentedPolicies().hasAllPolicies(requiredPolicies.codes()));
+  /** The cohort entries of the given bundles, see {@link #toCohortEntry(Bundle)}. */
+  public Stream<CohortEntry> cohortEntries(Stream<Bundle> bundles) {
+    return bundles.map(this::toCohortEntry).flatMap(Optional::stream);
   }
 
   /**
@@ -66,7 +53,7 @@ public record ConsentedPatientExtractor(
    * provision, otherwise empty.
    */
   private Optional<CohortEntry> classifyPatient(String patientIdentifier, Bundle bundle) {
-    var consentedPolicies = consentedPolicies(bundle);
+    var consentedPolicies = requiredPolicies.consentedPolicies(bundle);
     var missingPolicies = difference(requiredPolicies.codes(), consentedPolicies.policyNames());
     return Optional.of(
             new ConsentedPatient(patientIdentifier, patientIdentifierSystem, consentedPolicies))
@@ -77,10 +64,6 @@ public record ConsentedPatientExtractor(
                 requiredPolicies
                     .faultReason(bundle, missingPolicies)
                     .map(reason -> new Excluded(patientIdentifier, reason)));
-  }
-
-  private ConsentedPolicies consentedPolicies(Bundle bundle) {
-    return requiredPolicies.consentedPolicies(bundle);
   }
 
   /**

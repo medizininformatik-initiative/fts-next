@@ -1,6 +1,7 @@
 package care.smith.fts.util;
 
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
+import static com.google.common.collect.Sets.difference;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.api.ConsentedPatient.ConsentedPolicies;
@@ -33,9 +34,13 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
     codes = Set.copyOf(requireNonNull(codes, "Required policies cannot be null"));
   }
 
-  /** Whether the consents in the bundle cover all required policies. */
-  public boolean allConsented(Bundle bundle) {
-    return consentedPolicies(bundle).hasAllPolicies(codes);
+  /**
+   * Whether the consents in the bundle cover all required policies, or a missing policy is covered
+   * by a faulty provision, so the patient has to be reported.
+   */
+  public boolean consentedOrFaulty(Bundle bundle) {
+    var missingPolicies = difference(codes, consentedPolicies(bundle).policyNames());
+    return missingPolicies.isEmpty() || faultReason(bundle, missingPolicies).isPresent();
   }
 
   /** The required policies the consents in the bundle cover, with their periods. */

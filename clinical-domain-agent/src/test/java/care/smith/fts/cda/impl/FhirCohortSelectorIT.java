@@ -1,6 +1,8 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.impl.FhirCohortSelectorFactory.consentedPatientExtractor;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
@@ -13,7 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
+import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
@@ -21,12 +25,14 @@ import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -105,14 +111,14 @@ class FhirCohortSelectorIT {
   public class FetchAllRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return fetchAllRequest();
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return cohortSelector.selectCohort(List.of());
         }
       };
@@ -123,14 +129,14 @@ class FhirCohortSelectorIT {
   public class FetchListRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return fetchListRequest("patient-identifier-151337");
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return cohortSelector.selectCohort(List.of("patient-identifier-151337"));
         }
       };
@@ -212,12 +218,39 @@ class FhirCohortSelectorIT {
         .verifyComplete();
   }
 
-  /**
-   * Patient b has only a consent with a malformed date, which grants no consent, while selection of
-   * a is not aborted.
-   */
   @Test
-  void consentWithMalformedDateGrantsNoConsent() {
+  void errorLogNamesNoPatient() {
+    wireMock.register(fetchListRequest("pid-4711").willReturn(notFound()));
+
+    var events =
+        recordLog(
+            FhirCohortSelector.class,
+            Level.TRACE,
+            () -> create(cohortSelector.selectCohort(List.of("pid-4711"))).verifyError());
+
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains("pid-4711"));
+  }
+
+  @Test
+  void logsContainNoPatientIdentifiers() {
+    var bundle = Stream.of(patient("a"), consentFor("a", "MDAT_erheben")).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    var entries = new ArrayList<CohortEntry>();
+
+    var events =
+        recordLog(
+            FhirCohortSelector.class,
+            Level.TRACE,
+            () -> entries.addAll(cohortSelector.selectCohort(List.of()).collectList().block()));
+
+    assertThat(entries).hasSize(1);
+    var identifier = entries.getFirst().identifier();
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains(identifier));
+  }
+
+  @Test
+  void consentWithMalformedDateExcludesPatient() {
     var b = consentFor("b", "MDAT_erheben");
     b.getProvision()
         .setProvision(List.of(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben")));
@@ -226,8 +259,23 @@ class FhirCohortSelectorIT {
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(bundle))));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+    create(cohortSelector.selectCohort(List.of()).collectList())
+        .assertNext(
+            entries ->
+                assertThat(entries)
+                    .satisfiesExactlyInAnyOrder(
+                        a ->
+                            assertThat(a)
+                                .isInstanceOf(Consented.class)
+                                .extracting(CohortEntry::identifier)
+                                .isEqualTo("patient-identifier-a"),
+                        excluded ->
+                            assertThat(excluded)
+                                .isEqualTo(
+                                    new Excluded(
+                                        "patient-identifier-b",
+                                        "Consent for policy MDAT_erheben has an unreadable"
+                                            + " date"))))
         .verifyComplete();
   }
 

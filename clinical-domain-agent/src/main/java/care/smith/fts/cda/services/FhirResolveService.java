@@ -1,5 +1,7 @@
 package care.smith.fts.cda.services;
 
+import static care.smith.fts.util.LogUtil.errorType;
+import static care.smith.fts.util.LogUtil.traceException;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static com.google.common.base.Strings.emptyToNull;
 import static java.util.Objects.requireNonNull;
@@ -22,7 +24,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class FhirResolveService implements PatientIdResolver {
 
-  private static final String RESOLVED_MSG = "Resolved patient {} to FHIR ID {}";
   private static final String FETCH_ERROR_MSG = "Unable to fetch patient identifier from HDS: {}";
 
   private final WebClient hdsClient;
@@ -42,7 +43,7 @@ public class FhirResolveService implements PatientIdResolver {
    */
   @Override
   public Mono<IIdType> resolve(ConsentedPatient patient) {
-    log.trace("resolve patient identifier {}", patient.identifier());
+    log.trace("resolve patient identifier");
     return this.resolveFromPatient(patient).map(IBaseResource::getIdElement);
   }
 
@@ -51,14 +52,14 @@ public class FhirResolveService implements PatientIdResolver {
         emptyToNull(patient.identifier()), "patient identifier must not be null or empty");
     return fetchPatientBundle(patient)
         .doOnNext(ps -> requireNonNull(ps, "Patient bundle must not be null"))
-        .doOnNext(ps -> checkBundleNotEmpty(ps, patient.identifier()))
-        .doOnNext(ps -> checkSinglePatient(ps, patient.identifier()))
+        .doOnNext(FhirResolveService::checkBundleNotEmpty)
+        .doOnNext(FhirResolveService::checkSinglePatient)
         .<IBaseResource>map(ps -> ps.getEntryFirstRep().getResource())
-        .doOnNext(r -> log.trace(RESOLVED_MSG, patient.identifier(), r.getIdElement().getIdPart()));
+        .doOnNext(r -> log.trace("Resolved patient identifier"));
   }
 
   private Mono<Bundle> fetchPatientBundle(ConsentedPatient patient) {
-    log.trace("fetchPatientBundle {}", patient);
+    log.trace("fetchPatientBundle");
     return hdsClient
         .get()
         .uri("/Patient", uri -> buildUri(patient, uri))
@@ -66,7 +67,11 @@ public class FhirResolveService implements PatientIdResolver {
         .retrieve()
         .bodyToMono(Bundle.class)
         .retryWhen(retryStrategy.forRequest("fetchPatientBundleResolvePID"))
-        .doOnError(e -> log.error(FETCH_ERROR_MSG, e.getMessage()))
+        .doOnError(
+            e -> {
+              log.error(FETCH_ERROR_MSG, errorType(e));
+              traceException(log, e);
+            })
         .onErrorResume(
             WebClientException.class,
             e -> Mono.error(new TransferProcessException("Cannot resolve patient identifier", e)));
@@ -74,24 +79,22 @@ public class FhirResolveService implements PatientIdResolver {
 
   private URI buildUri(ConsentedPatient patient, UriBuilder uri) {
     var identifierParam = patient.patientIdentifierSystem() + "|" + patient.identifier();
-    log.trace("buildUri: identifier={}", identifierParam);
     return uri.queryParam("identifier", identifierParam).build();
   }
 
-  private void checkSinglePatient(Bundle patients, String patientIdentifier) {
+  /** Fails without naming the patient, which the failed patients of the process name. */
+  private static void checkSinglePatient(Bundle patients) {
     if (patients.getEntry().size() != 1) {
-      var logMsg = "Expected single patient for identifier {}, got {}";
-      log.trace(logMsg, patientIdentifier, patients.getEntry().size());
-      var errMsg = "Received more then one result while resolving patient identifier %s";
-      throw new IllegalStateException(errMsg.formatted(patientIdentifier));
+      log.trace("Expected single patient, got {}", patients.getEntry().size());
+      throw new IllegalStateException(
+          "Received more then one result while resolving patient identifier");
     }
   }
 
-  private void checkBundleNotEmpty(Bundle patients, String patientIdentifier) {
+  /** Fails without naming the patient, which the failed patients of the process name. */
+  private static void checkBundleNotEmpty(Bundle patients) {
     if (patients.getEntry().isEmpty()) {
-      log.trace("Empty bundle for patient identifier {}", patientIdentifier);
-      var msg = "Unable to resolve patient identifier %s";
-      throw new IllegalStateException(msg.formatted(patientIdentifier));
+      throw new IllegalStateException("Unable to resolve patient identifier");
     }
   }
 }
