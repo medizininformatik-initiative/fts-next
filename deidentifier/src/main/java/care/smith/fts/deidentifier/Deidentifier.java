@@ -60,6 +60,9 @@ public class Deidentifier {
    * @throws IllegalArgumentException for a PATCH entry: a patch puts each value beside the path it
    *     changes, in a {@code Parameters}, or inside base64 data, in a {@code Binary}, so no rule
    *     selected by path can de-identify it
+   * @throws IllegalArgumentException for an entry with neither a resource nor a request, or with a
+   *     request without a url: there is nothing to de-identify, and dropping it would change the
+   *     bundle without a trace
    */
   public Bundle deidentifyBundle(Bundle bundle, String patientIdentifier) {
     requireNonNull(bundle);
@@ -85,6 +88,14 @@ public class Deidentifier {
     if (entry.hasRequest() && entry.getRequest().getMethod() == HTTPVerb.PATCH) {
       throw new IllegalArgumentException(
           "Bundle entry %d is a PATCH: patches are not supported.".formatted(index));
+    }
+    if (!entry.hasResource() && !entry.hasRequest()) {
+      throw new IllegalArgumentException(
+          "Bundle entry %d has neither a resource nor a request.".formatted(index));
+    }
+    if (entry.hasRequest() && !entry.getRequest().hasUrl()) {
+      throw new IllegalArgumentException(
+          "Bundle entry %d has a request without a url.".formatted(index));
     }
     if (!entry.hasResource()) {
       return deidentifyDelete(entry, entryContext);
@@ -145,8 +156,8 @@ public class Deidentifier {
    */
   private static Optional<BundleEntryRequestComponent> rebuildRequest(
       BundleEntryRequestComponent request, HandlerContext context, UrlRule urlRule) {
-    return Optional.ofNullable(request.getUrl())
-        .flatMap(url -> urlRule.apply(url, context))
+    return urlRule
+        .apply(request.getUrl(), context)
         .map(url -> new BundleEntryRequestComponent().setMethod(request.getMethod()).setUrl(url));
   }
 
