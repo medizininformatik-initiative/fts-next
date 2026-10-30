@@ -55,6 +55,10 @@ public class Deidentifier {
   /**
    * De-identifies every entry resource and builds a bundle skeleton around the survivors. A bundle
    * never disappears: its skeleton survives even when no entry does.
+   *
+   * @throws IllegalArgumentException for an entry with neither a resource nor a request, or with a
+   *     request without a url: there is nothing to de-identify, and dropping it would change the
+   *     bundle without a trace
    */
   public Bundle deidentifyBundle(Bundle bundle, String patientIdentifier) {
     requireNonNull(bundle);
@@ -77,6 +81,14 @@ public class Deidentifier {
   private Optional<BundleEntryComponent> deidentifyEntry(
       int index, BundleEntryComponent entry, HandlerContext bundleContext) {
     var entryContext = bundleContext.child(entry);
+    if (!entry.hasResource() && !entry.hasRequest()) {
+      throw new IllegalArgumentException(
+          "Bundle entry %d has neither a resource nor a request.".formatted(index));
+    }
+    if (entry.hasRequest() && !entry.getRequest().hasUrl()) {
+      throw new IllegalArgumentException(
+          "Bundle entry %d has a request without a url.".formatted(index));
+    }
     if (!entry.hasResource()) {
       return deidentifyDelete(entry, entryContext);
     }
@@ -136,8 +148,8 @@ public class Deidentifier {
    */
   private static Optional<BundleEntryRequestComponent> rebuildRequest(
       BundleEntryRequestComponent request, HandlerContext context, UrlRule urlRule) {
-    return Optional.ofNullable(request.getUrl())
-        .flatMap(url -> urlRule.apply(url, context))
+    return urlRule
+        .apply(request.getUrl(), context)
         .map(url -> new BundleEntryRequestComponent().setMethod(request.getMethod()).setUrl(url));
   }
 
