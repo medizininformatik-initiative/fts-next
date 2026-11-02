@@ -103,11 +103,10 @@ public class TransferProcessController {
       var jobUri = generateJobUri(uriBuilder, processId);
       return processRunner
           .status(processId)
-          .map(
-              s ->
-                  ResponseEntity.accepted()
-                      .headers(h -> h.add("Content-Location", jobUri.toString()))
-                      .build());
+          .map(s ->
+              ResponseEntity.accepted()
+                  .headers(h -> h.add("Content-Location", jobUri.toString()))
+                  .build());
     } else {
       log.warn("Project '{}' not found", project);
       return notFound(

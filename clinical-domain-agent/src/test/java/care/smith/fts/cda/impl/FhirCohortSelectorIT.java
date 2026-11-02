@@ -148,11 +148,10 @@ class FhirCohortSelectorIT {
     wireMock.register(fetchAllRequest().willReturn(notFound()));
 
     create(cohortSelector.selectCohort(List.of()))
-        .expectErrorSatisfies(
-            e ->
-                assertThat(e)
-                    .isInstanceOf(TransferProcessException.class)
-                    .hasMessageContaining("FHIR server"))
+        .expectErrorSatisfies(e ->
+            assertThat(e)
+                .isInstanceOf(TransferProcessException.class)
+                .hasMessageContaining("FHIR server"))
         .verify();
   }
 

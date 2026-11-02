@@ -13,7 +13,7 @@ public class MockBundleSender implements BundleSender.Factory<MockBundleSender.C
 
   @Override
   public BundleSender create(BundleSender.Config commonConfig, Config implConfig) {
-    return (b) -> {
+    return b -> {
       throw new UnsupportedOperationException();
     };
   }

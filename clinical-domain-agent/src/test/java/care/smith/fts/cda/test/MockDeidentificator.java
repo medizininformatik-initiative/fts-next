@@ -12,7 +12,7 @@ public class MockDeidentificator implements Deidentificator.Factory<MockDeidenti
 
   @Override
   public Deidentificator create(Deidentificator.Config commonConfig, Config implConfig) {
-    return (b) -> {
+    return b -> {
       throw new UnsupportedOperationException();
     };
   }

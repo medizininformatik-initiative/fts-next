@@ -146,11 +146,10 @@ class GicsFhirConsentedPatientsProviderFetchAllIT
                 CONSENT_FETCH_ALL_REQUEST,
                 fromUriString("http://trustcenteragent:1234"),
                 new PagingParams(offset, pageSize)))
-        .assertNext(
-            consentBundle -> {
-              assertThat(consentBundle.getEntry()).isEmpty();
-              assertThat(consentBundle.getLink("next")).isNull();
-            })
+        .assertNext(consentBundle -> {
+          assertThat(consentBundle.getEntry()).isEmpty();
+          assertThat(consentBundle.getLink("next")).isNull();
+        })
         .verifyComplete();
   }
 

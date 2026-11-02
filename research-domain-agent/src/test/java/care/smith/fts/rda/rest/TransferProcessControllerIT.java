@@ -71,7 +71,7 @@ public class TransferProcessControllerIT {
                 .retrieve()
                 .onStatus(
                     r -> r.equals(HttpStatus.resolve(500)),
-                    (c) ->
+                    c ->
                         c.bodyToMono(ProblemDetail.class)
                             .flatMap(p -> Mono.error(new IllegalStateException(p.getDetail()))))
                 .toBodilessEntity())
@@ -96,33 +96,30 @@ public class TransferProcessControllerIT {
   @Test
   void projects() {
     create(client.get().uri("/api/v2/projects").retrieve().bodyToMono(String.class))
-        .assertNext(
-            transferProcessDefinitions -> {
-              assertThat(transferProcessDefinitions).isEqualTo("[\"example\"]");
-            })
+        .assertNext(transferProcessDefinitions -> {
+          assertThat(transferProcessDefinitions).isEqualTo("[\"example\"]");
+        })
         .verifyComplete();
   }
 
   @Test
   void project() {
     create(client.get().uri("/api/v2/projects/example").retrieve().bodyToMono(String.class))
-        .assertNext(
-            transferProcessDefinitions -> {
-              assertThat(transferProcessDefinitions).contains("deidentificator");
-              assertThat(transferProcessDefinitions).contains("bundleSender");
-              assertThat(transferProcessDefinitions).contains("patient-102931");
-            })
+        .assertNext(transferProcessDefinitions -> {
+          assertThat(transferProcessDefinitions).contains("deidentificator");
+          assertThat(transferProcessDefinitions).contains("bundleSender");
+          assertThat(transferProcessDefinitions).contains("patient-102931");
+        })
         .verifyComplete();
   }
 
   @Test
   void projectReturns404() {
     create(client.get().uri("/api/v2/projects/doesNotExist").retrieve().bodyToMono(String.class))
-        .verifyErrorSatisfies(
-            error -> {
-              assertThat(error)
-                  .asInstanceOf(type(WebClientResponseException.class))
-                  .satisfies(e -> assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND));
-            });
+        .verifyErrorSatisfies(error -> {
+          assertThat(error)
+              .asInstanceOf(type(WebClientResponseException.class))
+              .satisfies(e -> assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND));
+        });
   }
 }

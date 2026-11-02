@@ -27,13 +27,12 @@ class ProjectReaderConfigTest {
   @Test
   void strictValidationRejectsBrokenProject() {
     var thrown =
-        catchThrowable(
-            () ->
-                new SpringApplicationBuilder(ResearchDomainAgent.class)
-                    .web(WebApplicationType.NONE)
-                    .run(
-                        "--projects.directory=src/test/resources/strict-projects",
-                        "--projects.strict-validation=true"));
+        catchThrowable(() ->
+            new SpringApplicationBuilder(ResearchDomainAgent.class)
+                .web(WebApplicationType.NONE)
+                .run(
+                    "--projects.directory=src/test/resources/strict-projects",
+                    "--projects.strict-validation=true"));
 
     assertThat(getCausalChain(thrown))
         .hasAtLeastOneElementOfType(ProjectConfigurationException.class);

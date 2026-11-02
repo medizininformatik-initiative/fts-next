@@ -87,28 +87,26 @@ public class SecureMappingE2E extends AbstractTcaE2E {
             .bodyToMono(SecureMappingResponse.class);
 
     StepVerifier.create(secureResponse)
-        .assertNext(
-            secureMapping -> {
-              log.info("Retrieved secure mapping: {}", secureMapping);
+        .assertNext(secureMapping -> {
+          log.info("Retrieved secure mapping: {}", secureMapping);
 
-              assertThat(secureMapping).isNotNull();
-              Map<String, String> mapping = secureMapping.tidPidMap();
-              assertThat(mapping).isNotNull();
-              assertThat(mapping).isNotEmpty();
+          assertThat(secureMapping).isNotNull();
+          Map<String, String> mapping = secureMapping.tidPidMap();
+          assertThat(mapping).isNotNull();
+          assertThat(mapping).isNotEmpty();
 
-              // Verify the secure mapping contains the reverse mappings (pseudonym -> original)
-              mapping.forEach(
-                  (key, value) -> {
-                    assertThat(key).isNotNull().isNotEmpty();
-                    assertThat(value).isNotNull().isNotEmpty();
-                    log.info("Secure mapping entry: {} -> {}", key, value);
-                  });
+          // Verify the secure mapping contains the reverse mappings (pseudonym -> original)
+          mapping.forEach((key, value) -> {
+            assertThat(key).isNotNull().isNotEmpty();
+            assertThat(value).isNotNull().isNotEmpty();
+            log.info("Secure mapping entry: {} -> {}", key, value);
+          });
 
-              // Verify date shift map is present
-              assertThat(secureMapping.dateShiftMap()).isNotNull();
+          // Verify date shift map is present
+          assertThat(secureMapping.dateShiftMap()).isNotNull();
 
-              log.info("Successfully retrieved secure mapping with {} entries", mapping.size());
-            })
+          log.info("Successfully retrieved secure mapping with {} entries", mapping.size());
+        })
         .verifyComplete();
   }
 }

@@ -20,12 +20,11 @@ class CohortSelectionSchedulerConfigTest {
 
   @Test
   void providesDedicatedSchedulerDistinctFromGlobalParallel() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(Scheduler.class);
-          assertThat(context.getBean("cohortSelectionScheduler", Scheduler.class))
-              .isNotSameAs(Schedulers.parallel());
-        });
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(Scheduler.class);
+      assertThat(context.getBean("cohortSelectionScheduler", Scheduler.class))
+          .isNotSameAs(Schedulers.parallel());
+    });
   }
 
   @Test

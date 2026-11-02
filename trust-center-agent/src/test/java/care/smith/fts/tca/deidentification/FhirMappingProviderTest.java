@@ -184,23 +184,22 @@ class FhirMappingProviderTest {
         FhirGenerators.gpasGetOrCreateResponse(
             fromList(keys), fromList(List.of(PSEUDONYM, SALT, DATE_SHIFT_SEED)));
 
-    keys.forEach(
-        key ->
-            wireMock.register(
-                post(urlEqualTo("/$pseudonymizeAllowCreate"))
-                    .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                    .withRequestBody(
-                        equalToJson(
-                            """
-                            { "resourceType": "Parameters",
-                              "parameter": [
-                                {"name": "target", "valueString": "domain"},
-                                {"name": "original", "valueString": "%s"}]}
-                            """
-                                .formatted(key),
-                            true,
-                            true))
-                    .willReturn(fhirResponse(fhirGenerator.generateString()))));
+    keys.forEach(key ->
+        wireMock.register(
+            post(urlEqualTo("/$pseudonymizeAllowCreate"))
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                .withRequestBody(
+                    equalToJson(
+                        """
+                        { "resourceType": "Parameters",
+                          "parameter": [
+                            {"name": "target", "valueString": "domain"},
+                            {"name": "original", "valueString": "%s"}]}
+                        """
+                            .formatted(key),
+                        true,
+                        true))
+                .willReturn(fhirResponse(fhirGenerator.generateString()))));
   }
 
   private static TransportMappingRequest transportMappingRequest(Map<String, String> dateMappings) {
@@ -235,13 +234,11 @@ class FhirMappingProviderTest {
                     "id2", "987654321",
                     "ds:2024-03-15", "2024-03-20")));
     create(mappingProvider.fetchSecureMapping("transferId"))
-        .assertNext(
-            m -> {
-              assertThat(m.tidPidMap().keySet()).containsExactlyInAnyOrder("id1", "id2");
-              assertThat(m.tidPidMap().values())
-                  .containsExactlyInAnyOrder("123456789", "987654321");
-              assertThat(m.dateShiftMap()).containsEntry("2024-03-15", "2024-03-20");
-            })
+        .assertNext(m -> {
+          assertThat(m.tidPidMap().keySet()).containsExactlyInAnyOrder("id1", "id2");
+          assertThat(m.tidPidMap().values()).containsExactlyInAnyOrder("123456789", "987654321");
+          assertThat(m.dateShiftMap()).containsEntry("2024-03-15", "2024-03-20");
+        })
         .verifyComplete();
   }
 
@@ -339,11 +336,10 @@ class FhirMappingProviderTest {
       // All values should be SHA-256 hashes (64 hex characters)
       result
           .values()
-          .forEach(
-              hash -> {
-                assertThat(hash).hasSize(64);
-                assertThat(hash).matches("^[a-f0-9]{64}$");
-              });
+          .forEach(hash -> {
+            assertThat(hash).hasSize(64);
+            assertThat(hash).matches("^[a-f0-9]{64}$");
+          });
     }
 
     @Test
@@ -392,11 +388,10 @@ class FhirMappingProviderTest {
       assertThat(result).hasSize(4);
       result
           .values()
-          .forEach(
-              hash -> {
-                assertThat(hash).hasSize(64);
-                assertThat(hash).matches("^[a-f0-9]{64}$");
-              });
+          .forEach(hash -> {
+            assertThat(hash).hasSize(64);
+            assertThat(hash).matches("^[a-f0-9]{64}$");
+          });
     }
 
     @Test
@@ -420,11 +415,10 @@ class FhirMappingProviderTest {
       assertThat(result).hasSize(1000);
       result
           .values()
-          .forEach(
-              hash -> {
-                assertThat(hash).hasSize(64);
-                assertThat(hash).matches("^[a-f0-9]{64}$");
-              });
+          .forEach(hash -> {
+            assertThat(hash).hasSize(64);
+            assertThat(hash).matches("^[a-f0-9]{64}$");
+          });
     }
   }
 

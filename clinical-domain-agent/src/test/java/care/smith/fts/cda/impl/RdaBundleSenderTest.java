@@ -53,21 +53,20 @@ class RdaBundleSenderTest {
    */
   private static WebClient clientDeferringOnce(String retryAfter) {
     var polls = new AtomicInteger();
-    return buildClient(
-        request -> {
-          if (request.method() == HttpMethod.POST) {
-            return ClientResponse.create(HttpStatus.ACCEPTED)
-                .header(CONTENT_LOCATION, STATUS_URI)
-                .build();
-          }
-          if (polls.getAndIncrement() > 0) {
-            return ClientResponse.create(HttpStatus.OK).build();
-          }
-          var accepted = ClientResponse.create(HttpStatus.ACCEPTED);
-          return retryAfter == null
-              ? accepted.build()
-              : accepted.header(RETRY_AFTER, retryAfter).build();
-        });
+    return buildClient(request -> {
+      if (request.method() == HttpMethod.POST) {
+        return ClientResponse.create(HttpStatus.ACCEPTED)
+            .header(CONTENT_LOCATION, STATUS_URI)
+            .build();
+      }
+      if (polls.getAndIncrement() > 0) {
+        return ClientResponse.create(HttpStatus.OK).build();
+      }
+      var accepted = ClientResponse.create(HttpStatus.ACCEPTED);
+      return retryAfter == null
+          ? accepted.build()
+          : accepted.header(RETRY_AFTER, retryAfter).build();
+    });
   }
 
   /**
@@ -113,43 +112,37 @@ class RdaBundleSenderTest {
   @MethodSource("unusableContentLocations")
   void unusableContentLocationRaisesTransferProcessException(List<String> contentLocation) {
     var client =
-        buildClient(
-            request ->
-                ClientResponse.create(HttpStatus.ACCEPTED)
-                    .headers(
-                        h ->
-                            Optional.ofNullable(contentLocation)
-                                .ifPresent(v -> h.put(CONTENT_LOCATION, v)))
-                    .build());
+        buildClient(request ->
+            ClientResponse.create(HttpStatus.ACCEPTED)
+                .headers(h ->
+                    Optional.ofNullable(contentLocation).ifPresent(v -> h.put(CONTENT_LOCATION, v)))
+                .build());
     var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
-        .expectErrorMatches(
-            e ->
-                e instanceof TransferProcessException
-                    && e.getMessage().equals("Missing Content-Location"))
+        .expectErrorMatches(e ->
+            e instanceof TransferProcessException
+                && e.getMessage().equals("Missing Content-Location"))
         .verify();
   }
 
   @Test
   void pollingBudgetExhaustedRaisesTransferProcessException() {
     var client =
-        buildClient(
-            request -> {
-              if (request.method() == HttpMethod.POST) {
-                return ClientResponse.create(HttpStatus.ACCEPTED)
-                    .header(CONTENT_LOCATION, STATUS_URI)
-                    .build();
-              }
-              return ClientResponse.create(HttpStatus.ACCEPTED).header(RETRY_AFTER, "0").build();
-            });
+        buildClient(request -> {
+          if (request.method() == HttpMethod.POST) {
+            return ClientResponse.create(HttpStatus.ACCEPTED)
+                .header(CONTENT_LOCATION, STATUS_URI)
+                .build();
+          }
+          return ClientResponse.create(HttpStatus.ACCEPTED).header(RETRY_AFTER, "0").build();
+        });
     var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
-        .expectErrorMatches(
-            e ->
-                e instanceof TransferProcessException
-                    && e.getMessage().equals("RDA polling budget exhausted"))
+        .expectErrorMatches(e ->
+            e instanceof TransferProcessException
+                && e.getMessage().equals("RDA polling budget exhausted"))
         .verify();
   }
 
@@ -160,37 +153,34 @@ class RdaBundleSenderTest {
   @Test
   void unexpectedStatusFromPollingEndpointRaisesTransferProcessException() {
     var client =
-        buildClient(
-            request -> {
-              if (request.method() == HttpMethod.POST) {
-                return ClientResponse.create(HttpStatus.ACCEPTED)
-                    .header(CONTENT_LOCATION, STATUS_URI)
-                    .build();
-              }
-              return ClientResponse.create(HttpStatus.CREATED).build();
-            });
+        buildClient(request -> {
+          if (request.method() == HttpMethod.POST) {
+            return ClientResponse.create(HttpStatus.ACCEPTED)
+                .header(CONTENT_LOCATION, STATUS_URI)
+                .build();
+          }
+          return ClientResponse.create(HttpStatus.CREATED).build();
+        });
     var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))
-        .expectErrorMatches(
-            e ->
-                e instanceof TransferProcessException
-                    && e.getMessage().startsWith("Unexpected RDA status: 201"))
+        .expectErrorMatches(e ->
+            e instanceof TransferProcessException
+                && e.getMessage().startsWith("Unexpected RDA status: 201"))
         .verify();
   }
 
   @Test
   void successfulOkAtFirstPoll() {
     var client =
-        buildClient(
-            request -> {
-              if (request.method() == HttpMethod.POST) {
-                return ClientResponse.create(HttpStatus.ACCEPTED)
-                    .header(CONTENT_LOCATION, STATUS_URI)
-                    .build();
-              }
-              return ClientResponse.create(HttpStatus.OK).build();
-            });
+        buildClient(request -> {
+          if (request.method() == HttpMethod.POST) {
+            return ClientResponse.create(HttpStatus.ACCEPTED)
+                .header(CONTENT_LOCATION, STATUS_URI)
+                .build();
+          }
+          return ClientResponse.create(HttpStatus.OK).build();
+        });
     var sender = new RdaBundleSender(CONFIG, client, buildRetryStrategy());
 
     create(sender.send(new TransportBundle(new Bundle(), "tid")))

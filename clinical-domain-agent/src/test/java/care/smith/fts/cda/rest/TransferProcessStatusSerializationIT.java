@@ -62,13 +62,12 @@ class TransferProcessStatusSerializationIT {
                 .uri("/api/v2/process/status/" + processId)
                 .retrieve()
                 .bodyToMono(String.class))
-        .assertNext(
-            body -> {
-              assertThat(body).contains("\"createdAt\":\"2026-05-13T05:00:00.818+02:00\"");
-              assertThat(body).contains("\"finishedAt\":\"2026-05-13T05:00:10.543+02:00\"");
-              assertThat(body).doesNotContain("\"createdAt\":[");
-              assertThat(body).doesNotContain("\"finishedAt\":[");
-            })
+        .assertNext(body -> {
+          assertThat(body).contains("\"createdAt\":\"2026-05-13T05:00:00.818+02:00\"");
+          assertThat(body).contains("\"finishedAt\":\"2026-05-13T05:00:10.543+02:00\"");
+          assertThat(body).doesNotContain("\"createdAt\":[");
+          assertThat(body).doesNotContain("\"finishedAt\":[");
+        })
         .verifyComplete();
   }
 
@@ -96,11 +95,10 @@ class TransferProcessStatusSerializationIT {
     Mockito.when(processRunner.statuses()).thenReturn(Mono.just(List.of(status)));
 
     create(client.get().uri("/api/v2/process/statuses").retrieve().bodyToMono(String.class))
-        .assertNext(
-            body -> {
-              assertThat(body).contains("\"createdAt\":\"2026-05-13T05:00:00.818+02:00\"");
-              assertThat(body).doesNotContain("\"createdAt\":[");
-            })
+        .assertNext(body -> {
+          assertThat(body).contains("\"createdAt\":\"2026-05-13T05:00:00.818+02:00\"");
+          assertThat(body).doesNotContain("\"createdAt\":[");
+        })
         .verifyComplete();
   }
 }

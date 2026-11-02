@@ -64,11 +64,10 @@ class FetchAllConsentControllerIT extends BaseIT {
                 entry("policySystem", "sys")));
 
     create(response)
-        .assertNext(
-            val -> {
-              log.info("Response: {}", val);
-              assertThat(val).isNotBlank();
-            })
+        .assertNext(val -> {
+          log.info("Response: {}", val);
+          assertThat(val).isNotBlank();
+        })
         .verifyComplete();
   }
 
@@ -112,11 +111,10 @@ class FetchAllConsentControllerIT extends BaseIT {
                 entry("policySystem", "sys")));
 
     create(response)
-        .assertNext(
-            val -> {
-              log.info("Response: {}", val);
-              assertThat(val).isNotBlank();
-            })
+        .assertNext(val -> {
+          log.info("Response: {}", val);
+          assertThat(val).isNotBlank();
+        })
         .verifyComplete();
   }
 

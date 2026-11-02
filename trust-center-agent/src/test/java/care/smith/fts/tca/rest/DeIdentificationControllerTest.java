@@ -58,11 +58,10 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.just(new TransportMappingResponse(mapName)));
 
     create(controller.transportMapping(Mono.just(request)))
-        .assertNext(
-            r -> {
-              assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
-              assertThat(r.getBody().transferId()).isEqualTo("transferId");
-            })
+        .assertNext(r -> {
+          assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+          assertThat(r.getBody().transferId()).isEqualTo("transferId");
+        })
         .verifyComplete();
   }
 
@@ -82,10 +81,9 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.error(new UnknownDomainException("unknown domain")));
 
     create(controller.transportMapping(Mono.just(request)))
-        .assertNext(
-            r -> {
-              assertThat(r.getStatusCode().is4xxClientError()).isTrue();
-            })
+        .assertNext(r -> {
+          assertThat(r.getStatusCode().is4xxClientError()).isTrue();
+        })
         .verifyComplete();
   }
 
@@ -105,10 +103,9 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.error(new IllegalArgumentException("Illegal argument")));
 
     create(controller.transportMapping(Mono.just(request)))
-        .assertNext(
-            r -> {
-              assertThat(r.getStatusCode().is4xxClientError()).isTrue();
-            })
+        .assertNext(r -> {
+          assertThat(r.getStatusCode().is4xxClientError()).isTrue();
+        })
         .verifyComplete();
   }
 
@@ -128,11 +125,10 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.just(new TransportMappingResponse(mapName)));
 
     create(controller.transportMapping(Mono.just(request)))
-        .assertNext(
-            r -> {
-              assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
-              assertThat(r.getBody().transferId()).isEqualTo("transferId");
-            })
+        .assertNext(r -> {
+          assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+          assertThat(r.getBody().transferId()).isEqualTo("transferId");
+        })
         .verifyComplete();
   }
 
@@ -152,10 +148,9 @@ class DeIdentificationControllerTest {
         .willReturn(Mono.error(new ResponseStatusException(INTERNAL_SERVER_ERROR)));
 
     create(controller.transportMapping(Mono.just(request)))
-        .assertNext(
-            r -> {
-              assertThat(r.getStatusCode().is5xxServerError()).isTrue();
-            })
+        .assertNext(r -> {
+          assertThat(r.getStatusCode().is5xxServerError()).isTrue();
+        })
         .verifyComplete();
   }
 
@@ -168,15 +163,14 @@ class DeIdentificationControllerTest {
                     Map.of("tid-1", "pid1", "tid-2", "pid2"), Map.of("2024-03-15", "2024-03-20"))));
 
     create(controller.secureMapping("transferId"))
-        .assertNext(
-            r -> {
-              assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
-              var body = r.getBody();
-              assertThat(body.tidPidMap())
-                  .containsEntry("tid-1", "pid1")
-                  .containsEntry("tid-2", "pid2");
-              assertThat(body.dateShiftMap()).containsEntry("2024-03-15", "2024-03-20");
-            })
+        .assertNext(r -> {
+          assertThat(r.getStatusCode().is2xxSuccessful()).isTrue();
+          var body = r.getBody();
+          assertThat(body.tidPidMap())
+              .containsEntry("tid-1", "pid1")
+              .containsEntry("tid-2", "pid2");
+          assertThat(body.dateShiftMap()).containsEntry("2024-03-15", "2024-03-20");
+        })
         .verifyComplete();
   }
 

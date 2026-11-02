@@ -99,10 +99,9 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
     }
 
     create(service.resolve(new ConsentedPatient("external-141392", PID_SYSTEM)))
-        .verifyErrorMatches(
-            err ->
-                err.getMessage().contains("Unable to resolve")
-                    && err.getMessage().contains("external-141392"));
+        .verifyErrorMatches(err ->
+            err.getMessage().contains("Unable to resolve")
+                && err.getMessage().contains("external-141392"));
   }
 
   @Test
@@ -127,10 +126,9 @@ class FhirResolveServiceIT extends AbstractConnectionScenarioIT {
     }
 
     create(service.resolve(new ConsentedPatient("external-075521", PID_SYSTEM)))
-        .verifyErrorMatches(
-            err ->
-                err.getMessage().contains("more then one")
-                    && err.getMessage().contains("external-075521"));
+        .verifyErrorMatches(err ->
+            err.getMessage().contains("more then one")
+                && err.getMessage().contains("external-075521"));
   }
 
   @Test
