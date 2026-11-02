@@ -703,22 +703,31 @@ class DeidentifierTest {
   }
 
   /** Without a reference rule the request goes and the resource stays. */
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "Patient?identifier=sys|12345",
-        "Patient?name=Doe",
-        "Patient/123/_history/2",
-        "https://server.example/fhir/Patient/123",
-        ""
-      })
-  void dropsTheRequestWhenItsUrlNamesTheResourceInAnotherWay(String url) {
-    var bundle = patientEntryWithRequest(HTTPVerb.POST, url);
+  @Test
+  void dropsTheRequestWhenItsConditionalUrlNeedsTheReferenceRule() {
+    var bundle = patientEntryWithRequest(HTTPVerb.POST, "Patient?identifier=sys|12345");
 
     var result = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE).deidentifyBundle(bundle, "p");
 
     assertThat(result.getEntryFirstRep().hasRequest()).isFalse();
     assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "Patient?name=Doe",
+        "Patient/123/_history/2",
+        "https://server.example/fhir/Patient/123",
+        ""
+      })
+  void failsTheBundleWhenTheRequestUrlHasAFormatThatCannotBePseudonymized(String url) {
+    var bundle = patientEntryWithRequest(HTTPVerb.POST, url);
+    var deidentifier = new Deidentifier(KEEP_ALL, NO_REFERENCE_RULE);
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A request url has a format that cannot be pseudonymized.");
   }
 
   @Test

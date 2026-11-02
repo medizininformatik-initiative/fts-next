@@ -82,15 +82,21 @@ class BundleEntryUrlsTest {
   @ValueSource(
       strings = {
         "Patient?name=Doe",
-        CONDITIONAL + "&name=Doe",
+        CONDITIONAL + "&active=true",
         "Patient/123/_history/2",
-        "https://server.example/fhir/Patient/123",
+        "Patient/123?_format=json",
+        "Patient/$validate",
+        "http://server.example/fhir/Patient/123",
         ""
       })
-  void dropsAnyOtherUrlOfAResourceEntryWithoutAskingTheHandler(String url) {
+  void failsOnAnyOtherUrlOfAResourceEntryWithoutAskingTheHandler(String url) {
     var entryUrls = BundleEntryUrls.of(FAILING);
+    var resource = deidentified("x9");
 
-    assertThat(entryUrls.requestUrl(url, deidentified("x9"), CONTEXT)).isEmpty();
+    assertThatThrownBy(() -> entryUrls.requestUrl(url, resource, CONTEXT))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A request url has a format that cannot be pseudonymized.")
+        .hasMessageNotContaining("Patient");
   }
 
   @ParameterizedTest
