@@ -244,14 +244,13 @@ class DeidentifierTest {
     assertThat(result.getGender()).isEqualTo(AdministrativeGender.OTHER);
     assertThat(result.getGenderElement().getExtension())
         .singleElement()
-        .satisfies(
-            extension -> {
-              assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
-              Coding coding = (Coding) extension.getValue();
-              assertThat(coding.getCode()).isEqualTo("D");
-              assertThat(coding.hasSystem()).isFalse();
-              assertThat(coding.hasDisplay()).isFalse();
-            });
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
+          Coding coding = (Coding) extension.getValue();
+          assertThat(coding.getCode()).isEqualTo("D");
+          assertThat(coding.hasSystem()).isFalse();
+          assertThat(coding.hasDisplay()).isFalse();
+        });
   }
 
   /** A primitive whose value the rule set removes is still there as a carrier of its extension. */
@@ -270,11 +269,10 @@ class DeidentifierTest {
     assertThat(result.getGenderElement().hasValue()).isFalse();
     assertThat(result.getGenderElement().getExtension())
         .singleElement()
-        .satisfies(
-            extension -> {
-              assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
-              assertThat(((Coding) extension.getValue()).getCode()).isEqualTo("D");
-            });
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
+          assertThat(((Coding) extension.getValue()).getCode()).isEqualTo("D");
+        });
   }
 
   /** A handler that builds a fresh value does not take the kept input extensions with it. */
@@ -298,11 +296,10 @@ class DeidentifierTest {
     assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-01-01");
     assertThat(result.getBirthDateElement().getExtension())
         .singleElement()
-        .satisfies(
-            extension -> {
-              assertThat(extension.getUrl()).isEqualTo("https://example.org/note");
-              assertThat(extension.getValue().primitiveValue()).isEqualTo("a note");
-            });
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/note");
+          assertThat(extension.getValue().primitiveValue()).isEqualTo("a note");
+        });
   }
 
   /** An extension a handler adds to the value follows the kept input extensions. */
@@ -358,11 +355,10 @@ class DeidentifierTest {
     assertThat(result.getBirthDateElement().hasValue()).isFalse();
     assertThat(result.getBirthDateElement().getExtension())
         .singleElement()
-        .satisfies(
-            extension -> {
-              assertThat(extension.getUrl()).isEqualTo("https://example.org/added");
-              assertThat(extension.getValue().primitiveValue()).isEqualTo("id-1");
-            });
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/added");
+          assertThat(extension.getValue().primitiveValue()).isEqualTo("id-1");
+        });
   }
 
   /** A handler that removes the value leaves nothing behind when no input extension is kept. */
@@ -422,13 +418,12 @@ class DeidentifierTest {
 
     assertThat(seen)
         .singleElement()
-        .satisfies(
-            ancestors -> {
-              assertThat(ancestors).hasSize(3);
-              assertThat(ancestors.get(0)).isSameAs(patient);
-              assertThat(ancestors.get(1)).isSameAs(patient.getBirthDateElement());
-              assertThat(ancestors.get(2)).isSameAs(extension);
-            });
+        .satisfies(ancestors -> {
+          assertThat(ancestors).hasSize(3);
+          assertThat(ancestors.get(0)).isSameAs(patient);
+          assertThat(ancestors.get(1)).isSameAs(patient.getBirthDateElement());
+          assertThat(ancestors.get(2)).isSameAs(extension);
+        });
   }
 
   @Test
@@ -615,12 +610,11 @@ class DeidentifierTest {
 
     assertThat(seen)
         .singleElement()
-        .satisfies(
-            context -> {
-              assertThat(context.patientIdentifier()).isEqualTo("p1");
-              assertThat(context.parent()).isSameAs(entry);
-              assertThat(context.ancestors()).containsExactly(bundle, entry);
-            });
+        .satisfies(context -> {
+          assertThat(context.patientIdentifier()).isEqualTo("p1");
+          assertThat(context.parent()).isSameAs(entry);
+          assertThat(context.ancestors()).containsExactly(bundle, entry);
+        });
   }
 
   @Test
@@ -793,12 +787,11 @@ class DeidentifierTest {
 
     assertThat(seen)
         .singleElement()
-        .satisfies(
-            context -> {
-              assertThat(context.patientIdentifier()).isEqualTo("p1");
-              assertThat(context.resource()).isSameAs(patient);
-              assertThat(context.ancestors()).containsExactly(patient);
-            });
+        .satisfies(context -> {
+          assertThat(context.patientIdentifier()).isEqualTo("p1");
+          assertThat(context.resource()).isSameAs(patient);
+          assertThat(context.ancestors()).containsExactly(patient);
+        });
   }
 
   private static DeidentifierHandler<StringType> urlRecording(List<HandlerContext> seen) {
@@ -819,13 +812,12 @@ class DeidentifierTest {
 
     assertThat(seen)
         .singleElement()
-        .satisfies(
-            context -> {
-              assertThat(context.patientIdentifier()).isEqualTo("p1");
-              assertThat(context.resource()).isSameAs(bundle);
-              assertThat(context.parent()).isSameAs(entry.getRequest());
-              assertThat(context.ancestors()).containsExactly(bundle, entry, entry.getRequest());
-            });
+        .satisfies(context -> {
+          assertThat(context.patientIdentifier()).isEqualTo("p1");
+          assertThat(context.resource()).isSameAs(bundle);
+          assertThat(context.parent()).isSameAs(entry.getRequest());
+          assertThat(context.ancestors()).containsExactly(bundle, entry, entry.getRequest());
+        });
   }
 
   @Test
@@ -920,9 +912,8 @@ class DeidentifierTest {
 
     assertThat(seen)
         .singleElement()
-        .satisfies(
-            context ->
-                assertThat(context.ancestors()).containsExactly(bundle, entry, entry.getRequest()));
+        .satisfies(context ->
+            assertThat(context.ancestors()).containsExactly(bundle, entry, entry.getRequest()));
   }
 
   @Test

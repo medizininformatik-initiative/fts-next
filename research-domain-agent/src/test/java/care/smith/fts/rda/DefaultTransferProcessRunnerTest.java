@@ -59,8 +59,8 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             new TransferProcessConfig(null, null),
-            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
-            (b) -> just(result));
+            b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            b -> just(result));
 
     TransferProcessRunner.StartResult startResult =
         runner.start(
@@ -82,8 +82,8 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             new TransferProcessConfig(null, null),
-            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
-            (b) -> Mono.error(new IllegalStateException("send failed")));
+            b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            b -> Mono.error(new IllegalStateException("send failed")));
 
     TransferProcessRunner.StartResult startResult =
         runner.start(
@@ -105,8 +105,8 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             new TransferProcessConfig(null, null),
-            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
-            (b) -> Mono.delay(Duration.ofSeconds(10)).then(Mono.just(new Result())));
+            b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            b -> Mono.delay(Duration.ofSeconds(10)).then(Mono.just(new Result())));
 
     TransferProcessRunner.StartResult first =
         saturatedRunner.start(
@@ -133,8 +133,8 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             new TransferProcessConfig(null, null),
-            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
-            (b) -> just(new Result()));
+            b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            b -> just(new Result()));
 
     TransferProcessRunner.StartResult first =
         limitedRunner.start(
@@ -164,7 +164,7 @@ class DefaultTransferProcessRunnerTest {
         new FixedDestinationSender(
             "same-dest", Mono.delay(Duration.ofSeconds(10)).then(Mono.just(new Result())));
     Deidentificator deidentificator =
-        (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep()));
+        b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep()));
 
     var processA =
         new TransferProcessDefinition(
@@ -199,7 +199,7 @@ class DefaultTransferProcessRunnerTest {
         new FixedDestinationSender(
             "dest-b", Mono.delay(Duration.ofSeconds(10)).then(Mono.just(new Result())));
     Deidentificator deidentificator =
-        (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep()));
+        b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep()));
 
     var processA =
         new TransferProcessDefinition(
@@ -229,8 +229,8 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             new TransferProcessConfig(null, null),
-            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
-            (b) -> just(new Result()));
+            b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            b -> just(new Result()));
 
     TransferProcessRunner.StartResult startResult = runner.start(process, Mono.empty());
     assertThat(startResult).isInstanceOf(TransferProcessRunner.StartResult.Accepted.class);
@@ -249,8 +249,8 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             new TransferProcessConfig(null, null),
-            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
-            (b) -> just(new Result()));
+            b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            b -> just(new Result()));
 
     var first =
         ttlRunner.start(
@@ -279,8 +279,8 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             new TransferProcessConfig(null, null),
-            (b) -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
-            (b) -> just(new Result()));
+            b -> Mono.just(new Bundle().addEntry(new Bundle().getEntryFirstRep())),
+            b -> just(new Result()));
 
     var first =
         runner.start(

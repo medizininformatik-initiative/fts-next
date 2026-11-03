@@ -163,11 +163,10 @@ class BundleEntryUrlsTest {
   void carriesThePseudonymizedReferenceOfAUrnUuidFullUrlAsAUuid() {
     var seen = new ArrayList<String>();
     var entryUrls =
-        BundleEntryUrls.of(
-            (value, context) -> {
-              seen.add(value.getValue());
-              return Optional.of(new StringType("Patient/SYNTH-1"));
-            });
+        BundleEntryUrls.of((value, context) -> {
+          seen.add(value.getValue());
+          return Optional.of(new StringType("Patient/SYNTH-1"));
+        });
 
     var fullUrl = entryUrls.fullUrl("urn:uuid:source-chosen", CONTEXT);
 

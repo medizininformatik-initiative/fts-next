@@ -214,13 +214,12 @@ public abstract class AbstractFhirClientIT<T, R, S> {
                 status(INTERNAL_SERVER_ERROR.value())
                     .withBody("what was I supposed to do again?")));
     StepVerifier.create(executeRequest(getDefaultRequest()))
-        .expectErrorSatisfies(
-            error -> {
-              assertThat(error)
-                  .isInstanceOf(FhirException.class)
-                  .hasMessage("Unknown " + getServerName() + " error");
-              assertThat(((FhirException) error).getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
-            })
+        .expectErrorSatisfies(error -> {
+          assertThat(error)
+              .isInstanceOf(FhirException.class)
+              .hasMessage("Unknown " + getServerName() + " error");
+          assertThat(((FhirException) error).getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
+        })
         .verify();
   }
 
@@ -283,11 +282,10 @@ public abstract class AbstractFhirClientIT<T, R, S> {
                     .withHeader(CONTENT_TYPE, APPLICATION_FHIR_JSON)
                     .withBody(fhirResourceToString(getMockCapabilityStatement()))));
     StepVerifier.create(executeRequest(getDefaultRequest()))
-        .expectErrorSatisfies(
-            error -> {
-              assertThat(error).isInstanceOf(FhirException.class).hasMessage(message);
-              assertThat(((FhirException) error).getStatusCode()).isEqualTo(expectedClientStatus);
-            })
+        .expectErrorSatisfies(error -> {
+          assertThat(error).isInstanceOf(FhirException.class).hasMessage(message);
+          assertThat(((FhirException) error).getStatusCode()).isEqualTo(expectedClientStatus);
+        })
         .verify();
   }
 }

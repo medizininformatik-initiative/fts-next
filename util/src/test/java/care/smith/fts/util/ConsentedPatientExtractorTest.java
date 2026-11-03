@@ -122,12 +122,11 @@ class ConsentedPatientExtractorTest {
         .get()
         .asInstanceOf(type(Consented.class))
         .extracting(Consented::patient)
-        .satisfies(
-            p -> {
-              assertThat(p.identifier()).isEqualTo("12345");
-              assertThat(p.patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
-              assertThat(p.consentedPolicies().hasAllPolicies(POLICIES_TO_CHECK)).isTrue();
-            });
+        .satisfies(p -> {
+          assertThat(p.identifier()).isEqualTo("12345");
+          assertThat(p.patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
+          assertThat(p.consentedPolicies().hasAllPolicies(POLICIES_TO_CHECK)).isTrue();
+        });
   }
 
   @Test

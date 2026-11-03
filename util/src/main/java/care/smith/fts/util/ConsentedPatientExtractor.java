@@ -72,11 +72,10 @@ public record ConsentedPatientExtractor(
             new ConsentedPatient(patientIdentifier, patientIdentifierSystem, consentedPolicies))
         .filter(p -> missingPolicies.isEmpty())
         .<CohortEntry>map(Consented::new)
-        .or(
-            () ->
-                requiredPolicies
-                    .faultReason(bundle, missingPolicies)
-                    .map(reason -> new Excluded(patientIdentifier, reason)));
+        .or(() ->
+            requiredPolicies
+                .faultReason(bundle, missingPolicies)
+                .map(reason -> new Excluded(patientIdentifier, reason)));
   }
 
   private ConsentedPolicies consentedPolicies(Bundle bundle) {

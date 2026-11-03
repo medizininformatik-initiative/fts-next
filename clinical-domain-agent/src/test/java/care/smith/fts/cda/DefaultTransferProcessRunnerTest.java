@@ -72,11 +72,10 @@ class DefaultTransferProcessRunnerTest {
 
     var processId = runner.start(process, List.of());
     create(runner.status(processId))
-        .assertNext(
-            r -> {
-              assertThat(r.sentBundles()).isEqualTo(1);
-              assertThat(r.skippedBundles()).isEqualTo(0);
-            })
+        .assertNext(r -> {
+          assertThat(r.sentBundles()).isEqualTo(1);
+          assertThat(r.skippedBundles()).isEqualTo(0);
+        })
         .verifyComplete();
   }
 
@@ -93,12 +92,11 @@ class DefaultTransferProcessRunnerTest {
 
     var processId = runner.start(process, List.of());
     create(runner.status(processId))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.FATAL);
-              assertThat(r.sentBundles()).isEqualTo(0);
-              assertThat(r.skippedBundles()).isEqualTo(0);
-            })
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.FATAL);
+          assertThat(r.sentBundles()).isEqualTo(0);
+          assertThat(r.skippedBundles()).isEqualTo(0);
+        })
         .verifyComplete();
   }
 
@@ -121,12 +119,11 @@ class DefaultTransferProcessRunnerTest {
     waitForCompletion(processId);
 
     create(runner.status(processId))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.FATAL);
-              assertThat(r.sentBundles()).isEqualTo(0);
-              assertThat(r.skippedBundles()).isEqualTo(0);
-            })
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.FATAL);
+          assertThat(r.sentBundles()).isEqualTo(0);
+          assertThat(r.skippedBundles()).isEqualTo(0);
+        })
         .verifyComplete();
   }
 
@@ -171,12 +168,11 @@ class DefaultTransferProcessRunnerTest {
         .verifyComplete();
 
     create(runner.statuses())
-        .assertNext(
-            r -> {
-              assertThat(r.size()).isEqualTo(3);
-              assertThat(r.stream().map(TransferProcessStatus::phase))
-                  .containsExactlyInAnyOrder(Phase.RUNNING, Phase.RUNNING, Phase.QUEUED);
-            })
+        .assertNext(r -> {
+          assertThat(r.size()).isEqualTo(3);
+          assertThat(r.stream().map(TransferProcessStatus::phase))
+              .containsExactlyInAnyOrder(Phase.RUNNING, Phase.RUNNING, Phase.QUEUED);
+        })
         .verifyComplete();
 
     create(
@@ -189,12 +185,11 @@ class DefaultTransferProcessRunnerTest {
         .verifyComplete();
 
     create(runner.statuses())
-        .assertNext(
-            r -> {
-              assertThat(r.size()).isEqualTo(3);
-              assertThat(r.stream().map(TransferProcessStatus::phase))
-                  .containsExactlyInAnyOrder(Phase.RUNNING, Phase.COMPLETED, Phase.COMPLETED);
-            })
+        .assertNext(r -> {
+          assertThat(r.size()).isEqualTo(3);
+          assertThat(r.stream().map(TransferProcessStatus::phase))
+              .containsExactlyInAnyOrder(Phase.RUNNING, Phase.COMPLETED, Phase.COMPLETED);
+        })
         .verifyComplete();
   }
 
@@ -340,20 +335,18 @@ class DefaultTransferProcessRunnerTest {
     waitForCompletion(processId);
 
     create(runner.status(processId))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
-              assertThat(r.sentBundles()).isEqualTo(2);
-            })
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+          assertThat(r.sentBundles()).isEqualTo(2);
+        })
         .verifyComplete();
     create(runner.failedPatients(processId))
-        .assertNext(
-            errors -> {
-              assertThat(errors).hasSize(1);
-              assertThat(errors.getFirst().patientIdentifier()).isEqualTo(PATIENT_IDENTIFIER_2);
-              assertThat(errors.getFirst().step()).isEqualTo(Step.SELECT_DATA);
-              assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot select data");
-            })
+        .assertNext(errors -> {
+          assertThat(errors).hasSize(1);
+          assertThat(errors.getFirst().patientIdentifier()).isEqualTo(PATIENT_IDENTIFIER_2);
+          assertThat(errors.getFirst().step()).isEqualTo(Step.SELECT_DATA);
+          assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot select data");
+        })
         .verifyComplete();
   }
 
@@ -372,19 +365,17 @@ class DefaultTransferProcessRunnerTest {
     waitForCompletion(processId);
 
     create(runner.status(processId))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
-              assertThat(r.sentBundles()).isEqualTo(2);
-            })
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+          assertThat(r.sentBundles()).isEqualTo(2);
+        })
         .verifyComplete();
     create(runner.failedPatients(processId))
-        .assertNext(
-            errors -> {
-              assertThat(errors).hasSize(1);
-              assertThat(errors.getFirst().step()).isEqualTo(Step.DEIDENTIFY);
-              assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot deidentify bundle");
-            })
+        .assertNext(errors -> {
+          assertThat(errors).hasSize(1);
+          assertThat(errors.getFirst().step()).isEqualTo(Step.DEIDENTIFY);
+          assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot deidentify bundle");
+        })
         .verifyComplete();
   }
 
@@ -403,19 +394,17 @@ class DefaultTransferProcessRunnerTest {
     waitForCompletion(processId);
 
     create(runner.status(processId))
-        .assertNext(
-            r -> {
-              assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
-              assertThat(r.sentBundles()).isEqualTo(2);
-            })
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+          assertThat(r.sentBundles()).isEqualTo(2);
+        })
         .verifyComplete();
     create(runner.failedPatients(processId))
-        .assertNext(
-            errors -> {
-              assertThat(errors).hasSize(1);
-              assertThat(errors.getFirst().step()).isEqualTo(Step.SEND_BUNDLE);
-              assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot send bundle");
-            })
+        .assertNext(errors -> {
+          assertThat(errors).hasSize(1);
+          assertThat(errors.getFirst().step()).isEqualTo(Step.SEND_BUNDLE);
+          assertThat(errors.getFirst().errorMessage()).isEqualTo("Cannot send bundle");
+        })
         .verifyComplete();
   }
 
@@ -442,10 +431,9 @@ class DefaultTransferProcessRunnerTest {
   @Test
   void failedPatientsForUnknownProcessIdErrors() {
     create(runner.failedPatients("unknown"))
-        .expectErrorMatches(
-            e ->
-                e instanceof IllegalStateException
-                    && e.getMessage().contains("No transfer process with processId"))
+        .expectErrorMatches(e ->
+            e instanceof IllegalStateException
+                && e.getMessage().contains("No transfer process with processId"))
         .verify();
   }
 
@@ -491,12 +479,11 @@ class DefaultTransferProcessRunnerTest {
     waitForCompletion(processId);
 
     create(runner.failedPatients(processId))
-        .assertNext(
-            errors -> {
-              assertThat(errors).hasSize(n);
-              assertThat(errors).allMatch(e -> e.step() == Step.SELECT_DATA);
-              assertThat(errors).allMatch(e -> "Cannot select data".equals(e.errorMessage()));
-            })
+        .assertNext(errors -> {
+          assertThat(errors).hasSize(n);
+          assertThat(errors).allMatch(e -> e.step() == Step.SELECT_DATA);
+          assertThat(errors).allMatch(e -> "Cannot select data".equals(e.errorMessage()));
+        })
         .verifyComplete();
   }
 
@@ -609,11 +596,10 @@ class DefaultTransferProcessRunnerTest {
               peakInFlight.updateAndGet(peak -> Math.max(peak, current));
               return Mono.just(new Result())
                   .delayElement(Duration.ofMillis(20))
-                  .doOnNext(
-                      r -> {
-                        sent.incrementAndGet();
-                        inFlight.decrementAndGet();
-                      });
+                  .doOnNext(r -> {
+                    sent.incrementAndGet();
+                    inFlight.decrementAndGet();
+                  });
             });
 
     var processId = serializedRunner.start(process, List.of());
@@ -709,10 +695,9 @@ class DefaultTransferProcessRunnerTest {
     shortTtlRunner.start(fastProcess(), List.of());
 
     create(shortTtlRunner.status(expiredId))
-        .expectErrorMatches(
-            e ->
-                e instanceof IllegalStateException
-                    && e.getMessage().contains("No transfer process with processId"))
+        .expectErrorMatches(e ->
+            e instanceof IllegalStateException
+                && e.getMessage().contains("No transfer process with processId"))
         .verify();
   }
 

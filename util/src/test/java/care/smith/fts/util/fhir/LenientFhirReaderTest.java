@@ -44,15 +44,14 @@ class LenientFhirReaderTest {
     var response = response(APPLICATION_FHIR_JSON, CONSENT_WITH_MALFORMED_START);
 
     create(read(response, Map.of()))
-        .assertNext(
-            c ->
-                assertThat(
-                        c.getProvision()
-                            .getProvisionFirstRep()
-                            .getPeriod()
-                            .getStartElement()
-                            .asStringValue())
-                    .isEqualTo("2024/02/23"))
+        .assertNext(c ->
+            assertThat(
+                    c.getProvision()
+                        .getProvisionFirstRep()
+                        .getPeriod()
+                        .getStartElement()
+                        .asStringValue())
+                .isEqualTo("2024/02/23"))
         .verifyComplete();
   }
 

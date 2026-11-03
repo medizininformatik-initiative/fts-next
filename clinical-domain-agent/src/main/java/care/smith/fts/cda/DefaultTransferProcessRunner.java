@@ -71,14 +71,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
         instances.values().stream()
             .filter(inst -> inst.status().mayBeRemoved(removeBefore))
             .toList();
-    forRemoval.forEach(
-        p -> {
-          log.trace(
-              "[Process Runner] Removing process {} finished before {}",
-              p.processId(),
-              removeBefore);
-          instances.remove(p.processId());
-        });
+    forRemoval.forEach(p -> {
+      log.trace(
+          "[Process Runner] Removing process {} finished before {}", p.processId(), removeBefore);
+      instances.remove(p.processId());
+    });
   }
 
   @Override
@@ -147,12 +144,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .transform(this::sendBundles)
           .doOnComplete(this::onComplete)
           .doOnComplete(DefaultTransferProcessRunner.this::onComplete)
-          .doOnError(
-              e -> {
-                status.updateAndGet(s -> s.setPhase(Phase.FATAL));
-                log.error("[Process {}] Unexpected pipeline error", processId(), e);
-                DefaultTransferProcessRunner.this.onComplete();
-              })
+          .doOnError(e -> {
+            status.updateAndGet(s -> s.setPhase(Phase.FATAL));
+            log.error("[Process {}] Unexpected pipeline error", processId(), e);
+            DefaultTransferProcessRunner.this.onComplete();
+          })
           .subscribe();
       log.info("[Process {}] Started", processId());
     }
@@ -162,17 +158,14 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .cohortSelector()
           .selectCohort(identifiers)
-          .doOnNext(
-              p -> {
-                status.updateAndGet(TransferProcessStatus::incTotalPatients);
-                log.trace(
-                    "[Process {}] selectCohort emitted patient {}", processId(), p.identifier());
-              })
-          .doOnError(
-              e -> {
-                status.updateAndGet(s -> s.setPhase(Phase.FATAL));
-                log.error("[Process {}] Cohort selection failed", processId(), e);
-              })
+          .doOnNext(p -> {
+            status.updateAndGet(TransferProcessStatus::incTotalPatients);
+            log.trace("[Process {}] selectCohort emitted patient {}", processId(), p.identifier());
+          })
+          .doOnError(e -> {
+            status.updateAndGet(s -> s.setPhase(Phase.FATAL));
+            log.error("[Process {}] Cohort selection failed", processId(), e);
+          })
           .onErrorComplete();
     }
 
@@ -183,12 +176,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           // Prefetch at most maxConcurrentPatients ahead of the send stage. The send stage's
           // flatMap concurrency is the binding cap; backpressure propagates from there upward.
           .flatMap(this::selectDataForPatient, config.maxConcurrentPatients())
-          .doOnNext(
-              b -> {
-                status.updateAndGet(TransferProcessStatus::incTotalBundles);
-                var msg = "[Process {}] selectData produced bundle for patient {}";
-                log.trace(msg, processId(), b.consentedPatient().identifier());
-              })
+          .doOnNext(b -> {
+            status.updateAndGet(TransferProcessStatus::incTotalBundles);
+            var msg = "[Process {}] selectData produced bundle for patient {}";
+            log.trace(msg, processId(), b.consentedPatient().identifier());
+          })
           .doOnComplete(() -> log.trace("[Process {}] selectData completed", processId()));
     }
 
@@ -197,16 +189,14 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       return process
           .dataSelector()
           .select(patient)
-          .doOnNext(
-              b -> {
-                var msg = "[Process {}] selectDataForPatient {} produced {} entries";
-                log.trace(msg, processId(), patient.identifier(), b.bundle().getEntry().size());
-              })
-          .doOnComplete(
-              () -> {
-                var msg = "[Process {}] selectDataForPatient {} completed";
-                log.trace(msg, processId(), patient.identifier());
-              })
+          .doOnNext(b -> {
+            var msg = "[Process {}] selectDataForPatient {} produced {} entries";
+            log.trace(msg, processId(), patient.identifier(), b.bundle().getEntry().size());
+          })
+          .doOnComplete(() -> {
+            var msg = "[Process {}] selectDataForPatient {} completed";
+            log.trace(msg, processId(), patient.identifier());
+          })
           .onErrorResume(e -> handlePatientError(patient.identifier(), Step.SELECT_DATA, e));
     }
 
@@ -235,12 +225,11 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           // Same prefetch window as selectData — keeps deidentified bundles ready for the sender
           // without racing ahead of what the send stage can consume.
           .flatMap(this::deidentifyForPatient, config.maxConcurrentPatients())
-          .doOnNext(
-              b -> {
-                status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles);
-                var doneMsg = "[Process {}] deidentify completed for patient {}";
-                log.trace(doneMsg, processId(), b.consentedPatient().identifier());
-              });
+          .doOnNext(b -> {
+            status.updateAndGet(TransferProcessStatus::incDeidentifiedBundles);
+            var doneMsg = "[Process {}] deidentify completed for patient {}";
+            log.trace(doneMsg, processId(), b.consentedPatient().identifier());
+          });
     }
 
     private Mono<PatientContext<TransportBundle>> deidentifyForPatient(

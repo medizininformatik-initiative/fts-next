@@ -213,11 +213,10 @@ public class RdaE2E {
   private WebClient createWebClientWithFhirCodecs(String baseUrl) {
     return WebClient.builder()
         .baseUrl(baseUrl)
-        .codecs(
-            configurer -> {
-              configurer.customCodecs().register(fhirEncoder);
-              configurer.customCodecs().register(fhirDecoder);
-            })
+        .codecs(configurer -> {
+          configurer.customCodecs().register(fhirEncoder);
+          configurer.customCodecs().register(fhirDecoder);
+        })
         .build();
   }
 

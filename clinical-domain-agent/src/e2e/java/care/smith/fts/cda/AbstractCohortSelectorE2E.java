@@ -332,12 +332,11 @@ public abstract class AbstractCohortSelectorE2E {
   /** Verifies the transfer response and handles status polling. */
   private void verifyTransferResponse(Mono<ResponseEntity<String>> response, WebClient webClient) {
     StepVerifier.create(response)
-        .assertNext(
-            responseEntity -> {
-              validateInitialResponse(responseEntity);
-              var contentLocation = extractContentLocation(responseEntity);
-              verifyStatusPolling(webClient, contentLocation);
-            })
+        .assertNext(responseEntity -> {
+          validateInitialResponse(responseEntity);
+          var contentLocation = extractContentLocation(responseEntity);
+          verifyStatusPolling(webClient, contentLocation);
+        })
         .verifyComplete();
   }
 

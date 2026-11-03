@@ -163,11 +163,10 @@ public abstract class AbstractTcaE2E {
 
     return WebClient.builder()
         .baseUrl(tcaBaseUrl)
-        .codecs(
-            configurer -> {
-              configurer.customCodecs().register(fhirDecoder);
-              configurer.customCodecs().register(fhirEncoder);
-            })
+        .codecs(configurer -> {
+          configurer.customCodecs().register(fhirDecoder);
+          configurer.customCodecs().register(fhirEncoder);
+        })
         .build();
   }
 
@@ -293,11 +292,10 @@ public abstract class AbstractTcaE2E {
             .bodyToMono(Bundle.class);
 
     StepVerifier.create(response)
-        .assertNext(
-            bundle -> {
-              log.info("Received bundle with {} entries", bundle.getEntry().size());
-              verifier.accept(bundle);
-            })
+        .assertNext(bundle -> {
+          log.info("Received bundle with {} entries", bundle.getEntry().size());
+          verifier.accept(bundle);
+        })
         .verifyComplete();
   }
 
@@ -311,19 +309,18 @@ public abstract class AbstractTcaE2E {
 
     bundle
         .getEntry()
-        .forEach(
-            entry -> {
-              assertThat(entry.getResource()).isNotNull();
-              assertThat(entry.getResource()).isInstanceOf(Bundle.class);
+        .forEach(entry -> {
+          assertThat(entry.getResource()).isNotNull();
+          assertThat(entry.getResource()).isInstanceOf(Bundle.class);
 
-              Bundle innerBundle = (Bundle) entry.getResource();
-              assertThat(innerBundle.getEntry()).isNotEmpty();
+          Bundle innerBundle = (Bundle) entry.getResource();
+          assertThat(innerBundle.getEntry()).isNotEmpty();
 
-              // Verify inner bundle contains at least one Patient resource
-              boolean hasPatient =
-                  innerBundle.getEntry().stream()
-                      .anyMatch(e -> e.getResource().getResourceType().name().equals("Patient"));
-              assertThat(hasPatient).isTrue();
-            });
+          // Verify inner bundle contains at least one Patient resource
+          boolean hasPatient =
+              innerBundle.getEntry().stream()
+                  .anyMatch(e -> e.getResource().getResourceType().name().equals("Patient"));
+          assertThat(hasPatient).isTrue();
+        });
   }
 }

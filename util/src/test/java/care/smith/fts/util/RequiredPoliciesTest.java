@@ -244,14 +244,13 @@ class RequiredPoliciesTest {
 
     assertThat(events)
         .singleElement()
-        .satisfies(
-            e -> {
-              assertThat(e.getLevel()).isEqualTo(Level.WARN);
-              assertThat(e.getFormattedMessage())
-                  .isEqualTo(
-                      "Skipping 2 permit provisions with missing period start or unreadable"
-                          + " period");
-            });
+        .satisfies(e -> {
+          assertThat(e.getLevel()).isEqualTo(Level.WARN);
+          assertThat(e.getFormattedMessage())
+              .isEqualTo(
+                  "Skipping 2 permit provisions with missing period start or unreadable"
+                      + " period");
+        });
   }
 
   @Test
@@ -264,14 +263,13 @@ class RequiredPoliciesTest {
 
     assertThat(events)
         .singleElement()
-        .satisfies(
-            e -> {
-              assertThat(e.getLevel()).isEqualTo(Level.WARN);
-              assertThat(e.getFormattedMessage())
-                  .isEqualTo(
-                      "Skipping 1 permit provisions with missing period start or unreadable"
-                          + " period");
-            });
+        .satisfies(e -> {
+          assertThat(e.getLevel()).isEqualTo(Level.WARN);
+          assertThat(e.getFormattedMessage())
+              .isEqualTo(
+                  "Skipping 1 permit provisions with missing period start or unreadable"
+                      + " period");
+        });
   }
 
   @Test

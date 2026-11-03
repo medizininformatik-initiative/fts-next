@@ -17,13 +17,13 @@ include:
 services:
   # Clinical Domain
   cd-hds:
-    image: samply/blaze:1.12.1@sha256:ecea2fd1f646d60d4653eb623df3bd85998e0a405fb7e90abc91dcf2ffa7fded
+    image: samply/blaze:1.13.0@sha256:808d04a6224ca926ab2422d4235cd008399b5e4d4f5855d52fd2715de295f1c2
     ports: [ ":8080" ]
     networks: [ "clinical-domain" ]
     environment:
       BASE_URL: "http://cd-hds:8080"
     healthcheck:
-      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/health" ]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -31,14 +31,14 @@ services:
 
   # Research Domain
   rd-hds:
-    image: samply/blaze:1.12.1@sha256:ecea2fd1f646d60d4653eb623df3bd85998e0a405fb7e90abc91dcf2ffa7fded
+    image: samply/blaze:1.13.0@sha256:808d04a6224ca926ab2422d4235cd008399b5e4d4f5855d52fd2715de295f1c2
     ports: [ ":8080" ]
     networks: [ "research-domain" ]
     environment:
       BASE_URL: "http://rd-hds:8080"
       ENFORCE_REFERENTIAL_INTEGRITY: "false"
     healthcheck:
-      test: [ "CMD", "curl", "-sSf", "http://localhost:8080/health" ]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/health" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -64,7 +64,7 @@ services:
       retries: 3
       start_period: 300s
   gics-db:
-    image: mysql:9.7.4@sha256:86b390ef642f89a0157d6215dee33ddc928b8b0ecab173117f56f6c40cb24eab
+    image: mysql:9.7.4@sha256:df90258da46f6e7ff8574ff84f17618aba0765cac749928299c69fd4e7cb8ad8
     volumes:
     - ./gics/initdb/:/docker-entrypoint-initdb.d
     command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
@@ -99,7 +99,7 @@ services:
       retries: 3
       start_period: 300s
   gpas-db:
-    image: mysql:9.7.4@sha256:86b390ef642f89a0157d6215dee33ddc928b8b0ecab173117f56f6c40cb24eab
+    image: mysql:9.7.4@sha256:df90258da46f6e7ff8574ff84f17618aba0765cac749928299c69fd4e7cb8ad8
     volumes:
     - ./gpas/initdb/:/docker-entrypoint-initdb.d
     command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
