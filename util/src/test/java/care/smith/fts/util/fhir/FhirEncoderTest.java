@@ -46,13 +46,11 @@ class FhirEncoderTest {
             Mono.just(patient), bufferFactory, resolvableType, MediaType.APPLICATION_JSON, null);
 
     create(resultFlux)
-        .assertNext(
-            dataBuffer -> {
-              String encodedString = encodedString(dataBuffer);
-              String expectedString =
-                  FhirUtils.fctx.newJsonParser().encodeResourceToString(patient);
-              assertThat(encodedString).isEqualTo(expectedString);
-            })
+        .assertNext(dataBuffer -> {
+          String encodedString = encodedString(dataBuffer);
+          String expectedString = FhirUtils.fctx.newJsonParser().encodeResourceToString(patient);
+          assertThat(encodedString).isEqualTo(expectedString);
+        })
         .verifyComplete();
   }
 
@@ -99,13 +97,12 @@ class FhirEncoderTest {
 
   String encodedString(DataBuffer dataBuffer) {
     return DataBufferUtils.join(Mono.just(dataBuffer))
-        .map(
-            buffer -> {
-              byte[] bytes = new byte[buffer.readableByteCount()];
-              buffer.read(bytes);
-              DataBufferUtils.release(buffer);
-              return new String(bytes, StandardCharsets.UTF_8);
-            })
+        .map(buffer -> {
+          byte[] bytes = new byte[buffer.readableByteCount()];
+          buffer.read(bytes);
+          DataBufferUtils.release(buffer);
+          return new String(bytes, StandardCharsets.UTF_8);
+        })
         .block();
   }
 

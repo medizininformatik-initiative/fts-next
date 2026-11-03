@@ -105,11 +105,10 @@ class TransferProcessControllerTest {
             Mono.just(bundle),
             UriComponentsBuilder.fromUriString("http://localhost:1234"));
     create(start)
-        .assertNext(
-            response -> {
-              assertThat(response.getStatusCode().value()).isEqualTo(429);
-              assertThat(response.getHeaders().getFirst(RETRY_AFTER)).isEqualTo("5");
-            })
+        .assertNext(response -> {
+          assertThat(response.getStatusCode().value()).isEqualTo(429);
+          assertThat(response.getHeaders().getFirst(RETRY_AFTER)).isEqualTo("5");
+        })
         .verifyComplete();
   }
 
@@ -203,8 +202,8 @@ class TransferProcessControllerTest {
     return new TransferProcessDefinition(
         "example",
         new TransferProcessConfig(null, null),
-        (transportBundle) -> null,
-        (patientBundle) -> null);
+        transportBundle -> null,
+        patientBundle -> null);
   }
 
   @Test
@@ -215,11 +214,10 @@ class TransferProcessControllerTest {
     create(status)
         .expectNext(
             ResponseEntity.accepted()
-                .headers(
-                    h -> {
-                      h.add(X_PROGRESS, "Running");
-                      h.add(RETRY_AFTER, "3");
-                    })
+                .headers(h -> {
+                  h.add(X_PROGRESS, "Running");
+                  h.add(RETRY_AFTER, "3");
+                })
                 .body(RUNNING_PROCESS_STATUS))
         .verifyComplete();
   }

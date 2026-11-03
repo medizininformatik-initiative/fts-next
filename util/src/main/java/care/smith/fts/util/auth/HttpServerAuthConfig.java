@@ -32,13 +32,12 @@ public class HttpServerAuthConfig {
         "Configure server security using '{}' auth with {} endpoints", method, endpoints.size());
     method.configure(http);
 
-    http.authorizeExchange(
-        auth -> {
-          for (Endpoint endpoint : endpoints) {
-            method.filter(endpoint, auth.pathMatchers(endpoint.path()));
-          }
-          auth.anyExchange().permitAll();
-        });
+    http.authorizeExchange(auth -> {
+      for (Endpoint endpoint : endpoints) {
+        method.filter(endpoint, auth.pathMatchers(endpoint.path()));
+      }
+      auth.anyExchange().permitAll();
+    });
 
     return http.build();
   }

@@ -38,11 +38,10 @@ public class WebClientDefaults implements WebClientCustomizer {
   @Override
   public void customize(WebClient.Builder builder) {
     builder
-        .filter(
-            (request, next) ->
-                next.exchange(request)
-                    .timeout(ofSeconds(10))
-                    .flatMap(WebClientDefaults::errorOnRedirect))
+        .filter((request, next) ->
+            next.exchange(request)
+                .timeout(ofSeconds(10))
+                .flatMap(WebClientDefaults::errorOnRedirect))
         .codecs(this::configureJacksonCodecs);
   }
 

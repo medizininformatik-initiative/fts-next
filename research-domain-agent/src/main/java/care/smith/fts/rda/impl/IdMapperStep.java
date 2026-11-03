@@ -35,20 +35,18 @@ class IdMapperStep implements Deidentificator {
   @Override
   public Mono<Bundle> deidentify(TransportBundle transportBundle) {
     return fetchSecureMapping(transportBundle.transferId())
-        .map(
-            response -> {
-              var bundle = transportBundle.bundle();
-              processEntries(bundle, response.tidPidMap(), response.dateShiftMap());
-              return bundle;
-            })
+        .map(response -> {
+          var bundle = transportBundle.bundle();
+          processEntries(bundle, response.tidPidMap(), response.dateShiftMap());
+          return bundle;
+        })
         .doOnNext(b -> log.trace("Total bundle entries: {}", b.getEntry().size()))
         .switchIfEmpty(
-            Mono.fromRunnable(
-                () ->
-                    log.warn(
-                        "Empty secure mapping response for transferId={}, skipping"
-                            + " deidentification",
-                        transportBundle.transferId())));
+            Mono.fromRunnable(() ->
+                log.warn(
+                    "Empty secure mapping response for transferId={}, skipping"
+                        + " deidentification",
+                    transportBundle.transferId())));
   }
 
   private Mono<SecureMappingResponse> fetchSecureMapping(String transferId) {
@@ -69,15 +67,14 @@ class IdMapperStep implements Deidentificator {
     bundle.getEntry().stream()
         .map(Bundle.BundleEntryComponent::getResource)
         .filter(Objects::nonNull)
-        .forEach(
-            resource -> {
-              if (resource instanceof Bundle innerBundle) {
-                processEntries(innerBundle, idMapping, dateShiftMap);
-              } else {
-                replaceResourceId(resource, idMapping);
-                walkElements(resource, idMapping, dateShiftMap);
-              }
-            });
+        .forEach(resource -> {
+          if (resource instanceof Bundle innerBundle) {
+            processEntries(innerBundle, idMapping, dateShiftMap);
+          } else {
+            replaceResourceId(resource, idMapping);
+            walkElements(resource, idMapping, dateShiftMap);
+          }
+        });
   }
 
   private void replaceResourceId(Resource resource, Map<String, String> idMapping) {

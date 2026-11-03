@@ -263,10 +263,9 @@ class RdaBundleSenderIT extends AbstractConnectionScenarioIT {
 
     var bundle = Stream.of(new Patient().setId(PATIENT_ID)).collect(toBundle());
     create(bundleSender.send(new TransportBundle(bundle, "transferId")))
-        .expectErrorMatches(
-            e ->
-                e instanceof TransferProcessException
-                    && e.getMessage().startsWith("Unexpected RDA status: 201"))
+        .expectErrorMatches(e ->
+            e instanceof TransferProcessException
+                && e.getMessage().startsWith("Unexpected RDA status: 201"))
         .verify();
   }
 

@@ -66,27 +66,26 @@ class DeIdentificationControllerIT extends BaseIT {
             fromList(List.of("469680023", "123", "12345")));
 
     List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
-        .forEach(
-            key ->
-                gpas()
-                    .register(
-                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                            .withRequestBody(
-                                equalToJson(
-                                    """
-                                    {
-                                      "resourceType": "Parameters",
-                                      "parameter": [
-                                        {"name": "target", "valueString": "MII"},
-                                        {"name": "original", "valueString": "%s"}
-                                      ]
-                                    }
-                                    """
-                                        .formatted(key),
-                                    true,
-                                    true))
-                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
+        .forEach(key ->
+            gpas()
+                .register(
+                    post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                        .withRequestBody(
+                            equalToJson(
+                                """
+                                {
+                                  "resourceType": "Parameters",
+                                  "parameter": [
+                                    {"name": "target", "valueString": "MII"},
+                                    {"name": "original", "valueString": "%s"}
+                                  ]
+                                }
+                                """
+                                    .formatted(key),
+                                true,
+                                true))
+                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
     var response =
         doPost(
@@ -100,11 +99,10 @@ class DeIdentificationControllerIT extends BaseIT {
                 entry("dateShiftPreserve", "NONE")));
 
     create(response)
-        .assertNext(
-            res -> {
-              assertThat(res).isNotNull();
-              assertThat(res.transferId()).isNotNull();
-            })
+        .assertNext(res -> {
+          assertThat(res).isNotNull();
+          assertThat(res.transferId()).isNotNull();
+        })
         .verifyComplete();
   }
 
@@ -116,24 +114,23 @@ class DeIdentificationControllerIT extends BaseIT {
             fromList(List.of("469680023", "123", "12345")));
 
     List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
-        .forEach(
-            key ->
-                gpas()
-                    .register(
-                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                            .withRequestBody(
-                                equalToJson(
-                                    """
-                                    { "resourceType": "Parameters",
-                                      "parameter": [
-                                        {"name": "target", "valueString": "MII"},
-                                        {"name": "original", "valueString": "%s"}]}
-                                    """
-                                        .formatted(key),
-                                    true,
-                                    true))
-                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
+        .forEach(key ->
+            gpas()
+                .register(
+                    post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                        .withRequestBody(
+                            equalToJson(
+                                """
+                                { "resourceType": "Parameters",
+                                  "parameter": [
+                                    {"name": "target", "valueString": "MII"},
+                                    {"name": "original", "valueString": "%s"}]}
+                                """
+                                    .formatted(key),
+                                true,
+                                true))
+                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
     // Inflate the request body past WebFlux's 256KB default in-memory limit via dateMappings,
     // which are shifted deterministically without a per-entry gPAS call.
@@ -193,11 +190,10 @@ class DeIdentificationControllerIT extends BaseIT {
                 entry("dateShiftPreserve", "NONE")));
 
     create(response)
-        .assertNext(
-            res -> {
-              assertThat(res).isNotNull();
-              assertThat(res.transferId()).isNotNull();
-            })
+        .assertNext(res -> {
+          assertThat(res).isNotNull();
+          assertThat(res.transferId()).isNotNull();
+        })
         .verifyComplete();
   }
 
@@ -214,12 +210,11 @@ class DeIdentificationControllerIT extends BaseIT {
             .toBodilessEntity();
 
     create(response)
-        .expectErrorSatisfies(
-            e -> {
-              assertThat(e).isInstanceOf(WebClientResponseException.class);
-              assertThat(((WebClientResponseException) e).getStatusCode())
-                  .isEqualTo(HttpStatus.BAD_REQUEST);
-            })
+        .expectErrorSatisfies(e -> {
+          assertThat(e).isInstanceOf(WebClientResponseException.class);
+          assertThat(((WebClientResponseException) e).getStatusCode())
+              .isEqualTo(HttpStatus.BAD_REQUEST);
+        })
         .verify();
   }
 
@@ -231,24 +226,23 @@ class DeIdentificationControllerIT extends BaseIT {
             fromList(List.of("469680023", "123", "12345")));
 
     List.of("id-144218", "Salt_id-144218", "PT336H_id-144218")
-        .forEach(
-            key ->
-                gpas()
-                    .register(
-                        post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
-                            .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
-                            .withRequestBody(
-                                equalToJson(
-                                    """
-                                    { "resourceType": "Parameters",
-                                      "parameter": [
-                                        {"name": "target", "valueString": "MII"},
-                                        {"name": "original", "valueString": "%s"}]}
-                                    """
-                                        .formatted(key),
-                                    true,
-                                    true))
-                            .willReturn(fhirResponse(fhirGenerator.generateString()))));
+        .forEach(key ->
+            gpas()
+                .register(
+                    post(urlEqualTo("/ttp-fhir/fhir/gpas/$pseudonymizeAllowCreate"))
+                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FHIR_JSON))
+                        .withRequestBody(
+                            equalToJson(
+                                """
+                                { "resourceType": "Parameters",
+                                  "parameter": [
+                                    {"name": "target", "valueString": "MII"},
+                                    {"name": "original", "valueString": "%s"}]}
+                                """
+                                    .formatted(key),
+                                true,
+                                true))
+                        .willReturn(fhirResponse(fhirGenerator.generateString()))));
 
     var transferId =
         doPost(
@@ -274,14 +268,13 @@ class DeIdentificationControllerIT extends BaseIT {
             .toEntity(SecureMappingResponse.class);
 
     create(response)
-        .assertNext(
-            res -> {
-              assertThat(res).isNotNull();
-              assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-              var body = res.getBody();
-              assertThat(body).isNotNull();
-              assertThat(body.dateShiftMap()).containsKey("tId-date-1");
-            })
+        .assertNext(res -> {
+          assertThat(res).isNotNull();
+          assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+          var body = res.getBody();
+          assertThat(body).isNotNull();
+          assertThat(body.dateShiftMap()).containsKey("tId-date-1");
+        })
         .verifyComplete();
   }
 

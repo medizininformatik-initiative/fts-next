@@ -128,11 +128,10 @@ public class WebClientFactory {
 
   private void configureAuth(Builder builder, @Nullable HttpClientAuth.Config auth) {
     Optional.ofNullable(auth)
-        .flatMap(
-            a ->
-                configurer("basic", basic, a.basic())
-                    .or(() -> configurer("oauth2", oauth2, a.oauth2()))
-                    .or(() -> configurer("cookieToken", token, a.cookieToken())))
+        .flatMap(a ->
+            configurer("basic", basic, a.basic())
+                .or(() -> configurer("oauth2", oauth2, a.oauth2()))
+                .or(() -> configurer("cookieToken", token, a.cookieToken())))
         .ifPresent(configurer -> configurer.accept(builder));
   }
 
@@ -143,10 +142,8 @@ public class WebClientFactory {
 
   private static <C> HttpClientAuth<C> requireImpl(String name, @Nullable HttpClientAuth<C> impl) {
     return Optional.ofNullable(impl)
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Cannot configure %s authentication, missing implementing class."
-                        .formatted(name)));
+        .orElseThrow(() ->
+            new IllegalArgumentException(
+                "Cannot configure %s authentication, missing implementing class.".formatted(name)));
   }
 }

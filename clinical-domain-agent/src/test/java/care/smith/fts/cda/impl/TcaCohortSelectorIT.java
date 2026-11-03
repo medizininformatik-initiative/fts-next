@@ -206,10 +206,9 @@ class TcaCohortSelectorIT {
   void consentWithMalformedDateIsRead() {
     var inner = allCohortSelector.generateConsents("patient", 1).getFirst();
     typedResourceStream(inner, Consent.class)
-        .forEach(
-            c ->
-                c.getProvision()
-                    .addProvision(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_speichern")));
+        .forEach(c ->
+            c.getProvision()
+                .addProvision(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_speichern")));
     var outer = Stream.of(inner).collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(outer))));
 

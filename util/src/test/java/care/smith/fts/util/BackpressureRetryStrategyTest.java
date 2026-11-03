@@ -97,14 +97,12 @@ class BackpressureRetryStrategyTest {
     var strategy =
         new BackpressureRetryStrategy(meterRegistry, new DefaultRetryStrategy(meterRegistry, true));
     var calls = new AtomicInteger();
-    StepVerifier.withVirtualTime(
-            () ->
-                Mono.defer(
-                        () ->
-                            calls.getAndIncrement() < 1
-                                ? Mono.error(new TimeoutException("timeout"))
-                                : Mono.just("ok"))
-                    .retryWhen(strategy.forRequest("timeout")))
+    StepVerifier.withVirtualTime(() ->
+            Mono.defer(() ->
+                    calls.getAndIncrement() < 1
+                        ? Mono.error(new TimeoutException("timeout"))
+                        : Mono.just("ok"))
+                .retryWhen(strategy.forRequest("timeout")))
         .thenAwait(Duration.ofSeconds(60))
         .expectNext("ok")
         .verifyComplete();

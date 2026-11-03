@@ -1,10 +1,10 @@
-FROM eclipse-temurin:25.0.4_7-jre-alpine@sha256:2ca9adf44f5c29d28ecd26cf92d75cc0c66b7f32bfd839a4439e363a8b428af8
+FROM eclipse-temurin:25.0.5_8-jre-alpine@sha256:56f273059de6b13a6b49fe0ded691ed2d0399bbee76156a8f2d385f7524a3d43
 
 # Patch stale Alpine OS packages flagged by Trivy. Versions are pinned so
 # Renovate tracks updates (see renovate.json5). openssl, libssl3 and
 # libcrypto3 share one version and must upgrade in lockstep.
 # renovate: datasource=repology depName=alpine_3_24/libexpat versioning=loose
-ARG LIBEXPAT_VERSION="2.9.0-r0"
+ARG LIBEXPAT_VERSION="2.10.0-r0"
 # renovate: datasource=repology depName=alpine_3_24/openssl versioning=loose
 ARG OPENSSL_VERSION="3.5.9-r0"
 

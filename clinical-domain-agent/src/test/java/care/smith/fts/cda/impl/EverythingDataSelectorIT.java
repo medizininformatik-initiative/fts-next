@@ -116,11 +116,10 @@ class EverythingDataSelectorIT extends AbstractConnectionScenarioIT {
   @Test
   void noConsentErrors() {
     create(dataSelector.select(new ConsentedPatient(PATIENT_IDENTIFIER, "system")))
-        .expectErrorSatisfies(
-            e ->
-                assertThat(e)
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("ignoreConsent"))
+        .expectErrorSatisfies(e ->
+            assertThat(e)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ignoreConsent"))
         .verify();
   }
 

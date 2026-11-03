@@ -25,12 +25,11 @@ final class KeepAliveTestServer implements AutoCloseable {
 
   private final ServerSocket serverSocket;
   private final ExecutorService workers =
-      Executors.newCachedThreadPool(
-          r -> {
-            var t = new Thread(r, "keep-alive-test-server");
-            t.setDaemon(true);
-            return t;
-          });
+      Executors.newCachedThreadPool(r -> {
+        var t = new Thread(r, "keep-alive-test-server");
+        t.setDaemon(true);
+        return t;
+      });
   private final AtomicInteger connectionsAccepted = new AtomicInteger();
 
   KeepAliveTestServer() throws IOException {

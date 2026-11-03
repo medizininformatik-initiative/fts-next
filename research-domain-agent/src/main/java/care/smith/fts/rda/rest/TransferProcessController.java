@@ -100,11 +100,10 @@ public class TransferProcessController {
     var process = findProcess(project);
     return process
         .map(transferProcessDefinition -> startProcess(data, uriBuilder, transferProcessDefinition))
-        .orElseGet(
-            () ->
-                notFound(
-                    new IllegalArgumentException(
-                        "Project '%s' could not be found".formatted(project))));
+        .orElseGet(() ->
+            notFound(
+                new IllegalArgumentException(
+                    "Project '%s' could not be found".formatted(project))));
   }
 
   private Mono<ResponseEntity<Object>> startProcess(
@@ -175,11 +174,10 @@ public class TransferProcessController {
     return switch (s.phase()) {
       case RUNNING ->
           ResponseEntity.accepted()
-              .headers(
-                  h -> {
-                    h.add(X_PROGRESS, "Running");
-                    h.add(RETRY_AFTER, "3");
-                  });
+              .headers(h -> {
+                h.add(X_PROGRESS, "Running");
+                h.add(RETRY_AFTER, "3");
+              });
       case COMPLETED -> ResponseEntity.ok();
       case ERROR -> ResponseEntity.internalServerError();
     };

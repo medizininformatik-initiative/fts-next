@@ -60,11 +60,10 @@ class ConsentControllerTest {
     given(provider.fetch(consentFetchRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.just(bundle));
     responses()
-        .forEach(
-            response ->
-                create(response)
-                    .assertNext(b -> assertThat(b.getBody()).isEqualTo(bundle))
-                    .verifyComplete());
+        .forEach(response ->
+            create(response)
+                .assertNext(b -> assertThat(b.getBody()).isEqualTo(bundle))
+                .verifyComplete());
   }
 
   @Test
@@ -74,11 +73,10 @@ class ConsentControllerTest {
     given(provider.fetch(consentFetchRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.error(new FhirUnknownDomainException("")));
     responses()
-        .forEach(
-            response ->
-                create(response)
-                    .assertNext(b -> assertThat(b.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND))
-                    .verifyComplete());
+        .forEach(response ->
+            create(response)
+                .assertNext(b -> assertThat(b.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND))
+                .verifyComplete());
   }
 
   @Test
@@ -88,13 +86,10 @@ class ConsentControllerTest {
     given(provider.fetch(consentFetchRequest, requestUrl, new PagingParams(0, 1)))
         .willReturn(Mono.error(new IllegalArgumentException()));
     responses()
-        .forEach(
-            response ->
-                create(response)
-                    .assertNext(
-                        b ->
-                            assertThat(b.getStatusCode())
-                                .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR))
-                    .verifyComplete());
+        .forEach(response ->
+            create(response)
+                .assertNext(
+                    b -> assertThat(b.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR))
+                .verifyComplete());
   }
 }

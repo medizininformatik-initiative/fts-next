@@ -166,11 +166,10 @@ class GicsFhirConsentedPatientsProviderFetchIT
                 CONSENT_FETCH_REQUEST,
                 fromUriString("http://trustcenteragent:8080"),
                 new PagingParams(offset, pageSize)))
-        .assertNext(
-            consentBundle -> {
-              assertThat(consentBundle.getEntry()).isEmpty();
-              assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink);
-            })
+        .assertNext(consentBundle -> {
+          assertThat(consentBundle.getEntry()).isEmpty();
+          assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink);
+        })
         .verifyComplete();
   }
 
@@ -194,10 +193,9 @@ class GicsFhirConsentedPatientsProviderFetchIT
                 consentRequest,
                 fromUriString("http://trustcenteragent:8080"),
                 new PagingParams(0, 2)))
-        .assertNext(
-            consentBundle -> {
-              assertThat(consentBundle.getEntry()).isEmpty();
-            })
+        .assertNext(consentBundle -> {
+          assertThat(consentBundle.getEntry()).isEmpty();
+        })
         .verifyComplete();
   }
 }

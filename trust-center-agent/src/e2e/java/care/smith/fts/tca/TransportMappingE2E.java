@@ -65,13 +65,12 @@ public class TransportMappingE2E extends AbstractTcaE2E {
 
     // Verify the response
     StepVerifier.create(response)
-        .assertNext(
-            transportMapping -> {
-              log.info("Received transport mapping response: {}", transportMapping);
+        .assertNext(transportMapping -> {
+          log.info("Received transport mapping response: {}", transportMapping);
 
-              // Verify transfer ID is generated
-              assertThat(transportMapping.transferId()).isNotNull();
-            })
+          // Verify transfer ID is generated
+          assertThat(transportMapping.transferId()).isNotNull();
+        })
         .verifyComplete();
   }
 }

@@ -28,16 +28,14 @@ public record HttpServerClientCertAuth(List<UserSpec> users) implements HttpServ
         .filter(c -> c.startsWith("CN="))
         .map(c -> c.substring(3))
         .findFirst()
-        .map(
-            cn -> {
-              log.trace("Extracted CN '{}' from cert subject: {}", cn, distinguishedName);
-              return cn;
-            })
-        .orElseGet(
-            () -> {
-              log.warn("Could not extract CN from cert subject: {}", distinguishedName);
-              return "";
-            });
+        .map(cn -> {
+          log.trace("Extracted CN '{}' from cert subject: {}", cn, distinguishedName);
+          return cn;
+        })
+        .orElseGet(() -> {
+          log.warn("Could not extract CN from cert subject: {}", distinguishedName);
+          return "";
+        });
   }
 
   @Override

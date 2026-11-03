@@ -56,11 +56,10 @@ class WebClientDefaultsTest {
     WebClient webClient = webClientBuilder.baseUrl(address).build();
 
     create(webClient.post().retrieve().bodyToMono(DateShiftingRequest.class))
-        .assertNext(
-            b -> {
-              assertThat(b.id()).isEqualTo("id1");
-              assertThat(b.dateShift()).isEqualTo(Duration.ofDays(7));
-            })
+        .assertNext(b -> {
+          assertThat(b.id()).isEqualTo("id1");
+          assertThat(b.dateShift()).isEqualTo(Duration.ofDays(7));
+        })
         .verifyComplete();
   }
 
@@ -135,12 +134,11 @@ class WebClientDefaultsTest {
     WebClient webClient = webClientBuilder.baseUrl(address).build();
 
     create(webClient.get().uri("/source").retrieve().bodyToMono(String.class))
-        .expectErrorSatisfies(
-            e ->
-                assertThat(e)
-                    .isInstanceOf(WebClientResponseException.class)
-                    .extracting(t -> ((WebClientResponseException) t).getStatusCode().value())
-                    .isEqualTo(307))
+        .expectErrorSatisfies(e ->
+            assertThat(e)
+                .isInstanceOf(WebClientResponseException.class)
+                .extracting(t -> ((WebClientResponseException) t).getStatusCode().value())
+                .isEqualTo(307))
         .verify();
   }
 
