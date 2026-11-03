@@ -74,15 +74,13 @@ public class FhirMappingProvider implements MappingProvider {
 
     return sMap.expire(configuration.getTtl())
         .then(fetchPseudonymAndSalts(r.patientIdentifier(), r.tcaDomains(), r.maxDateShift()))
-        .flatMap(
-            data -> {
-              var dateShift =
-                  generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
-              var tidToShiftedDate = computeTidToShiftedDate(r.dateMappings(), dateShift);
+        .flatMap(data -> {
+          var dateShift = generate(data.dateShiftSeed(), r.maxDateShift(), r.dateShiftPreserve());
+          var tidToShiftedDate = computeTidToShiftedDate(r.dateMappings(), dateShift);
 
-              return saveSecureMapping(r, data, tidToShiftedDate, sMap)
-                  .thenReturn(new TransportMappingResponse(transferId));
-            });
+          return saveSecureMapping(r, data, tidToShiftedDate, sMap)
+              .thenReturn(new TransportMappingResponse(transferId));
+        });
   }
 
   private Map<String, String> computeTidToShiftedDate(

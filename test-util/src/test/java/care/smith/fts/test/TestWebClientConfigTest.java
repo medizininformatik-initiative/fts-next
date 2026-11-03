@@ -45,11 +45,10 @@ public class TestWebClientConfigTest {
     var actual = om.readValue(config, TestWebClientConfig.class);
     assertThat(actual.findConfigurationEntry("foo-095122"))
         .isNotNull()
-        .hasValueSatisfying(
-            entry -> {
-              assertThat(entry.auth()).isNotNull();
-              assertThat(entry.auth().basic()).isEqualTo(new Config("user-095101", "pass-095200"));
-              assertThat(entry.ssl()).isNull();
-            });
+        .hasValueSatisfying(entry -> {
+          assertThat(entry.auth()).isNotNull();
+          assertThat(entry.auth().basic()).isEqualTo(new Config("user-095101", "pass-095200"));
+          assertThat(entry.ssl()).isNull();
+        });
   }
 }

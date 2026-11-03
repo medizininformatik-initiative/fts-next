@@ -123,11 +123,10 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              assertThat(inner.getEntryFirstRep().getResource().getIdPart()).isEqualTo("pid1");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          assertThat(inner.getEntryFirstRep().getResource().getIdPart()).isEqualTo("pid1");
+        })
         .verifyComplete();
   }
 
@@ -146,12 +145,11 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var obs = (Observation) inner.getEntryFirstRep().getResource();
-              assertThat(obs.getSubject().getReference()).isEqualTo("Patient/pid1");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var obs = (Observation) inner.getEntryFirstRep().getResource();
+          assertThat(obs.getSubject().getReference()).isEqualTo("Patient/pid1");
+        })
         .verifyComplete();
   }
 
@@ -170,12 +168,11 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("pidentifier1");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("pidentifier1");
+        })
         .verifyComplete();
   }
 
@@ -196,14 +193,12 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-15");
-              assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL))
-                  .isNull();
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-15");
+          assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+        })
         .verifyComplete();
   }
 
@@ -231,16 +226,15 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var obs = (Observation) inner.getEntryFirstRep().getResource();
-              var p = (Period) obs.getEffective();
-              assertThat(p.getStartElement().getValueAsString()).isEqualTo("2024-01-05T08:00:00Z");
-              assertThat(p.getEndElement().getValueAsString()).isEqualTo("2024-01-05T12:00:00Z");
-              assertThat(p.getStartElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
-              assertThat(p.getEndElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var obs = (Observation) inner.getEntryFirstRep().getResource();
+          var p = (Period) obs.getEffective();
+          assertThat(p.getStartElement().getValueAsString()).isEqualTo("2024-01-05T08:00:00Z");
+          assertThat(p.getEndElement().getValueAsString()).isEqualTo("2024-01-05T12:00:00Z");
+          assertThat(p.getStartElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+          assertThat(p.getEndElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+        })
         .verifyComplete();
   }
 
@@ -259,14 +253,13 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var obs = (Observation) inner.getEntryFirstRep().getResource();
-              assertThat(obs.getSubject().getReference())
-                  .as("Reference without '/' should remain unchanged")
-                  .isEqualTo("urn:uuid:some-id");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var obs = (Observation) inner.getEntryFirstRep().getResource();
+          assertThat(obs.getSubject().getReference())
+              .as("Reference without '/' should remain unchanged")
+              .isEqualTo("urn:uuid:some-id");
+        })
         .verifyComplete();
   }
 
@@ -285,14 +278,13 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getIdentifierFirstRep().getValue())
-                  .as("Identifier with null value should remain null")
-                  .isNull();
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getIdentifierFirstRep().getValue())
+              .as("Identifier with null value should remain null")
+              .isNull();
+        })
         .verifyComplete();
   }
 
@@ -311,15 +303,14 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var obs = (Observation) inner.getEntryFirstRep().getResource();
-              assertThat(obs.getSubject().getReference())
-                  .as("Reference with null value should remain null")
-                  .isNull();
-              assertThat(obs.getSubject().getDisplay()).isEqualTo("Some Patient");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var obs = (Observation) inner.getEntryFirstRep().getResource();
+          assertThat(obs.getSubject().getReference())
+              .as("Reference with null value should remain null")
+              .isNull();
+          assertThat(obs.getSubject().getDisplay()).isEqualTo("Some Patient");
+        })
         .verifyComplete();
   }
 
@@ -340,14 +331,12 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-01");
-              assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL))
-                  .isNull();
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-01");
+          assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+        })
         .verifyComplete();
   }
 
@@ -370,13 +359,12 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(outerBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              assertThat(inner.getEntry()).hasSize(2);
-              assertThat(inner.getEntry().get(0).getResource().getIdPart()).isEqualTo("pid1");
-              assertThat(inner.getEntry().get(1).getResource()).isNull();
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          assertThat(inner.getEntry()).hasSize(2);
+          assertThat(inner.getEntry().get(0).getResource().getIdPart()).isEqualTo("pid1");
+          assertThat(inner.getEntry().get(1).getResource()).isNull();
+        })
         .verifyComplete();
   }
 
@@ -400,12 +388,11 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(outer, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle mid = (Bundle) b.getEntryFirstRep().getResource();
-              Bundle inn = (Bundle) mid.getEntryFirstRep().getResource();
-              assertThat(inn.getEntryFirstRep().getResource().getIdPart()).isEqualTo("pid1");
-            })
+        .assertNext(b -> {
+          Bundle mid = (Bundle) b.getEntryFirstRep().getResource();
+          Bundle inn = (Bundle) mid.getEntryFirstRep().getResource();
+          assertThat(inn.getEntryFirstRep().getResource().getIdPart()).isEqualTo("pid1");
+        })
         .verifyComplete();
   }
 
@@ -424,12 +411,11 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = inner.getEntryFirstRep().getResource();
-              assertThat(p.getIdElement().getValue()).isEqualTo("Patient/pid1");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = inner.getEntryFirstRep().getResource();
+          assertThat(p.getIdElement().getValue()).isEqualTo("Patient/pid1");
+        })
         .verifyComplete();
   }
 
@@ -448,12 +434,10 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              assertThat(inner.getEntryFirstRep().getResource().getIdPart())
-                  .isEqualTo("unmapped-tid");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          assertThat(inner.getEntryFirstRep().getResource().getIdPart()).isEqualTo("unmapped-tid");
+        })
         .verifyComplete();
   }
 
@@ -472,12 +456,11 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var obs = (Observation) inner.getEntryFirstRep().getResource();
-              assertThat(obs.getSubject().getReference()).isEqualTo("Patient/unmapped-ref");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var obs = (Observation) inner.getEntryFirstRep().getResource();
+          assertThat(obs.getSubject().getReference()).isEqualTo("Patient/unmapped-ref");
+        })
         .verifyComplete();
   }
 
@@ -496,12 +479,11 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("unmapped-value");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getIdentifierFirstRep().getValue()).isEqualTo("unmapped-value");
+        })
         .verifyComplete();
   }
 
@@ -520,12 +502,11 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-06-15");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-06-15");
+        })
         .verifyComplete();
   }
 
@@ -546,14 +527,12 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-01");
-              assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL))
-                  .isNull();
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-01");
+          assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+        })
         .verifyComplete();
   }
 
@@ -574,14 +553,12 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              var p = (Patient) inner.getEntryFirstRep().getResource();
-              assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-01");
-              assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL))
-                  .isNull();
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          var p = (Patient) inner.getEntryFirstRep().getResource();
+          assertThat(p.getBirthDateElement().getValueAsString()).isEqualTo("2000-01-01");
+          assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
+        })
         .verifyComplete();
   }
 
@@ -594,11 +571,10 @@ class IdMapperStepIT extends AbstractConnectionScenarioIT {
     wireMock.register(secureMappingRequest().willReturn(jsonResponse(largeSecureMappingJson())));
 
     create(step.deidentify(new TransportBundle(testBundle, "transferId")))
-        .assertNext(
-            b -> {
-              Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
-              assertThat(inner.getEntryFirstRep().getResource().getIdPart()).isEqualTo("pid1");
-            })
+        .assertNext(b -> {
+          Bundle inner = (Bundle) b.getEntryFirstRep().getResource();
+          assertThat(inner.getEntryFirstRep().getResource().getIdPart()).isEqualTo("pid1");
+        })
         .verifyComplete();
   }
 

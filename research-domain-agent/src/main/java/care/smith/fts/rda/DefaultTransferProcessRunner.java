@@ -86,10 +86,8 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
     }
 
     public void execute(Mono<TransportBundle> data, Bulkhead bulkhead) {
-      data.doOnNext(
-              b ->
-                  log.debug(
-                      "processing patient bundle, resources: {}", b.bundle().getEntry().size()))
+      data.doOnNext(b ->
+              log.debug("processing patient bundle, resources: {}", b.bundle().getEntry().size()))
           .doOnNext(b -> receivedResources.getAndAdd(b.bundle().getEntry().size()))
           .flatMap(deidentificator::deidentify)
           .doOnNext(b -> sentResources.getAndAdd(b.getEntry().size()))
@@ -97,11 +95,10 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
           .doOnError(err -> log.info("Could not process patient: {}", err.getMessage()))
           .doOnError(err -> log.trace("The exception:", err))
           .doOnError(err -> phase.set(Phase.ERROR))
-          .doFinally(
-              s -> {
-                finishedAt.compareAndSet(null, Instant.now());
-                bulkhead.onComplete();
-              })
+          .doFinally(s -> {
+            finishedAt.compareAndSet(null, Instant.now());
+            bulkhead.onComplete();
+          })
           .onErrorComplete()
           .doOnSuccess(ignored -> phase.compareAndSet(Phase.RUNNING, Phase.COMPLETED))
           .subscribe();

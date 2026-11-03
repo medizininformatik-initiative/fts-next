@@ -79,16 +79,14 @@ public class WebServerFhirCodecTest {
   @Test
   void patientFluxToFlux() {
     StepVerifier.create(getRequest("/stream/Patient").bodyToFlux(Patient.class))
-        .assertNext(
-            p -> {
-              log.info("First patient");
-              assertThat(p.getIdPart()).isEqualTo("0");
-            })
-        .assertNext(
-            p -> {
-              log.info("Second patient");
-              assertThat(p.getIdPart()).isEqualTo("1");
-            })
+        .assertNext(p -> {
+          log.info("First patient");
+          assertThat(p.getIdPart()).isEqualTo("0");
+        })
+        .assertNext(p -> {
+          log.info("Second patient");
+          assertThat(p.getIdPart()).isEqualTo("1");
+        })
         .verifyComplete();
   }
 
@@ -179,11 +177,8 @@ public class WebServerFhirCodecTest {
 
     testClient
         .post()
-        .uri(
-            uri ->
-                uri.pathSegment(parameterType)
-                    .pathSegment(resource.getResourceType().name())
-                    .build())
+        .uri(uri ->
+            uri.pathSegment(parameterType).pathSegment(resource.getResourceType().name()).build())
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(patientAsString)
         .accept(MediaType.APPLICATION_JSON)

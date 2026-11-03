@@ -87,28 +87,25 @@ final class RdaBundleSender implements BundleSender {
     return Mono.just(response)
         .flatMap(this::extractStatusUri)
         .doOnNext(uri -> log.trace("Status Uri: {}", uri))
-        .flatMap(
-            uri ->
-                fetchStatus(uri)
-                    .expand(
-                        r -> fetchStatus(uri).delayElement(Duration.ofSeconds(getRetryAfter(r))))
-                    .takeUntil(r -> r.getStatusCode() != ACCEPTED)
-                    .take(MAX_STATUS_POLLS)
-                    .last())
-        .flatMap(
-            r -> {
-              var status = r.getStatusCode();
-              if (status == OK) {
-                return Mono.just(r);
-              } else if (status == ACCEPTED) {
-                var msg = "RDA polling budget exhausted after {} attempts, status still ACCEPTED";
-                log.error(msg, MAX_STATUS_POLLS);
-                return Mono.error(new TransferProcessException("RDA polling budget exhausted"));
-              } else {
-                log.error("Unexpected RDA status: {}", status);
-                return Mono.error(new TransferProcessException("Unexpected RDA status: " + status));
-              }
-            });
+        .flatMap(uri ->
+            fetchStatus(uri)
+                .expand(r -> fetchStatus(uri).delayElement(Duration.ofSeconds(getRetryAfter(r))))
+                .takeUntil(r -> r.getStatusCode() != ACCEPTED)
+                .take(MAX_STATUS_POLLS)
+                .last())
+        .flatMap(r -> {
+          var status = r.getStatusCode();
+          if (status == OK) {
+            return Mono.just(r);
+          } else if (status == ACCEPTED) {
+            var msg = "RDA polling budget exhausted after {} attempts, status still ACCEPTED";
+            log.error(msg, MAX_STATUS_POLLS);
+            return Mono.error(new TransferProcessException("RDA polling budget exhausted"));
+          } else {
+            log.error("Unexpected RDA status: {}", status);
+            return Mono.error(new TransferProcessException("Unexpected RDA status: " + status));
+          }
+        });
   }
 
   private Mono<ResponseEntity<Void>> fetchStatus(URI uri) {

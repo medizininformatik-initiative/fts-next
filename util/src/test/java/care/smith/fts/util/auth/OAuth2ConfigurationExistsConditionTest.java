@@ -31,12 +31,11 @@ class OAuth2ConfigurationExistsConditionTest {
   @Test
   void ignoresNonEnumerablePropertySource() {
     contextRunner
-        .withInitializer(
-            context ->
-                context
-                    .getEnvironment()
-                    .getPropertySources()
-                    .addFirst(new NonEnumerablePropertySource("spring.security.oauth2.x")))
+        .withInitializer(context ->
+            context
+                .getEnvironment()
+                .getPropertySources()
+                .addFirst(new NonEnumerablePropertySource("spring.security.oauth2.x")))
         .run(context -> assertThat(context).doesNotHaveBean("marker"));
   }
 

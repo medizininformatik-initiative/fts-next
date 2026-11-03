@@ -29,9 +29,8 @@ public class ExternalCohortSelector
       log.trace(msg, config.patientIdentifierSystem(), identifiers.size());
       return fromStream(
           identifiers.stream()
-              .map(
-                  identifier ->
-                      new ConsentedPatient(identifier, config.patientIdentifierSystem())));
+              .map(identifier ->
+                  new ConsentedPatient(identifier, config.patientIdentifierSystem())));
     };
   }
 }

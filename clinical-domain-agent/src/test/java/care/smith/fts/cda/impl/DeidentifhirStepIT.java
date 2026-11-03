@@ -133,18 +133,17 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
                     """)));
 
     create(step.deidentify(consentedPatientBundle))
-        .assertNext(
-            transportBundle -> {
-              assertThat(transportBundle.transferId()).isEqualTo("transferId");
+        .assertNext(transportBundle -> {
+          assertThat(transportBundle.transferId()).isEqualTo("transferId");
 
-              var outerBundle = transportBundle.bundle();
-              assertThat(outerBundle.getEntry()).isNotEmpty();
+          var outerBundle = transportBundle.bundle();
+          assertThat(outerBundle.getEntry()).isNotEmpty();
 
-              // Deidentified bundle is nested: outer Bundle → inner Bundle → resources
-              var innerBundle = (Bundle) outerBundle.getEntryFirstRep().getResource();
-              var patient = innerBundle.getEntryFirstRep().getResource();
-              assertThat(patient.getIdElement().getIdPart()).hasSize(21);
-            })
+          // Deidentified bundle is nested: outer Bundle → inner Bundle → resources
+          var innerBundle = (Bundle) outerBundle.getEntryFirstRep().getResource();
+          var patient = innerBundle.getEntryFirstRep().getResource();
+          assertThat(patient.getIdElement().getIdPart()).hasSize(21);
+        })
         .verifyComplete();
 
     var requests = wireMock.findAll(postRequestedFor(urlEqualTo("/api/v2/cd/transport-mapping")));

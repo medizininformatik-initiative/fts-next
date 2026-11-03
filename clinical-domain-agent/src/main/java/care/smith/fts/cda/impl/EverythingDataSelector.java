@@ -93,7 +93,7 @@ public class EverythingDataSelector implements DataSelector {
   }
 
   private Function<UriBuilder, URI> withoutConsent(IIdType fhirId) {
-    return (uriBuilder) -> uriBuilder.queryParam("_count", pageSize).build(fhirId.getIdPart());
+    return uriBuilder -> uriBuilder.queryParam("_count", pageSize).build(fhirId.getIdPart());
   }
 
   private Function<UriBuilder, URI> withConsent(ConsentedPatient patient, IIdType fhirId) {
@@ -105,7 +105,7 @@ public class EverythingDataSelector implements DataSelector {
     }
     var p = period.get();
     log.trace("withConsent: patient {}, period {} to {}", patient.identifier(), p.start(), p.end());
-    return (uriBuilder) ->
+    return uriBuilder ->
         uriBuilder
             .queryParam("_count", pageSize)
             .queryParam("start", formatWithSystemTZ(p.start()))

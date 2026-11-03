@@ -140,9 +140,8 @@ public abstract class AbstractGicsConsentProviderIT<
     String expectedNextLink = getExpectedNextLinkPattern(pageSize, pageSize);
 
     create(executePagedRequest(getDefaultRequest(), 0, pageSize))
-        .assertNext(
-            consentBundle ->
-                assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink))
+        .assertNext(consentBundle ->
+            assertThat(consentBundle.getLink("next").getUrl()).isEqualTo(expectedNextLink))
         .verifyComplete();
 
     create(executePagedRequest(getDefaultRequest(), pageSize, pageSize))
@@ -241,20 +240,18 @@ public abstract class AbstractGicsConsentProviderIT<
   void consentWithMalformedDateIsForwardedAsReceived() {
     var inner = gicsConsentGenerator.generateResource();
     typedResourceStream(inner, Consent.class)
-        .forEach(
-            c ->
-                c.getProvision()
-                    .addProvision(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben")));
+        .forEach(c ->
+            c.getProvision()
+                .addProvision(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben")));
     var body = encodeWithMalformedDates(Stream.of(inner).collect(toBundle()).setTotal(1));
     wireMock.register(getRequestMappingBuilder().willReturn(fhirResponse(body)));
 
     create(executePagedRequest(getDefaultRequest(), 0, 2))
-        .assertNext(
-            consentBundle -> {
-              assertThat(consentBundle.getEntry()).hasSize(1);
-              assertThat(fhirResourceToString(consentBundle))
-                  .contains("\"start\":\"%s\"".formatted(MALFORMED_DATE));
-            })
+        .assertNext(consentBundle -> {
+          assertThat(consentBundle.getEntry()).hasSize(1);
+          assertThat(fhirResourceToString(consentBundle))
+              .contains("\"start\":\"%s\"".formatted(MALFORMED_DATE));
+        })
         .verifyComplete();
   }
 
@@ -264,10 +261,9 @@ public abstract class AbstractGicsConsentProviderIT<
     R requestWithEmptyPolicies = createRequestWithEmptyPolicies();
 
     create(executePagedRequest(requestWithEmptyPolicies, 0, 2))
-        .assertNext(
-            consentBundle -> {
-              assertThat(consentBundle.getEntry()).isEmpty();
-            })
+        .assertNext(consentBundle -> {
+          assertThat(consentBundle.getEntry()).isEmpty();
+        })
         .verifyComplete();
   }
 

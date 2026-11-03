@@ -114,15 +114,11 @@ class TcaCohortSelector implements CohortSelector {
 
   private static Mono<Throwable> handleBadRequest(ClientResponse r) {
     return r.bodyToMono(OperationOutcome.class)
-        .onErrorResume(
-            e -> {
-              log.error("Failed to parse error response", e);
-              return Mono.just(
-                  new FhirException(BAD_REQUEST, e.getMessage()).getOperationOutcome());
-            })
-        .flatMap(
-            outcome ->
-                Mono.error(
-                    new TransferProcessException(outcome.getIssueFirstRep().getDiagnostics())));
+        .onErrorResume(e -> {
+          log.error("Failed to parse error response", e);
+          return Mono.just(new FhirException(BAD_REQUEST, e.getMessage()).getOperationOutcome());
+        })
+        .flatMap(outcome ->
+            Mono.error(new TransferProcessException(outcome.getIssueFirstRep().getDiagnostics())));
   }
 }
