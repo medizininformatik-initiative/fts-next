@@ -1,14 +1,19 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.api.DateShiftPreserve.NONE;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
+import static care.smith.fts.test.LogRecorder.stackTraces;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static com.typesafe.config.ConfigFactory.parseString;
 import static java.time.Duration.ofDays;
@@ -28,6 +33,7 @@ import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.tca.TcaDomains;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -40,6 +46,8 @@ import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.MimeTypeUtils;
@@ -104,6 +112,51 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
         return MimeTypeUtils.APPLICATION_JSON_VALUE;
       }
     };
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"INFO", "TRACE"})
+  void logsNameNoPatient(String level) throws IOException {
+    var bundle = generateOnePatient("pid-4711", "2024", "identifierSystem", "identifier-4711");
+    var patientBundle =
+        new ConsentedPatientBundle(bundle, new ConsentedPatient("pid-4711", "system"));
+    wireMock.register(
+        transportMappingRequest()
+            .inScenario("logs")
+            .whenScenarioStateIs(STARTED)
+            .willReturn(jsonResponse("{\"transferId\": \"transferId\"}"))
+            .willSetStateTo("failing"));
+    wireMock.register(
+        transportMappingRequest()
+            .inScenario("logs")
+            .whenScenarioStateIs("failing")
+            .willReturn(badRequest()));
+
+    var events =
+        recordLog(
+            DeidentifhirStep.class,
+            Level.toLevel(level),
+            () -> {
+              create(step.deidentify(patientBundle)).expectNextCount(1).verifyComplete();
+              step.deidentify(patientBundle).onErrorComplete().block();
+            });
+
+    assertThat(messages(events)).noneMatch(m -> m.contains("4711"));
+  }
+
+  @Test
+  void stackTraceOfTcaErrorIsLoggedAtTrace() {
+    wireMock.register(
+        transportMappingRequest()
+            .willReturn(jsonResponse("{\"detail\": \"Invalid mappings\"}").withStatus(400)));
+
+    var events =
+        recordLog(
+            DeidentifhirStep.class,
+            Level.TRACE,
+            () -> step.deidentify(consentedPatientBundle).onErrorComplete().block());
+
+    assertThat(stackTraces(events)).isNotEmpty();
   }
 
   @Test

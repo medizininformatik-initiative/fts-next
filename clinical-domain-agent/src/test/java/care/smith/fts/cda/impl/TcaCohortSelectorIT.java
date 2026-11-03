@@ -1,6 +1,9 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.impl.TcaCohortSelectorFactory.consentedPatientExtractor;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
+import static care.smith.fts.test.LogRecorder.stackTraces;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
@@ -29,11 +32,13 @@ import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -159,6 +164,35 @@ class TcaCohortSelectorIT {
   }
 
   @Test
+  void stackTraceOfUnparsableBadRequestIsLoggedAtTrace() {
+    wireMock.register(
+        fetchAllRequest().willReturn(fhirResponse("not an OperationOutcome").withStatus(400)));
+
+    var events =
+        recordLog(
+            TcaCohortSelector.class,
+            Level.TRACE,
+            () -> create(cohortSelector.selectCohort(List.of())).verifyError());
+
+    assertThat(stackTraces(events)).isNotEmpty();
+  }
+
+  @Test
+  void errorLogNamesNoPatient() {
+    var response =
+        fhirResponse(operationOutcomeWithIssue(new Exception("Unknown patient pid-4711")));
+    wireMock.register(fetchListRequest().willReturn(response.withStatus(400)));
+
+    var events =
+        recordLog(
+            TcaCohortSelector.class,
+            Level.INFO,
+            () -> create(cohortSelector.selectCohort(List.of("pid-4711"))).verifyError());
+
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains("pid-4711"));
+  }
+
+  @Test
   void consentBundleSucceeds() {
     var consent = allCohortSelector.generateConsents("patient", 1).getFirst();
     wireMock.register(
@@ -200,10 +234,25 @@ class TcaCohortSelectorIT {
     create(cohortSelector.selectCohort(List.of("patient0"))).expectNextCount(1).verifyComplete();
   }
 
-  /**
-   * The TCA forwards a patient whose only provision for the required policy has a malformed date,
-   * so the patient is excluded with a reason.
-   */
+  @Test
+  void logsContainNoPatientIdentifiers() {
+    var consent = allCohortSelector.generateConsents("pid-0", 1).getFirst();
+    wireMock.register(
+        fetchAllRequest().willReturn(fhirResponse(Stream.of(consent).collect(toBundle()))));
+
+    var entries = new ArrayList<CohortEntry>();
+
+    var events =
+        recordLog(
+            TcaCohortSelector.class,
+            Level.TRACE,
+            () -> entries.addAll(cohortSelector.selectCohort(List.of()).collectList().block()));
+
+    assertThat(entries).hasSize(1);
+    var identifier = entries.getFirst().identifier();
+    assertThat(messages(events)).isNotEmpty().noneMatch(m -> m.contains(identifier));
+  }
+
   @Test
   void consentWithMalformedDateOfRequiredPolicyExcludesPatient() {
     var inner = allCohortSelector.generateConsents("patient", 1).getFirst();

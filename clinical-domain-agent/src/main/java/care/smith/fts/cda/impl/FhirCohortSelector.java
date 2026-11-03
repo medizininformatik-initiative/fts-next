@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.util.LogUtil.errorType;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
@@ -62,7 +63,7 @@ class FhirCohortSelector implements CohortSelector {
         .expand(this::fetchNextPage)
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} entries in bundle", b.getEntry().size()))
-        .doOnError(e -> log.error("Error fetching cohort from FHIR server: {}", e.getMessage()))
+        .doOnError(e -> log.error("Error fetching cohort from FHIR server: {}", errorType(e)))
         .onErrorResume(WebClientException.class, FhirCohortSelector::handleWebClientException)
         .flatMap(this::extractCohortEntries);
   }
@@ -77,7 +78,7 @@ class FhirCohortSelector implements CohortSelector {
       builder = builder.queryParam("patient.identifier", identifierQuery);
     }
     var uri = builder.build();
-    log.trace("buildFhirSearchQuery: {}", uri);
+    log.trace("buildFhirSearchQuery: {}", uri.getPath());
     return uri;
   }
 
@@ -112,7 +113,7 @@ class FhirCohortSelector implements CohortSelector {
   private Flux<CohortEntry> extractCohortEntries(Bundle bundle) {
     return groupPatientsAndConsents(bundle)
         .mapNotNull(b -> extractor.toCohortEntry(b).orElse(null))
-        .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
+        .doOnNext(e -> log.trace("extractCohortEntries: emitted {}", e.getClass().getSimpleName()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
 
