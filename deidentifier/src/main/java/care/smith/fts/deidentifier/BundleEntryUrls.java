@@ -3,6 +3,7 @@ package care.smith.fts.deidentifier;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.deidentifier.internal.PseudonymUuid;
+import care.smith.fts.deidentifier.internal.References;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import org.hl7.fhir.r4.model.Resource;
@@ -22,9 +23,6 @@ public final class BundleEntryUrls {
 
   /** The url of a write names a resource, not an operation such as {@code Patient/$validate}. */
   private static final Pattern WRITTEN_RESOURCE_URL = Pattern.compile("[^/?]+/[^/?$]+");
-
-  /** Only the identifier, so no other search value reaches the reference rule. */
-  private static final Pattern CONDITIONAL_URL = Pattern.compile("[^/?]+\\?identifier=[^&]*");
 
   private static final BundleEntryUrls NONE = new BundleEntryUrls(null);
 
@@ -73,7 +71,7 @@ public final class BundleEntryUrls {
       }
       return Optional.of(deidentified.fhirType() + "/" + id);
     }
-    if (CONDITIONAL_URL.matcher(url).matches()) {
+    if (References.CONDITIONAL.matcher(url).matches()) {
       return replace(url, context);
     }
     throw new IllegalArgumentException("A request url has a format that cannot be pseudonymized.");
@@ -87,7 +85,7 @@ public final class BundleEntryUrls {
    */
   public Optional<String> requestUrl(String url, HandlerContext context) {
     var namesAResource =
-        TYPE_AND_ID_URL.matcher(url).matches() || CONDITIONAL_URL.matcher(url).matches();
+        TYPE_AND_ID_URL.matcher(url).matches() || References.CONDITIONAL.matcher(url).matches();
     return namesAResource ? replace(url, context) : Optional.empty();
   }
 
