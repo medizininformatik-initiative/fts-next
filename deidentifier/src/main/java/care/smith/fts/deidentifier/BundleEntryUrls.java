@@ -47,14 +47,15 @@ public final class BundleEntryUrls {
   /**
    * The request url of an entry with a resource. A url that names only a type stays. A url {@code
    * Type/id} of the entry's own type names the entry's own resource, so it takes the id of the
-   * de-identified resource and never disagrees with it; without a surviving id it goes. A
-   * conditional {@code Type?identifier=...} goes through the reference rule.
+   * de-identified resource and never disagrees with it. A conditional {@code Type?identifier=...}
+   * goes through the reference rule.
    *
    * @throws IllegalArgumentException for a {@code Type/id} of another type than the entry's
-   *     resource, because it names a resource other than the one the entry writes, and for any
-   *     other url, e.g. a search, a version or an absolute url: dropping it would leave a request
-   *     without url, which a transaction does not allow. The message does not contain the url, so
-   *     source data does not reach the logs.
+   *     resource, because it names a resource other than the one the entry writes; for a {@code
+   *     Type/id} when the de-identified resource has no id, i.e. the profile removed it; and for
+   *     any other url, e.g. a search, a version or an absolute url: dropping it would leave a
+   *     request without url, which a transaction does not allow. The message does not contain the
+   *     url, so source data does not reach the logs.
    */
   public Optional<String> requestUrl(String url, Resource deidentified, HandlerContext context) {
     if (TYPE_ONLY_URL.matcher(url).matches()) {
@@ -65,8 +66,12 @@ public final class BundleEntryUrls {
         throw new IllegalArgumentException(
             "A request url names a resource of another type than the entry's resource.");
       }
-      return Optional.ofNullable(deidentified.getIdElement().getIdPart())
-          .map(id -> deidentified.fhirType() + "/" + id);
+      var id = deidentified.getIdElement().getIdPart();
+      if (id == null) {
+        throw new IllegalArgumentException(
+            "A request url names the resource by an id that de-identification removed.");
+      }
+      return Optional.of(deidentified.fhirType() + "/" + id);
     }
     if (CONDITIONAL_URL.matcher(url).matches()) {
       return replace(url, context);
