@@ -72,7 +72,11 @@ public record RequiredPolicies(String policySystem, Set<String> codes) {
     return !(classify(bundle, Level.DEBUG) instanceof NotCovered);
   }
 
-  private Classification classify(Bundle bundle, Level skippedLevel) {
+  /**
+   * Classifies the consents in the bundle, logging provisions that cannot be evaluated at the given
+   * level.
+   */
+  public Classification classify(Bundle bundle, Level skippedLevel) {
     var provisions = permitProvisions(bundle).toList();
     var policies = consentedPolicies(provisions, skippedLevel);
     var missingPolicies = difference(codes, policies.policyNames());
