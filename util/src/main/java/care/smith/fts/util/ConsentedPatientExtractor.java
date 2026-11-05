@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Patient;
+import org.slf4j.event.Level;
 
 /**
  * Extracts consented patients from bundles, each holding a patient and its consents.
@@ -50,7 +51,7 @@ public record ConsentedPatientExtractor(
    * The present cohort entries. Warns once about the patients without an identifier of the
    * configured system, as they hint at a misconfigured identifier system.
    */
-  public List<CohortEntry> identified(List<Optional<CohortEntry>> entries) {
+  public <T> List<T> identified(List<Optional<T>> entries) {
     var identified = entries.stream().flatMap(Optional::stream).toList();
     var unidentified = entries.size() - identified.size();
     if (unidentified > 0) {
@@ -69,11 +70,22 @@ public record ConsentedPatientExtractor(
    *     if the patient has no identifier
    */
   public Optional<CohortEntry> toCohortEntry(Bundle bundle) {
-    return patientIdentifierExtractor.apply(bundle).flatMap(id -> classifyPatient(id, bundle));
+    return toCohortEntry(bundle, Level.WARN);
   }
 
-  private Optional<CohortEntry> classifyPatient(String patientIdentifier, Bundle bundle) {
-    return switch (requiredPolicies.classify(bundle)) {
+  /**
+   * Like {@link #toCohortEntry(Bundle)}, logging provisions that cannot be evaluated at the given
+   * level.
+   */
+  public Optional<CohortEntry> toCohortEntry(Bundle bundle, Level skippedLevel) {
+    return patientIdentifierExtractor
+        .apply(bundle)
+        .flatMap(id -> classifyPatient(id, bundle, skippedLevel));
+  }
+
+  private Optional<CohortEntry> classifyPatient(
+      String patientIdentifier, Bundle bundle, Level skippedLevel) {
+    return switch (requiredPolicies.classify(bundle, skippedLevel)) {
       case Covered c ->
           Optional.of(
               new Consented(
