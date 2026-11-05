@@ -6,6 +6,8 @@ import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.web.util.UriComponentsBuilder.*;
+import static reactor.core.publisher.Flux.defer;
+import static reactor.core.publisher.Flux.fromIterable;
 
 import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.cda.CohortSelector;
@@ -58,13 +60,25 @@ class FhirCohortSelector implements CohortSelector {
   @Override
   public Flux<CohortEntry> selectCohort(List<String> identifiers) {
     log.trace("selectCohort: {} identifiers", identifiers.size());
+    return defer(() -> {
+      var unresolved =
+          identifiers.isEmpty()
+              ? UnresolvedPatients.ofAll(extractor)
+              : UnresolvedPatients.ofRequested(extractor.preferring(identifiers));
+      return fetchPages(identifiers)
+          .flatMap(page -> extractCohortEntries(page, unresolved))
+          .concatWith(defer(() -> fromIterable(unresolved.remaining())))
+          .onErrorResume(e -> fromIterable(unresolved.excluded()).concatWith(Flux.error(e)));
+    });
+  }
+
+  private Flux<Bundle> fetchPages(List<String> identifiers) {
     return fetchBundle(b -> buildFhirSearchQuery(b, identifiers))
         .expand(this::fetchNextPage)
         .timeout(Duration.ofSeconds(30))
         .doOnNext(b -> log.debug("Found {} entries in bundle", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort from FHIR server: {}", e.getMessage()))
-        .onErrorResume(WebClientException.class, FhirCohortSelector::handleWebClientException)
-        .flatMap(this::extractCohortEntries);
+        .onErrorResume(WebClientException.class, FhirCohortSelector::handleWebClientException);
   }
 
   private URI buildFhirSearchQuery(UriBuilder builder, List<String> identifiers) {
@@ -109,11 +123,10 @@ class FhirCohortSelector implements CohortSelector {
     }
   }
 
-  private Flux<CohortEntry> extractCohortEntries(Bundle bundle) {
+  private Flux<CohortEntry> extractCohortEntries(Bundle bundle, UnresolvedPatients unresolved) {
     return groupPatientsAndConsents(bundle)
-        .map(extractor::toCohortEntry)
         .collectList()
-        .flatMapIterable(extractor::identified)
+        .flatMapIterable(unresolved::resolve)
         .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
@@ -127,7 +140,7 @@ class FhirCohortSelector implements CohortSelector {
   private Flux<Bundle> groupPatientsAndConsents(Bundle bundle) {
     var patients = typedResourceStream(bundle, Patient.class).toList();
     warnAboutUnassignedConsents(bundle, patients);
-    return Flux.fromIterable(patients)
+    return fromIterable(patients)
         .parallel(cohortSelectionConcurrency)
         .runOn(scheduler)
         .map(p -> groupPatientWithConsents(bundle, p))

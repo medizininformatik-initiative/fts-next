@@ -180,13 +180,37 @@ class FhirCohortSelectorIT {
   }
 
   @Test
-  void patientWithoutConsentCoveringAllPoliciesIsNotConsented() {
+  void requestedPatientWithoutConsentCoveringAllPoliciesIsNotConsented() {
+    var bundle = Stream.of(patient("b"), consentFor("b", "MDAT_speichern")).collect(toBundle());
+    wireMock.register(fetchListRequest("patient-identifier-b").willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of("patient-identifier-b")))
+        .expectNext(new NotConsented("patient-identifier-b"))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientWithSeveralIdentifiersIsReadByTheRequestedOne() {
+    var x = patient("x");
+    x.addIdentifier().setSystem(PID_SYSTEM).setValue("patient-identifier-x2");
+    var bundle = Stream.of(x, consentFor("x", "MDAT_erheben")).collect(toBundle());
+    wireMock.register(fetchListRequest("patient-identifier-x2").willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of("patient-identifier-x2")))
+        .assertNext(e ->
+            assertThat(e)
+                .isInstanceOf(Consented.class)
+                .extracting(CohortEntry::identifier)
+                .isEqualTo("patient-identifier-x2"))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientWithoutConsentCoveringAllPoliciesIsDroppedWhenSelectingAllPatients() {
     var bundle = Stream.of(patient("b"), consentFor("b", "MDAT_speichern")).collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .expectNext(new NotConsented("patient-identifier-b"))
-        .verifyComplete();
+    create(cohortSelector.selectCohort(List.of())).verifyComplete();
   }
 
   @Test
@@ -356,6 +380,64 @@ class FhirCohortSelectorIT {
             .willReturn(fhirResponse(bundles.get(1))));
 
     create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
+  }
+
+  @Test
+  void patientWithConsentsOnTwoPagesIsClassifiedByBoth() {
+    var faulty = consentFor("x", "MDAT_erheben");
+    faulty.getProvision().getProvisionFirstRep().setPeriod(null);
+    var firstPage = Stream.of(patient("x"), faulty).collect(toBundle());
+    firstPage.addLink().setRelation("next").setUrl("/Consent?_page=1");
+    var secondPage = Stream.of(patient("x"), consentFor("x", "MDAT_erheben")).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(firstPage)));
+    wireMock.register(
+        get(urlPathEqualTo("/Consent"))
+            .withQueryParam("_page", equalTo("1"))
+            .willReturn(fhirResponse(secondPage)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(e ->
+            assertThat(e)
+                .isInstanceOf(Consented.class)
+                .extracting(CohortEntry::identifier)
+                .isEqualTo("patient-identifier-x"))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientExcludedOnPageBeforeFailingPageIsEmittedBeforeError() {
+    var faulty = consentFor("x", "MDAT_erheben");
+    faulty.getProvision().getProvisionFirstRep().setPeriod(null);
+    var firstPage = Stream.of(patient("x"), faulty).collect(toBundle());
+    firstPage.addLink().setRelation("next").setUrl("/Consent?_page=1");
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(firstPage)));
+    wireMock.register(
+        get(urlPathEqualTo("/Consent"))
+            .withQueryParam("_page", equalTo("1"))
+            .willReturn(notFound()));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .expectNext(
+            new Excluded(
+                "patient-identifier-x", "Consent for policy MDAT_erheben has no start date"))
+        .expectError(TransferProcessException.class)
+        .verify();
+  }
+
+  @Test
+  void patientsWithSameIdentifierOnOnePageAreClassifiedTogether() {
+    var duplicate = patient("x");
+    duplicate.setId("patient-x2");
+    var consentOfDuplicate = consentFor("x", "MDAT_erheben");
+    consentOfDuplicate.setPatient(new Reference("Patient/patient-x2"));
+    var faulty = consentFor("x", "MDAT_erheben");
+    faulty.getProvision().getProvisionFirstRep().setPeriod(null);
+    var page = Stream.of(patient("x"), faulty, duplicate, consentOfDuplicate).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(page)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(e -> assertThat(e).isInstanceOf(Consented.class))
+        .verifyComplete();
   }
 
   @Test
