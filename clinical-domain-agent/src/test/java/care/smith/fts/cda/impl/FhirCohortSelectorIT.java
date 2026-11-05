@@ -359,6 +359,28 @@ class FhirCohortSelectorIT {
   }
 
   @Test
+  void patientWithConsentsOnTwoPagesIsClassifiedByBoth() {
+    var faulty = consentFor("x", "MDAT_erheben");
+    faulty.getProvision().getProvisionFirstRep().setPeriod(null);
+    var firstPage = Stream.of(patient("x"), faulty).collect(toBundle());
+    firstPage.addLink().setRelation("next").setUrl("/Consent?_page=1");
+    var secondPage = Stream.of(patient("x"), consentFor("x", "MDAT_erheben")).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(firstPage)));
+    wireMock.register(
+        get(urlPathEqualTo("/Consent"))
+            .withQueryParam("_page", equalTo("1"))
+            .willReturn(fhirResponse(secondPage)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(e ->
+            assertThat(e)
+                .isInstanceOf(Consented.class)
+                .extracting(CohortEntry::identifier)
+                .isEqualTo("patient-identifier-x"))
+        .verifyComplete();
+  }
+
+  @Test
   void pagingWithRetries() {
     var bundles = cohortGenerator.generate(2, 1, 1).toList();
 

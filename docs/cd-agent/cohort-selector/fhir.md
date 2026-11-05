@@ -70,3 +70,7 @@ fhir:
 
 * The `patientIdentifierSystem` and `policySystem` fields should reference valid FHIR systems.
 * When defining policies, ensure they align with the consent requirements of your organization.
+* The consents of a patient may be spread over several pages of the search result. A patient
+  is selected as soon as the consents read so far cover all required policies. Otherwise its
+  consents are kept until the last page, so consents on later pages are taken into account
+  before the patient is excluded.

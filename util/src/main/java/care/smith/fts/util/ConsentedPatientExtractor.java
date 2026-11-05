@@ -50,7 +50,7 @@ public record ConsentedPatientExtractor(
    * The present cohort entries. Warns once about the patients without an identifier of the
    * configured system, as they hint at a misconfigured identifier system.
    */
-  public List<CohortEntry> identified(List<Optional<CohortEntry>> entries) {
+  public <T> List<T> identified(List<Optional<T>> entries) {
     var identified = entries.stream().flatMap(Optional::stream).toList();
     var unidentified = entries.size() - identified.size();
     if (unidentified > 0) {
