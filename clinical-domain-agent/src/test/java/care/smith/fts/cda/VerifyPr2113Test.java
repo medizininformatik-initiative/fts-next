@@ -109,6 +109,20 @@ class VerifyPr2113Test {
     create(r.failedPatients(id)).assertNext(e -> assertThat(e).hasSize(1)).verifyComplete();
   }
 
+  /**
+   * F6, consequence: for empty policies the TCA answers an empty bundle, so each requested patient
+   * is reported as "No consent found". This test passes; it shows the misleading reason.
+   */
+  @Test
+  void f6EmptySelectionReportsEachRequestedPatientAsNoConsentFound() {
+    var report = new CohortReport(List.of("a", "b"));
+
+    assertThat(report.excluded())
+        .containsExactly(
+            new Excluded("a", CohortReport.NO_CONSENT_FOUND),
+            new Excluded("b", CohortReport.NO_CONSENT_FOUND));
+  }
+
   private static void waitForCompletion(DefaultTransferProcessRunner r, String processId) {
     Flux.interval(Duration.ofMillis(10))
         .flatMap(i -> r.status(processId))
