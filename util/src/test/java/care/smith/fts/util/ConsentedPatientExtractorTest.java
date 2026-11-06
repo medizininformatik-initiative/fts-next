@@ -8,12 +8,16 @@ import static care.smith.fts.util.ConsentBundles.generateBundleWithConsent;
 import static care.smith.fts.util.ConsentBundles.parsedProvision;
 import static care.smith.fts.util.ConsentBundles.permittedProvisionComponent;
 import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
+import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 
+import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.CohortEntry.Consented;
 import care.smith.fts.api.CohortEntry.Excluded;
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry.NotConsented;
+import ch.qos.logback.classic.Level;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -36,22 +40,22 @@ class ConsentedPatientExtractorTest {
       extractor(POLICIES_TO_CHECK, b -> getPatientIdentifier(PATIENT_IDENTIFIER_SYSTEM, b));
 
   @Test
-  void consentedPatients() {
+  void cohortEntries() {
     var bundle1 = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
     var bundle2 = generateBundleWithConsent("67890", "POLICY_A", "POLICY_B");
     var bundle3 = generateBundleWithConsent("99999", "POLICY_A"); // Missing POLICY_B
 
-    var result = EXTRACTOR.consentedPatients(Stream.of(bundle1, bundle2, bundle3)).toList();
+    var result = EXTRACTOR.cohortEntries(Stream.of(bundle1, bundle2, bundle3));
 
-    assertThat(result).hasSize(2); // Only bundles with all policies should be included
-    assertThat(result.get(0).identifier()).isEqualTo("12345");
-    assertThat(result.get(0).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
-    assertThat(result.get(1).identifier()).isEqualTo("67890");
-    assertThat(result.get(1).patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
+    assertThat(result)
+        .satisfiesExactly(
+            e -> assertThat(e).isInstanceOf(Consented.class),
+            e -> assertThat(e).isInstanceOf(Consented.class),
+            e -> assertThat(e).isEqualTo(new NotConsented("99999")));
   }
 
   @Test
-  void consentedPatients_continuesAfterPatientWithUnreadableDate() {
+  void cohortEntries_continuesAfterPatientWithUnreadableDate() {
     var unreadable =
         bundleWithProvisions(
             "12345",
@@ -59,48 +63,24 @@ class ConsentedPatientExtractorTest {
             parsedProvision("POLICY_B", "2024-02-23T10:00:00", "2054-01-31"));
     var readable = generateBundleWithConsent("67890", "POLICY_A", "POLICY_B");
 
-    var result = EXTRACTOR.consentedPatients(Stream.of(unreadable, readable)).toList();
+    var result = EXTRACTOR.cohortEntries(Stream.of(unreadable, readable));
 
-    assertThat(result).extracting(ConsentedPatient::identifier).containsExactly("67890");
+    assertThat(result)
+        .satisfiesExactly(
+            e -> assertThat(e).isInstanceOf(Excluded.class),
+            e -> assertThat(e).isInstanceOf(Consented.class));
   }
 
   @Test
-  void consentedPatients_withUnknownPolicies() {
+  void cohortEntries_withUnknownPolicies() {
     var bundle = generateBundleWithHospitalSystem("12345");
     var extractor =
         extractor(
             Set.of("UNKNOWN_POLICY"), b -> getPatientIdentifier(PATIENT_IDENTIFIER_SYSTEM, b));
 
-    var result = extractor.consentedPatients(Stream.of(bundle)).toList();
+    var result = extractor.cohortEntries(Stream.of(bundle));
 
-    assertThat(result).isEmpty();
-  }
-
-  @Test
-  void consentedPatient_withAllPolicies() {
-    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
-
-    var result = EXTRACTOR.consentedPatient(bundle);
-
-    assertThat(result).isPresent();
-    assertThat(result.get().identifier()).isEqualTo("12345");
-    assertThat(result.get().patientIdentifierSystem()).isEqualTo(PATIENT_IDENTIFIER_SYSTEM);
-    assertThat(result.get().consentedPolicies().hasAllPolicies(POLICIES_TO_CHECK)).isTrue();
-  }
-
-  @Test
-  void consentedPatient_withMissingPolicies() {
-    var bundle = generateBundleWithConsent("12345", "POLICY_A"); // Missing POLICY_B
-
-    assertThat(EXTRACTOR.consentedPatient(bundle)).isEmpty();
-  }
-
-  @Test
-  void consentedPatient_withNoPatient() {
-    var bundle = generateBundleWithConsent("12345", "POLICY_A", "POLICY_B");
-    var extractor = extractor(POLICIES_TO_CHECK, b -> Optional.empty());
-
-    assertThat(extractor.consentedPatient(bundle)).isEmpty();
+    assertThat(result).containsExactly(new NotConsented("12345"));
   }
 
   @Test
@@ -109,7 +89,7 @@ class ConsentedPatientExtractorTest {
         bundleWithProvisions(
             "12345", permittedProvisionComponent("POLICY_A"), deniedProvisionComponent("POLICY_B"));
 
-    assertThat(EXTRACTOR.consentedPatient(bundle)).isEmpty();
+    assertThat(EXTRACTOR.toCohortEntry(bundle)).contains(new NotConsented("12345"));
   }
 
   @Test
@@ -130,10 +110,49 @@ class ConsentedPatientExtractorTest {
   }
 
   @Test
-  void toCohortEntry_withMissingPolicyIsNotReported() {
+  void toCohortEntry_withMissingPolicyIsNotConsented() {
     var bundle = generateBundleWithConsent("12345", "POLICY_A");
 
-    assertThat(EXTRACTOR.toCohortEntry(bundle)).isEmpty();
+    assertThat(EXTRACTOR.toCohortEntry(bundle)).contains(new NotConsented("12345"));
+  }
+
+  @Test
+  void cohortEntries_warnsOnceAboutPatientsWithoutIdentifierWithoutNamingThem() {
+    var otherSystem =
+        extractor(POLICIES_TO_CHECK, b -> getPatientIdentifier(ANOTHER_PATIENT_SYSTEM, b));
+    var bundles =
+        Stream.of(
+            generateBundleWithConsent("12345", "POLICY_A", "POLICY_B"),
+            generateBundleWithConsent("67890", "POLICY_A"));
+
+    var events =
+        LogEvents.recordLog(
+            ConsentedPatientExtractor.class,
+            Level.TRACE,
+            () -> assertThat(otherSystem.cohortEntries(bundles)).isEmpty());
+
+    assertThat(events)
+        .singleElement()
+        .satisfies(e -> {
+          assertThat(e.getLevel()).isEqualTo(Level.WARN);
+          assertThat(e.getFormattedMessage())
+              .contains("2 patients")
+              .doesNotContain("12345")
+              .doesNotContain("67890");
+        });
+  }
+
+  @Test
+  void identified_noWarningIfAllPatientsHaveIdentifier() {
+    var entries = List.of(Optional.<CohortEntry>of(new NotConsented("12345")));
+
+    var events =
+        LogEvents.recordLog(
+            ConsentedPatientExtractor.class,
+            Level.TRACE,
+            () -> assertThat(EXTRACTOR.identified(entries)).hasSize(1));
+
+    assertThat(events).isEmpty();
   }
 
   @Test
@@ -170,11 +189,19 @@ class ConsentedPatientExtractorTest {
   }
 
   @Test
+  void toCohortEntry_oneMissingPolicyFaultyAndOneAbsentIsNotConsented() {
+    var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
+    var bundle = bundleWithProvisions("12345", faultyA);
+
+    assertThat(EXTRACTOR.toCohortEntry(bundle)).contains(new NotConsented("12345"));
+  }
+
+  @Test
   void toCohortEntry_faultyProvisionOfConsentedPolicyDoesNotExclude() {
     var faultyA = permittedProvisionComponent("POLICY_A").setPeriod(null);
     var bundle = bundleWithProvisions("12345", permittedProvisionComponent("POLICY_A"), faultyA);
 
-    assertThat(EXTRACTOR.toCohortEntry(bundle)).isEmpty();
+    assertThat(EXTRACTOR.toCohortEntry(bundle)).contains(new NotConsented("12345"));
   }
 
   @Test
@@ -198,6 +225,17 @@ class ConsentedPatientExtractorTest {
   @Test
   void getPatientIdentifier_withMultipleIdentifiers() {
     var bundle = generateBundleWithMultipleIdentifiers("12345");
+
+    var result = getPatientIdentifier(PATIENT_IDENTIFIER_SYSTEM, bundle);
+
+    assertThat(result).contains("12345");
+  }
+
+  @Test
+  void getPatientIdentifier_skipsIdentifierWithoutSystem() {
+    var bundle = generateBundleWithHospitalSystem("12345");
+    typedResourceStream(bundle, Patient.class)
+        .forEach(p -> p.getIdentifier().addFirst(new Identifier().setValue("no-system")));
 
     var result = getPatientIdentifier(PATIENT_IDENTIFIER_SYSTEM, bundle);
 

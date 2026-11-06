@@ -25,6 +25,15 @@ class TransferProcessStatusTest {
     assertThat(status.deidentifiedBundles()).isEqualTo(0);
     assertThat(status.sentBundles()).isEqualTo(0);
     assertThat(status.skippedBundles()).isEqualTo(0);
+    assertThat(status.excludedPatients()).isEqualTo(0);
+  }
+
+  @Test
+  void testIncExcludedPatients() {
+    var status = TransferProcessStatus.create("process123");
+    status = status.incExcludedPatients();
+
+    assertThat(status.excludedPatients()).isEqualTo(1);
   }
 
   @Test
