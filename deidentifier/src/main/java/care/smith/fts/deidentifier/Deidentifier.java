@@ -84,7 +84,23 @@ public class Deidentifier {
    */
   private Optional<BundleEntryComponent> deidentifyEntry(
       int index, BundleEntryComponent entry, HandlerContext bundleContext) {
+    requireSupported(index, entry);
     var entryContext = bundleContext.child(entry);
+    if (!entry.hasResource()) {
+      return deidentifyDelete(entry, entryContext);
+    }
+    var resource = entry.getResource();
+    if (resource instanceof Bundle) {
+      throw new IllegalArgumentException(
+          "Bundle entry %d is a bundle: nested bundles are not supported".formatted(index));
+    }
+    var root = HandlerContext.of(List.of(), bundleContext.patientIdentifier());
+    return walk(resource, root)
+        .map(deidentified -> rebuildEntry(entry, deidentified, entryContext));
+  }
+
+  /** Fails on an entry that no rule can de-identify, see {@link #deidentifyBundle}. */
+  private static void requireSupported(int index, BundleEntryComponent entry) {
     if (entry.hasRequest() && entry.getRequest().getMethod() == HTTPVerb.PATCH) {
       throw new IllegalArgumentException(
           "Bundle entry %d is a PATCH: patches are not supported.".formatted(index));
@@ -97,17 +113,6 @@ public class Deidentifier {
       throw new IllegalArgumentException(
           "Bundle entry %d has a request without a url.".formatted(index));
     }
-    if (!entry.hasResource()) {
-      return deidentifyDelete(entry, entryContext);
-    }
-    var resource = entry.getResource();
-    if (resource instanceof Bundle) {
-      throw new IllegalArgumentException(
-          "Bundle entry %d is a bundle: nested bundles are not supported".formatted(index));
-    }
-    var root = HandlerContext.of(List.of(), bundleContext.patientIdentifier());
-    return walk(resource, root)
-        .map(deidentified -> rebuildEntry(entry, deidentified, entryContext));
   }
 
   /**
