@@ -6,6 +6,8 @@ import care.smith.fts.deidentifier.DeidentifierHandler;
 import care.smith.fts.deidentifier.HandlerContext;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.IdType;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.StringType;
 
 /**
@@ -14,6 +16,9 @@ import org.hl7.fhir.r4.model.StringType;
  * Handlers that need collaborators are created by the static factory methods.
  */
 public interface Handlers {
+
+  /** The placeholder system of an identifier without a system, where that is accepted. */
+  String NO_SYSTEM = "<no_system>";
 
   /**
    * Truncates the postal code to its first three digits if it is five digits long. Any other postal
@@ -73,10 +78,7 @@ public interface Handlers {
   static DeidentifierHandler<StringType> stringReplacementHandler(String staticString) {
     requireNonNull(staticString);
     return (string, context) ->
-        Optional.of(
-            Optional.ofNullable(string.getValue())
-                .map(value -> withValue(string, staticString))
-                .orElse(string));
+        Optional.of(string.getValue() == null ? string : withValue(string, staticString));
   }
 
   /** A copy of {@code string}, so it keeps the class of the element, with {@code value}. */
@@ -84,5 +86,73 @@ public interface Handlers {
     var replaced = string.copy();
     replaced.setValue(value);
     return replaced;
+  }
+
+  /**
+   * Replaces the id part with its pseudonym. The resource type used for the lookup is taken from
+   * the resource at the root of the context, not from the id itself.
+   *
+   * <p>An id element without an id part carries only extensions; it passes through unchanged.
+   */
+  static DeidentifierHandler<IdType> idReplacementHandler(IDReplacementProvider provider) {
+    requireNonNull(provider);
+    return (id, context) ->
+        Optional.of(id.getIdPart() == null ? id : pseudonymized(id, provider, context));
+  }
+
+  /** The id with its id part replaced, looked up under the type of the resource of the context. */
+  private static IdType pseudonymized(
+      IdType id, IDReplacementProvider provider, HandlerContext context) {
+    var resourceType = context.resource().getResourceType().toString();
+    return new IdType(
+        id.getResourceType(), provider.getIDReplacement(resourceType, id.getIdPart()));
+  }
+
+  /**
+   * Replaces an identifier value with its pseudonym. Because the value is not unique on its own,
+   * the system of the enclosing identifier, the parent of the value, is passed along.
+   *
+   * <p>A value element without a value carries only extensions, e.g. a data-absent-reason; it
+   * passes through unchanged rather than being given an invented pseudonym.
+   *
+   * @param acceptNoSystem whether identifiers without a system are replaced under the placeholder
+   *     system {@link #NO_SYSTEM} instead of being rejected
+   * @throws IllegalStateException when the handler runs on an identifier without a system and does
+   *     not accept that; the message does not name the value, as source data must not reach logs
+   */
+  static DeidentifierHandler<StringType> identifierValueReplacementHandler(
+      IdentifierValueReplacementProvider provider, boolean acceptNoSystem) {
+    requireNonNull(provider);
+    return (value, context) ->
+        Optional.of(
+            value.getValue() == null
+                ? value
+                : pseudonymized(value, provider, acceptNoSystem, context));
+  }
+
+  /** The pseudonym of the value, looked up within the system of its identifier. */
+  private static StringType pseudonymized(
+      StringType value,
+      IdentifierValueReplacementProvider provider,
+      boolean acceptNoSystem,
+      HandlerContext context) {
+    var system = systemOf((Identifier) context.parent(), acceptNoSystem);
+    return new StringType(provider.getValueReplacement(system, value.getValue()));
+  }
+
+  /**
+   * The system of the identifier. Without one, {@link #NO_SYSTEM} if that is accepted.
+   *
+   * @throws IllegalStateException when the identifier has no system and that is not accepted
+   */
+  private static String systemOf(Identifier identifier, boolean acceptNoSystem) {
+    if (identifier.getSystem() != null) {
+      return identifier.getSystem();
+    } else if (acceptNoSystem) {
+      return NO_SYSTEM;
+    } else {
+      throw new IllegalStateException(
+          "An identifier is missing a system, which this replacement requires.");
+    }
   }
 }
