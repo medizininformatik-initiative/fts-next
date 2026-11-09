@@ -1,6 +1,5 @@
 package care.smith.fts.deidentifier.allowlist;
 
-import care.smith.fts.deidentifier.BundleEntryUrls;
 import care.smith.fts.deidentifier.Deidentifier;
 import care.smith.fts.deidentifier.Registry;
 import com.typesafe.config.Config;
@@ -16,8 +15,6 @@ public interface AllowList {
   }
 
   static Deidentifier fromConfig(Config config, Registry registry) {
-    return new Deidentifier(
-        HoconProfile.parse(config, registry),
-        registry.referenceHandler().map(BundleEntryUrls::of).orElse(BundleEntryUrls.none()));
+    return new Deidentifier(HoconProfile.parse(config, registry));
   }
 }

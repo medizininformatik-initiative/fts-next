@@ -3,7 +3,6 @@ package care.smith.fts.deidentifier.allowlist;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ca.uhn.fhir.context.FhirContext;
-import care.smith.fts.deidentifier.BundleEntryUrls;
 import care.smith.fts.deidentifier.Deidentifier;
 import care.smith.fts.deidentifier.Rule;
 import java.util.HashMap;
@@ -65,13 +64,11 @@ class BasePathsEngineAgreementTest {
   void acceptsEveryPathTheEngineVisitsAsBasePathOfTheClassOfItsValue(String json) {
     var resource = (Resource) FhirContext.forR4Cached().newJsonParser().parseResource(json);
     var visited = new HashMap<String, Class<?>>();
-    new Deidentifier(
-            r ->
-                (path, element) -> {
-                  visited.put(String.join(".", path), element.getClass());
-                  return new Rule.Apply(List.of());
-                },
-            BundleEntryUrls.none())
+    new Deidentifier(r ->
+        (path, element) -> {
+          visited.put(String.join(".", path), element.getClass());
+          return new Rule.Apply(List.of());
+        })
         .deidentify(resource, "p");
 
     assertThat(visited).isNotEmpty();

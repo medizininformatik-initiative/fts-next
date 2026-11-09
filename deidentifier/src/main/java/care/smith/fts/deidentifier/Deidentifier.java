@@ -12,13 +12,11 @@ import care.smith.fts.deidentifier.internal.HapiReflection.FhirChild;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Base;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
-import org.hl7.fhir.r4.model.Bundle.BundleEntryRequestComponent;
-import org.hl7.fhir.r4.model.Bundle.HTTPVerb;
+import org.hl7.fhir.r4.model.Bundle.BundleType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.PrimitiveType;
@@ -33,11 +31,8 @@ public class Deidentifier {
 
   private final RuleSet ruleSet;
 
-  private final BundleEntryUrls entryUrls;
-
-  public Deidentifier(RuleSet ruleSet, BundleEntryUrls entryUrls) {
+  public Deidentifier(RuleSet ruleSet) {
     this.ruleSet = requireNonNull(ruleSet);
-    this.entryUrls = requireNonNull(entryUrls);
   }
 
   /**
@@ -54,104 +49,52 @@ public class Deidentifier {
   }
 
   /**
-   * De-identifies every entry resource and builds a bundle skeleton around the survivors. A bundle
-   * never disappears: its skeleton survives even when no entry does.
+   * De-identifies every entry resource of a search result and builds a searchset around the
+   * survivors. A bundle never disappears: its type survives even when no entry does. Of an entry
+   * only the resource survives: its {@code fullUrl} names the source server and the source id, and
+   * its {@code search} says why the source server returned it.
    *
-   * @throws IllegalArgumentException for a PATCH entry: a patch puts each value beside the path it
-   *     changes, in a {@code Parameters}, or inside base64 data, in a {@code Binary}, so no rule
-   *     selected by path can de-identify it
+   * @throws IllegalArgumentException for a bundle that is no searchset, and for an entry without
+   *     resource, with a request or response, or with a bundle as resource. The message names the
+   *     entry by its index, so source data does not reach the logs.
    */
   public Bundle deidentifyBundle(Bundle bundle, String patientIdentifier) {
     requireNonNull(bundle);
-    var result = new Bundle();
-    if (bundle.hasType()) {
-      result.setType(bundle.getType());
+    requireNonNull(patientIdentifier);
+    if (bundle.getType() != BundleType.SEARCHSET) {
+      throw new IllegalArgumentException("Only a searchset bundle can be de-identified.");
     }
-    var bundleContext = HandlerContext.of(List.of(), patientIdentifier).child(bundle);
+    var result = new Bundle().setType(BundleType.SEARCHSET);
     var entries = bundle.getEntry();
     for (var i = 0; i < entries.size(); i++) {
-      deidentifyEntry(i, entries.get(i), bundleContext).ifPresent(result::addEntry);
+      deidentifyEntry(i, entries.get(i), patientIdentifier).ifPresent(result::addEntry);
     }
     return result;
   }
 
-  /**
-   * The entry's own fields see the bundle and the entry as ancestors; the entry resource is a
-   * resource of its own and sees none.
-   */
+  /** The entry resource is a resource of its own: its handlers see no bundle or entry. */
   private Optional<BundleEntryComponent> deidentifyEntry(
-      int index, BundleEntryComponent entry, HandlerContext bundleContext) {
-    var entryContext = bundleContext.child(entry);
-    if (entry.hasRequest() && entry.getRequest().getMethod() == HTTPVerb.PATCH) {
+      int index, BundleEntryComponent entry, String patientIdentifier) {
+    requireSearchResult(index, entry);
+    return walk(entry.getResource(), HandlerContext.of(List.of(), patientIdentifier))
+        .map(deidentified -> new BundleEntryComponent().setResource(deidentified));
+  }
+
+  /** bdl-3 and bdl-4: a searchset entry has neither a request nor a response. */
+  private static void requireSearchResult(int index, BundleEntryComponent entry) {
+    if (entry.hasRequest() || entry.hasResponse()) {
       throw new IllegalArgumentException(
-          "Bundle entry %d is a PATCH: patches are not supported.".formatted(index));
+          "Bundle entry %d has a request or response, which a searchset entry must not have."
+              .formatted(index));
     }
     if (!entry.hasResource()) {
-      return deidentifyDelete(entry, entryContext);
+      throw new IllegalArgumentException("Bundle entry %d has no resource.".formatted(index));
     }
-    var resource = entry.getResource();
-    if (resource instanceof Bundle) {
+    if (entry.getResource() instanceof Bundle) {
       throw new IllegalArgumentException(
           "Bundle entry %d is a bundle: nested bundles are not supported".formatted(index));
     }
-    var root = HandlerContext.of(List.of(), bundleContext.patientIdentifier());
-    return walk(resource, root)
-        .map(deidentified -> rebuildEntry(entry, deidentified, entryContext));
   }
-
-  /**
-   * A DELETE names the resource by its url alone. The entry survives with only its request, and
-   * only when {@link BundleEntryUrls#requestUrl(String, HandlerContext)} keeps the url.
-   */
-  private Optional<BundleEntryComponent> deidentifyDelete(
-      BundleEntryComponent entry, HandlerContext entryContext) {
-    return rebuildRequestOf(entry, entryContext, entryUrls::requestUrl)
-        .map(request -> new BundleEntryComponent().setRequest(request));
-  }
-
-  /**
-   * The entry around a de-identified resource. Of the request only {@code method} and {@code url}
-   * survive, and only while the url names nothing the source system chose: see {@link
-   * BundleEntryUrls#requestUrl(String, Resource, HandlerContext)}. The {@code fullUrl} survives as
-   * the uuid of the pseudonym, see {@link BundleEntryUrls#fullUrl(String, HandlerContext)}.
-   */
-  private BundleEntryComponent rebuildEntry(
-      BundleEntryComponent entry, Resource deidentified, HandlerContext entryContext) {
-    var rebuilt = new BundleEntryComponent().setResource(deidentified);
-    Optional.of(entry)
-        .filter(BundleEntryComponent::hasFullUrl)
-        .map(BundleEntryComponent::getFullUrl)
-        .flatMap(fullUrl -> entryUrls.fullUrl(fullUrl, entryContext))
-        .ifPresent(rebuilt::setFullUrl);
-    rebuildRequestOf(
-            entry, entryContext, (url, context) -> entryUrls.requestUrl(url, deidentified, context))
-        .ifPresent(rebuilt::setRequest);
-    return rebuilt;
-  }
-
-  /** The request of the entry with only the {@code method} and {@code url}, see below. */
-  private static Optional<BundleEntryRequestComponent> rebuildRequestOf(
-      BundleEntryComponent entry, HandlerContext entryContext, UrlRule urlRule) {
-    // getRequest() would add an empty request to the input entry
-    return Optional.of(entry)
-        .filter(BundleEntryComponent::hasRequest)
-        .map(BundleEntryComponent::getRequest)
-        .flatMap(request -> rebuildRequest(request, entryContext.child(request), urlRule));
-  }
-
-  /**
-   * The {@code method} and {@code url} of the request, or empty if its url does not survive. The
-   * request is the parent of its url, so the rule sees it as the last ancestor.
-   */
-  private static Optional<BundleEntryRequestComponent> rebuildRequest(
-      BundleEntryRequestComponent request, HandlerContext context, UrlRule urlRule) {
-    return Optional.ofNullable(request.getUrl())
-        .flatMap(url -> urlRule.apply(url, context))
-        .map(url -> new BundleEntryRequestComponent().setMethod(request.getMethod()).setUrl(url));
-  }
-
-  /** What {@link BundleEntryUrls} makes of a request url, in the context of the request. */
-  private interface UrlRule extends BiFunction<String, HandlerContext, Optional<String>> {}
 
   private Optional<Resource> walk(Resource resource, HandlerContext root) {
     // the rules are constant per resource, so they are resolved once here
