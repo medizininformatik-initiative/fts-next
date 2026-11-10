@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.deidentifier.DeidentifierHandler;
 import care.smith.fts.deidentifier.HandlerContext;
+import care.smith.fts.deidentifier.internal.References;
 import java.util.Optional;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.IdType;
@@ -154,5 +155,52 @@ public interface Handlers {
       throw new IllegalStateException(
           "An identifier is missing a system, which this replacement requires.");
     }
+  }
+
+  /**
+   * Replaces what a reference names by its pseudonym. The resource type used for the lookup is the
+   * type the reference names, not the type of the resource that holds it.
+   *
+   * <ul>
+   *   <li>{@code Type/id} becomes {@code Type/<pseudonym>}; a version {@code /_history/v} is
+   *       dropped.
+   *   <li>A contained reference {@code #id} and an element without a value, e.g. a
+   *       data-absent-reason, pass through unchanged.
+   *   <li>A {@code urn:uuid:} reference is rejected: it cannot be resolved from the reference
+   *       alone.
+   *   <li>A conditional reference {@code Type?identifier=...} is rejected like any other format: a
+   *       server resolves it when it stores the resource, so a searchset does not carry one.
+   * </ul>
+   *
+   * @throws IllegalArgumentException when the handler runs on an absolute reference, a {@code
+   *     urn:uuid:} reference or a format it does not know; the message does not name the reference,
+   *     as source data must not reach logs
+   */
+  static DeidentifierHandler<StringType> referenceReplacementHandler(
+      IDReplacementProvider idProvider) {
+    requireNonNull(idProvider);
+    return (reference, context) -> {
+      var value = reference.getValue();
+      if (value == null || value.startsWith("#")) {
+        return Optional.of(reference);
+      }
+      if (value.startsWith("urn:uuid:")) {
+        throw new IllegalArgumentException("A urn:uuid reference cannot be resolved.");
+      }
+      return Optional.of(withValue(reference, replaceReference(value, idProvider)));
+    };
+  }
+
+  private static String replaceReference(String reference, IDReplacementProvider idProvider) {
+    if (References.ABSOLUTE.matcher(reference).lookingAt()) {
+      throw new IllegalArgumentException("An absolute reference cannot be pseudonymized.");
+    }
+    var relative = References.RELATIVE.matcher(reference);
+    if (relative.matches()) {
+      return relative.group("type")
+          + "/"
+          + idProvider.getIDReplacement(relative.group("type"), relative.group("id"));
+    }
+    throw new IllegalArgumentException("A reference has a format that cannot be pseudonymized.");
   }
 }
