@@ -57,7 +57,8 @@ fhir:
 ### `policies` <Badge type="warning" text="Since 5.3" />
 
 * **Description**: Specifies a list of required policies. Consent must explicitly include approval
-  for all these policies to qualify.
+  for all these policies to qualify. At least one policy is required; a project without
+  policies fails to load.
 * **Type**: Array of Strings
 * **Example**:
   ```yaml
@@ -69,3 +70,8 @@ fhir:
 
 * The `patientIdentifierSystem` and `policySystem` fields should reference valid FHIR systems.
 * When defining policies, ensure they align with the consent requirements of your organization.
+* The consents of a patient may be spread over several pages of the search result. A patient
+  is selected as soon as the consents read so far cover all required policies. Otherwise its
+  consents are kept until the last page, so consents on later pages are taken into account
+  before the patient is excluded. Patient resources with the same identifier on one page are
+  classified together.

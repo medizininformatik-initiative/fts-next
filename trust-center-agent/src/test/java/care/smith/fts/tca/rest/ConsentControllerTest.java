@@ -3,6 +3,7 @@ package care.smith.fts.tca.rest;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static reactor.test.StepVerifier.create;
 
@@ -35,9 +36,9 @@ class ConsentControllerTest {
   private ConsentController controller;
   UriComponentsBuilder requestUrl = fromUriString("/fake/");
   ConsentFetchAllRequest consentFetchAllRequest =
-      new ConsentFetchAllRequest("MII", Set.of(), "sys");
+      new ConsentFetchAllRequest("MII", Set.of("policy"), "sys");
   ConsentFetchRequest consentFetchRequest =
-      new ConsentFetchRequest("MII", Set.of(), "ps", "pis", List.of("id1"));
+      new ConsentFetchRequest("MII", Set.of("policy"), "ps", "pis", List.of("id1"));
 
   @BeforeEach
   void setUp() {
@@ -64,6 +65,27 @@ class ConsentControllerTest {
             create(response)
                 .assertNext(b -> assertThat(b.getBody()).isEqualTo(bundle))
                 .verifyComplete());
+  }
+
+  @Test
+  void requestWithoutPoliciesYieldsBadRequest() {
+    var fetchAll = new ConsentFetchAllRequest("MII", Set.of(), "sys");
+    var fetch = new ConsentFetchRequest("MII", Set.of(), "ps", "pis", List.of("id1"));
+
+    List.of(
+            controller.fetchAll(
+                Mono.just(fetchAll), requestUrl, Optional.empty(), Optional.empty()),
+            controller.fetch(Mono.just(fetch), requestUrl, Optional.empty(), Optional.empty()),
+            controller.fetchAll(
+                Mono.just(new ConsentFetchAllRequest("MII", null, "sys")),
+                requestUrl,
+                Optional.empty(),
+                Optional.empty()))
+        .forEach(response ->
+            create(response)
+                .assertNext(b -> assertThat(b.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST))
+                .verifyComplete());
+    verifyNoInteractions(provider);
   }
 
   @Test

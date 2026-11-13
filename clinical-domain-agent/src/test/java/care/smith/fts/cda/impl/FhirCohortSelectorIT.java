@@ -1,6 +1,8 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.impl.FhirCohortSelectorFactory.consentedPatientExtractor;
+import static care.smith.fts.test.LogRecorder.messages;
+import static care.smith.fts.test.LogRecorder.recordLog;
 import static care.smith.fts.test.MalformedConsentDates.encodeWithMalformedDates;
 import static care.smith.fts.test.MalformedConsentDates.provisionWithPlaceholderStart;
 import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
@@ -13,14 +15,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static reactor.test.StepVerifier.create;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
+import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
+import care.smith.fts.api.CohortEntry.NotConsented;
 import care.smith.fts.test.FhirCohortGenerator;
 import care.smith.fts.test.MockServerUtil;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
+import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.WebClientFactory;
 import care.smith.fts.util.error.TransferProcessException;
+import ch.qos.logback.classic.Level;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -105,14 +112,14 @@ class FhirCohortSelectorIT {
   public class FetchAllRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return fetchAllRequest();
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return cohortSelector.selectCohort(List.of());
         }
       };
@@ -123,14 +130,14 @@ class FhirCohortSelectorIT {
   public class FetchListRequest extends AbstractConnectionScenarioIT {
     @Override
     protected TestStep<?> createTestStep() {
-      return new TestStep<ConsentedPatient>() {
+      return new TestStep<CohortEntry>() {
         @Override
         public MappingBuilder requestBuilder() {
           return fetchListRequest("patient-identifier-151337");
         }
 
         @Override
-        public Flux<ConsentedPatient> executeStep() {
+        public Flux<CohortEntry> executeStep() {
           return cohortSelector.selectCohort(List.of("patient-identifier-151337"));
         }
       };
@@ -173,6 +180,41 @@ class FhirCohortSelectorIT {
   }
 
   @Test
+  void patientWithoutConsentCoveringAllPoliciesIsNotConsented() {
+    var bundle = Stream.of(patient("b"), consentFor("b", "MDAT_speichern")).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .expectNext(new NotConsented("patient-identifier-b"))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientWithoutIdentifierOfConfiguredSystemIsCountedInWarning() {
+    var unidentified = patient("b");
+    unidentified.getIdentifierFirstRep().setSystem("http://other-system");
+    var bundle =
+        Stream.of(
+                patient("a"),
+                consentFor("a", "MDAT_erheben"),
+                unidentified,
+                consentFor("b", "MDAT_erheben"))
+            .collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
+
+    var events =
+        recordLog(
+            ConsentedPatientExtractor.class,
+            Level.WARN,
+            () ->
+                create(cohortSelector.selectCohort(List.of())).expectNextCount(1).verifyComplete());
+
+    assertThat(messages(events))
+        .singleElement()
+        .satisfies(m -> assertThat(m).contains("Ignoring 1 patients").doesNotContain("-b"));
+  }
+
+  @Test
   void consentsAreGroupedWithTheirOwnPatient() {
     var bundle =
         Stream.of(
@@ -183,8 +225,12 @@ class FhirCohortSelectorIT {
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+    create(cohortSelector.selectCohort(List.of()).collectList())
+        .assertNext(entries ->
+            assertThat(entries)
+                .filteredOn(Consented.class::isInstance)
+                .extracting(CohortEntry::identifier)
+                .containsExactly("patient-identifier-a"))
         .verifyComplete();
   }
 
@@ -206,17 +252,21 @@ class FhirCohortSelectorIT {
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(bundle)));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+    create(cohortSelector.selectCohort(List.of()).collectList())
+        .assertNext(entries ->
+            assertThat(entries)
+                .filteredOn(Consented.class::isInstance)
+                .extracting(CohortEntry::identifier)
+                .containsExactly("patient-identifier-a"))
         .verifyComplete();
   }
 
   /**
-   * Patient b has only a consent with a malformed date, which grants no consent, while selection of
-   * a is not aborted.
+   * Patient b has only a consent with a malformed date, which grants no consent, so b is excluded
+   * with a reason, while selection of a is not aborted.
    */
   @Test
-  void consentWithMalformedDateGrantsNoConsent() {
+  void consentWithMalformedDateExcludesPatient() {
     var b = consentFor("b", "MDAT_erheben");
     b.getProvision()
         .setProvision(List.of(provisionWithPlaceholderStart(POLICY_SYSTEM, "MDAT_erheben")));
@@ -225,8 +275,22 @@ class FhirCohortSelectorIT {
             .collect(toBundle());
     wireMock.register(fetchAllRequest().willReturn(fhirResponse(encodeWithMalformedDates(bundle))));
 
-    create(cohortSelector.selectCohort(List.of()))
-        .assertNext(p -> assertThat(p.identifier()).isEqualTo("patient-identifier-a"))
+    create(cohortSelector.selectCohort(List.of()).collectList())
+        .assertNext(entries ->
+            assertThat(entries)
+                .satisfiesExactlyInAnyOrder(
+                    a ->
+                        assertThat(a)
+                            .isInstanceOf(Consented.class)
+                            .extracting(CohortEntry::identifier)
+                            .isEqualTo("patient-identifier-a"),
+                    excluded ->
+                        assertThat(excluded)
+                            .isEqualTo(
+                                new Excluded(
+                                    "patient-identifier-b",
+                                    "Consent for policy MDAT_erheben has an unreadable"
+                                        + " date"))))
         .verifyComplete();
   }
 
@@ -292,6 +356,64 @@ class FhirCohortSelectorIT {
             .willReturn(fhirResponse(bundles.get(1))));
 
     create(cohortSelector.selectCohort(List.of())).expectNextCount(2).verifyComplete();
+  }
+
+  @Test
+  void patientWithConsentsOnTwoPagesIsClassifiedByBoth() {
+    var faulty = consentFor("x", "MDAT_erheben");
+    faulty.getProvision().getProvisionFirstRep().setPeriod(null);
+    var firstPage = Stream.of(patient("x"), faulty).collect(toBundle());
+    firstPage.addLink().setRelation("next").setUrl("/Consent?_page=1");
+    var secondPage = Stream.of(patient("x"), consentFor("x", "MDAT_erheben")).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(firstPage)));
+    wireMock.register(
+        get(urlPathEqualTo("/Consent"))
+            .withQueryParam("_page", equalTo("1"))
+            .willReturn(fhirResponse(secondPage)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(e ->
+            assertThat(e)
+                .isInstanceOf(Consented.class)
+                .extracting(CohortEntry::identifier)
+                .isEqualTo("patient-identifier-x"))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientExcludedOnPageBeforeFailingPageIsEmittedBeforeError() {
+    var faulty = consentFor("x", "MDAT_erheben");
+    faulty.getProvision().getProvisionFirstRep().setPeriod(null);
+    var firstPage = Stream.of(patient("x"), faulty).collect(toBundle());
+    firstPage.addLink().setRelation("next").setUrl("/Consent?_page=1");
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(firstPage)));
+    wireMock.register(
+        get(urlPathEqualTo("/Consent"))
+            .withQueryParam("_page", equalTo("1"))
+            .willReturn(notFound()));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .expectNext(
+            new Excluded(
+                "patient-identifier-x", "Consent for policy MDAT_erheben has no start date"))
+        .expectError(TransferProcessException.class)
+        .verify();
+  }
+
+  @Test
+  void patientsWithSameIdentifierOnOnePageAreClassifiedTogether() {
+    var duplicate = patient("x");
+    duplicate.setId("patient-x2");
+    var consentOfDuplicate = consentFor("x", "MDAT_erheben");
+    consentOfDuplicate.setPatient(new Reference("Patient/patient-x2"));
+    var faulty = consentFor("x", "MDAT_erheben");
+    faulty.getProvision().getProvisionFirstRep().setPeriod(null);
+    var page = Stream.of(patient("x"), faulty, duplicate, consentOfDuplicate).collect(toBundle());
+    wireMock.register(fetchAllRequest().willReturn(fhirResponse(page)));
+
+    create(cohortSelector.selectCohort(List.of()))
+        .assertNext(e -> assertThat(e).isInstanceOf(Consented.class))
+        .verifyComplete();
   }
 
   @Test

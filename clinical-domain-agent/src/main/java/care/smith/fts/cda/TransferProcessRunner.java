@@ -22,6 +22,7 @@ public interface TransferProcessRunner {
   }
 
   enum Step {
+    SELECT_COHORT("select cohort"),
     SELECT_DATA("select data"),
     DEIDENTIFY("deidentify bundle"),
     SEND_BUNDLE("send bundle");

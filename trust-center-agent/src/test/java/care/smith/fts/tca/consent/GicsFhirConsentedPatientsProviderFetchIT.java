@@ -4,6 +4,8 @@ import static care.smith.fts.test.FhirGenerators.fromList;
 import static care.smith.fts.test.FhirGenerators.randomUuid;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON_VALUE;
+import static care.smith.fts.util.fhir.FhirUtils.toBundle;
+import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -23,8 +25,10 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Consent;
+import org.hl7.fhir.r4.model.Patient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
@@ -173,14 +177,19 @@ class GicsFhirConsentedPatientsProviderFetchIT
         .verifyComplete();
   }
 
-  @Override
-  protected ConsentFetchRequest createRequestWithEmptyPolicies() {
-    return new ConsentFetchRequest(
-        "MII",
-        Set.of(),
-        POLICY_SYSTEM,
-        PATIENT_IDENTIFIER_SYSTEM,
-        List.of("id1", "id2", "id3", "id4"));
+  @Test
+  void requestedPatientWithoutConsentIsReturnedWithoutConsents() {
+    var body = Stream.of(innerBundleWithoutRequiredPolicies()).collect(toBundle()).setTotal(1);
+    wireMock.register(getRequestMappingBuilder().willReturn(fhirResponse(body)));
+
+    create(executePagedRequest(getDefaultRequest(), 0, 2))
+        .assertNext(consentBundle -> {
+          var inner = typedResourceStream(consentBundle, Bundle.class).toList();
+          assertThat(inner).singleElement();
+          assertThat(typedResourceStream(inner.getFirst(), Patient.class)).hasSize(1);
+          assertThat(typedResourceStream(inner.getFirst(), Consent.class)).isEmpty();
+        })
+        .verifyComplete();
   }
 
   @Test
