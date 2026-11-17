@@ -37,14 +37,12 @@
     },
     {
       description: [
-        "Find `deidentifhir` in GitHub Maven packages"
+        "`deidentifhir` is vendored until it is replaced, see #2011"
       ],
       matchPackageNames: [
         'de.ume:deidentifhir',
       ],
-      registryUrls: [
-        'https://maven.pkg.github.com/UMEssen/DeidentiFHIR',
-      ],
+      enabled: false,
     },
     {
       description: [
