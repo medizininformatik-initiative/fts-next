@@ -161,9 +161,13 @@
   </dependencies>
 
   <repositories>
+    <!-- Vendored until deidentifhir is replaced, see #2011 and #2175 -->
     <repository>
-      <id>github</id>
-      <url>https://maven.pkg.github.com/UMEssen/DeidentiFHIR</url>
+      <id>vendor</id>
+      <url>file://${project.basedir}/vendor/m2</url>
+      <releases>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
