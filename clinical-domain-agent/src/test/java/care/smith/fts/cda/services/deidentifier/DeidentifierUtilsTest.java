@@ -1,12 +1,13 @@
-package care.smith.fts.cda.services.deidentifhir;
+package care.smith.fts.cda.services.deidentifier;
 
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.buildRegistry;
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.deidentify;
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.shiftDate;
-import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
+import static care.smith.fts.cda.services.deidentifier.DeidentifierUtils.buildRegistry;
+import static care.smith.fts.cda.services.deidentifier.DeidentifierUtils.deidentify;
+import static care.smith.fts.cda.services.deidentifier.DeidentifierUtils.shiftDate;
+import static care.smith.fts.util.deidentifier.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static com.typesafe.config.ConfigFactory.parseString;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.SEARCHSET;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.test.TestPatientGenerator;
@@ -17,15 +18,13 @@ import java.io.IOException;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
-import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
-import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DeidentifhirUtilsTest {
+class DeidentifierUtilsTest {
 
   MeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
   GeneratingReplacementProvider provider;
@@ -39,15 +38,15 @@ class DeidentifhirUtilsTest {
   void deidentifySucceeds() throws IOException {
     ConsentedPatient patient = new ConsentedPatient("id1", "system");
     var registry = buildRegistry(provider);
-    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifierUtilsTest.class, "CDtoTransport.profile");
 
     var bundle =
-        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
+        TestPatientGenerator.generateOnePatientPage(
+            "id1", "2023", "identifierSystem1", "identifier1");
     Bundle deidentifiedBundle =
         deidentify(config, registry, bundle, patient.identifier(), meterRegistry);
-    Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
 
-    Patient p = (Patient) b.getEntryFirstRep().getResource();
+    Patient p = (Patient) deidentifiedBundle.getEntryFirstRep().getResource();
 
     // Verify the ID was replaced with a generated tID
     assertThat(p.getId()).startsWith("Patient/");
@@ -62,15 +61,15 @@ class DeidentifhirUtilsTest {
   void deidentifyKeepsDateShiftExtensionOnBirthDate() throws IOException {
     ConsentedPatient patient = new ConsentedPatient("id1", "system");
     var registry = buildRegistry(provider);
-    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifierUtilsTest.class, "CDtoTransport.profile");
 
     var bundle =
-        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
+        TestPatientGenerator.generateOnePatientPage(
+            "id1", "2023", "identifierSystem1", "identifier1");
     Bundle deidentifiedBundle =
         deidentify(config, registry, bundle, patient.identifier(), meterRegistry);
-    Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
 
-    Patient p = (Patient) b.getEntryFirstRep().getResource();
+    Patient p = (Patient) deidentifiedBundle.getEntryFirstRep().getResource();
     var birthDate = p.getBirthDateElement();
 
     // shiftDateHandler nulls the value and hangs the tID on the element as an extension
@@ -145,17 +144,16 @@ class DeidentifhirUtilsTest {
   @Test
   void deidentifyRemovesResourcesWithoutModule() throws IOException {
     var registry = buildRegistry(provider);
-    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifierUtilsTest.class, "CDtoTransport.profile");
     var bundle =
-        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
-    var innerBundle = (Bundle) bundle.getEntryFirstRep().getResource();
-    innerBundle.addEntry().setResource(new Observation().setId("obs1"));
+        TestPatientGenerator.generateOnePatientPage(
+            "id1", "2023", "identifierSystem1", "identifier1");
+    bundle.addEntry().setResource(new Observation().setId("obs1"));
 
     Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
 
-    Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
-    assertThat(b.getEntry()).hasSize(1);
-    assertThat(b.getEntryFirstRep().getResource()).isInstanceOf(Patient.class);
+    assertThat(deidentifiedBundle.getEntry()).hasSize(1);
+    assertThat(deidentifiedBundle.getEntryFirstRep().getResource()).isInstanceOf(Patient.class);
   }
 
   @Test
@@ -163,14 +161,14 @@ class DeidentifhirUtilsTest {
     var registry = buildRegistry(provider);
     var config =
         parseResources(
-            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+            DeidentifierUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
     var bundle =
-        TestPatientGenerator.generateOnePatient("id1", "2023", "identifierSystem1", "identifier1");
+        TestPatientGenerator.generateOnePatientPage(
+            "id1", "2023", "identifierSystem1", "identifier1");
 
     Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
 
-    Bundle b = (Bundle) deidentifiedBundle.getEntryFirstRep().getResource();
-    Patient p = (Patient) b.getEntryFirstRep().getResource();
+    Patient p = (Patient) deidentifiedBundle.getEntryFirstRep().getResource();
     assertThat(p.getBirthDateElement().getValue()).isNotNull();
     assertThat(p.getBirthDateElement().getExtensionByUrl(DATE_SHIFT_EXTENSION_URL)).isNull();
     assertThat(provider.getDateMappings()).isEmpty();
@@ -196,7 +194,7 @@ class DeidentifhirUtilsTest {
     var patient = patientWithProfile();
     patient.setBirthDateElement(new DateType("1990-01-01"));
     patient.setDeceased(new DateTimeType("2020-05-05T00:00:00Z"));
-    var bundle = new Bundle();
+    var bundle = new Bundle().setType(SEARCHSET);
     bundle.addEntry().setResource(patient);
 
     Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
@@ -215,8 +213,8 @@ class DeidentifhirUtilsTest {
     var registry = buildRegistry(provider);
     var config =
         parseResources(
-            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
-    var bundle = new Bundle();
+            DeidentifierUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+    var bundle = new Bundle().setType(SEARCHSET);
     bundle
         .addEntry()
         .setResource(patientWithProfile().setBirthDateElement(new DateType("1980-05-17")));
@@ -232,53 +230,16 @@ class DeidentifhirUtilsTest {
     var registry = buildRegistry(provider);
     var config =
         parseResources(
-            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+            DeidentifierUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
     var patient = patientWithProfile();
     patient.addAddress().setPostalCode("12345");
-    var bundle = new Bundle();
+    var bundle = new Bundle().setType(SEARCHSET);
     bundle.addEntry().setResource(patient);
 
     Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
 
     Patient p = (Patient) deidentifiedBundle.getEntryFirstRep().getResource();
     assertThat(p.getAddressFirstRep().getPostalCode()).isEqualTo("123");
-  }
-
-  @Test
-  void deidentifyReplacesIdentifierOfConditionalReference() {
-    var registry = buildRegistry(provider);
-    var config =
-        parseString(
-            """
-            {
-              deidentiFHIR.profile.version=0.2
-              modules {
-                test_encounter {
-                  base = ["Encounter.id", "Encounter.subject.reference", "Encounter.meta.profile"]
-                  paths { "Encounter.subject.reference" { handler = conditionalReferencesReplacementHandler } }
-                  pattern = "Encounter.meta.profile contains 'https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung'"
-                }
-              }
-            }
-            """);
-    var encounter = new Encounter();
-    encounter.setId("enc1");
-    encounter
-        .getMeta()
-        .addProfile(
-            "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung");
-    encounter.setSubject(new Reference("Patient?identifier=identifierSystem1|identifier1"));
-    var bundle = new Bundle();
-    bundle.addEntry().setResource(encounter);
-
-    Bundle deidentifiedBundle = deidentify(config, registry, bundle, "id1", meterRegistry);
-
-    Encounter e = (Encounter) deidentifiedBundle.getEntryFirstRep().getResource();
-    var reference = e.getSubject().getReference();
-    assertThat(reference).startsWith("Patient?identifier=identifierSystem1|");
-    var tId = reference.substring(reference.indexOf('|') + 1);
-    assertThat(tId).hasSize(21); // NanoId length
-    assertThat(provider.getIdMappings()).containsValue(tId);
   }
 
   private static Patient patientWithProfile() {

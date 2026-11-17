@@ -3,24 +3,25 @@ package care.smith.fts.cda.impl;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.util.HttpClientConfig;
 import care.smith.fts.util.tca.TcaDomains;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.io.File;
 import java.time.Duration;
 import java.util.Optional;
 
-public record DeidentifhirStepConfig(
+public record DeidentifierStepConfig(
     TCAConfig trustCenterAgent,
     Duration maxDateShift,
-    File deidentifhirConfig,
+    @JsonAlias("deidentifhirConfig") File deidentifierConfig,
     DateShiftPreserve dateShiftPreserve) {
 
-  public DeidentifhirStepConfig(
+  public DeidentifierStepConfig(
       TCAConfig trustCenterAgent,
       Duration maxDateShift,
-      File deidentifhirConfig,
+      @JsonAlias("deidentifhirConfig") File deidentifierConfig,
       DateShiftPreserve dateShiftPreserve) {
     this.trustCenterAgent = trustCenterAgent;
     this.maxDateShift = maxDateShift;
-    this.deidentifhirConfig = deidentifhirConfig;
+    this.deidentifierConfig = deidentifierConfig;
     this.dateShiftPreserve = Optional.ofNullable(dateShiftPreserve).orElse(DateShiftPreserve.NONE);
   }
 

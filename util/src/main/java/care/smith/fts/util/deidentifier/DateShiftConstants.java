@@ -1,4 +1,4 @@
-package care.smith.fts.util.deidentifhir;
+package care.smith.fts.util.deidentifier;
 
 /** Shared constants for date shifting functionality across CDA, TCA, and RDA modules. */
 public interface DateShiftConstants {

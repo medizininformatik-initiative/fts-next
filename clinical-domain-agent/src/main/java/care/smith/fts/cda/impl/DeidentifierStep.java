@@ -1,14 +1,14 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.buildRegistry;
+import static care.smith.fts.cda.services.deidentifier.DeidentifierUtils.buildRegistry;
 
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.DateShiftPreserve;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.cda.Deidentificator;
-import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
-import care.smith.fts.cda.services.deidentifhir.GeneratingReplacementProvider;
+import care.smith.fts.cda.services.deidentifier.DeidentifierUtils;
+import care.smith.fts.cda.services.deidentifier.GeneratingReplacementProvider;
 import care.smith.fts.util.RetryStrategy;
 import care.smith.fts.util.error.TransferProcessException;
 import care.smith.fts.util.tca.TcaDomains;
@@ -26,7 +26,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-class DeidentifhirStep implements Deidentificator {
+class DeidentifierStep implements Deidentificator {
   private final WebClient tcaClient;
   private final TcaDomains domains;
   private final Duration maxDateShift;
@@ -35,7 +35,7 @@ class DeidentifhirStep implements Deidentificator {
   private final MeterRegistry meterRegistry;
   private final RetryStrategy retryStrategy;
 
-  public DeidentifhirStep(
+  public DeidentifierStep(
       WebClient tcaClient,
       TcaDomains domains,
       Duration maxDateShift,
@@ -62,7 +62,7 @@ class DeidentifhirStep implements Deidentificator {
       var provider = new GeneratingReplacementProvider(patient.identifier());
       var registry = buildRegistry(provider);
       var deidentified =
-          DeidentifhirUtils.deidentify(
+          DeidentifierUtils.deidentify(
               config, registry, bundle.bundle(), patient.identifier(), meterRegistry);
       var deidentifiedMsg = "deidentified bundle for patient {} has {} entries";
       log.trace(deidentifiedMsg, patient.identifier(), deidentified.getEntry().size());
@@ -100,11 +100,11 @@ class DeidentifhirStep implements Deidentificator {
         .headers(h -> h.setContentType(MediaType.APPLICATION_JSON))
         .bodyValue(request)
         .retrieve()
-        .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), DeidentifhirStep::handleBadRequest)
+        .onStatus(r -> r.equals(HttpStatus.BAD_REQUEST), DeidentifierStep::handleBadRequest)
         .bodyToMono(TransportMappingResponse.class)
         .timeout(Duration.ofSeconds(30))
         .retryWhen(retryStrategy.forRequest("sendMappingsToTca"))
-        .doOnError(DeidentifhirStep::handleError)
+        .doOnError(DeidentifierStep::handleError)
         .map(TransportMappingResponse::transferId);
   }
 

@@ -2,13 +2,13 @@ package care.smith.fts.tca.deidentification;
 
 import static care.smith.fts.tca.deidentification.DateShiftUtil.generate;
 import static care.smith.fts.tca.deidentification.DateShiftUtil.shiftDate;
-import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
+import static care.smith.fts.util.deidentifier.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Set.of;
 import static java.util.stream.Collectors.toMap;
 
 import care.smith.fts.tca.deidentification.configuration.TransportMappingConfiguration;
 import care.smith.fts.util.RetryStrategy;
-import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider;
+import care.smith.fts.util.deidentifier.NamespacingReplacementProvider;
 import care.smith.fts.util.tca.SecureMappingResponse;
 import care.smith.fts.util.tca.TcaDomains;
 import care.smith.fts.util.tca.TransportMappingRequest;
