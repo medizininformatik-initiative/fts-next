@@ -1,5 +1,6 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.requireValidProfile;
 import static com.typesafe.config.ConfigFactory.parseFile;
 import static java.util.Objects.requireNonNull;
 
@@ -33,6 +34,7 @@ public class DeidentifhirStepFactory implements Deidentificator.Factory<Deidenti
       Deidentificator.Config commonConfig, DeidentifhirStepConfig implConfig) {
     var httpClient = clientFactory.create(implConfig.trustCenterAgent().server());
     var config = parseFile(requireNonNull(implConfig.deidentifhirConfig()));
+    requireValidProfile(config);
 
     return new DeidentifhirStep(
         httpClient,

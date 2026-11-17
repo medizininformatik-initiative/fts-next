@@ -5,7 +5,6 @@ import static care.smith.fts.cda.TransferProcessRunner.Phase.COMPLETED_WITH_ERRO
 import static care.smith.fts.cda.TransferProcessRunner.Phase.FATAL;
 import static care.smith.fts.test.MockServerUtil.fhirResponse;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
-import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.CONTENT_LOCATION;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Set;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -124,12 +122,12 @@ public abstract class AbstractCohortSelectorE2E {
             .willReturn(fhirResponse(resolveResponse)));
 
     var cohortGenerator = createCohortGenerator();
-    var patient = cohortGenerator.generate();
-    var patientBundle = Stream.of(patient).collect(toBundle());
+    // one searchset page with the patient and its consent, as $everything sends
+    var page = cohortGenerator.generate();
 
     // Default patient GET mock - can be overridden by specific implementations
     cdHdsWireMock.register(
-        get(urlPathMatching("/fhir/Patient/patient-1.*")).willReturn(fhirResponse(patientBundle)));
+        get(urlPathMatching("/fhir/Patient/patient-1.*")).willReturn(fhirResponse(page)));
   }
 
   /** Creates the standard FhirCohortGenerator used across all implementations. */

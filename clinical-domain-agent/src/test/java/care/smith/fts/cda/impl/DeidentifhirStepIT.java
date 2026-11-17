@@ -3,7 +3,7 @@ package care.smith.fts.cda.impl;
 import static care.smith.fts.api.DateShiftPreserve.NONE;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
-import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
+import static care.smith.fts.test.TestPatientGenerator.generateOnePatientPage;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -13,6 +13,7 @@ import static com.typesafe.config.ConfigFactory.parseResources;
 import static com.typesafe.config.ConfigFactory.parseString;
 import static java.time.Duration.ofDays;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hl7.fhir.r4.model.Bundle.BundleType.SEARCHSET;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -76,7 +77,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             meterRegistry,
             new DefaultRetryStrategy(meterRegistry));
 
-    var bundle = generateOnePatient("id1", "2024", "identifierSystem", "identifier1");
+    var bundle = generateOnePatientPage("id1", "2024", "identifierSystem", "identifier1");
     var consentedPatient = new ConsentedPatient("id1", "system");
     consentedPatientBundle = new ConsentedPatientBundle(bundle, consentedPatient);
   }
@@ -136,12 +137,10 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
         .assertNext(transportBundle -> {
           assertThat(transportBundle.transferId()).isEqualTo("transferId");
 
-          var outerBundle = transportBundle.bundle();
-          assertThat(outerBundle.getEntry()).isNotEmpty();
+          var bundle = transportBundle.bundle();
+          assertThat(bundle.getEntry()).isNotEmpty();
 
-          // Deidentified bundle is nested: outer Bundle → inner Bundle → resources
-          var innerBundle = (Bundle) outerBundle.getEntryFirstRep().getResource();
-          var patient = innerBundle.getEntryFirstRep().getResource();
+          var patient = bundle.getEntryFirstRep().getResource();
           assertThat(patient.getIdElement().getIdPart()).hasSize(21);
         })
         .verifyComplete();
@@ -158,7 +157,8 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   void emptyIdsYieldEmptyMono() {
     create(
             step.deidentify(
-                new ConsentedPatientBundle(new Bundle(), new ConsentedPatient("id1", "system"))))
+                new ConsentedPatientBundle(
+                    new Bundle().setType(SEARCHSET), new ConsentedPatient("id1", "system"))))
         .expectNextCount(0)
         .verifyComplete();
   }
@@ -243,14 +243,9 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
   }
 
   private static ConsentedPatientBundle consentedPatientBundle(Patient patient) {
-    var innerBundle = new Bundle();
-    innerBundle.addEntry().setResource(patient);
-
-    var outerBundle = new Bundle();
-    outerBundle.addEntry().setResource(innerBundle);
-    outerBundle.setTotal(1);
-
-    return new ConsentedPatientBundle(outerBundle, new ConsentedPatient("test-patient", "system"));
+    var bundle = new Bundle().setType(SEARCHSET);
+    bundle.addEntry().setResource(patient);
+    return new ConsentedPatientBundle(bundle, new ConsentedPatient("test-patient", "system"));
   }
 
   private void registerTransferId(String transferId) {

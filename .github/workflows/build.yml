@@ -29,8 +29,7 @@ jobs:
     runs-on: ubuntu-26.04
     strategy:
       matrix:
-        # no agent depends on deidentifier until the CDA switches to it, so it runs on its own
-        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent, deidentifier ]
+        agent: [ clinical-domain-agent, trust-center-agent, research-domain-agent ]
 
     steps:
     - name: Harden Runner

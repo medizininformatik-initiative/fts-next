@@ -154,21 +154,11 @@
     </dependency>
 
     <dependency>
-      <groupId>de.ume</groupId>
-      <artifactId>deidentifhir</artifactId>
-      <version>0.2.11</version>
+      <groupId>care.smith.fts</groupId>
+      <artifactId>deidentifier</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>github</id>
-      <url>https://maven.pkg.github.com/UMEssen/DeidentiFHIR</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <build>
     <plugins>
