@@ -44,7 +44,9 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
+
+    - name: Restore Maven Cache
+      uses: ./.github/actions/restore-maven-cache
 
     - name: Build Images
       run: make all

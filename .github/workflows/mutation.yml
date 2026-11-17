@@ -67,11 +67,9 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
-        cache-dependency-path: |
-          pom.xml
-          {api,util,test-util}/pom.xml
-          ${{ matrix.module }}/pom.xml
+
+    - name: Restore Maven Cache
+      uses: ./.github/actions/restore-maven-cache
 
     - name: Install Upstream Modules
       run: |

@@ -1,0 +1,37 @@
+name: Restore Maven Cache
+description: >-
+  Restores the local Maven repository from the cache that is produced on the
+  default branch by the `maven-cache` job of the Build workflow. Falls back to
+  the most recent cache if the poms changed.
+
+inputs:
+  lookup-only:
+    description: Only check whether a cache for the current poms exists, without downloading it
+    default: 'false'
+
+outputs:
+  key:
+    description: Cache key for the current poms
+    value: ${{ steps.key.outputs.key }}
+  cache-hit:
+    description: Whether a cache for exactly the current poms exists
+    value: ${{ steps.restore.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+  - name: Compute Cache Key
+    id: key
+    shell: bash
+    env:
+      POM_HASH: ${{ hashFiles('**/pom.xml') }}
+    run: echo "key=maven-${RUNNER_OS}-${POM_HASH}" >>"${GITHUB_OUTPUT}"
+
+  - name: Restore Cache
+    id: restore
+    uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    with:
+      path: ~/.m2/repository
+      key: ${{ steps.key.outputs.key }}
+      restore-keys: maven-${{ runner.os }}-
+      lookup-only: ${{ inputs.lookup-only }}

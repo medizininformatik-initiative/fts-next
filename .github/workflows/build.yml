@@ -22,6 +22,50 @@ env:
   REGISTRY: ghcr.io/${{ github.repository_owner }}/fts
 
 jobs:
+  # The only job that saves the Maven cache, all other jobs restore it. Saving
+  # from parallel jobs lets whichever finishes first store an incomplete cache.
+  maven-cache:
+    if: github.ref == 'refs/heads/main'
+    env:
+      MAVEN_ARGS: -B -U -T1C
+    runs-on: ubuntu-26.04
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+      with:
+        egress-policy: audit
+
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+      with:
+        distribution: 'temurin'
+        java-version: 25.0.5+8.0.LTS
+
+    - name: Look Up Maven Cache
+      id: cache
+      uses: ./.github/actions/restore-maven-cache
+      with:
+        lookup-only: true
+
+    - name: Download Dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        # shellcheck disable=SC2086
+        mvn ${MAVEN_ARGS} -Pe2e -DskipTests -DskipITs install
+        # shellcheck disable=SC2086
+        mvn ${MAVEN_ARGS} -Pe2e,mutation dependency:go-offline
+        rm -rf ~/.m2/repository/care/smith
+
+    - name: Save Maven Cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.m2/repository
+        key: ${{ steps.cache.outputs.key }}
+
   test:
     env:
       MAVEN_ARGS: -B -U -T1C -Dfts.retryTimeout=false --also-make --projects ${{ matrix.agent }}
@@ -45,11 +89,9 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
-        cache-dependency-path: |
-          pom.xml
-          {api,util,test-util}/pom.xml
-          ${{ matrix.agent }}/pom.xml
+
+    - name: Restore Maven Cache
+      uses: ./.github/actions/restore-maven-cache
 
     - name: Setup Keycloak
       working-directory: .github/test
@@ -94,11 +136,9 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
-        cache-dependency-path: |
-          pom.xml
-          {api,util}/pom.xml
-          ${{ matrix.agent }}/pom.xml
+
+    - name: Restore Maven Cache
+      uses: ./.github/actions/restore-maven-cache
 
     - name: Build Agent
       run: |
@@ -265,11 +305,9 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
-        cache-dependency-path: |
-          pom.xml
-          {api,util,test-util}/pom.xml
-          ${{ matrix.agent }}/pom.xml
+
+    - name: Restore Maven Cache
+      uses: ./.github/actions/restore-maven-cache
 
     - name: Run Agent e2e Tests
       run: |
