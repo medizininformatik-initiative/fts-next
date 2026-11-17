@@ -15,11 +15,11 @@ See [Pseudonymization](../details/pseudonymisierung) for more details.
 
 The `deidentificator` section allows different implementations to be used for pseudonymizing and
 anonymizing patient data. At the moment there is only one implementation available out-of-the-box:
-`deidentifhir`
+`deidentifier`
 
 ```yaml
 deidentificator:
-  deidentifhir:
+  deidentifier:
     trustCenterAgent:
       server:
         baseUrl: http://tc-agent:8080
@@ -31,12 +31,12 @@ deidentificator:
         dateShift: MII
     maxDateShift: P14D
     dateShiftPreserve: NONE
-    deidentifhirConfig: /app/config/deidentifhir/CDtoTransport.profile
+    deidentifierConfig: /app/config/deidentifier/CDtoTransport.profile
 ```
 
 ## Fields
 
-### `deidentifhir` <Badge type="warning" text="Since 5.0" />
+### `deidentifier` <Badge type="warning" text="Since 5.0" />
 
 This implementation uses [deidentifhir](https://github.com/UMEssen/DeidentiFHIR) to accomplish
 deidentification of FHIR bundles.
@@ -113,14 +113,14 @@ deidentification of FHIR bundles.
     dateShiftPreserve: WEEKDAY
   ```
 
-#### `deidentifhirConfig` <Badge type="warning" text="Since 5.0" />
+#### `deidentifierConfig` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Path to the DeidentiFHIR configuration file. If using a Docker container, the
   path must be mounted into the container. This file is used for deidentification.
 * **Type**: String
 * **Example**:
   ```yaml
-    deidentifhirConfig: /custom/path/CDtoTransport.profile
+    deidentifierConfig: /custom/path/CDtoTransport.profile
   ```
 
 #### `scraperConfig` <Badge type="warning" text="Since 5.0" /> <Badge type="danger" text="Removed since 5.5" />
@@ -134,7 +134,7 @@ deidentification of FHIR bundles.
   ```
 * **Note**: This field has been removed in version 5.5. The separate scraping pass has been
   replaced by single-pass deidentification, which generates transport IDs on-the-fly.
-  The `deidentifhirConfig` is now the only configuration file needed.
+  The `deidentifierConfig` is now the only configuration file needed.
 
 ## Notes
 
@@ -144,5 +144,5 @@ deidentification of FHIR bundles.
   high enough to make reverse computation practically infeasible.
 * The `maxDateShift` must be in a valid ISO-8601 duration format. Refer
   to [ISO-8601 documentation](https://en.wikipedia.org/wiki/ISO_8601) for more details.
-* Mount the configuration file (`deidentifhirConfig`) into the Docker container if the agent runs in
+* Mount the configuration file (`deidentifierConfig`) into the Docker container if the agent runs in
   a containerized environment. Ensure the path is accessible to the agent at runtime.

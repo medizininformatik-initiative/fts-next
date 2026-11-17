@@ -1,6 +1,6 @@
 package care.smith.fts.rda.impl;
 
-import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
+import static care.smith.fts.util.deidentifier.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.api.rda.Deidentificator;

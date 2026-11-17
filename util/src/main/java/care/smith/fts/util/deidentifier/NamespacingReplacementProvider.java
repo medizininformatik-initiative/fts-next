@@ -1,4 +1,4 @@
-package care.smith.fts.util.deidentifhir;
+package care.smith.fts.util.deidentifier;
 
 import care.smith.fts.deidentifier.handlers.IDReplacementProvider;
 import care.smith.fts.deidentifier.handlers.IdentifierValueReplacementProvider;

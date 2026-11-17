@@ -24,7 +24,7 @@ import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
 import care.smith.fts.cda.ClinicalDomainAgent;
-import care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils;
+import care.smith.fts.cda.services.deidentifier.DeidentifierUtils;
 import care.smith.fts.test.connection_scenario.AbstractConnectionScenarioIT;
 import care.smith.fts.util.DefaultRetryStrategy;
 import care.smith.fts.util.WebClientFactory;
@@ -48,12 +48,12 @@ import reactor.core.publisher.Mono;
 
 @SpringBootTest(classes = ClinicalDomainAgent.class)
 @WireMockTest
-class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
+class DeidentifierStepIT extends AbstractConnectionScenarioIT {
 
   private static final String PATIENT_PROFILE =
       "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient";
 
-  private DeidentifhirStep step;
+  private DeidentifierStep step;
   private WireMock wireMock;
   private ConsentedPatientBundle consentedPatientBundle;
 
@@ -63,12 +63,12 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
       @Autowired WebClientFactory clientFactory,
       @Autowired MeterRegistry meterRegistry)
       throws IOException {
-    var config = parseResources(DeidentifhirUtils.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifierUtils.class, "CDtoTransport.profile");
     var domains = new TcaDomains("domain", "domain", "domain");
     var client = clientFactory.create(clientConfig(wireMockRuntime));
     wireMock = wireMockRuntime.getWireMock();
     step =
-        new DeidentifhirStep(
+        new DeidentifierStep(
             client,
             domains,
             ofDays(14),
@@ -92,7 +92,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
     return new TestStep<TransportBundle>() {
       @Override
       public MappingBuilder requestBuilder() {
-        return DeidentifhirStepIT.transportMappingRequest();
+        return DeidentifierStepIT.transportMappingRequest();
       }
 
       @Override
@@ -206,7 +206,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
         .verifyComplete();
   }
 
-  private static DeidentifhirStep singlePatientModuleStep(
+  private static DeidentifierStep singlePatientModuleStep(
       WireMockRuntimeInfo wireMockRuntime,
       WebClientFactory clientFactory,
       MeterRegistry meterRegistry,
@@ -225,7 +225,7 @@ class DeidentifhirStepIT extends AbstractConnectionScenarioIT {
             }
             """
                 .formatted(module, PATIENT_PROFILE));
-    return new DeidentifhirStep(
+    return new DeidentifierStep(
         clientFactory.create(clientConfig(wireMockRuntime)),
         new TcaDomains("domain", "domain", "domain"),
         ofDays(14),

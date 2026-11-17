@@ -1,6 +1,6 @@
 package care.smith.fts.util.tca;
 
-import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_PREFIX;
+import static care.smith.fts.util.deidentifier.DateShiftConstants.DATE_SHIFT_PREFIX;
 import static java.util.Map.copyOf;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.partitioningBy;

@@ -1,12 +1,12 @@
-package care.smith.fts.cda.services.deidentifhir;
+package care.smith.fts.cda.services.deidentifier;
 
 import static care.smith.fts.util.NanoIdUtils.nanoId;
-import static care.smith.fts.util.deidentifhir.NamespacingReplacementProvider.withNamespacing;
+import static care.smith.fts.util.deidentifier.NamespacingReplacementProvider.withNamespacing;
 import static java.util.Objects.requireNonNull;
 
 import care.smith.fts.deidentifier.handlers.IDReplacementProvider;
 import care.smith.fts.deidentifier.handlers.IdentifierValueReplacementProvider;
-import care.smith.fts.util.deidentifhir.NamespacingReplacementProvider.KeyCreator;
+import care.smith.fts.util.deidentifier.NamespacingReplacementProvider.KeyCreator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +19,7 @@ import java.util.Map;
  * chars).
  *
  * <p>This class is not thread-safe. Instances are confined to a single deidentification pass within
- * {@link care.smith.fts.cda.impl.DeidentifhirStep} and must not be shared across threads.
+ * {@link care.smith.fts.cda.impl.DeidentifierStep} and must not be shared across threads.
  */
 public class GeneratingReplacementProvider
     implements IDReplacementProvider, IdentifierValueReplacementProvider {

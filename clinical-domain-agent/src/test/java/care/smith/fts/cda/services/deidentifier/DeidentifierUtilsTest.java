@@ -1,9 +1,9 @@
-package care.smith.fts.cda.services.deidentifhir;
+package care.smith.fts.cda.services.deidentifier;
 
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.buildRegistry;
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.deidentify;
-import static care.smith.fts.cda.services.deidentifhir.DeidentifhirUtils.shiftDate;
-import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
+import static care.smith.fts.cda.services.deidentifier.DeidentifierUtils.buildRegistry;
+import static care.smith.fts.cda.services.deidentifier.DeidentifierUtils.deidentify;
+import static care.smith.fts.cda.services.deidentifier.DeidentifierUtils.shiftDate;
+import static care.smith.fts.util.deidentifier.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.typesafe.config.ConfigFactory.parseResources;
 import static com.typesafe.config.ConfigFactory.parseString;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +24,7 @@ import org.hl7.fhir.r4.model.StringType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DeidentifhirUtilsTest {
+class DeidentifierUtilsTest {
 
   MeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
   GeneratingReplacementProvider provider;
@@ -38,7 +38,7 @@ class DeidentifhirUtilsTest {
   void deidentifySucceeds() throws IOException {
     ConsentedPatient patient = new ConsentedPatient("id1", "system");
     var registry = buildRegistry(provider);
-    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifierUtilsTest.class, "CDtoTransport.profile");
 
     var bundle =
         TestPatientGenerator.generateOnePatientPage(
@@ -61,7 +61,7 @@ class DeidentifhirUtilsTest {
   void deidentifyKeepsDateShiftExtensionOnBirthDate() throws IOException {
     ConsentedPatient patient = new ConsentedPatient("id1", "system");
     var registry = buildRegistry(provider);
-    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifierUtilsTest.class, "CDtoTransport.profile");
 
     var bundle =
         TestPatientGenerator.generateOnePatientPage(
@@ -144,7 +144,7 @@ class DeidentifhirUtilsTest {
   @Test
   void deidentifyRemovesResourcesWithoutModule() throws IOException {
     var registry = buildRegistry(provider);
-    var config = parseResources(DeidentifhirUtilsTest.class, "CDtoTransport.profile");
+    var config = parseResources(DeidentifierUtilsTest.class, "CDtoTransport.profile");
     var bundle =
         TestPatientGenerator.generateOnePatientPage(
             "id1", "2023", "identifierSystem1", "identifier1");
@@ -161,7 +161,7 @@ class DeidentifhirUtilsTest {
     var registry = buildRegistry(provider);
     var config =
         parseResources(
-            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+            DeidentifierUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
     var bundle =
         TestPatientGenerator.generateOnePatientPage(
             "id1", "2023", "identifierSystem1", "identifier1");
@@ -213,7 +213,7 @@ class DeidentifhirUtilsTest {
     var registry = buildRegistry(provider);
     var config =
         parseResources(
-            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+            DeidentifierUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
     var bundle = new Bundle().setType(SEARCHSET);
     bundle
         .addEntry()
@@ -230,7 +230,7 @@ class DeidentifhirUtilsTest {
     var registry = buildRegistry(provider);
     var config =
         parseResources(
-            DeidentifhirUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
+            DeidentifierUtilsTest.class, "CDtoTransportWithGeneralizeDateHandler.profile");
     var patient = patientWithProfile();
     patient.addAddress().setPostalCode("12345");
     var bundle = new Bundle().setType(SEARCHSET);

@@ -27,7 +27,7 @@ respective backend systems:
 
 * The domain referenced in `cohortSelector.trustCenterAgent.domain` must exist in your consent
   management system
-* The domains referenced in `deidentificator.deidentifhir.trustCenterAgent.domains` must exist in
+* The domains referenced in `deidentificator.deidentifier.trustCenterAgent.domains` must exist in
   your pseudonym management system for:
   * `pseudonym` - For patient ID pseudonymization
   * `salt` - For resource ID salting

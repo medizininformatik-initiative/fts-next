@@ -1,6 +1,6 @@
-package care.smith.fts.cda.services.deidentifhir;
+package care.smith.fts.cda.services.deidentifier;
 
-import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
+import static care.smith.fts.util.deidentifier.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 
 import care.smith.fts.deidentifier.Registry;
 import care.smith.fts.deidentifier.allowlist.AllowList;
@@ -15,7 +15,7 @@ import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.StringType;
 
-public interface DeidentifhirUtils {
+public interface DeidentifierUtils {
 
   /**
    * Builds a registry with handlers that use the provided GeneratingReplacementProvider. During

@@ -59,8 +59,8 @@ public abstract class AbstractCohortSelectorE2E {
         .withCopyFileToContainer(
             MountableFile.forClasspathResource("application.yaml"), "/app/application.yaml")
         .withFileSystemBind(
-            Paths.get("src/e2e/resources/deidentifhir").toAbsolutePath().toString(),
-            "/app/projects/example/deidentifhir",
+            Paths.get("src/e2e/resources/deidentifier").toAbsolutePath().toString(),
+            "/app/projects/example/deidentifier",
             BindMode.READ_ONLY)
         .withNetwork(network)
         .withExposedPorts(8080)
