@@ -101,7 +101,9 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
+
+    - name: Restore Maven Cache
+      uses: ./.github/actions/restore-maven-cache
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
@@ -158,7 +160,6 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
 
     - name: Submit Dependency Tree
       uses: advanced-security/maven-dependency-submission-action@a64327a7329c9939cf675e458452febe1894a70c # v6.0.1
