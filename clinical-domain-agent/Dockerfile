@@ -6,7 +6,7 @@ FROM eclipse-temurin:25.0.5_8-jre-alpine@sha256:e1898fd6a11fc965a994d8ace186fd35
 # renovate: datasource=repology depName=alpine_3_24/libexpat versioning=loose
 ARG LIBEXPAT_VERSION="2.10.0-r0"
 # renovate: datasource=repology depName=alpine_3_24/openssl versioning=loose
-ARG OPENSSL_VERSION="3.5.9-r0"
+ARG OPENSSL_VERSION="3.5.9-r1"
 
 # GNU wget for mTLS-aware healthchecks; BusyBox wget lacks --certificate,
 # --private-key, and --ca-certificate.
