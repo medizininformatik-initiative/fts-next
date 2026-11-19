@@ -34,7 +34,7 @@ jobs:
       uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
       with:
         distribution: 'temurin'
-        java-version: 25.0.5+8.0.LTS
+        java-version: 25.0.5+100000002.0.LTS
 
     - name: Install google-java-format
       env:
@@ -100,7 +100,7 @@ jobs:
       uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
       with:
         distribution: 'temurin'
-        java-version: 25.0.5+8.0.LTS
+        java-version: 25.0.5+100000002.0.LTS
 
     - name: Restore Maven Cache
       uses: ./.github/actions/restore-maven-cache
@@ -159,7 +159,7 @@ jobs:
       uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
       with:
         distribution: 'temurin'
-        java-version: 25.0.5+8.0.LTS
+        java-version: 25.0.5+100000002.0.LTS
 
     - name: Submit Dependency Tree
       uses: advanced-security/maven-dependency-submission-action@a64327a7329c9939cf675e458452febe1894a70c # v6.0.1
