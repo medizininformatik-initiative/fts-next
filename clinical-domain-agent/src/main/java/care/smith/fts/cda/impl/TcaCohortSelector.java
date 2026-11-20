@@ -6,7 +6,7 @@ import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-import care.smith.fts.api.ConsentedPatient;
+import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.RetryStrategy;
@@ -45,12 +45,13 @@ class TcaCohortSelector implements CohortSelector {
   }
 
   @Override
-  public Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
+  public Flux<CohortEntry> selectCohort(List<String> identifiers) {
     var url =
         identifiers.isEmpty()
             ? "/api/v2/cd/consented-patients/fetch-all"
             : "/api/v2/cd/consented-patients/fetch";
     log.trace("selectCohort: url={}, {} identifiers", url, identifiers.size());
+    var requestedExtractor = extractor.preferring(identifiers);
 
     return fetchBundle(url, identifiers)
         .expand(bundle -> fetchNextPage(bundle, identifiers))
@@ -58,7 +59,7 @@ class TcaCohortSelector implements CohortSelector {
         .doOnNext(b -> log.debug("Found {} consented patient bundles", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort: {}", e.getMessage()))
         .onErrorResume(WebClientException.class, TcaCohortSelector::handleWebClientException)
-        .flatMap(this::extractConsentedPatients);
+        .flatMap(b -> extractCohortEntries(requestedExtractor, b));
   }
 
   private Mono<Bundle> fetchBundle(String uri, List<String> identifiers) {
@@ -100,11 +101,12 @@ class TcaCohortSelector implements CohortSelector {
     return result;
   }
 
-  private Flux<ConsentedPatient> extractConsentedPatients(Bundle outerBundle) {
+  private static Flux<CohortEntry> extractCohortEntries(
+      ConsentedPatientExtractor extractor, Bundle outerBundle) {
     var resources = typedResourceStream(outerBundle, Bundle.class);
-    return Flux.fromStream(extractor.consentedPatients(resources))
-        .doOnNext(p -> log.trace("extractConsentedPatients: emitted {}", p.identifier()))
-        .doOnComplete(() -> log.trace("extractConsentedPatients completed for bundle"));
+    return Flux.fromIterable(extractor.cohortEntries(resources))
+        .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
+        .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {

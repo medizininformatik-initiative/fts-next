@@ -7,11 +7,15 @@ import static reactor.core.publisher.Mono.just;
 import static reactor.test.StepVerifier.create;
 
 import care.smith.fts.api.*;
+import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
+import care.smith.fts.api.CohortEntry.NotConsented;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.cda.BundleSender;
 import care.smith.fts.api.cda.BundleSender.Result;
 import care.smith.fts.api.cda.DataSelector;
 import care.smith.fts.api.cda.Deidentificator;
+import care.smith.fts.cda.TransferProcessRunner.PatientError;
 import care.smith.fts.cda.TransferProcessRunner.Phase;
 import care.smith.fts.cda.TransferProcessRunner.Step;
 import ch.qos.logback.classic.Level;
@@ -19,8 +23,10 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
@@ -65,7 +71,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT)),
+            pids -> consented(PATIENT),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -76,6 +82,271 @@ class DefaultTransferProcessRunnerTest {
           assertThat(r.sentBundles()).isEqualTo(1);
           assertThat(r.skippedBundles()).isEqualTo(0);
         })
+        .verifyComplete();
+  }
+
+  @Test
+  void dataOfExcludedPatientIsNotSelected() {
+    var selected = new ConcurrentLinkedQueue<String>();
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.just(new Consented(PATIENT), new Excluded(PATIENT_IDENTIFIER_2, "reason")),
+            p -> {
+              selected.add(p.identifier());
+              return fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p)));
+            },
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.sentBundles()).isEqualTo(1))
+        .verifyComplete();
+    assertThat(selected).containsExactly(PATIENT_IDENTIFIER);
+  }
+
+  @Test
+  void excludedPatientIsRecordedAsFailedPatient() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Consented(PATIENT), new Excluded(PATIENT_IDENTIFIER_2, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+          assertThat(r.totalPatients()).isEqualTo(1);
+          assertThat(r.excludedPatients()).isEqualTo(1);
+          assertThat(r.skippedBundles()).isEqualTo(0);
+        })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(errors ->
+            assertThat(errors)
+                .containsExactly(
+                    new PatientError(PATIENT_IDENTIFIER_2, Step.SELECT_COHORT, "Faulty consent")))
+        .verifyComplete();
+  }
+
+  @Test
+  void runWithOnlyExcludedPatientsCompletes() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.just(new Excluded(PATIENT_IDENTIFIER, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED))
+        .verifyComplete();
+  }
+
+  @Test
+  void runWithExcludedPatientAndPatientErrorCompletesWithError() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Consented(PATIENT), new Excluded(PATIENT_IDENTIFIER_2, "Faulty consent")),
+            p -> Flux.error(new RuntimeException("Cannot select data")),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED_WITH_ERROR);
+          assertThat(r.excludedPatients()).isEqualTo(1);
+          assertThat(r.skippedBundles()).isEqualTo(1);
+        })
+        .verifyComplete();
+  }
+
+  @Test
+  void excludedPatientIsLoggedWithoutIdentifier() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.just(new Excluded(PATIENT_IDENTIFIER, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var events =
+        recordRunnerLog(Level.TRACE, () -> waitForCompletion(runner.start(process, List.of())));
+
+    assertThat(events)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .anyMatch(m -> m.contains("Faulty consent"))
+        .noneMatch(m -> m.contains(PATIENT_IDENTIFIER));
+  }
+
+  @Test
+  void requestedPatientWithoutConsentIsRecordedAsFailedPatient() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Consented(PATIENT),
+                    new Excluded(PATIENT_IDENTIFIER_2, "Faulty consent"),
+                    new NotConsented(PATIENT_IDENTIFIER_3)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var requested =
+        List.of(PATIENT_IDENTIFIER, PATIENT_IDENTIFIER_2, PATIENT_IDENTIFIER_3, "patient-unknown");
+    var processId = runner.start(process, requested);
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+          assertThat(r.excludedPatients()).isEqualTo(3);
+        })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(errors ->
+            assertThat(errors)
+                .containsExactly(
+                    new PatientError(PATIENT_IDENTIFIER_2, Step.SELECT_COHORT, "Faulty consent"),
+                    new PatientError(
+                        PATIENT_IDENTIFIER_3,
+                        Step.SELECT_COHORT,
+                        "No consent covering all required policies"),
+                    new PatientError("patient-unknown", Step.SELECT_COHORT, "No consent found")))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientExcludedAndConsentedByTheSelectionIsTransferredAndNotRecorded() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Excluded(PATIENT_IDENTIFIER, "Faulty consent"), new Consented(PATIENT)),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.COMPLETED);
+          assertThat(r.sentBundles()).isEqualTo(1);
+          assertThat(r.excludedPatients()).isEqualTo(0);
+        })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(errors -> assertThat(errors).isEmpty())
+        .verifyComplete();
+  }
+
+  @Test
+  void patientExcludedTwiceIsRecordedOnce() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.just(
+                    new Excluded(PATIENT_IDENTIFIER, "Faulty consent"),
+                    new Excluded(PATIENT_IDENTIFIER, "Faulty consent")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.excludedPatients()).isEqualTo(1))
+        .verifyComplete();
+  }
+
+  @Test
+  void requestedPatientWithoutConsentIsRecordedOnce() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.empty(),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of(PATIENT_IDENTIFIER, PATIENT_IDENTIFIER));
+    waitForCompletion(processId);
+
+    create(runner.failedPatients(processId))
+        .assertNext(errors -> assertThat(errors).hasSize(1))
+        .verifyComplete();
+  }
+
+  @Test
+  void patientsWithoutConsentAreNotRecordedWhenSelectingAllPatients() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> consented(PATIENT),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of());
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED))
+        .verifyComplete();
+  }
+
+  @Test
+  void requestedPatientsAreNotRecordedWhenCohortSelectionFails() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> Flux.error(new RuntimeException("Cohort fetch boom")),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of(PATIENT_IDENTIFIER));
+    waitForCompletion(processId);
+
+    create(runner.failedPatients(processId))
+        .assertNext(errors -> assertThat(errors).isEmpty())
         .verifyComplete();
   }
 
@@ -110,7 +381,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT)),
+            pids -> consented(PATIENT),
             throwingSelector,
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -147,12 +418,103 @@ class DefaultTransferProcessRunnerTest {
   }
 
   @Test
+  void patientExcludedBeforeCohortSelectionFailsIsRecorded() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids ->
+                Flux.<CohortEntry>just(new Excluded(PATIENT_IDENTIFIER, "Faulty consent"))
+                    .concatWith(Flux.error(new RuntimeException("Cannot fetch next page"))),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, List.of(PATIENT_IDENTIFIER, PATIENT_IDENTIFIER_2));
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> {
+          assertThat(r.phase()).isEqualTo(Phase.FATAL);
+          assertThat(r.excludedPatients()).isEqualTo(1);
+        })
+        .verifyComplete();
+    create(runner.failedPatients(processId))
+        .assertNext(errors ->
+            assertThat(errors)
+                .containsExactly(
+                    new PatientError(PATIENT_IDENTIFIER, Step.SELECT_COHORT, "Faulty consent")))
+        .verifyComplete();
+  }
+
+  @Test
+  void nullIdentifierEndsProcessFatal() {
+    var process =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> consented(PATIENT),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var processId = runner.start(process, Arrays.asList(PATIENT_IDENTIFIER, null));
+    waitForCompletion(processId);
+
+    create(runner.status(processId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.FATAL))
+        .verifyComplete();
+  }
+
+  @Test
+  void queuedProcessWithNullIdentifierEndsFatalAndLetsOthersComplete() {
+    var singleRunner =
+        new DefaultTransferProcessRunner(
+            new ObjectMapper(),
+            new TransferProcessRunnerConfig(64, 64, 1, 4, Duration.ofSeconds(3)));
+    var gate = new CompletableFuture<Void>();
+    var gated =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> consented(PATIENT),
+            p ->
+                Flux.just(new ConsentedPatientBundle(new Bundle(), p))
+                    .delayUntil(v -> Mono.fromFuture(gate)),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+    var fast =
+        new TransferProcessDefinition(
+            "test",
+            rawConfig,
+            pids -> consented(PATIENT),
+            p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
+            b -> just(new TransportBundle(new Bundle(), "transferId")),
+            b -> just(new Result()));
+
+    var firstId = singleRunner.start(gated, List.of());
+    var queuedId = singleRunner.start(fast, Arrays.asList(PATIENT_IDENTIFIER, null));
+    var thirdId = singleRunner.start(fast, List.of());
+    gate.complete(null);
+    waitForCompletion(singleRunner, firstId);
+    waitForCompletion(singleRunner, queuedId);
+    waitForCompletion(singleRunner, thirdId);
+
+    create(singleRunner.status(queuedId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.FATAL))
+        .verifyComplete();
+    create(singleRunner.status(thirdId))
+        .assertNext(r -> assertThat(r.phase()).isEqualTo(Phase.COMPLETED))
+        .verifyComplete();
+  }
+
+  @Test
   void startMultipleProcessesWithQueueing() {
     var process =
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT)),
+            pids -> consented(PATIENT),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b ->
                 just(new TransportBundle(new Bundle(), "transferId"))
@@ -200,7 +562,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT)),
+            pids -> consented(PATIENT),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -221,7 +583,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
+            pids -> consented(PATIENT, PATIENT_2),
             errorOnSecond(new Bundle()),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -252,7 +614,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
+            pids -> consented(PATIENT, PATIENT_2),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
             errorOnSecond(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -277,7 +639,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT, PATIENT_2)),
+            pids -> consented(PATIENT, PATIENT_2),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             errorOnSecond(new Result()));
@@ -326,7 +688,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
+            pids -> consented(PATIENT, PATIENT_2, PATIENT_3),
             failOnSecondCall(new Bundle()),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -356,7 +718,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
+            pids -> consented(PATIENT, PATIENT_2, PATIENT_3),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
             failOnSecondCall(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -385,7 +747,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT, PATIENT_2, PATIENT_3)),
+            pids -> consented(PATIENT, PATIENT_2, PATIENT_3),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             failOnSecondCall(new Result()));
@@ -414,7 +776,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT)),
+            pids -> consented(PATIENT),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -443,7 +805,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT)),
+            pids -> consented(PATIENT),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), PATIENT))),
             b ->
                 just(new TransportBundle(new Bundle(), "transferId"))
@@ -470,7 +832,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(patients),
+            pids -> fromIterable(patients).map(Consented::new),
             p -> Flux.error(new RuntimeException("Cannot select data")),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> just(new Result()));
@@ -522,7 +884,7 @@ class DefaultTransferProcessRunnerTest {
     return new TransferProcessDefinition(
         "test",
         rawConfig,
-        pids -> fromIterable(List.of(PATIENT)),
+        pids -> consented(PATIENT),
         p -> Flux.error(new RuntimeException("Cannot select data")),
         b -> just(new TransportBundle(new Bundle(), "transferId")),
         b -> just(new Result()));
@@ -548,7 +910,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(patients),
+            pids -> fromIterable(patients).map(Consented::new),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> {
@@ -588,7 +950,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(patients),
+            pids -> fromIterable(patients).map(Consented::new),
             p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
             b -> just(new TransportBundle(new Bundle(), "transferId")),
             b -> {
@@ -635,7 +997,7 @@ class DefaultTransferProcessRunnerTest {
         new TransferProcessDefinition(
             "test",
             rawConfig,
-            pids -> fromIterable(List.of(PATIENT)),
+            pids -> consented(PATIENT),
             p -> gatedBy(gate, new ConsentedPatientBundle(new Bundle(), p)),
             b -> {
               throw new RuntimeException("Deidentificator boom");
@@ -730,7 +1092,7 @@ class DefaultTransferProcessRunnerTest {
     return new TransferProcessDefinition(
         "test",
         rawConfig,
-        pids -> fromIterable(List.of(PATIENT)),
+        pids -> consented(PATIENT),
         p -> fromIterable(List.of(new ConsentedPatientBundle(new Bundle(), p))),
         b -> just(new TransportBundle(new Bundle(), "transferId")),
         b -> just(new Result()));
@@ -741,7 +1103,7 @@ class DefaultTransferProcessRunnerTest {
     return new TransferProcessDefinition(
         "test",
         rawConfig,
-        pids -> fromIterable(List.of(PATIENT)),
+        pids -> consented(PATIENT),
         p -> gatedBy(gate, new ConsentedPatientBundle(new Bundle(), p)),
         b -> just(new TransportBundle(new Bundle(), "transferId")),
         b -> just(new Result()));
@@ -764,5 +1126,9 @@ class DefaultTransferProcessRunnerTest {
         .as(StepVerifier::create)
         .expectNextCount(1)
         .verifyComplete();
+  }
+
+  private static Flux<CohortEntry> consented(ConsentedPatient... patients) {
+    return Flux.just(patients).map(Consented::new);
   }
 }

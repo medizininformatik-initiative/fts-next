@@ -4,6 +4,8 @@ import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
 
+import care.smith.fts.api.CohortEntry.Consented;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
@@ -155,9 +157,7 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
       log.trace("[Process {}] selectCohort with {} identifiers", processId(), identifiers.size());
-      return process
-          .cohortSelector()
-          .selectCohort(identifiers)
+      return Flux.defer(() -> selectReportedCohort(identifiers))
           .doOnNext(p -> {
             status.updateAndGet(TransferProcessStatus::incTotalPatients);
             log.trace("[Process {}] selectCohort emitted patient {}", processId(), p.identifier());
@@ -167,6 +167,28 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
             log.error("[Process {}] Cohort selection failed", processId(), e);
           })
           .onErrorComplete();
+    }
+
+    /** The consented patients of the cohort selection, reporting the patients it leaves out. */
+    private Flux<ConsentedPatient> selectReportedCohort(List<String> identifiers) {
+      var report = new CohortReport(identifiers);
+      return process
+          .cohortSelector()
+          .selectCohort(identifiers)
+          .doOnNext(report::add)
+          .doOnComplete(() -> report.excluded().forEach(this::reportExcluded))
+          .doOnError(e -> report.faulty().forEach(this::reportExcluded))
+          .ofType(Consented.class)
+          .map(Consented::patient);
+    }
+
+    /** Records an excluded patient as failed patient; the log names only the reason. */
+    private void reportExcluded(Excluded excluded) {
+      // Increment counter first, as in handlePatientError
+      status.updateAndGet(TransferProcessStatus::incExcludedPatients);
+      failedPatients.add(
+          new PatientError(excluded.identifier(), Step.SELECT_COHORT, excluded.reason()));
+      log.warn("[Process {}] Patient excluded from cohort: {}", processId(), excluded.reason());
     }
 
     private Flux<ConsentedPatientBundle> selectData(Flux<ConsentedPatient> cohortSelection) {
@@ -272,15 +294,17 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       log.info("[Process {}] Finished with: {}", processId(), status.phase());
       log.trace(
           "[Process {}] Summary: totalPatients={}, totalBundles={}, deidentifiedBundles={}, "
-              + "sentBundles={}, skippedBundles={}",
+              + "sentBundles={}, skippedBundles={}, excludedPatients={}",
           processId(),
           status.totalPatients(),
           status.totalBundles(),
           status.deidentifiedBundles(),
           status.sentBundles(),
-          status.skippedBundles());
+          status.skippedBundles(),
+          status.excludedPatients());
     }
 
+    /** Excluded patients alone are no error, as the process rightly did not transfer them. */
     private TransferProcessStatus checkCompletion(TransferProcessStatus s) {
       return s.skippedBundles() == 0
           ? s.setPhase(Phase.COMPLETED)

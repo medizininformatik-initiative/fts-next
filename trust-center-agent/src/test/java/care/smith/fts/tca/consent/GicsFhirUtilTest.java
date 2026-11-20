@@ -1,21 +1,25 @@
 package care.smith.fts.tca.consent;
 
 import static care.smith.fts.tca.consent.GicsFhirUtil.filterOuterBundle;
+import static care.smith.fts.tca.consent.GicsFhirUtil.filterRequestedOuterBundle;
 import static care.smith.fts.util.fhir.FhirUtils.resourceStream;
 import static care.smith.fts.util.fhir.FhirUtils.stringToFhirResource;
 import static care.smith.fts.util.fhir.FhirUtils.toBundle;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.COLLECTION;
 import static org.hl7.fhir.r4.model.Bundle.BundleType.SEARCHSET;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Consent;
+import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Period;
@@ -25,6 +29,8 @@ class GicsFhirUtilTest {
 
   private static final String POLICY_SYSTEM = "http://hospital.com/policy";
   private static final Set<String> POLICIES = Set.of("POLICY_A", "POLICY_B");
+  private static final String PATIENT_SYSTEM =
+      "https://ths-greifswald.de/fhir/gics/identifiers/Pseudonym";
 
   @Test
   void onlyInnerBundlesWithAllPoliciesRemain() {
@@ -42,7 +48,45 @@ class GicsFhirUtilTest {
   }
 
   @Test
-  void innerBundleWithUnreadableDateIsDroppedAndOthersRemain() {
+  void requestedPatientWithoutAllPoliciesRemainsWithoutConsents() {
+    var outerBundle =
+        Stream.of(
+                innerBundle("with-all", "POLICY_A", "POLICY_B"),
+                innerBundle("with-one", "POLICY_A"))
+            .collect(toBundle());
+
+    var filtered = filterRequestedOuterBundle(POLICY_SYSTEM, POLICIES, PATIENT_SYSTEM, outerBundle);
+
+    assertThat(patientIds(filtered)).containsExactly("with-all", "with-one");
+    var withOne = typedResourceStream(filtered, Bundle.class).toList().getLast();
+    assertThat(resourceStream(withOne)).singleElement().isInstanceOf(Patient.class);
+  }
+
+  @Test
+  void requestedPatientsKeepOnlyIdentifiersOfRequestedSystem() {
+    var covered = innerBundle("with-all", "POLICY_A", "POLICY_B");
+    var notCovered = innerBundle("with-one", "POLICY_A");
+    Stream.of(covered, notCovered)
+        .flatMap(b -> typedResourceStream(b, Patient.class))
+        .forEach(p -> {
+          p.addIdentifier().setSystem("http://mpi.example.com").setValue("mpi-" + p.getIdPart());
+          p.addIdentifier().setSystem(PATIENT_SYSTEM).setValue("pseudonym-" + p.getIdPart());
+        });
+    var outerBundle = Stream.of(covered, notCovered).collect(toBundle());
+
+    var filtered = filterRequestedOuterBundle(POLICY_SYSTEM, POLICIES, PATIENT_SYSTEM, outerBundle);
+
+    assertThat(typedResourceStream(filtered, Bundle.class))
+        .flatMap(b -> typedResourceStream(b, Patient.class).toList())
+        .flatMap(Patient::getIdentifier)
+        .extracting(Identifier::getSystem, Identifier::getValue)
+        .containsExactly(
+            tuple(PATIENT_SYSTEM, "pseudonym-with-all"),
+            tuple(PATIENT_SYSTEM, "pseudonym-with-one"));
+  }
+
+  @Test
+  void innerBundleWithUnreadableDateRemainsForReporting() {
     var outerBundle =
         Stream.of(
                 innerBundleWithUnreadablePolicyB("unreadable"),
@@ -51,7 +95,19 @@ class GicsFhirUtilTest {
 
     var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
 
-    assertThat(patientIds(filtered)).containsExactly("with-all");
+    assertThat(patientIds(filtered)).containsExactly("unreadable", "with-all");
+  }
+
+  @Test
+  void innerBundleWithoutStartDateRemainsForReporting() {
+    var withoutStart = innerBundle("without-start", "POLICY_A", "POLICY_B");
+    typedResourceStream(withoutStart, Consent.class)
+        .forEach(c -> c.getProvision().getProvision().getLast().setPeriod(null));
+    var outerBundle = Stream.of(withoutStart).collect(toBundle());
+
+    var filtered = filterOuterBundle(POLICY_SYSTEM, POLICIES, outerBundle);
+
+    assertThat(patientIds(filtered)).containsExactly("without-start");
   }
 
   @Test
@@ -71,6 +127,31 @@ class GicsFhirUtilTest {
     assertThat(resources).hasAtLeastOneElementOfType(Patient.class);
     assertThat(resources).hasAtLeastOneElementOfType(Consent.class);
     assertThat(resources).noneMatch(Observation.class::isInstance);
+  }
+
+  @Test
+  void innerBundleKeepsNoOtherPatientOrConsentData() {
+    var innerBundle = innerBundle("with-all", "POLICY_A", "POLICY_B", "POLICY_C");
+    typedResourceStream(innerBundle, Patient.class).forEach(p -> p.addName().setFamily("Doe"));
+    typedResourceStream(innerBundle, Consent.class).forEach(c -> c.setDateTime(new Date(0)));
+
+    var filtered =
+        filterOuterBundle(POLICY_SYSTEM, POLICIES, Stream.of(innerBundle).collect(toBundle()));
+
+    var inner = typedResourceStream(filtered, Bundle.class).findFirst().orElseThrow();
+    assertThat(typedResourceStream(inner, Patient.class)).noneMatch(Patient::hasName);
+    assertThat(typedResourceStream(inner, Consent.class))
+        .noneMatch(Consent::hasDateTime)
+        .flatMap(c -> c.getProvision().getProvision())
+        .flatMap(GicsFhirUtilTest::codes)
+        .containsExactlyInAnyOrder("POLICY_A", "POLICY_B");
+  }
+
+  private static List<String> codes(Consent.ProvisionComponent provision) {
+    return provision.getCode().stream()
+        .flatMap(c -> c.getCoding().stream())
+        .map(Coding::getCode)
+        .toList();
   }
 
   @Test
