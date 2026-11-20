@@ -124,6 +124,13 @@
       <version>6.1.5</version>
       <scope>test</scope>
     </dependency>
+    <!-- mock-oauth2-server brings JUnit 4; declared, so that surefire does not resolve the
+         engine for it at run time, which dependency:go-offline cannot cache -->
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>org.wiremock</groupId>

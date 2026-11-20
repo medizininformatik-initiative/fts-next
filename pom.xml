@@ -30,6 +30,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>4.1.2</spring-boot.version>
     <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
+    <!-- Also the version of the test provider, declared so that dependency:go-offline caches it -->
+    <surefire.version>3.6.1</surefire.version>
     <junit-platform.version>6.0.3</junit-platform.version>
     <skipUnitTests>false</skipUnitTests>
     <pit.skip>false</pit.skip>
@@ -37,6 +39,17 @@
     <!-- Each mutated module sets its own threshold, two points below its baseline. -->
     <pit.mutationThreshold>0</pit.mutationThreshold>
   </properties>
+
+  <dependencies>
+    <!-- On the test classpath, so that surefire and failsafe use it instead of resolving their
+         own launcher at run time, which dependency:go-offline cannot cache -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+      <version>${junit-platform.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
   <dependencyManagement>
     <dependencies>
@@ -99,6 +112,13 @@
   <build>
     <pluginManagement>
       <plugins>
+        <!-- Pinned, as dependency:go-offline resolves plugin dependencies only since 3.9.0 -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.10.0</version>
+        </plugin>
+
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
@@ -212,12 +232,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.6.1</version>
+          <version>${surefire.version}</version>
           <dependencies>
             <dependency>
-              <groupId>org.junit.platform</groupId>
-              <artifactId>junit-platform-engine</artifactId>
-              <version>${junit-platform.version}</version>
+              <groupId>org.apache.maven.surefire</groupId>
+              <artifactId>surefire-junit-platform</artifactId>
+              <version>${surefire.version}</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -228,12 +248,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>3.6.1</version>
+          <version>${surefire.version}</version>
           <dependencies>
             <dependency>
-              <groupId>org.junit.platform</groupId>
-              <artifactId>junit-platform-engine</artifactId>
-              <version>${junit-platform.version}</version>
+              <groupId>org.apache.maven.surefire</groupId>
+              <artifactId>surefire-junit-platform</artifactId>
+              <version>${surefire.version}</version>
             </dependency>
           </dependencies>
 
