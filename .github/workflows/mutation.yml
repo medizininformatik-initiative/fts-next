@@ -73,7 +73,7 @@ jobs:
 
     - name: Install Upstream Modules
       run: |
-        mvn -B -U -T1C -DskipTests -DskipITs -Dcheckstyle.skip -Dcyclonedx.skip \
+        mvn -B -T1C -DskipTests -DskipITs -Dcheckstyle.skip -Dcyclonedx.skip \
           -Dspring-boot.repackage.skip=true \
           --also-make --projects "${MODULE}" install
 

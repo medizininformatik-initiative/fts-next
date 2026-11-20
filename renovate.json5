@@ -70,6 +70,7 @@
       matchDepNames: [
         'org.junit.jupiter:*',
         'org.junit.platform:*',
+        'org.junit.vintage:*',
       ],
       enabled: false,
     },
@@ -80,6 +81,7 @@
       matchDepNames: [
         'org.apache.maven.plugins:maven-surefire-plugin',
         'org.apache.maven.plugins:maven-failsafe-plugin',
+        'org.apache.maven.surefire:surefire-junit-platform',
       ],
       groupName: 'maven-surefire+failsafe',
     },
