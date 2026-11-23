@@ -9,13 +9,21 @@
   ],
   description: [
     "We use `ignorePaths` to mitigate :ignoreModulesAndTests, which would ignore java test classes",
-    "and test compose files."
+    "and test compose files.",
+    "Automerge only outside office hours, so devs need not rebase on intra-day merges.",
+    "platformAutomerge must be off, otherwise GitHub merges regardless of automergeSchedule.",
   ],
   ignorePaths: [
     '**/node_modules/**',
     '**/bower_components/**',
   ],
   prConcurrentLimit: 3,
+  timezone: 'Europe/Berlin',
+  automergeSchedule: [
+    '* 0-7,16-23 * * 1-5',
+    '* * * * 0,6',
+  ],
+  platformAutomerge: false,
   packageRules: [
     {
       description: [
