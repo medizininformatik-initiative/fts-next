@@ -1,9 +1,13 @@
 package care.smith.fts.cda;
 
+import static care.smith.fts.cda.CohortReport.reportedCohort;
 import static care.smith.fts.util.JsonLogFormatter.asJson;
 import static care.smith.fts.util.NanoIdUtils.nanoId;
 import static java.util.stream.Stream.concat;
+import static reactor.core.publisher.Flux.defer;
 
+import care.smith.fts.api.CohortEntry;
+import care.smith.fts.api.CohortEntry.Excluded;
 import care.smith.fts.api.ConsentedPatient;
 import care.smith.fts.api.ConsentedPatientBundle;
 import care.smith.fts.api.TransportBundle;
@@ -155,9 +159,9 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
 
     private Flux<ConsentedPatient> selectCohort(List<String> identifiers) {
       log.trace("[Process {}] selectCohort with {} identifiers", processId(), identifiers.size());
-      return process
-          .cohortSelector()
-          .selectCohort(identifiers)
+      return defer(() ->
+              reportedCohort(
+                  processId(), selection(identifiers), identifiers, this::recordExcluded))
           .doOnNext(p -> {
             status.updateAndGet(TransferProcessStatus::incTotalPatients);
             log.trace("[Process {}] selectCohort emitted patient {}", processId(), p.identifier());
@@ -167,6 +171,17 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
             log.error("[Process {}] Cohort selection failed", processId(), e);
           })
           .onErrorComplete();
+    }
+
+    private Flux<CohortEntry> selection(List<String> identifiers) {
+      return process.cohortSelector().selectCohort(identifiers);
+    }
+
+    private void recordExcluded(Excluded excluded) {
+      // Increment counter first, as in handlePatientError
+      status.updateAndGet(TransferProcessStatus::incExcludedPatients);
+      failedPatients.add(
+          new PatientError(excluded.identifier(), Step.SELECT_COHORT, excluded.reason()));
     }
 
     private Flux<ConsentedPatientBundle> selectData(Flux<ConsentedPatient> cohortSelection) {
@@ -272,15 +287,17 @@ public class DefaultTransferProcessRunner implements TransferProcessRunner {
       log.info("[Process {}] Finished with: {}", processId(), status.phase());
       log.trace(
           "[Process {}] Summary: totalPatients={}, totalBundles={}, deidentifiedBundles={}, "
-              + "sentBundles={}, skippedBundles={}",
+              + "sentBundles={}, skippedBundles={}, excludedPatients={}",
           processId(),
           status.totalPatients(),
           status.totalBundles(),
           status.deidentifiedBundles(),
           status.sentBundles(),
-          status.skippedBundles());
+          status.skippedBundles(),
+          status.excludedPatients());
     }
 
+    /** Excluded patients alone are no error, as the process rightly did not transfer them. */
     private TransferProcessStatus checkCompletion(TransferProcessStatus s) {
       return s.skippedBundles() == 0
           ? s.setPhase(Phase.COMPLETED)

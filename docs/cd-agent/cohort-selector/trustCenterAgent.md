@@ -70,7 +70,8 @@ trustCenterAgent:
 ### `policies` <Badge type="warning" text="Since 5.0" />
 
 * **Description**: Specifies a list of required policies. Consent must explicitly include approval
-  for all these policies to qualify.
+  for all these policies to qualify. At least one policy is required; a project without
+  policies fails to load.
 * **Type**: Array of Strings
 * **Example**:
   ```yaml
