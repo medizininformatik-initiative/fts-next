@@ -1,13 +1,18 @@
 package care.smith.fts.cda.impl;
 
+import static care.smith.fts.cda.impl.PatientPage.referencedPatientId;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
+import static java.time.Duration.ofSeconds;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.web.util.UriComponentsBuilder.*;
 import static reactor.core.publisher.Flux.defer;
 import static reactor.core.publisher.Flux.fromIterable;
+import static reactor.core.publisher.Mono.deferContextual;
+import static reactor.core.publisher.Mono.fromFuture;
 
 import care.smith.fts.api.CohortEntry;
 import care.smith.fts.api.cda.CohortSelector;
@@ -17,7 +22,6 @@ import care.smith.fts.util.error.TransferProcessException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
@@ -25,7 +29,6 @@ import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Bundle.BundleLinkComponent;
 import org.hl7.fhir.r4.model.Consent;
 import org.hl7.fhir.r4.model.Patient;
-import org.hl7.fhir.r4.model.Reference;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
 import org.springframework.web.util.UriBuilder;
@@ -35,12 +38,17 @@ import reactor.core.scheduler.Scheduler;
 
 @Slf4j
 class FhirCohortSelector implements CohortSelector {
+  private static final String PATIENT_REQUEST = "fetchFhirBundle";
+  private static final String CONSENT_REQUEST = "fetchFhirConsents";
+  private static final Duration DEFAULT_REQUEST_TIMEOUT = ofSeconds(30);
+
   private final FhirCohortSelectorConfig config;
   private final WebClient fhirClient;
   private final ConsentedPatientExtractor extractor;
   private final RetryStrategy retryStrategy;
   private final Scheduler scheduler;
   private final int cohortSelectionConcurrency;
+  private final Duration requestTimeout;
 
   public FhirCohortSelector(
       FhirCohortSelectorConfig config,
@@ -49,6 +57,25 @@ class FhirCohortSelector implements CohortSelector {
       RetryStrategy retryStrategy,
       Scheduler scheduler,
       int cohortSelectionConcurrency) {
+    this(
+        config,
+        fhirClient,
+        extractor,
+        retryStrategy,
+        scheduler,
+        cohortSelectionConcurrency,
+        DEFAULT_REQUEST_TIMEOUT);
+  }
+
+  FhirCohortSelector(
+      FhirCohortSelectorConfig config,
+      WebClient fhirClient,
+      ConsentedPatientExtractor extractor,
+      RetryStrategy retryStrategy,
+      Scheduler scheduler,
+      int cohortSelectionConcurrency,
+      Duration requestTimeout) {
+    this.requestTimeout = requestTimeout;
     this.config = config;
     this.fhirClient = fhirClient;
     this.extractor = extractor;
@@ -61,41 +88,83 @@ class FhirCohortSelector implements CohortSelector {
   public Flux<CohortEntry> selectCohort(List<String> identifiers) {
     log.trace("selectCohort: {} identifiers", identifiers.size());
     return defer(() -> {
-      var unresolved =
-          identifiers.isEmpty()
-              ? UnresolvedPatients.ofAll(extractor)
-              : UnresolvedPatients.ofRequested(extractor.preferring(identifiers));
-      return fetchPages(identifiers)
-          .flatMap(page -> extractCohortEntries(page, unresolved))
-          .concatWith(defer(() -> fromIterable(unresolved.remaining())))
-          .onErrorResume(e -> fromIterable(unresolved.excluded()).concatWith(Flux.error(e)));
+      var preferring = extractor.preferring(identifiers);
+      var selected = new SelectedPatients(preferring);
+      return fetchPages(identifiers, preferring)
+          // The next page is fetched while a page is classified; its error must not cancel the
+          // classification, so the entries of the page are still emitted
+          .concatMapDelayError(page -> extractCohortEntries(page, selected), false, 1)
+          .doOnTerminate(selected::warnAboutIgnored)
+          .doOnCancel(selected::warnAboutIgnored);
     });
   }
 
-  private Flux<Bundle> fetchPages(List<String> identifiers) {
-    return fetchBundle(b -> buildFhirSearchQuery(b, identifiers))
-        .expand(this::fetchNextPage)
-        .timeout(Duration.ofSeconds(30))
+  private Flux<Bundle> fetchPages(List<String> identifiers, ConsentedPatientExtractor extractor) {
+    return fetchBundle(b -> buildPatientSearchQuery(b, identifiers), PATIENT_REQUEST)
+        .expand(page -> fetchNextPage(page, PATIENT_REQUEST))
+        .concatMap(page -> withConsents(PatientPage.of(page, extractor)))
         .doOnNext(b -> log.debug("Found {} entries in bundle", b.getEntry().size()))
         .doOnError(e -> log.error("Error fetching cohort from FHIR server: {}", e.getMessage()))
         .onErrorResume(WebClientException.class, FhirCohortSelector::handleWebClientException);
   }
 
-  private URI buildFhirSearchQuery(UriBuilder builder, List<String> identifiers) {
-    builder.pathSegment("Consent").queryParam("_include", "Consent:patient");
-    if (!identifiers.isEmpty()) {
-      var identifierQuery =
-          identifiers.stream()
-              .map(identifier -> config.patientIdentifierSystem() + "|" + identifier)
-              .collect(joining(","));
-      builder = builder.queryParam("patient.identifier", identifierQuery);
+  private URI buildPatientSearchQuery(UriBuilder builder, List<String> identifiers) {
+    builder.pathSegment("Patient");
+    if (identifiers.isEmpty()) {
+      builder.queryParam("_has:Consent:patient:status", "active");
+    } else {
+      builder.queryParam("identifier", identifierQuery(identifiers));
     }
     var uri = builder.build();
-    log.trace("buildFhirSearchQuery: {}", uri);
+    log.trace("buildPatientSearchQuery: {}", uri);
     return uri;
   }
 
-  private Mono<Bundle> fetchBundle(Function<UriBuilder, URI> uriBuilder) {
+  /**
+   * The patients of a page together with all consents of patients with their identifiers, which are
+   * searched separately instead of with {@code _revinclude}, as servers may cut the resources it
+   * adds to a page.
+   */
+  private Mono<Bundle> withConsents(PatientPage page) {
+    return Mono.just(page.identifiers())
+        .filter(not(List::isEmpty))
+        .flatMapMany(this::fetchConsentPages)
+        .collectList()
+        .map(page::withConsents);
+  }
+
+  private Flux<Bundle> fetchConsentPages(List<String> identifiers) {
+    return fetchBundle(b -> buildConsentSearchQuery(b, identifiers), CONSENT_REQUEST)
+        .expand(page -> fetchNextPage(page, CONSENT_REQUEST));
+  }
+
+  private URI buildConsentSearchQuery(UriBuilder builder, List<String> identifiers) {
+    var uri =
+        builder
+            .pathSegment("Consent")
+            .queryParam("patient.identifier", identifierQuery(identifiers))
+            .queryParam("_include", "Consent:patient")
+            .build();
+    log.trace("buildConsentSearchQuery: {}", uri);
+    return uri;
+  }
+
+  private String identifierQuery(List<String> identifiers) {
+    return identifiers.stream()
+        .map(identifier -> config.patientIdentifierSystem() + "|" + identifier)
+        .collect(joining(","));
+  }
+
+  /**
+   * The bundle, requested at once, as paging subscribes to the next page before a possibly slow
+   * consumer demands it. So the timeout covers the request only, not the wait for demand.
+   */
+  private Mono<Bundle> fetchBundle(Function<UriBuilder, URI> uriBuilder, String requestName) {
+    return deferContextual(context ->
+        fromFuture(() -> requestBundle(uriBuilder, requestName).contextWrite(context).toFuture()));
+  }
+
+  private Mono<Bundle> requestBundle(Function<UriBuilder, URI> uriBuilder, String requestName) {
     return fhirClient
         .get()
         .uri(uriBuilder)
@@ -103,15 +172,16 @@ class FhirCohortSelector implements CohortSelector {
         .retrieve()
         .toEntityFlux(readLenient(Bundle.class))
         .flatMap(response -> Mono.from(response.getBody()))
-        .retryWhen(retryStrategy.forRequest("fetchFhirBundle"))
+        .retryWhen(retryStrategy.forRequest(requestName))
+        .timeout(requestTimeout)
         .doOnNext(b -> log.trace("fetchBundle: {} entries", b.getEntry().size()));
   }
 
-  private Mono<Bundle> fetchNextPage(Bundle bundle) {
+  private Mono<Bundle> fetchNextPage(Bundle bundle, String requestName) {
     return Mono.justOrEmpty(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
         .doOnNext(url -> log.trace("Fetch next page from: {}", url))
-        .flatMap(url -> fetchBundle(extractUriBuilder(url)));
+        .flatMap(url -> fetchBundle(extractUriBuilder(url), requestName));
   }
 
   private static Function<UriBuilder, URI> extractUriBuilder(String url) {
@@ -123,10 +193,10 @@ class FhirCohortSelector implements CohortSelector {
     }
   }
 
-  private Flux<CohortEntry> extractCohortEntries(Bundle bundle, UnresolvedPatients unresolved) {
+  private Flux<CohortEntry> extractCohortEntries(Bundle bundle, SelectedPatients selected) {
     return groupPatientsAndConsents(bundle)
         .collectList()
-        .flatMapIterable(unresolved::resolve)
+        .flatMapIterable(selected::select)
         .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
@@ -168,16 +238,6 @@ class FhirCohortSelector implements CohortSelector {
 
   private static boolean isConsentOfPatient(Patient patient, Consent c) {
     return referencedPatientId(c).filter(id -> id.equals(patient.getIdPart())).isPresent();
-  }
-
-  /**
-   * The id of the patient a consent literally references. Consents referencing their patient by
-   * identifier only (logical reference) have none and are not assigned to any patient yet.
-   */
-  private static Optional<String> referencedPatientId(Consent c) {
-    return Optional.of(c.getPatient())
-        .filter(Reference::hasReference)
-        .map(r -> r.getReferenceElement().getIdPart());
   }
 
   private static Mono<Bundle> handleWebClientException(WebClientException e) {

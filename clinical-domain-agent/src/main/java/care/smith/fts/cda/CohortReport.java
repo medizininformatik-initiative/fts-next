@@ -21,9 +21,9 @@ import reactor.core.publisher.Flux;
 
 /**
  * Collects the entries of a cohort selection, to report the patients it leaves out once the
- * selection completed. A selection may return a patient more than once, e.g. a FHIR server paging
- * over consents returns a patient with each page holding one of its consents, so a patient is
- * reported only if no entry consents it, and only once.
+ * selection completed. A selection may return a patient more than once, e.g. a consent source
+ * holding duplicate patient resources, so a patient is reported only if no entry consents it, and
+ * only once.
  */
 @Slf4j
 class CohortReport {
