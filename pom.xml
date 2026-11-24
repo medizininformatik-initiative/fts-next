@@ -28,7 +28,7 @@
     <!-- Since JDK 23, javac skips classpath annotation processors (e.g. lombok) by default. -->
     <maven.compiler.proc>full</maven.compiler.proc>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <spring-boot.version>4.1.2</spring-boot.version>
+    <spring-boot.version>4.2.0</spring-boot.version>
     <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
     <!-- Also the version of the test provider, declared so that dependency:go-offline caches it -->
     <surefire.version>3.6.1</surefire.version>
