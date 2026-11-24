@@ -65,7 +65,7 @@ public class FhirCohortGenerator {
             .setType(SEARCHSET);
     log.debug("generated page {} of {} with {} entries", index, numPages, bundle.getEntry().size());
     if (index < (numPages - 1)) {
-      bundle.addLink().setRelation("next").setUrl("/Consent?_page=" + (index + 1));
+      bundle.addLink().setRelation("next").setUrl("/Patient?_page=" + (index + 1));
     }
     return bundle;
   }

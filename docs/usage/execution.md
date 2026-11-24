@@ -133,12 +133,12 @@ curl -sSf "https://cd-agent:8080/api/v2/process/status/52792219-b966-44bf-bc1b-c
 The cohort selection excludes a patient for one of these reasons, given as `errorMessage`
 with step `SELECT_COHORT`:
 
-| Reason                                                  | Meaning                                                                                                     | Reported                       |
-|---------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|--------------------------------|
-| `Consent for policy … has no start date`                | The only consent for a required policy cannot be evaluated; fix the consent, e.g. in gICS                   | Always                         |
-| `Consent for policy … has an unreadable date`           | As above, its start or end date cannot be read                                                              | Always                         |
-| `No consent covering all required policies`             | The patient has consents, but not for all required policies                                                 | For a list of patients only    |
-| `No consent found`                                      | The consent source returned no consent for the patient, or nothing at all                                   | For a list of patients only    |
+| Reason                                        | Meaning                                                                                                         | Reported                    |
+|-----------------------------------------------|-----------------------------------------------------------------------------------------------------------------|-----------------------------|
+| `Consent for policy … has no start date`      | The only consent for a required policy cannot be evaluated; fix the consent, e.g. in gICS                       | Always                      |
+| `Consent for policy … has an unreadable date` | As above, its start or end date cannot be read                                                                  | Always                      |
+| `No consent covering all required policies`   | The patient has consents, but no active consent covers all required policies, e.g. all are inactive or rejected | For a list of patients only |
+| `No consent found`                            | The consent source returned no consent at all for the patient, or not the patient at all                        | For a list of patients only |
 
 If several required policies have a faulty consent, the reasons are joined by `; `. A
 patient is excluded for a faulty consent only if every policy it lacks has one; otherwise
@@ -158,7 +158,9 @@ the clinical domain agent:
   source.
 * `Ignoring N consents that reference no patient of the bundle`: with a FHIR server as
   consent source, consents must reference their patient by a literal reference, e.g.
-  `Patient/123`, not by identifier only.
+  `Patient/123`, not by identifier only. The search for consents by patient identifier
+  does not find such consents at all, so the patient is reported as `No consent found`
+  without this warning.
 
 A patient with several identifiers of the configured system is transferred and reported
 under the requested one. If several of these identifiers are requested, the patient is
