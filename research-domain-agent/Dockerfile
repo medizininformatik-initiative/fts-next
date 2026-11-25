@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25.0.5_8-jre-alpine@sha256:56f273059de6b13a6b49fe0ded691ed2d0399bbee76156a8f2d385f7524a3d43
+FROM eclipse-temurin:25.0.5.1_2-jre-alpine@sha256:69c2a26e9894016e274c880fa542956d005b3755f84db765145185e87405bd89
 
 # Patch stale Alpine OS packages flagged by Trivy. Versions are pinned so
 # Renovate tracks updates (see renovate.json5). openssl, libssl3 and
@@ -6,7 +6,7 @@ FROM eclipse-temurin:25.0.5_8-jre-alpine@sha256:56f273059de6b13a6b49fe0ded691ed2
 # renovate: datasource=repology depName=alpine_3_24/libexpat versioning=loose
 ARG LIBEXPAT_VERSION="2.10.0-r0"
 # renovate: datasource=repology depName=alpine_3_24/openssl versioning=loose
-ARG OPENSSL_VERSION="3.5.9-r0"
+ARG OPENSSL_VERSION="3.5.9-r1"
 
 # GNU wget for mTLS-aware healthchecks; BusyBox wget lacks --certificate,
 # --private-key, and --ca-certificate.

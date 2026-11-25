@@ -125,7 +125,7 @@
     <dependency>
       <groupId>io.projectreactor.addons</groupId>
       <artifactId>reactor-extra</artifactId>
-      <version>3.6.2</version>
+      <version>3.7.0</version>
     </dependency>
 
     <dependency>
@@ -160,7 +160,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.6.4</version>
+        <version>3.7.0</version>
         <executions>
           <execution>
             <id>generate-certificates</id>
@@ -205,7 +205,7 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>build-helper-maven-plugin</artifactId>
-            <version>3.6.2</version>
+            <version>3.8.0</version>
             <executions>
               <execution>
                 <id>add-e2e-test-source</id>

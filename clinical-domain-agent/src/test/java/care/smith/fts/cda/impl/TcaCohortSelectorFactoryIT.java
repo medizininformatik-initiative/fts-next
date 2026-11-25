@@ -1,6 +1,7 @@
 package care.smith.fts.cda.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import care.smith.fts.util.DefaultRetryStrategy;
@@ -40,6 +41,13 @@ class TcaCohortSelectorFactoryIT {
   void createWithoutPoliciesFails() {
     assertThatNullPointerException()
         .isThrownBy(() -> factory.create(null, config(null)))
+        .withMessageContaining("policies");
+  }
+
+  @Test
+  void createWithEmptyPoliciesFails() {
+    assertThatIllegalArgumentException()
+        .isThrownBy(() -> factory.create(null, config(Set.of())))
         .withMessageContaining("policies");
   }
 
