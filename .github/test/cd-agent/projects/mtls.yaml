@@ -23,7 +23,7 @@ dataSelector:
     pageSize: 500
 
 deidentificator:
-  deidentifhir:
+  deidentifier:
     trustCenterAgent:
       server:
         baseUrl: https://tc-agent:8080
@@ -35,7 +35,7 @@ deidentificator:
         dateShift: MII
     maxDateShift: P14D
     dateShiftPreserve: NONE
-    deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
+    deidentifierConfig: /app/projects/example/deidentifier/CDtoTransport.profile
 
 bundleSender:
   researchDomainAgent:

@@ -1,0 +1,703 @@
+package care.smith.fts.deidentifier;
+
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.Bundle.HTTPVerb;
+import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.DateTimeType;
+import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
+import org.hl7.fhir.r4.model.Extension;
+import org.hl7.fhir.r4.model.HumanName;
+import org.hl7.fhir.r4.model.Narrative;
+import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Property;
+import org.hl7.fhir.r4.model.Quantity;
+import org.hl7.fhir.r4.model.StringType;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+class DeidentifierTest {
+
+  private static final RuleSet KEEP_ALL = resource -> (path, element) -> new Rule.Apply(List.of());
+
+  /** Keeps the listed paths unchanged and removes all other elements. */
+  private static RuleSet keeping(String... paths) {
+    return applying(Arrays.stream(paths).collect(toMap(identity(), path -> List.of())));
+  }
+
+  /** Applies the handler chain of each listed path and removes all other elements. */
+  private static RuleSet applying(Map<String, List<DeidentifierHandler<Object>>> chains) {
+    return resource ->
+        (path, element) ->
+            Optional.ofNullable(chains.get(String.join(".", path)))
+                .<Rule>map(Rule.Apply::new)
+                .orElse(Rule.REMOVE);
+  }
+
+  private static DeidentifierHandler<Object> replacingWith(String value) {
+    return (element, context) -> Optional.of(new StringType(value));
+  }
+
+  /**
+   * The traversal does not know whether a rule set is an allow list or a deny list. It asks with
+   * the element of the input resource, so a rule set can match elements by identity.
+   */
+  @Test
+  void keepsWhatTheRuleSetKeepsAndAsksWithTheInputElement() {
+    Patient patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    List<Base> asked = new ArrayList<>();
+    RuleSet recording =
+        resource ->
+            (path, element) -> {
+              asked.add(element);
+              return new Rule.Apply(List.of());
+            };
+
+    Patient result = (Patient) new Deidentifier(recording).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
+    assertThat(asked).singleElement().isSameAs(patient.getBirthDateElement());
+  }
+
+  @Test
+  void removesWhatTheRuleSetRemoves() {
+    Patient patient = new Patient();
+    patient.setId("123");
+    patient.setGender(AdministrativeGender.FEMALE);
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.addName(new HumanName().setFamily("Doe").addGiven("Jane"));
+
+    Patient result =
+        (Patient)
+            new Deidentifier(keeping("Patient.id", "Patient.gender"))
+                .deidentify(patient, "p")
+                .orElseThrow();
+
+    assertThat(result.getIdPart()).isEqualTo("123");
+    assertThat(result.getGender()).isEqualTo(AdministrativeGender.FEMALE);
+    assertThat(result.hasBirthDate()).isFalse();
+    assertThat(result.hasName()).isFalse();
+  }
+
+  @Test
+  void returnsEmptyWhenTheRuleSetRemovesEveryElement() {
+    Patient patient = new Patient();
+    patient.setId("123");
+
+    assertThat(new Deidentifier(keeping()).deidentify(patient, "p")).isEmpty();
+  }
+
+  @Test
+  void appliesTheHandlersOfTheRule() {
+    Patient patient = new Patient();
+    patient.addName(new HumanName().setFamily("Doe"));
+    RuleSet ruleSet = applying(Map.of("Patient.name.family", List.of(replacingWith("REDACTED"))));
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getNameFirstRep().getFamily()).isEqualTo("REDACTED");
+  }
+
+  /**
+   * A handler that removes the value ends the chain; the next handler never sees a {@code null}.
+   */
+  @Test
+  void stopsAHandlerChainAtTheFirstHandlerThatRemovesTheValue() {
+    DeidentifierHandler<Object> removes = (value, context) -> Optional.empty();
+    Patient patient = new Patient();
+    patient.addName(new HumanName().setFamily("Doe"));
+    RuleSet ruleSet =
+        applying(Map.of("Patient.name.family", List.of(removes, replacingWith("REDACTED"))));
+
+    assertThat(new Deidentifier(ruleSet).deidentify(patient, "p")).isEmpty();
+  }
+
+  /**
+   * A handler may return a value that its field does not accept: a new StringType for
+   * Annotation.text, a MarkdownType field. The error has to name the path.
+   */
+  @Test
+  void namesThePathWhenAHandlerResultDoesNotFitTheField() {
+    Observation observation = new Observation();
+    observation.addNote().setText("free text");
+    RuleSet ruleSet = applying(Map.of("Observation.note.text", List.of(replacingWith("x"))));
+
+    assertThatThrownBy(() -> new Deidentifier(ruleSet).deidentify(observation, "p"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Observation.note.text")
+        .hasMessageContaining("StringType")
+        .hasMessageContaining("MarkdownType");
+  }
+
+  @Test
+  void namesChoiceTypePathsByTheConcreteType() {
+    Observation observation = new Observation();
+    observation.setStatus(Observation.ObservationStatus.FINAL);
+    observation.setValue(
+        new Quantity().setValue(42).setUnit("mg").setSystem("http://unitsofmeasure.org"));
+    RuleSet ruleSet =
+        keeping("Observation.value[Quantity].value", "Observation.value[Quantity].unit");
+
+    Observation result =
+        (Observation) new Deidentifier(ruleSet).deidentify(observation, "p").orElseThrow();
+
+    assertThat(result.getValueQuantity().getValue()).isEqualByComparingTo("42");
+    assertThat(result.getValueQuantity().getUnit()).isEqualTo("mg");
+    assertThat(result.getValueQuantity().hasSystem()).isFalse();
+    assertThat(result.hasStatus()).isFalse();
+  }
+
+  /** A de-identifier must never keep a narrative, and it must not fall over one either. */
+  @Test
+  void dropsTheNarrativeOfAResourceEvenIfTheRuleSetKeepsIt() {
+    Patient patient = new Patient();
+    patient.setId("123");
+    patient.getText().setStatus(Narrative.NarrativeStatus.GENERATED);
+    patient.getText().setDivAsString("<div xmlns=\"http://www.w3.org/1999/xhtml\">Jane Doe</div>");
+
+    Patient result = (Patient) new Deidentifier(KEEP_ALL).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getIdPart()).isEqualTo("123");
+    assertThat(result.hasText()).isFalse();
+  }
+
+  /** HAPI holds no such child; a plain Java value must stop the walk, not pass through. */
+  @Test
+  void rejectsAChildThatIsNotAFhirElement() {
+    Patient patient =
+        new Patient() {
+          private final Object plain = "Jane Doe";
+
+          @Override
+          protected void listChildren(List<Property> children) {
+            children.add(new Property("plain", "string", "", 0, 1, List.of()));
+          }
+        };
+
+    assertThatThrownBy(() -> new Deidentifier(KEEP_ALL).deidentify(patient, "p"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Unexpected element of type class java.lang.String");
+  }
+
+  private static Extension birthNote() {
+    return new Extension("https://example.org/note", new StringType("a note"));
+  }
+
+  private static Extension genderDetail() {
+    return new Extension(
+        "https://example.org/ga", new Coding("https://example.org/s", "D", "divers"));
+  }
+
+  /**
+   * The extension of a primitive is an element like any other: the rule set decides on its parts.
+   */
+  @Test
+  void keepsThePartsOfAnInputExtensionThatTheRuleSetKeeps() {
+    Patient patient = new Patient();
+    patient.setGender(AdministrativeGender.OTHER);
+    patient.getGenderElement().addExtension(genderDetail());
+    RuleSet ruleSet =
+        keeping(
+            "Patient.gender",
+            "Patient.gender.extension.url",
+            "Patient.gender.extension.value[Coding].code");
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getGender()).isEqualTo(AdministrativeGender.OTHER);
+    assertThat(result.getGenderElement().getExtension())
+        .singleElement()
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
+          Coding coding = (Coding) extension.getValue();
+          assertThat(coding.getCode()).isEqualTo("D");
+          assertThat(coding.hasSystem()).isFalse();
+          assertThat(coding.hasDisplay()).isFalse();
+        });
+  }
+
+  /** A primitive whose value the rule set removes is still there as a carrier of its extension. */
+  @Test
+  void keepsTheExtensionOfAPrimitiveWhoseValueTheRuleSetRemoves() {
+    Patient patient = new Patient();
+    patient.setGender(AdministrativeGender.OTHER);
+    patient.getGenderElement().addExtension(genderDetail());
+    RuleSet ruleSet =
+        keeping("Patient.gender.extension.url", "Patient.gender.extension.value[Coding].code");
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getGenderElement().hasValue()).isFalse();
+    assertThat(result.getGenderElement().getExtension())
+        .singleElement()
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/ga");
+          assertThat(((Coding) extension.getValue()).getCode()).isEqualTo("D");
+        });
+  }
+
+  /** A handler that builds a fresh value does not take the kept input extensions with it. */
+  @Test
+  void keepsTheInputExtensionWhenAHandlerReturnsAFreshPrimitive() {
+    Patient patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.getBirthDateElement().addExtension(birthNote());
+    DeidentifierHandler<Object> fresh = (value, context) -> Optional.of(new DateType("1970-01-01"));
+    RuleSet ruleSet =
+        applying(
+            Map.of(
+                "Patient.birthDate", List.of(fresh),
+                "Patient.birthDate.extension.url", List.of(),
+                "Patient.birthDate.extension.value[string]", List.of()));
+
+    Patient result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-01-01");
+    assertThat(result.getBirthDateElement().getExtension())
+        .singleElement()
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/note");
+          assertThat(extension.getValue().primitiveValue()).isEqualTo("a note");
+        });
+  }
+
+  /** An extension a handler adds to the value follows the kept input extensions. */
+  @Test
+  void keepsAnExtensionAHandlerAddsToAPrimitive() {
+    var patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.getBirthDateElement().addExtension(birthNote());
+    DeidentifierHandler<Object> adding =
+        (value, context) -> {
+          var date = ((DateType) value).copy();
+          date.addExtension(new Extension("https://example.org/added", new StringType("added")));
+          return Optional.of(date);
+        };
+    var ruleSet =
+        applying(
+            Map.of(
+                "Patient.birthDate", List.of(adding),
+                "Patient.birthDate.extension.url", List.of(),
+                "Patient.birthDate.extension.value[string]", List.of()));
+
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getBirthDateElement().getExtension())
+        .extracting(Extension::getUrl)
+        .containsExactly("https://example.org/note", "https://example.org/added");
+  }
+
+  /**
+   * The date-shift pattern: the handler takes the date value away and puts a transport id on the
+   * element as an extension. The rule set keeps no extension path, so the extension is not subject
+   * to it.
+   */
+  @Test
+  void keepsTheElementOfAHandlerThatReplacesTheValueWithAnExtension() {
+    var patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    DeidentifierHandler<Object> shifting =
+        (value, context) -> {
+          var date = new DateType();
+          date.addExtension(new Extension("https://example.org/added", new StringType("id-1")));
+          return Optional.of(date);
+        };
+    var ruleSet = applying(Map.of("Patient.birthDate", List.of(shifting)));
+
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.hasBirthDateElement()).isTrue();
+    assertThat(result.getBirthDateElement().hasValue()).isFalse();
+    assertThat(result.getBirthDateElement().getExtension())
+        .singleElement()
+        .satisfies(extension -> {
+          assertThat(extension.getUrl()).isEqualTo("https://example.org/added");
+          assertThat(extension.getValue().primitiveValue()).isEqualTo("id-1");
+        });
+  }
+
+  /** A handler that removes the value leaves nothing behind when no input extension is kept. */
+  @Test
+  void removesAPrimitiveWhoseHandlerRemovesItWhenNoInputExtensionIsKept() {
+    var patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.setGender(AdministrativeGender.OTHER);
+    DeidentifierHandler<Object> removing = (value, context) -> Optional.empty();
+    var ruleSet =
+        applying(Map.of("Patient.birthDate", List.of(removing), "Patient.gender", List.of()));
+
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.hasBirthDateElement()).isFalse();
+  }
+
+  /** The handler gets the value without the input extensions, the rule set decides on those. */
+  @Test
+  void dropsInputExtensionsTheRuleSetDoesNotKeepWhenAHandlerReturnsTheValue() {
+    var patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    patient.getBirthDateElement().addExtension(birthNote());
+    DeidentifierHandler<Object> identity = (value, context) -> Optional.of(value);
+    var ruleSet = applying(Map.of("Patient.birthDate", List.of(identity)));
+
+    var result = (Patient) new Deidentifier(ruleSet).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
+    assertThat(result.getBirthDateElement().hasExtension()).isFalse();
+  }
+
+  /**
+   * A handler under an extension of a primitive sees the primitive among its ancestors, between the
+   * resource and the extension.
+   */
+  @Test
+  void passesTheInputPrimitiveAsAncestorToTheHandlersOfItsExtensions() {
+    Patient patient = new Patient();
+    patient.setBirthDateElement(new DateType("1970-05-12"));
+    Extension extension = birthNote();
+    patient.getBirthDateElement().addExtension(extension);
+    List<List<Base>> seen = new ArrayList<>();
+    DeidentifierHandler<Object> recording =
+        (value, context) -> {
+          seen.add(context.ancestors());
+          return Optional.of(value);
+        };
+    RuleSet ruleSet =
+        applying(Map.of("Patient.birthDate.extension.value[string]", List.of(recording)));
+
+    new Deidentifier(ruleSet).deidentify(patient, "p");
+
+    assertThat(seen)
+        .singleElement()
+        .satisfies(ancestors -> {
+          assertThat(ancestors).hasSize(3);
+          assertThat(ancestors.get(0)).isSameAs(patient);
+          assertThat(ancestors.get(1)).isSameAs(patient.getBirthDateElement());
+          assertThat(ancestors.get(2)).isSameAs(extension);
+        });
+  }
+
+  @Test
+  void rejectsARuleSetThatReturnsNoRules() {
+    RuleSet noRules = resource -> null;
+
+    assertThatThrownBy(() -> new Deidentifier(noRules).deidentify(new Patient(), "p"))
+        .isInstanceOf(NullPointerException.class)
+        .hasMessageContaining("returned no rules");
+  }
+
+  /** Siblings share their parent, so a handler that keeps state per context treats them alike. */
+  @Test
+  void passesOneContextToTheHandlersOfSiblingElements() {
+    var patient = new Patient();
+    patient.addName().getPeriod().setStartElement(new DateTimeType("2020-01-01"));
+    patient.getNameFirstRep().getPeriod().setEndElement(new DateTimeType("2020-12-31"));
+    var seen = new ArrayList<HandlerContext>();
+    DeidentifierHandler<Object> recording =
+        (value, context) -> {
+          seen.add(context);
+          return Optional.of(value);
+        };
+    var ruleSet =
+        applying(
+            Map.of(
+                "Patient.name.period.start", List.of(recording),
+                "Patient.name.period.end", List.of(recording)));
+
+    new Deidentifier(ruleSet).deidentify(patient, "p");
+
+    assertThat(seen).hasSize(2);
+    assertThat(seen.get(0)).isSameAs(seen.get(1));
+  }
+
+  static Stream<Arguments> additionsToAPrimitive() {
+    return Stream.of(
+        Arguments.of("element id", (Consumer<DateType>) date -> date.setId("the-element-id")),
+        Arguments.of(
+            "extension",
+            (Consumer<DateType>)
+                date ->
+                    date.addExtension(
+                        new Extension("http://example.org/secret", new StringType("secret")))));
+  }
+
+  /**
+   * The rule set is not asked about the element id of a primitive, so it is dropped. An extension
+   * is dropped unless the rule set keeps a path below it.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("additionsToAPrimitive")
+  void keepsOnlyTheValueOfAKeptPrimitive(String addition, Consumer<DateType> add) {
+    DateType birthDate = new DateType("1970-05-12");
+    add.accept(birthDate);
+    Patient patient = new Patient();
+    patient.setBirthDateElement(birthDate);
+
+    Patient result =
+        (Patient)
+            new Deidentifier(keeping("Patient.birthDate")).deidentify(patient, "p").orElseThrow();
+
+    assertThat(result.getBirthDateElement().getValueAsString()).isEqualTo("1970-05-12");
+    assertThat(result.getBirthDateElement().getId()).isNull();
+    assertThat(result.getBirthDateElement().hasExtension()).isFalse();
+  }
+
+  private static Bundle searchset() {
+    return new Bundle().setType(Bundle.BundleType.SEARCHSET);
+  }
+
+  /** Every bundle type but a search result; a bundle without type is no search result either. */
+  private static Stream<Bundle.BundleType> typesOtherThanSearchset() {
+    return Stream.of(Bundle.BundleType.values())
+        .filter(type -> type != Bundle.BundleType.SEARCHSET)
+        .map(type -> type == Bundle.BundleType.NULL ? null : type);
+  }
+
+  @ParameterizedTest
+  @MethodSource("typesOtherThanSearchset")
+  void failsABundleThatIsNoSearchset(Bundle.BundleType type) {
+    var bundle = new Bundle().setType(type);
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    var deidentifier = new Deidentifier(KEEP_ALL);
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Only a searchset bundle can be de-identified.");
+  }
+
+  static Stream<Arguments> transactionParts() {
+    return Stream.of(
+        Arguments.of(
+            "request",
+            (Consumer<BundleEntryComponent>) e -> e.getRequest().setMethod(HTTPVerb.GET)),
+        Arguments.of(
+            "response", (Consumer<BundleEntryComponent>) e -> e.getResponse().setStatus("200")));
+  }
+
+  /** bdl-3 and bdl-4: a searchset entry has neither, so the input is no search result. */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("transactionParts")
+  void failsAnEntryWithARequestOrResponseAndNamesTheEntryIndex(
+      String part, Consumer<BundleEntryComponent> add) {
+    var bundle = searchset();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    add.accept(bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.MALE)));
+    var deidentifier = new Deidentifier(KEEP_ALL);
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "Bundle entry 1 has a request or response, which a searchset entry must not have.");
+  }
+
+  @Test
+  void deidentifiesEachBundleEntryAndKeepsTheSurvivorsInOrder() {
+    var bundle = searchset();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle.addEntry().setResource(new Observation().setStatus(Observation.ObservationStatus.FINAL));
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.MALE));
+    var ruleSet = keeping("Patient.gender", "Observation.status");
+
+    var result = new Deidentifier(ruleSet).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntry())
+        .extracting(entry -> entry.getResource().fhirType())
+        .containsExactly("Patient", "Observation", "Patient");
+    assertThat(((Patient) result.getEntry().get(2).getResource()).getGender())
+        .isEqualTo(AdministrativeGender.MALE);
+  }
+
+  @Test
+  void dropsABundleEntryWhoseResourceTheRuleSetRemovesEntirely() {
+    var bundle = searchset();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle.addEntry().setResource(new Observation().setStatus(Observation.ObservationStatus.FINAL));
+
+    var result = new Deidentifier(keeping("Observation.status")).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntry())
+        .singleElement()
+        .satisfies(entry -> assertThat(entry.getResource().fhirType()).isEqualTo("Observation"));
+  }
+
+  @Test
+  void keepsOnlyTheTypeWhenNoEntrySurvives() {
+    var bundle = searchset();
+    bundle.setId("b1");
+    bundle.setTimestamp(new Date());
+    bundle.getMeta().setSource("src");
+    bundle.setTotal(1);
+    bundle.addLink().setRelation("next").setUrl("http://fhir/Patient/1/$everything?page=2");
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+
+    var result = new Deidentifier(keeping()).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getType()).isEqualTo(Bundle.BundleType.SEARCHSET);
+    assertThat(result.hasEntry()).isFalse();
+    assertThat(result.hasId()).isFalse();
+    assertThat(result.hasMeta()).isFalse();
+    assertThat(result.hasTimestamp()).isFalse();
+    assertThat(result.hasTotal()).isFalse();
+    assertThat(result.hasLink()).isFalse();
+  }
+
+  /** The fullUrl names the source server and the source id; the search part says why it matched. */
+  @ParameterizedTest
+  @ValueSource(strings = {"http://fhir/Patient/123", "urn:uuid:1"})
+  void dropsTheFullUrlAndTheSearchOfAnEntry(String fullUrl) {
+    var bundle = searchset();
+    var entry =
+        bundle
+            .addEntry()
+            .setFullUrl(fullUrl)
+            .setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    entry.getSearch().setMode(Bundle.SearchEntryMode.MATCH).setScore(1);
+
+    var result = new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p");
+
+    assertThat(result.getEntryFirstRep().hasResource()).isTrue();
+    assertThat(result.getEntryFirstRep().hasFullUrl()).isFalse();
+    assertThat(result.getEntryFirstRep().hasSearch()).isFalse();
+  }
+
+  @Test
+  void showsHandlersInABundleEntryThePatientIdentifierAndTheEntryAsResource() {
+    var patient = new Patient().setGender(AdministrativeGender.FEMALE);
+    var bundle = searchset();
+    bundle.addEntry().setResource(patient);
+    var seen = new ArrayList<HandlerContext>();
+    DeidentifierHandler<Object> recording =
+        (value, context) -> {
+          seen.add(context);
+          return Optional.of(value);
+        };
+    var ruleSet = applying(Map.of("Patient.gender", List.of(recording)));
+
+    new Deidentifier(ruleSet).deidentifyBundle(bundle, "p1");
+
+    assertThat(seen)
+        .singleElement()
+        .satisfies(context -> {
+          assertThat(context.patientIdentifier()).isEqualTo("p1");
+          assertThat(context.resource()).isSameAs(patient);
+          assertThat(context.ancestors()).containsExactly(patient);
+        });
+  }
+
+  @Test
+  void refusesANullRuleSet() {
+    assertThatThrownBy(() -> new Deidentifier(null)).isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void showsHandlersOfASingleResourceThePatientIdentifier() {
+    var seen = new ArrayList<HandlerContext>();
+    DeidentifierHandler<Object> recording =
+        (value, context) -> {
+          seen.add(context);
+          return Optional.of(value);
+        };
+    var ruleSet = applying(Map.of("Patient.gender", List.of(recording)));
+
+    new Deidentifier(ruleSet)
+        .deidentify(new Patient().setGender(AdministrativeGender.FEMALE), "p1");
+
+    assertThat(seen)
+        .singleElement()
+        .satisfies(context -> assertThat(context.patientIdentifier()).isEqualTo("p1"));
+  }
+
+  @Test
+  void failsAnEntryWithoutAResourceAndNamesTheEntryIndex() {
+    var bundle = searchset();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle.addEntry().setFullUrl("http://fhir/Patient/1");
+    var deidentifier = new Deidentifier(KEEP_ALL);
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Bundle entry 1 has no resource.");
+  }
+
+  @Test
+  void rejectsANestedBundleAndNamesTheEntryIndex() {
+    var bundle = searchset();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle.addEntry().setResource(new Bundle().setType(Bundle.BundleType.COLLECTION));
+
+    assertThatThrownBy(() -> new Deidentifier(KEEP_ALL).deidentifyBundle(bundle, "p"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("entry 1")
+        .hasMessageContaining("nested bundles are not supported");
+  }
+
+  @Test
+  void deidentifiesABundleGivenAsResourceLikeDeidentifyBundle() {
+    var bundle = searchset();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+    bundle.addEntry().setResource(new Observation().setStatus(Observation.ObservationStatus.FINAL));
+
+    var result = new Deidentifier(keeping("Patient.gender")).deidentify(bundle, "p");
+
+    assertThat(result)
+        .get()
+        .isInstanceOfSatisfying(
+            Bundle.class,
+            deidentified -> {
+              assertThat(deidentified.getType()).isEqualTo(Bundle.BundleType.SEARCHSET);
+              assertThat(deidentified.getEntry())
+                  .singleElement()
+                  .satisfies(e -> assertThat(e.getResource().fhirType()).isEqualTo("Patient"));
+            });
+  }
+
+  @Test
+  void keepsABundleGivenAsResourceEvenWhenNoEntrySurvives() {
+    var bundle = searchset();
+    bundle.addEntry().setResource(new Patient().setGender(AdministrativeGender.FEMALE));
+
+    assertThat(new Deidentifier(keeping()).deidentify(bundle, "p"))
+        .get()
+        .isInstanceOfSatisfying(Bundle.class, result -> assertThat(result.hasEntry()).isFalse());
+  }
+
+  @Test
+  void refusesANullResourceOrPatientIdentifier() {
+    var deidentifier = new Deidentifier(KEEP_ALL);
+
+    assertThatThrownBy(() -> deidentifier.deidentify(null, "p"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(() -> deidentifier.deidentify(new Patient(), null))
+        .isInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void refusesANullBundleOrPatientIdentifier() {
+    var deidentifier = new Deidentifier(KEEP_ALL);
+
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(null, "p"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(() -> deidentifier.deidentifyBundle(searchset(), null))
+        .isInstanceOf(NullPointerException.class);
+  }
+}

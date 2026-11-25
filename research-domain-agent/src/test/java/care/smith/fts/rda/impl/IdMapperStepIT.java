@@ -4,7 +4,7 @@ import static care.smith.fts.test.MockServerUtil.APPLICATION_FHIR_JSON;
 import static care.smith.fts.test.MockServerUtil.clientConfig;
 import static care.smith.fts.test.MockServerUtil.jsonResponse;
 import static care.smith.fts.test.TestPatientGenerator.generateOnePatient;
-import static care.smith.fts.util.deidentifhir.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
+import static care.smith.fts.util.deidentifier.DateShiftConstants.DATE_SHIFT_EXTENSION_URL;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;

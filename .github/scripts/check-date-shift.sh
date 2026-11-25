@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Verify that the deidentifhir shiftDateHandler shifted the dates of the
+# Verify that the deidentifier shiftDateHandler shifted the dates of the
 # transferred resources.
 #
 # The clinical domain agent replaces each configured date with a transport ID,
@@ -37,7 +37,7 @@ PER_PATIENT_LIMIT=${PER_PATIENT_LIMIT:-5}
 # The consistency check needs this many dates per patient to have any force.
 MIN_DATES_PER_PATIENT=${MIN_DATES_PER_PATIENT:-2}
 
-# Date fields that the deidentifhir configuration shifts, per resource type.
+# Date fields that the deidentifier configuration shifts, per resource type.
 declare -A DATE_FIELDS=(
     [Encounter]="period.start period.end"
     [Condition]="recordedDate"
@@ -206,7 +206,7 @@ collect_date_pairs() {
 
         pid=${PATIENT_PID[$patient]}
         rd_id=$(rd_resource_id "${PATIENT_SALT[$patient]}" "$pid" "$res_type" "$cd_id")
-        # A resource without counterpart did not match any deidentifhir profile.
+        # A resource without counterpart did not match any deidentifier profile.
         [ -n "${rd_patient[$rd_id]:-}" ] || continue
 
         for field in "${fields[@]}"; do

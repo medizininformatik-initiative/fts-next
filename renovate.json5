@@ -45,15 +45,6 @@
     },
     {
       description: [
-        "`deidentifhir` is vendored until it is replaced, see #2011"
-      ],
-      matchPackageNames: [
-        'de.ume:deidentifhir',
-      ],
-      enabled: false,
-    },
-    {
-      description: [
         "Custom MOSAIC images typically require test data to be updated, too"
       ],
       matchDepNames: [

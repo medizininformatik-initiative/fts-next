@@ -161,25 +161,11 @@
     </dependency>
 
     <dependency>
-      <groupId>de.ume</groupId>
-      <artifactId>deidentifhir</artifactId>
-      <version>0.2.11</version>
+      <groupId>care.smith.fts</groupId>
+      <artifactId>deidentifier</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <!-- Vendored until deidentifhir is replaced, see #2011 and #2175 -->
-    <repository>
-      <id>vendor</id>
-      <url>file://${project.basedir}/vendor/m2</url>
-      <releases>
-        <checksumPolicy>fail</checksumPolicy>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <build>
     <plugins>

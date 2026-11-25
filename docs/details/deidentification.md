@@ -23,7 +23,7 @@ nulled before transmission.
 
 The transfer process works as follows:
 
-1. **CDA deidentifies in a single pass**: The CDA runs DeidentiFHIR on the patient bundle,
+1. **CDA deidentifies in a single pass**: The CDA runs the deidentifier on each page of the patient bundle,
    generating transport IDs (tIDs) on-the-fly for each unique resource ID and date value.
    Date values are replaced with tID extensions (using the URL
    `https://fts.smith.care/fhir/StructureDefinition/date-shift-transport-id`) and nulled
@@ -100,3 +100,23 @@ sequenceDiagram
     TCA ->> RDA: tID➙sID, tID➙shiftedDate
     RDA ->> RDA: resolve tIDs to sIDs and dates
 ```
+
+## Bundle Entries
+
+The de-identification engine accepts only a bundle of type `searchset`, the type of each page that
+`$everything` returns. The output is a new `searchset` that holds only the de-identified resource
+of each entry. The engine drops `fullUrl` and `search` of each entry and every other element of
+the bundle, such as `link` and `total`. An entry whose resource the profile removes completely is
+dropped.
+
+The engine rejects the bundle in these cases:
+
+| Input                                                  | Why                                          |
+|--------------------------------------------------------|----------------------------------------------|
+| A bundle of another type, or without a type            | Only a `searchset` is supported              |
+| An entry without a resource                            | A `searchset` entry always has a resource    |
+| An entry with a `request` or a `response`              | A `searchset` entry has neither (bdl-3/4)    |
+| An entry whose resource is a bundle                    | Nested bundles are not supported             |
+
+The error message names the entry by its index, never by its content, so that no source data
+reaches the logs.

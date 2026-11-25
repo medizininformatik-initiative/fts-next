@@ -85,7 +85,7 @@ cd-agent/
     ├── fhir-consent-example.yaml       # example project configuration with consent from FHIR server
     ├── gics-consent-example.yaml       # example project configuration with consent from gICS
     └── example/                        # other files needed for the example project to function
-        └── deidentifhir/               # deidentifhir configuration used in the example project
+        └── deidentifier/               # deidentifier configuration used in the example project
 ```
 
 ```shell [TC Agent]
@@ -105,7 +105,7 @@ rd-agent/
 └── projects/              # project configuration directory
     ├── example.yaml       # example project configuration  
     └── example/           # other files needed for the example project to function
-        └── deidentifhir/  # deidentifhir configuration used in the example project
+        └── deidentifier/  # deidentifier configuration used in the example project
 ```
 
 :::

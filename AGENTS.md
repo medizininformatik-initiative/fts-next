@@ -52,7 +52,7 @@ public interface TransferProcessStepFactory<STEPTYPE, CCONF, ICONF> {
 Key step types:
 - **CohortSelector**: Identifies patients based on consent (TcaCohortSelector, FhirCohortSelector)
 - **DataSelector**: Extracts patient data (EverythingDataSelector)
-- **Deidentificator**: Removes/transforms identifying information (DeidentifhirStep, FhirPseudonymizerStep)
+- **Deidentificator**: Removes/transforms identifying information (DeidentifierStep, FhirPseudonymizerStep)
 - **BundleSender**: Transmits data between agents (RdaBundleSender, FhirStoreBundleSender)
 
 ### Configuration System
@@ -68,7 +68,7 @@ dataSelector:
   everything:
     maxPageSize: 1000
 deidentificator:
-  deidentifhir:
+  deidentifier:
     profile: "research-profile"
 bundleSender:
   rda:
@@ -151,7 +151,7 @@ We require 100% patch coverage.
 - **Always use `mvn verify` instead of `mvn test`** - verify runs integration tests (failsafe) in addition to unit tests (surefire)
 - Prefer Slf4j logging over System.out.println
 - Use existing retry strategies (`defaultRetryStrategy`) for external service calls
-- Follow existing patterns (e.g., DeidentifhirStep) when implementing new transfer process steps
+- Follow existing patterns (e.g., DeidentifierStep) when implementing new transfer process steps
 - Use Title Case For Git Commit Messages
 - Commit Title MUST NOT exceed 50 chars
 - Commit Description MUST NOT exceed 80 chars

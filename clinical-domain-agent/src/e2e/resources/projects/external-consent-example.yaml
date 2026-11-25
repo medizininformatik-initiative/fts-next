@@ -29,9 +29,8 @@ dataSelector:
 ### Deidentificator Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/deidentificator
 deidentificator:
-  # Deidentifhir is used to anonymize bundles
-  # See https://github.com/UMEssen/DeidentiFHIR
-  deidentifhir:
+  # Deidentifier is used to anonymize bundles
+  deidentifier:
     trustCenterAgent:
       server:
         # Base URL of the Trust Center Agent server.
@@ -53,9 +52,9 @@ deidentificator:
     # Should the Weekday or the time of day be preserved
     # possible values: NONE (default), WEEKDAY, DAYTIME
     dateShiftPreserve: NONE
-    # Deidentifhir needs additional configuration, which must be available within the agent's
+    # Deidentifier needs additional configuration, which must be available within the agent's
     # filesystem. If the agent runs as docker container, the configuration folder must be mounted.
-    deidentifhirConfig: /app/projects/example/deidentifhir/CDtoTransport.profile
+    deidentifierConfig: /app/projects/example/deidentifier/CDtoTransport.profile
 
 ### Bundle Sender Configuration
 ##! https://medizininformatik-initiative.github.io/fts-next/cd-agent/bundle-sender

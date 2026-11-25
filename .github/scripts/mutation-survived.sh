@@ -17,7 +17,7 @@ if [[ "${1:-}" == "--json" ]]; then
 fi
 
 modules=("$@")
-[[ ${#modules[@]} -eq 0 ]] && modules=(api util clinical-domain-agent trust-center-agent research-domain-agent)
+[[ ${#modules[@]} -eq 0 ]] && modules=(api deidentifier util clinical-domain-agent trust-center-agent research-domain-agent)
 
 # Keep the survivors, and add the path of the source file.
 program='

@@ -1,0 +1,258 @@
+package care.smith.fts.deidentifier.allowlist;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import care.smith.fts.deidentifier.DeidentifierHandler;
+import care.smith.fts.deidentifier.Registry;
+import care.smith.fts.deidentifier.Rule;
+import care.smith.fts.deidentifier.allowlist.FhirPathPattern.ResourceExistsPath;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.hl7.fhir.r4.model.Base;
+import org.hl7.fhir.r4.model.DateTimeType;
+import org.hl7.fhir.r4.model.DateType;
+import org.hl7.fhir.r4.model.MarkdownType;
+import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.StringType;
+import org.junit.jupiter.api.Test;
+
+class ProfileTest {
+
+  private static final DeidentifierHandler<Object> NOOP = (value, context) -> Optional.of(value);
+  private static final DeidentifierHandler<Object> OTHER = (value, context) -> Optional.of(value);
+
+  private static final FhirPathPattern PATIENT = new ResourceExistsPath("Patient");
+
+  private static Registry.Registration registration(DeidentifierHandler<Object> handler) {
+    return new Registry.Registration("handler", Object.class, handler, false);
+  }
+
+  private static Registry.Registration terminal(String name) {
+    return new Registry.Registration(name, Object.class, NOOP, true);
+  }
+
+  private static Registry.Registration named(String name) {
+    return new Registry.Registration(name, Object.class, NOOP, false);
+  }
+
+  private static Rule ruleFor(Profile profile, Resource resource, String path) {
+    return ruleFor(profile, resource, path, new DateType());
+  }
+
+  private static Rule ruleFor(Profile profile, Resource resource, String path, Base element) {
+    return profile.rulesFor(resource).ruleFor(List.of(path.split("\\.")), element);
+  }
+
+  @Test
+  void answersKeepTransformAndRemoveForOneModule() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.gender", "Patient.birthDate"),
+                    Map.of("Patient.birthDate", List.of(registration(NOOP))),
+                    Map.of())));
+    Patient patient = new Patient();
+
+    assertThat(ruleFor(profile, patient, "Patient.gender")).isEqualTo(new Rule.Apply(List.of()));
+    assertThat(ruleFor(profile, patient, "Patient.birthDate"))
+        .isEqualTo(new Rule.Apply(List.of(NOOP)));
+    assertThat(ruleFor(profile, patient, "Patient.id")).isEqualTo(Rule.REMOVE);
+  }
+
+  @Test
+  void aModuleWhosePatternDoesNotMatchTheResourceKeepsNothing() {
+    Profile profile =
+        new Profile(List.of(new Module(PATIENT, Set.of("Patient.gender"), Map.of(), Map.of())));
+
+    assertThat(ruleFor(profile, new Observation(), "Patient.gender")).isEqualTo(Rule.REMOVE);
+  }
+
+  @Test
+  void mergesTheHandlerChainsOfAllMatchedModules() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of("Patient.birthDate", List.of(registration(NOOP))),
+                    Map.of()),
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of("Patient.birthDate", List.of(registration(OTHER))),
+                    Map.of())));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
+        .isInstanceOfSatisfying(
+            Rule.Apply.class,
+            apply -> assertThat(apply.handlers()).containsExactlyInAnyOrder(NOOP, OTHER));
+  }
+
+  @Test
+  void aModuleRejectsAHandlerOnAPathThatIsNotInItsBase() {
+    Map<String, List<Registry.Registration>> pathHandlers =
+        Map.of("Patient.birthDate", List.of(registration(NOOP)));
+
+    assertThatThrownBy(() -> new Module(PATIENT, Set.of("Patient.id"), pathHandlers, Map.of()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Patient.birthDate");
+  }
+
+  @Test
+  void aTypeHandlerAppliesToAKeptElementOfExactlyItsClass() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate", new DateType()))
+        .isEqualTo(new Rule.Apply(List.of(NOOP)));
+  }
+
+  @Test
+  void typeHandlersRunBeforePathHandlersOnTheSameElement() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of("Patient.birthDate", List.of(registration(OTHER))),
+                    Map.of(DateType.class, List.of(registration(NOOP))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
+        .isEqualTo(new Rule.Apply(List.of(NOOP, OTHER)));
+  }
+
+  @Test
+  void aTypeHandlerDoesNotKeepAnElement() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.gender"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate")).isEqualTo(Rule.REMOVE);
+  }
+
+  @Test
+  void aTypeHandlerDoesNotApplyToAnElementOfAnotherClassNotEvenASubclass() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.birthDate"),
+                    Map.of(),
+                    Map.of(
+                        DateType.class,
+                        List.of(registration(NOOP)),
+                        StringType.class,
+                        List.of(registration(OTHER))))));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate", new DateTimeType()))
+        .isEqualTo(new Rule.Apply(List.of()));
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate", new MarkdownType()))
+        .isEqualTo(new Rule.Apply(List.of()));
+  }
+
+  @Test
+  void aTypeHandlerOfOneMatchedModuleAppliesToAnElementThatOnlyAnotherModuleKeeps() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    PATIENT,
+                    Set.of("Patient.gender"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP)))),
+                new Module(PATIENT, Set.of("Patient.birthDate"), Map.of(), Map.of())));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
+        .isEqualTo(new Rule.Apply(List.of(NOOP)));
+  }
+
+  @Test
+  void aTypeHandlerOfAModuleWhosePatternDoesNotMatchTheResourceDoesNotApply() {
+    Profile profile =
+        new Profile(
+            List.of(
+                new Module(
+                    new ResourceExistsPath("Observation"),
+                    Set.of("Observation.status"),
+                    Map.of(),
+                    Map.of(DateType.class, List.of(registration(NOOP)))),
+                new Module(PATIENT, Set.of("Patient.birthDate"), Map.of(), Map.of())));
+
+    assertThat(ruleFor(profile, new Patient(), "Patient.birthDate"))
+        .isEqualTo(new Rule.Apply(List.of()));
+  }
+
+  @Test
+  void rejectsATerminalTypeHandlerOfOneModuleFollowedByAPathHandlerOfAnother() {
+    var modules =
+        List.of(
+            new Module(
+                PATIENT,
+                Set.of("Patient.gender"),
+                Map.of(),
+                Map.of(DateType.class, List.of(terminal("dropDate")))),
+            new Module(
+                PATIENT,
+                Set.of("Patient.birthDate"),
+                Map.of("Patient.birthDate", List.of(named("noop"))),
+                Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Handler 'dropDate' has to run last on Patient.birthDate,"
+                + " but the handlers there are dropDate, noop!");
+  }
+
+  @Test
+  void rejectsABasePathThatNamesNoFhirElement() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.nope"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("The base path Patient.nope names no FHIR element!");
+  }
+
+  @Test
+  void rejectsABasePathInTheNarrative() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.text.status"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The base path Patient.text.status is in the narrative,"
+                + " which de-identification always drops!");
+  }
+
+  @Test
+  void rejectsABasePathThatNamesACompositeElement() {
+    var modules = List.of(new Module(PATIENT, Set.of("Patient.name"), Map.of(), Map.of()));
+
+    assertThatThrownBy(() -> new Profile(modules))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "The base path Patient.name names a composite element, which the engine never"
+                + " visits; list its leaf paths!");
+  }
+}
