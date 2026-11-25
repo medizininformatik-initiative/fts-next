@@ -29,8 +29,10 @@
     <!-- Since JDK 23, javac skips classpath annotation processors (e.g. lombok) by default. -->
     <maven.compiler.proc>full</maven.compiler.proc>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <spring-boot.version>4.1.2</spring-boot.version>
+    <spring-boot.version>4.2.0</spring-boot.version>
     <!-- Corresponds to version defined via spring-boot-dependencies/junit-bom -->
+    <!-- Also the version of the test provider, declared so that dependency:go-offline caches it -->
+    <surefire.version>3.6.1</surefire.version>
     <junit-platform.version>6.0.3</junit-platform.version>
     <skipUnitTests>false</skipUnitTests>
     <pit.skip>false</pit.skip>
@@ -38,6 +40,17 @@
     <!-- Each mutated module sets its own threshold, two points below its baseline. -->
     <pit.mutationThreshold>0</pit.mutationThreshold>
   </properties>
+
+  <dependencies>
+    <!-- On the test classpath, so that surefire and failsafe use it instead of resolving their
+         own launcher at run time, which dependency:go-offline cannot cache -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+      <version>${junit-platform.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
   <dependencyManagement>
     <dependencies>
@@ -53,7 +66,7 @@
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
         <!-- See https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot -->
-        <version>3.2.0</version>
+        <version>3.2.1</version>
       </dependency>
 
       <dependency>
@@ -85,26 +98,26 @@
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-core</artifactId>
-        <version>1.6.6</version>
+        <version>1.6.8</version>
       </dependency>
 
       <!-- TODO: Temporary transitive update for CVE-2026-54515 - Remove when the Spring Boot BOM manages jackson-databind >= 2.21.5! -->
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.22.4</version>
+        <version>2.23.0</version>
       </dependency>
 
       <!-- TODO: Temporary transitive update for CVE-2026-55471 and CVE-2026-45367 - Remove when hapi-fhir bundles org.hl7.fhir core >= 6.9.10! -->
       <dependency>
         <groupId>ca.uhn.hapi.fhir</groupId>
         <artifactId>org.hl7.fhir.r4</artifactId>
-        <version>7.0.4</version>
+        <version>7.0.6</version>
       </dependency>
       <dependency>
         <groupId>ca.uhn.hapi.fhir</groupId>
         <artifactId>org.hl7.fhir.utilities</artifactId>
-        <version>7.0.4</version>
+        <version>7.0.6</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -112,6 +125,13 @@
   <build>
     <pluginManagement>
       <plugins>
+        <!-- Pinned, as dependency:go-offline resolves plugin dependencies only since 3.9.0 -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.11.0</version>
+        </plugin>
+
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
@@ -153,7 +173,7 @@
         <plugin>
           <groupId>org.pitest</groupId>
           <artifactId>pitest-maven</artifactId>
-          <version>1.30.1</version>
+          <version>1.30.2</version>
           <dependencies>
             <dependency>
               <groupId>org.pitest</groupId>
@@ -225,12 +245,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.6.1</version>
+          <version>${surefire.version}</version>
           <dependencies>
             <dependency>
-              <groupId>org.junit.platform</groupId>
-              <artifactId>junit-platform-engine</artifactId>
-              <version>${junit-platform.version}</version>
+              <groupId>org.apache.maven.surefire</groupId>
+              <artifactId>surefire-junit-platform</artifactId>
+              <version>${surefire.version}</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -241,12 +261,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>3.6.1</version>
+          <version>${surefire.version}</version>
           <dependencies>
             <dependency>
-              <groupId>org.junit.platform</groupId>
-              <artifactId>junit-platform-engine</artifactId>
-              <version>${junit-platform.version}</version>
+              <groupId>org.apache.maven.surefire</groupId>
+              <artifactId>surefire-junit-platform</artifactId>
+              <version>${surefire.version}</version>
             </dependency>
           </dependencies>
 
@@ -275,7 +295,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>flatten-maven-plugin</artifactId>
-        <version>1.8.0</version>
+        <version>1.10.0</version>
         <configuration>
           <updatePomFile>true</updatePomFile>
           <flattenMode>resolveCiFriendliesOnly</flattenMode>

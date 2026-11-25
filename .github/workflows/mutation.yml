@@ -22,7 +22,7 @@ jobs:
       modules: ${{ steps.modules.outputs.modules }}
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+      uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
       with:
         egress-policy: audit
 
@@ -55,7 +55,7 @@ jobs:
         module: ${{ fromJSON(needs.modules.outputs.modules) }}
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+      uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
       with:
         egress-policy: audit
 
@@ -63,19 +63,17 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set up JDK 21
-      uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
       with:
         distribution: 'temurin'
-        java-version: 25.0.5+8.0.LTS
-        cache: 'maven'
-        cache-dependency-path: |
-          pom.xml
-          {api,deidentifier,util,test-util}/pom.xml
-          ${{ matrix.module }}/pom.xml
+        java-version: 25.0.5+100000002.0.LTS
+
+    - name: Restore Maven Cache
+      uses: ./.github/actions/restore-maven-cache
 
     - name: Install Upstream Modules
       run: |
-        mvn -B -U -T1C -DskipTests -DskipITs -Dcheckstyle.skip -Dcyclonedx.skip \
+        mvn -B -T1C -DskipTests -DskipITs -Dcheckstyle.skip -Dcyclonedx.skip \
           -Dspring-boot.repackage.skip=true \
           --also-make --projects "${MODULE}" install
 
@@ -108,7 +106,7 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+      uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
       with:
         egress-policy: audit
 

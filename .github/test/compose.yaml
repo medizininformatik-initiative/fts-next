@@ -17,7 +17,7 @@ include:
 services:
   # Clinical Domain
   cd-hds:
-    image: samply/blaze:1.13.0@sha256:808d04a6224ca926ab2422d4235cd008399b5e4d4f5855d52fd2715de295f1c2
+    image: samply/blaze:1.14.0@sha256:fdfc93c77458b26dbfbc2cdc2cef60e285ae3870253c6aa62b783999f15c7200
     ports: [ ":8080" ]
     networks: [ "clinical-domain" ]
     environment:
@@ -31,7 +31,7 @@ services:
 
   # Research Domain
   rd-hds:
-    image: samply/blaze:1.13.0@sha256:808d04a6224ca926ab2422d4235cd008399b5e4d4f5855d52fd2715de295f1c2
+    image: samply/blaze:1.14.0@sha256:fdfc93c77458b26dbfbc2cdc2cef60e285ae3870253c6aa62b783999f15c7200
     ports: [ ":8080" ]
     networks: [ "research-domain" ]
     environment:
@@ -46,7 +46,7 @@ services:
 
   # Trust Center
   gics:
-    image: mosaicgreifswald/gics:2026.1.1@sha256:b734a0a0340152c20d030f304852080806dcd4f60e6e078866658ae5e2c8f226
+    image: mosaicgreifswald/gics:2026.1.4@sha256:fac5709bf4dee16e245de8105f7f69ae6334b62529ba2c473947918e405ae848
     ports: [ ":8080" ]
     networks: [ "gics", "trust-center" ]
     restart: on-failure:3
@@ -64,7 +64,7 @@ services:
       retries: 3
       start_period: 300s
   gics-db:
-    image: mysql:9.7.4@sha256:df90258da46f6e7ff8574ff84f17618aba0765cac749928299c69fd4e7cb8ad8
+    image: mysql:9.7.4@sha256:1f2ca53a9e94ff9f1f313099fa7dc7fb2f72e180ca5b2ef83574031e451bbbf1
     volumes:
     - ./gics/initdb/:/docker-entrypoint-initdb.d
     command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin
@@ -99,7 +99,7 @@ services:
       retries: 3
       start_period: 300s
   gpas-db:
-    image: mysql:9.7.4@sha256:df90258da46f6e7ff8574ff84f17618aba0765cac749928299c69fd4e7cb8ad8
+    image: mysql:9.7.4@sha256:1f2ca53a9e94ff9f1f313099fa7dc7fb2f72e180ca5b2ef83574031e451bbbf1
     volumes:
     - ./gpas/initdb/:/docker-entrypoint-initdb.d
     command: --max_allowed_packet=20M --default-time-zone=Europe/Berlin

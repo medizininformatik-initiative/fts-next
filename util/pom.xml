@@ -121,7 +121,14 @@
     <dependency>
       <groupId>no.nav.security</groupId>
       <artifactId>mock-oauth2-server</artifactId>
-      <version>6.1.4</version>
+      <version>7.0.2</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- mock-oauth2-server brings JUnit 4; declared, so that surefire does not resolve the
+         engine for it at run time, which dependency:go-offline cannot cache -->
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -165,7 +172,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.6.4</version>
+        <version>3.7.0</version>
         <executions>
           <execution>
             <id>generate-certificates</id>

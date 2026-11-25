@@ -1,7 +1,5 @@
 package care.smith.fts.cda.impl;
 
-import static care.smith.fts.util.ConsentedPatientExtractor.getPatientIdentifier;
-
 import care.smith.fts.api.cda.CohortSelector;
 import care.smith.fts.util.ConsentedPatientExtractor;
 import care.smith.fts.util.RequiredPolicies;
@@ -37,6 +35,6 @@ public class TcaCohortSelectorFactory implements CohortSelector.Factory<TcaCohor
     return new ConsentedPatientExtractor(
         config.patientIdentifierSystem(),
         new RequiredPolicies(config.policySystem(), config.policies()),
-        b -> getPatientIdentifier(gicsIdentifierSystem, b));
+        gicsIdentifierSystem);
   }
 }

@@ -1,0 +1,72 @@
+name: Restore Maven Cache
+description: >-
+  Restores the local Maven repository from the cache that is produced on the
+  default branch by the `maven-cache` job of the Build workflow. Falls back to
+  the most recent cache if the poms changed. Configures Maven for the job: the
+  Google mirror of Maven Central is tried first, requests rejected with 429
+  are retried, and on an exact cache hit Maven runs offline.
+
+inputs:
+  lookup-only:
+    description: Only check whether a cache for the current poms exists, without downloading it
+    default: 'false'
+  offline:
+    description: >-
+      Run Maven offline on an exact cache hit. Disable for jobs that need
+      artifacts the cache does not hold, e.g. plugins run by other actions.
+    default: 'true'
+
+outputs:
+  key:
+    description: Cache key for the current poms
+    value: ${{ steps.key.outputs.key }}
+  cache-hit:
+    description: Whether a cache for exactly the current poms exists
+    value: ${{ steps.restore.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+  - name: Compute Cache Key
+    id: key
+    shell: bash
+    env:
+      # Bump the version when the cache has to be rebuilt without pom changes.
+      CACHE_VERSION: v2
+      POM_HASH: ${{ hashFiles('**/pom.xml') }}
+    run: |
+      echo "prefix=maven-${CACHE_VERSION}-${RUNNER_OS}-" >>"${GITHUB_OUTPUT}"
+      echo "key=maven-${CACHE_VERSION}-${RUNNER_OS}-${POM_HASH}" >>"${GITHUB_OUTPUT}"
+
+  - name: Restore Cache
+    id: restore
+    uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    with:
+      path: ~/.m2/repository
+      key: ${{ steps.key.outputs.key }}
+      restore-keys: ${{ steps.key.outputs.prefix }}
+      lookup-only: ${{ inputs.lookup-only }}
+
+  # Maven reads .mvn/maven.config of the working directory, so every mvn call
+  # of the job uses it, including those of make, scripts and other actions.
+  # One argument per line.
+  - name: Configure Maven
+    shell: bash
+    env:
+      OFFLINE: >-
+        ${{ inputs.offline == 'true' && inputs.lookup-only != 'true'
+        && steps.restore.outputs.cache-hit == 'true' }}
+    run: |
+      mkdir -p .mvn
+      {
+        echo "--global-settings"
+        echo "${GITHUB_WORKSPACE}/.github/maven/settings.xml"
+        echo "-Daether.connector.http.retryHandler.count=10"
+        echo "-Daether.connector.http.retryHandler.interval=10000"
+        echo "-Daether.connector.http.retryHandler.serviceUnavailable=429,503"
+        if [[ "${OFFLINE}" == "true" ]]; then
+          echo "--offline"
+        fi
+      } >.mvn/maven.config
+      echo "Maven configuration:"
+      cat .mvn/maven.config
