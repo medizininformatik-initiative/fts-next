@@ -8,7 +8,7 @@ cd-agent:
 	sed "s/<COMMIT_TAG>/$${COMMIT_TAG}/g" verify.sh >./cd-agent/verify.sh
 	chmod +x ./cd-agent/verify.sh
 	mkdir -p ./cd-agent/projects/example
-	cp -r ../test/deidentifhir ./cd-agent/projects/example
+	cp -r ../test/deidentifier ./cd-agent/projects/example
 	cp ../../clinical-domain-agent/application.yaml ./cd-agent/
 	tar -czf cd-agent.tar.gz ./cd-agent/
 	sha256sum cd-agent.tar.gz >cd-agent.tar.gz.sha256
@@ -30,10 +30,10 @@ rd-agent:
 	sed "s/<COMMIT_TAG>/$${COMMIT_TAG}/g" verify.sh >./rd-agent/verify.sh
 	chmod +x ./rd-agent/verify.sh
 	mkdir -p ./rd-agent/projects/example
-	cp -r ../test/deidentifhir ./rd-agent/projects/example
-	find ./rd-agent/projects/example/deidentifhir \
+	cp -r ../test/deidentifier ./rd-agent/projects/example
+	find ./rd-agent/projects/example/deidentifier \
 		-type f \( -name "CDtoTransport.profile" -o -name "CDtoTransport.conf" \) -delete
-	find ./rd-agent/projects/example/deidentifhir \
+	find ./rd-agent/projects/example/deidentifier \
 		-type f \( -name "IDScraper.profile" -o -name "IDScraper.conf" \) -delete
 	cp ../../research-domain-agent/application.yaml ./rd-agent/
 	tar -czf rd-agent.tar.gz ./rd-agent/

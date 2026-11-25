@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import care.smith.fts.api.DateShiftPreserve;
 import org.junit.jupiter.api.Test;
 
-public class DeidentifhirStepConfigTest {
+public class DeidentifierStepConfigTest {
 
   @Test
   void missingDateShiftPreserveDefaultsToNone() {
-    var config = new DeidentifhirStepConfig(null, null, null, null);
+    var config = new DeidentifierStepConfig(null, null, null, null);
     assertThat(config.dateShiftPreserve()).isEqualTo(DateShiftPreserve.NONE);
   }
 }

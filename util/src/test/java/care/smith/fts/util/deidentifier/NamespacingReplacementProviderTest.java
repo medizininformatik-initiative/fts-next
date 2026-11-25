@@ -1,7 +1,7 @@
-package care.smith.fts.util.deidentifhir;
+package care.smith.fts.util.deidentifier;
 
-import static care.smith.fts.util.deidentifhir.NamespacingReplacementProvider.withNamespacing;
-import static care.smith.fts.util.deidentifhir.NamespacingReplacementProvider.withoutNamespacing;
+import static care.smith.fts.util.deidentifier.NamespacingReplacementProvider.withNamespacing;
+import static care.smith.fts.util.deidentifier.NamespacingReplacementProvider.withoutNamespacing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 

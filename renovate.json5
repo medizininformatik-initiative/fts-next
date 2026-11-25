@@ -37,17 +37,6 @@
     },
     {
       description: [
-        "Find `deidentifhir` in GitHub Maven packages"
-      ],
-      matchPackageNames: [
-        'de.ume:deidentifhir',
-      ],
-      registryUrls: [
-        'https://maven.pkg.github.com/UMEssen/DeidentiFHIR',
-      ],
-    },
-    {
-      description: [
         "Custom MOSAIC images typically require test data to be updated, too"
       ],
       matchDepNames: [

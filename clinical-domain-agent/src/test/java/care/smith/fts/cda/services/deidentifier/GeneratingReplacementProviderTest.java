@@ -1,4 +1,4 @@
-package care.smith.fts.cda.services.deidentifhir;
+package care.smith.fts.cda.services.deidentifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
