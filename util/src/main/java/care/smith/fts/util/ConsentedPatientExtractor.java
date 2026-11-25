@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Patient;
-import org.slf4j.event.Level;
 
 /**
  * Extracts consented patients from bundles, each holding a patient and its consents.
@@ -98,20 +97,11 @@ public record ConsentedPatientExtractor(
    *     if the patient has no identifier
    */
   public Optional<CohortEntry> toCohortEntry(Bundle bundle) {
-    return toCohortEntry(bundle, Level.WARN);
+    return patientIdentifier(bundle).flatMap(id -> classifyPatient(id, bundle));
   }
 
-  /**
-   * Like {@link #toCohortEntry(Bundle)}, logging provisions that cannot be evaluated at the given
-   * level.
-   */
-  public Optional<CohortEntry> toCohortEntry(Bundle bundle, Level skippedLevel) {
-    return patientIdentifier(bundle).flatMap(id -> classifyPatient(id, bundle, skippedLevel));
-  }
-
-  private Optional<CohortEntry> classifyPatient(
-      String patientIdentifier, Bundle bundle, Level skippedLevel) {
-    return switch (requiredPolicies.classify(bundle, skippedLevel)) {
+  private Optional<CohortEntry> classifyPatient(String patientIdentifier, Bundle bundle) {
+    return switch (requiredPolicies.classify(bundle)) {
       case Covered c ->
           Optional.of(
               new Consented(
