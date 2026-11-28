@@ -1,6 +1,8 @@
 package care.smith.fts.cda.impl;
 
 import static care.smith.fts.cda.impl.PatientPage.referencedPatientId;
+import static care.smith.fts.util.LogUtil.errorType;
+import static care.smith.fts.util.LogUtil.traceException;
 import static care.smith.fts.util.MediaTypes.APPLICATION_FHIR_JSON;
 import static care.smith.fts.util.fhir.FhirUtils.typedResourceStream;
 import static care.smith.fts.util.fhir.LenientFhirReader.readLenient;
@@ -104,7 +106,10 @@ class FhirCohortSelector implements CohortSelector {
         .expand(page -> fetchNextPage(page, PATIENT_REQUEST))
         .concatMap(page -> withConsents(PatientPage.of(page, extractor)))
         .doOnNext(b -> log.debug("Found {} entries in bundle", b.getEntry().size()))
-        .doOnError(e -> log.error("Error fetching cohort from FHIR server: {}", e.getMessage()))
+        .doOnError(e -> {
+          log.error("Error fetching cohort from FHIR server: {}", errorType(e));
+          traceException(log, e);
+        })
         .onErrorResume(WebClientException.class, FhirCohortSelector::handleWebClientException);
   }
 
@@ -116,7 +121,7 @@ class FhirCohortSelector implements CohortSelector {
       builder.queryParam("identifier", identifierQuery(identifiers));
     }
     var uri = builder.build();
-    log.trace("buildPatientSearchQuery: {}", uri);
+    log.trace("buildPatientSearchQuery: {}", uri.getPath());
     return uri;
   }
 
@@ -145,7 +150,7 @@ class FhirCohortSelector implements CohortSelector {
             .queryParam("patient.identifier", identifierQuery(identifiers))
             .queryParam("_include", "Consent:patient")
             .build();
-    log.trace("buildConsentSearchQuery: {}", uri);
+    log.trace("buildConsentSearchQuery: {}", uri.getPath());
     return uri;
   }
 
@@ -180,7 +185,7 @@ class FhirCohortSelector implements CohortSelector {
   private Mono<Bundle> fetchNextPage(Bundle bundle, String requestName) {
     return Mono.justOrEmpty(bundle.getLink("next"))
         .map(BundleLinkComponent::getUrl)
-        .doOnNext(url -> log.trace("Fetch next page from: {}", url))
+        .doOnNext(url -> log.trace("Fetch next page of {}", requestName))
         .flatMap(url -> fetchBundle(extractUriBuilder(url), requestName));
   }
 
@@ -197,7 +202,6 @@ class FhirCohortSelector implements CohortSelector {
     return groupPatientsAndConsents(bundle)
         .collectList()
         .flatMapIterable(selected::select)
-        .doOnNext(p -> log.trace("extractCohortEntries: emitted {}", p.identifier()))
         .doOnComplete(() -> log.trace("extractCohortEntries completed for bundle"));
   }
 

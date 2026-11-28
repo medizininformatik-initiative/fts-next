@@ -57,33 +57,35 @@ The status response looks like this:
   "deidentifiedBundles": 118,
   "sentBundles": 118,
   "skippedBundles": 0,
-  "excludedPatients": 0
+  "excludedPatients": 0,
+  "error": null
 }
 ```
 <!--@formatter:on-->
 
-| Field                 | Description                                                                                                                                           |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `processId`           | Process ID                                                                                                                                            |
-| `phase`               | Status of the process, see [Phases](#phases)                                                                                                          |
-| `createdAt`           | Point in time when the process was created (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))                                        |
-| `finishedAt`          | Point in time when the process finished (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))                                           |
-| `totalPatients`       | Total number of consented patients to be processed, may change while the process is running                                                           |
-| `totalBundles`        | Total number of bundles to be processed                                                                                                               |
-| `deidentifiedBundles` | Number of bundles after deidentification                                                                                                              |
-| `sentBundles`         | Number of bundles sent to RDA                                                                                                                         |
-| `skippedBundles`      | Number of bundles skipped because a step failed; if greater than zero, query the [failed patients endpoint](#failed-patients) for details             |
+| Field                 | Description                                                                                                                                                              |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `processId`           | Process ID                                                                                                                                                               |
+| `phase`               | Status of the process, see [Phases](#phases)                                                                                                                             |
+| `createdAt`           | Point in time when the process was created (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))                                                           |
+| `finishedAt`          | Point in time when the process finished (ISO-8601 with offset; see [Time Zone](../configuration/time-zone))                                                              |
+| `totalPatients`       | Total number of consented patients to be processed, may change while the process is running                                                                              |
+| `totalBundles`        | Total number of bundles to be processed                                                                                                                                  |
+| `deidentifiedBundles` | Number of bundles after deidentification                                                                                                                                 |
+| `sentBundles`         | Number of bundles sent to RDA                                                                                                                                            |
+| `skippedBundles`      | Number of bundles skipped because a step failed; if greater than zero, query the [failed patients endpoint](#failed-patients) for details                                |
 | `excludedPatients`    | Number of patients excluded during cohort selection, e.g. for a faulty consent; if greater than zero, query the [failed patients endpoint](#failed-patients) for details |
+| `error`               | Message of the error that stopped the process in phase `FATAL`, `null` otherwise                                                                                         |
 
 #### Phases
 
-| Phase                  | Meaning                                                                                                  |
-|------------------------|----------------------------------------------------------------------------------------------------------|
-| `QUEUED`               | The process waits for a free slot                                                                        |
-| `RUNNING`              | The process transfers data                                                                               |
+| Phase                  | Meaning                                                                                                           |
+|------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `QUEUED`               | The process waits for a free slot                                                                                 |
+| `RUNNING`              | The process transfers data                                                                                        |
 | `COMPLETED`            | The process finished, and no step failed for any patient; patients may have been excluded, see `excludedPatients` |
-| `COMPLETED_WITH_ERROR` | The process finished, but a step failed for at least one patient, see `skippedBundles`                   |
-| `FATAL`                | The process stopped, e.g. because the cohort selection failed                                            |
+| `COMPLETED_WITH_ERROR` | The process finished, but a step failed for at least one patient, see `skippedBundles`                            |
+| `FATAL`                | The process stopped, e.g. because the cohort selection failed                                                     |
 
 [API Reference for Status Endpoint](/open-api/cd-openapi.html#get-/api/v2/process/status/-processId-)
 
@@ -165,6 +167,69 @@ the clinical domain agent:
 A patient with several identifiers of the configured system is transferred and reported
 under the requested one. If several of these identifiers are requested, the patient is
 transferred once, and the other requested identifiers are reported as `No consent found`.
+
+### Finding the Patient of a Log Message
+
+The log messages of the clinical domain agent name no patients: neither patient
+identifiers, nor FHIR resource IDs, nor consent dates. A message about a failed or
+excluded patient names the process and, for errors, only the types of the error and its
+causes. The failed patients endpoint of that process names the patient and the error
+message:
+
+<!--@formatter:off-->
+```text
+… ERROR … DefaultTransferProcessRunner : [Process t5K0Qs] Failed to select data for a patient: RetryExhaustedException(WebClientRequestException(AnnotatedConnectException(ConnectException))), see /api/v2/process/status/t5K0Qs/failed_patients
+… WARN  … CohortReport                 : [Process t5K0Qs] Patients excluded from cohort: Consent for policy 2.16.840.1.113883.3.1937.777.24.5.3.6 has no start date (1)
+```
+<!--@formatter:on-->
+
+Query the path from the message on the clinical domain agent:
+
+```shell
+curl -sSf "https://cd-agent:8080/api/v2/process/status/t5K0Qs/failed_patients"
+```
+
+<!--@formatter:off-->
+```json
+[
+  {
+    "patientIdentifier": "patient-007",
+    "step": "SELECT_COHORT",
+    "errorMessage": "Consent for policy 2.16.840.1.113883.3.1937.777.24.5.3.6 has no start date"
+  },
+  {
+    "patientIdentifier": "patient-001",
+    "step": "SELECT_DATA",
+    "errorMessage": "Retries exhausted: 3/3"
+  }
+]
+```
+<!--@formatter:on-->
+
+Each entry matches a log message of the same `step`: `SELECT_COHORT` entries match the
+reason of a `Patients excluded from cohort` message, which counts the patients excluded for
+that reason, other entries a `Failed to …` message.
+Failed patients are kept as long as the process status, see
+[`processTtl`](../configuration/runner#processttl) in the runner configuration.
+
+A failed process logs the types of its error and causes as well, and the `error` field of
+its [status](#transfer-status) gives the message:
+
+<!--@formatter:off-->
+```text
+… ERROR … DefaultTransferProcessRunner : [Process t5K0Qs] Cohort selection failed: RetryExhaustedException(WebClientRequestException(AnnotatedConnectException(ConnectException))), see /api/v2/process/status/t5K0Qs
+```
+<!--@formatter:on-->
+
+::: warning
+Two kinds of log output can still contain patient data, so keep them off in production:
+
+* Stack traces, which the clinical domain agent logs only at level `TRACE`. Their error
+  messages may contain request URLs with patient IDs.
+* Messages of the libraries the agent uses, e.g. Spring's web client, which logs request
+  URLs at level `DEBUG`.
+
+:::
 
 ## Monitoring
 

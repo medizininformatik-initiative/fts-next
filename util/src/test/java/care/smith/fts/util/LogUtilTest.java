@@ -1,8 +1,12 @@
 package care.smith.fts.util;
 
+import static care.smith.fts.util.LogUtil.errorType;
+import static care.smith.fts.util.LogUtil.traceException;
 import static care.smith.fts.util.LogUtil.warnWithDebugException;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +28,53 @@ class LogUtilTest {
     warnWithDebugException(log, msg, e);
 
     verify(log).warn(msg, e);
+  }
+
+  @Test
+  void errorTypeIsSimpleClassNameWithoutMessage() {
+    var e = new IllegalStateException("patient-114562");
+
+    assertThat(errorType(e)).isEqualTo("IllegalStateException");
+  }
+
+  @Test
+  void errorTypeNamesCauseChainWithoutMessages() {
+    var root = new IllegalArgumentException("patient-114562");
+    var cause = new IllegalStateException("patient-114563", root);
+    var e = new RuntimeException("patient-114564", cause);
+
+    assertThat(errorType(e))
+        .isEqualTo("RuntimeException(IllegalStateException(IllegalArgumentException))");
+  }
+
+  @Test
+  void errorTypeStopsAtCyclicCause() {
+    var e = new RuntimeException();
+    var cause = new IllegalStateException(e);
+    e.initCause(cause);
+
+    assertThat(errorType(e)).isEqualTo("RuntimeException(IllegalStateException)");
+  }
+
+  @Test
+  void traceExceptionLogsStackTraceAtTrace() {
+    var e = new Exception("message-114562");
+    given(log.isTraceEnabled()).willReturn(true);
+
+    traceException(log, e);
+
+    verify(log).trace("Stack trace", e);
+  }
+
+  @Test
+  void traceExceptionLogsNothingBelowTrace() {
+    var e = new Exception("message-114562");
+    given(log.isTraceEnabled()).willReturn(false);
+
+    traceException(log, e);
+
+    verify(log).isTraceEnabled();
+    verifyNoMoreInteractions(log);
   }
 
   @Test

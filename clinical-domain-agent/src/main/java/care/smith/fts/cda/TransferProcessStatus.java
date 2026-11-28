@@ -19,11 +19,12 @@ public record TransferProcessStatus(
     @With(PRIVATE) long deidentifiedBundles,
     @With(PRIVATE) long sentBundles,
     @With(PRIVATE) long skippedBundles,
-    @With(PRIVATE) long excludedPatients) {
+    @With(PRIVATE) long excludedPatients,
+    @With(PRIVATE) String error) {
 
   public static TransferProcessStatus create(String processId) {
     return new TransferProcessStatus(
-        processId, Phase.QUEUED, Instant.now(), null, 0, 0, 0, 0, 0, 0);
+        processId, Phase.QUEUED, Instant.now(), null, 0, 0, 0, 0, 0, 0, null);
   }
 
   public TransferProcessStatus incTotalPatients() {
@@ -63,6 +64,17 @@ public record TransferProcessStatus(
       return this;
     }
     return isCompleted(phase) ? withPhase(phase).withFinishedAt(Instant.now()) : withPhase(phase);
+  }
+
+  /**
+   * Stop the process with phase FATAL. The error may name patients, so it is served with the status
+   * only, and never logged.
+   *
+   * @param error the message of the error that stopped the process
+   * @return TransferProcessStatus
+   */
+  public TransferProcessStatus fail(String error) {
+    return isCompleted(phase) ? this : setPhase(Phase.FATAL).withError(error);
   }
 
   public static Boolean isCompleted(Phase phase) {
