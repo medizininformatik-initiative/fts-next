@@ -4,7 +4,7 @@ FROM eclipse-temurin:25.0.5.1_2-jre-alpine@sha256:69c2a26e9894016e274c880fa54295
 # Renovate tracks updates (see renovate.json5). openssl, libssl3 and
 # libcrypto3 share one version and must upgrade in lockstep.
 # renovate: datasource=repology depName=alpine_3_24/libexpat versioning=loose
-ARG LIBEXPAT_VERSION="2.10.0-r0"
+ARG LIBEXPAT_VERSION="2.11.0-r0"
 # renovate: datasource=repology depName=alpine_3_24/openssl versioning=loose
 ARG OPENSSL_VERSION="3.5.9-r1"
 
